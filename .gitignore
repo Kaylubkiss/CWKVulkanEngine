@@ -1,3 +1,4 @@
 .vs
 x64
-FrameWork/x64/
+FrameWork/x64/Debug
+FrameWork/x64/Release
