@@ -844,18 +844,40 @@ void Application::CreateCommandBuffers()
 
 }
 
-void CreateSemaphores() 
+void Application::CreateSemaphores() 
 {
 
+	VkResult result;
 
+	VkSemaphoreCreateInfo semaphoreInfo = {};
+	semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+
+	//TODO: cleanup
+	result = vkCreateSemaphore(this->m_logicalDevice, &semaphoreInfo, nullptr, &this->imageAvailableSemaphore);
+	assert(result == VK_SUCCESS);
+
+	//TODO: cleanup
+	result = vkCreateSemaphore(this->m_logicalDevice, &semaphoreInfo, nullptr, &this->renderFinishedSemaphore);
+	assert(result == VK_SUCCESS);
+
+}
+
+void Application::CreateFences() 
+{
+	VkResult result;
+	VkFenceCreateInfo fenceInfo = {};
+	fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+	fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT; //to prevent indefinite waiting on first frame.
+
+	//TODO: cleanup
+	result = vkCreateFence(this->m_logicalDevice, &fenceInfo, nullptr, &this->inFlightFence);
+	assert(result == VK_SUCCESS);
 }
 
 bool Application::init() 
 {
 
 	//uniform stuffs;
-
-
 	uTransform.proj[1][1] *= -1;
 
 	VkResult result = VK_SUCCESS;
@@ -879,6 +901,9 @@ bool Application::init()
 	FindQueueFamilies();
 
 	CreateLogicalDevice();
+
+	vkGetDeviceQueue(this->m_logicalDevice, graphicsFamily, 0, &graphicsQueue);
+	vkGetDeviceQueue(this->m_logicalDevice, presentFamily, 0, &presentQueue);
 
 	// If you want to draw a triangle:
 	// - create renderpass object
@@ -907,34 +932,24 @@ bool Application::init()
 
 	CreateCommandBuffers();
 
-	//create sync objects --> gpu work is asynchronous.
-	VkSemaphoreCreateInfo semaphoreInfo = {};
-	semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+	CreateSemaphores();
 
-	VkFenceCreateInfo fenceInfo = {};
-	fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-	fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT; //to prevent indefinite waiting on first frame.
+	CreateFences();
 
-	//TODO: cleanup
-	result = vkCreateSemaphore(this->m_logicalDevice, &semaphoreInfo, nullptr, &this->imageAvailableSemaphore);
-	assert(result == VK_SUCCESS);
-	
-	//TODO: cleanup
-	result = vkCreateSemaphore(this->m_logicalDevice, &semaphoreInfo, nullptr, &this->renderFinishedSemaphore);
-	assert(result == VK_SUCCESS);
+	return true;
 
-	//TODO: cleanup
-	vkCreateFence(this->m_logicalDevice, &fenceInfo, nullptr, &this->inFlightFence);
-	assert(result == VK_SUCCESS);
 
-	vkGetDeviceQueue(this->m_logicalDevice, graphicsFamily, 0, &graphicsQueue);
-	vkGetDeviceQueue(this->m_logicalDevice, presentFamily, 0, &presentQueue);
+}
+
+void Application::loop() 
+{
+	VkResult result;
 
 	//render graphics.
 	SDL_Event e; bool quit = false;
-	while (quit == false) 
+	while (quit == false)
 	{
-		while (SDL_PollEvent(&e)) 
+		while (SDL_PollEvent(&e))
 		{
 			//vulkan shit
 			result = vkWaitForFences(this->m_logicalDevice, 1, &this->inFlightFence, VK_TRUE, UINT64_MAX);
@@ -1028,31 +1043,11 @@ bool Application::init()
 			}
 		}
 	}
-	
+
 
 	vkDeviceWaitIdle(this->m_logicalDevice);
 
 	SDL_DestroyWindow(window);
-
-
-
-
-
-	//not sure if I should do this yet
-
-
-
-
-
-	return true;
-
-
-}
-
-void Application::loop() 
-{
-	//TODO
-
 
 }
 

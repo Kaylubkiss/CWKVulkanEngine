@@ -85,7 +85,7 @@ private:
 	void CreateCommandPools();
 	void CreateCommandBuffers();
 	void CreateSemaphores();
-
+	void CreateFences();
 
 
 	bool init();
