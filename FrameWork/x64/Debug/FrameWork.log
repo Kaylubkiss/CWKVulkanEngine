@@ -1,7 +1,0 @@
-﻿  Application.cpp
-C:\Users\cwkmi\Desktop\Programming\vulkan\engine\FrameWork\FrameWork\Application.cpp(777,3): warning C4838: conversion from 'int' to 'uint32_t' requires a narrowing conversion
-  Main.cpp
-  Generating Code...
-SDL2main.lib(SDL_windows_main.obj) : warning LNK4099: PDB '' was not found with 'SDL2main.lib(SDL_windows_main.obj)' or at ''; linking object as if no debug info
-MSVCRTD.lib(initializers.obj) : warning LNK4098: defaultlib 'msvcrt.lib' conflicts with use of other libs; use /NODEFAULTLIB:library
-  FrameWork.vcxproj -> C:\Users\cwkmi\Desktop\Programming\vulkan\engine\FrameWork\x64\Debug\FrameWork.exe
