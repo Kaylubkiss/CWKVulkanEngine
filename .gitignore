@@ -1,4 +1,8 @@
 .vs
 x64
-FrameWork/x64/Debug
-FrameWork/x64/Release
+FrameWork/x64/*.tlog
+FrameWork/x64/*.obj
+FrameWork/x64/*.recipe
+FrameWork/x64/*.ilk
+FrameWork/x64/*.log
+FrameWork/x64/*.obj

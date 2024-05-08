@@ -1,9 +1,0 @@
-﻿  Application.cpp
-  Main.cpp
-  Generating code
-  55 of 160 functions (34.4%) were compiled, the rest were copied from previous compilation.
-    5 functions were new in current compilation
-    6 functions had inline decision re-evaluated but remain unchanged
-  Finished generating code
-SDL2main.lib(SDL_windows_main.obj) : warning LNK4099: PDB '' was not found with 'SDL2main.lib(SDL_windows_main.obj)' or at ''; linking object as if no debug info
-  FrameWork.vcxproj -> C:\Users\cwkmi\Desktop\Programming\vulkan\engine\FrameWork01\x64\Release\FrameWork.exe
