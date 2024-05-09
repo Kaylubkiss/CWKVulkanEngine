@@ -47,9 +47,9 @@ void Application::run()
 	exit();
 }
 
-VkResult Application::CreateInstance() 
+void Application::CreateInstance() 
 {
-
+	VkResult result;
 	//create instance info.
 	VkInstanceCreateInfo createInfo;
 
@@ -95,7 +95,8 @@ VkResult Application::CreateInstance()
 	//also, setting the pAllocator to null will make vulkan do its
 	//own memory management, whereas we can create our own allocator
 	//for vulkan to use
-	return vkCreateInstance(&createInfo, nullptr, &this->m_instance);
+	result = vkCreateInstance(&createInfo, nullptr, &this->m_instance);
+	assert(result == VK_SUCCESS);
 
 }
 
@@ -884,8 +885,7 @@ bool Application::init()
 	
 	CreateWindow();
 
-	result = CreateInstance();
-	assert(result == VK_SUCCESS);
+	CreateInstance();
 
 	CreateWindowSurface();
 
@@ -1044,26 +1044,55 @@ void Application::loop()
 		}
 	}
 
-
 	vkDeviceWaitIdle(this->m_logicalDevice);
-
-	SDL_DestroyWindow(window);
 
 }
 
 void Application::exit()
 {
 	//TODO: release all created resources from init.
-
-	vkDeviceWaitIdle(this->m_logicalDevice);
 	
-	vkDestroyInstance(this->m_instance, nullptr);
+	vkDestroySemaphore(this->m_logicalDevice, this->imageAvailableSemaphore, nullptr);
+
+	vkDestroySemaphore(this->m_logicalDevice, this->renderFinishedSemaphore, nullptr);
+
+	vkFreeCommandBuffers(this->m_logicalDevice, this->commandPool, 1, &this->commandBuffer);
+
+	vkDestroyPipelineLayout(this->m_logicalDevice, this->pipelineLayout, nullptr);
+
+	vkDestroyPipeline(this->m_logicalDevice, this->pipeline, nullptr);
+
+	vkDestroyDescriptorPool(this->m_logicalDevice, this->descriptorPool, nullptr);
+
+	vkDestroyDescriptorSetLayout(this->m_logicalDevice, this->descriptorSetLayout, nullptr);
+
+	vkDestroyBuffer(this->m_logicalDevice, this->vkBuffer, nullptr);
+
+	for (unsigned i = 0; i < imageCount; ++i)
+	{
+		vkDestroyImageView(this->m_logicalDevice, this->imageViews[i], nullptr);
+		vkDestroyFramebuffer(this->m_logicalDevice, this->frameBuffer[i], nullptr);
+	}
+
+	vkDestroyShaderModule(this->m_logicalDevice, this->shaderVertModule, nullptr);
+
+	vkDestroyShaderModule(this->m_logicalDevice, this->shaderFragModule, nullptr);
 	
 	vkDestroyRenderPass(this->m_logicalDevice, this->m_renderPass, nullptr);
 
+	vkDestroySwapchainKHR(this->m_logicalDevice, this->swapChain, nullptr);
+
 	vkDestroyDevice(this->m_logicalDevice, nullptr);
 
+	delete [] swapChainImages;
+	 
+	vkDestroySurfaceKHR(this->m_instance, this->m_windowSurface, nullptr);
+
+	vkDestroyInstance(this->m_instance, nullptr);
+
 	delete[] m_physicalDevices;
+
+	SDL_DestroyWindow(window);
 
 	SDL_Quit();
 

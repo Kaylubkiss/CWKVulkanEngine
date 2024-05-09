@@ -68,7 +68,7 @@ private:
 	VkQueue presentQueue = {};
 
 	//functions
-	VkResult CreateInstance();
+	void CreateInstance();
 	void CreateWindow();
 	void CreateWindowSurface();
 	void EnumeratePhysicalDevices();
