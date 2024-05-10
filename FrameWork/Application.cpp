@@ -50,6 +50,8 @@ void Application::run()
 void Application::CreateInstance() 
 {
 	VkResult result;
+
+	
 	//create instance info.
 	VkInstanceCreateInfo createInfo;
 
@@ -548,14 +550,12 @@ void Application::CreateFrameBuffers()
 void Application::CreateBuffers() 
 {
 	VkResult result;
-	VkDeviceSize bufferSize;
 	VkBufferCreateInfo bufferCreateInfo = {};
 
 	bufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
 	bufferCreateInfo.pNext = nullptr;
 	bufferCreateInfo.flags = 0;
 	bufferCreateInfo.size = sizeof(uTransformObject);
-	bufferSize = bufferCreateInfo.size;
 	bufferCreateInfo.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
 
 	bufferCreateInfo.queueFamilyIndexCount = 0;
@@ -564,6 +564,12 @@ void Application::CreateBuffers()
 
 	result = vkCreateBuffer(this->m_logicalDevice, &bufferCreateInfo, nullptr, &this->vkBuffer);
 	assert(result == VK_SUCCESS);
+
+}
+
+void Application::CreateUniformBuffers() 
+{
+	VkResult result;
 
 	VkMemoryRequirements			memoryRequirments;
 	vkGetBufferMemoryRequirements(this->m_logicalDevice, this->vkBuffer, &memoryRequirments);
@@ -604,7 +610,7 @@ void Application::CreateBuffers()
 	//fill data buffer --> THIS COULD BE ITS OWN MODULE...
 	void* pGpuMemory;
 	result = vkMapMemory(this->m_logicalDevice, vdm, 0, VK_WHOLE_SIZE, 0, &pGpuMemory);	// 0 and 0 are offset and flags
-	memcpy(pGpuMemory, (void*)&uTransform, (size_t)bufferSize);
+	memcpy(pGpuMemory, (void*)&uTransform, (size_t)(sizeof(uTransformObject)));
 	vkUnmapMemory(this->m_logicalDevice, vdm);
 	assert(result == VK_SUCCESS);
 
@@ -1082,15 +1088,15 @@ void Application::exit()
 
 	vkDestroySwapchainKHR(this->m_logicalDevice, this->swapChain, nullptr);
 
-	vkDestroyDevice(this->m_logicalDevice, nullptr);
+	delete[] swapChainImages;
 
-	delete [] swapChainImages;
-	 
+	vkDestroyDevice(this->m_logicalDevice, nullptr);
+	
+	delete[] m_physicalDevices;
+ 
 	vkDestroySurfaceKHR(this->m_instance, this->m_windowSurface, nullptr);
 
 	vkDestroyInstance(this->m_instance, nullptr);
-
-	delete[] m_physicalDevices;
 
 	SDL_DestroyWindow(window);
 

@@ -86,6 +86,7 @@ private:
 	void CreateCommandBuffers();
 	void CreateSemaphores();
 	void CreateFences();
+	void CreateUniformBuffers();
 
 
 	bool init();
