@@ -11,7 +11,6 @@ unsigned long long height = 480;
 #define SCREEN_WIDTH width
 #define SCREEN_HEIGHT height 
 
-
 static glm::vec4 X_BASIS = { 1,0,0,0 };
 static glm::vec4 Y_BASIS = { 0,1,0,0 };
 static glm::vec4 Z_BASIS = { 0,0,1,0 };
@@ -160,6 +159,9 @@ void Application::CreateWindow()
 	{
 		printf("Window could not be created! SDL_Error: %s\n", SDL_GetError());
 	}
+
+	//TODO: make this work.
+	/*SDL_SetWindowResizable(this->window, SDL_TRUE);*/
 }
 
 void Application::CreateWindowSurface() 
@@ -613,9 +615,6 @@ void Application::CreateUniformBuffers()
 	result = vkMapMemory(this->m_logicalDevice, vdm, 0, sizeof(uTransformObject), 0, &pGpuMemory);	// 0 and 0 are offset and flags
 	memcpy(pGpuMemory, (void*)&uTransform, (size_t)(sizeof(uTransformObject)));
 	assert(result == VK_SUCCESS);
-	/*vkUnmapMemory(this->m_logicalDevice, vdm);
-	assert(result == VK_SUCCESS);*/
-
 
 }
 
@@ -687,12 +686,11 @@ void Application::CreatePipeline(VkPipelineShaderStageCreateInfo* pStages, int n
 		VK_FALSE //primitiveRestartEnable
 	};
 
-	VkViewport dummyViewPort =
-	{
-		0.f, 0.f, //viewport x and y
-		SCREEN_WIDTH, SCREEN_HEIGHT, //width, height
-		0.0f, 1.f //minDepth, maxDepth...
-	};
+	VkDynamicState dynamicState = VK_DYNAMIC_STATE_VIEWPORT;
+	VkPipelineDynamicStateCreateInfo dynamicStateCreateInfo{};
+	dynamicStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
+	dynamicStateCreateInfo.dynamicStateCount = 1;
+	dynamicStateCreateInfo.pDynamicStates = &dynamicState;
 
 	VkRect2D dummyScissor =
 	{
@@ -708,7 +706,7 @@ void Application::CreatePipeline(VkPipelineShaderStageCreateInfo* pStages, int n
 		nullptr, //pNext
 		0, //flags
 		1, //viewportCount
-		&dummyViewPort, //pViewPorts
+		nullptr, //pViewPorts
 		1, //scissorCount
 		&dummyScissor, //pScissors
 	};
@@ -802,7 +800,7 @@ void Application::CreatePipeline(VkPipelineShaderStageCreateInfo* pStages, int n
 		//TODO: VkPipelineColorBlendStateCreateInfo,
 		&colorBlendCreateInfo,
 		//TODO: VkPipelineDynamicStateCreateInfo,
-		nullptr,
+		&dynamicStateCreateInfo,
 		//TODO: VkPipelineLayout,
 		this->pipelineLayout,
 		//TODO: VkRenderPass,
@@ -812,7 +810,7 @@ void Application::CreatePipeline(VkPipelineShaderStageCreateInfo* pStages, int n
 		//TODO: basePipelineHandle,
 		VK_NULL_HANDLE,
 		//TODO: basePipelineIndex   
-		-1
+		0
 	};
 
 	//TODO: cleanup
@@ -990,6 +988,15 @@ void Application::loop()
 			result = vkAcquireNextImageKHR(this->m_logicalDevice, swapChain, UINT64_MAX, this->imageAvailableSemaphore, VK_NULL_HANDLE, &imageIndex);
 			assert(result == VK_SUCCESS);
 
+			//TODO: 
+			// if vk_out_of_date error, recreate the swap chain.
+			//-delete the framebuffers
+			//-destroy the swap chain images.
+			//-destroy swap chain
+			//then,
+			//-create swap chain
+			//-create frame buffers
+
 
 			result = vkResetCommandBuffer(this->commandBuffer, 0);
 			assert(result == VK_SUCCESS);
@@ -1023,6 +1030,15 @@ void Application::loop()
 			//bind the graphics pipeline
 			vkCmdBindPipeline(this->commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->pipeline);
 			vkCmdBindDescriptorSets(this->commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->pipelineLayout, 0, 1, &descriptorSets, 0, nullptr);
+
+			//TODO:
+			/*int width, height;
+			SDL_GetWindowSizeInPixels(this->window, &width, &height);
+
+			this->m_viewPort.width = (float)width;
+			this->m_viewPort.height = (float)height;*/
+
+			vkCmdSetViewport(this->commandBuffer, 0, 1, &this->m_viewPort);
 
 			vkCmdDraw(this->commandBuffer, 3, 1, 0, 0);
 

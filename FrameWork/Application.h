@@ -5,6 +5,8 @@
 #define GLM_FORCE_DEFAULT_ALIGNED_GENTYPES
 #include <glm/glm.hpp>
 
+
+
 class Application
 {
 public:
@@ -41,6 +43,8 @@ private:
 	VkSemaphore renderFinishedSemaphore = VK_NULL_HANDLE;
 
 	VkFence inFlightFence = VK_NULL_HANDLE;
+
+	VkViewport m_viewPort = {0,0, (float)640, (float)480, 0, 1};
 
 	VkImage* swapChainImages = nullptr;
 
