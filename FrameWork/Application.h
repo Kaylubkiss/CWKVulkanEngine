@@ -52,6 +52,7 @@ private:
 	VkDescriptorSet descriptorSets;
 	VkDescriptorSetLayout descriptorSetLayout; //dunno if this should be here...
 
+	void* pGpuMemory;
 
 	const char* enabledLayerNames[1] = {
 		"VK_LAYER_KHRONOS_validation"

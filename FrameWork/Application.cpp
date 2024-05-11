@@ -610,7 +610,6 @@ void Application::CreateUniformBuffers()
 
 
 	//fill data buffer --> THIS COULD BE ITS OWN MODULE...
-	void* pGpuMemory;
 	//TODO: cleanup
 	result = vkMapMemory(this->m_logicalDevice, vdm, 0, sizeof(uTransformObject), 0, &pGpuMemory);	// 0 and 0 are offset and flags
 	memcpy(pGpuMemory, (void*)&uTransform, (size_t)(sizeof(uTransformObject)));
@@ -951,11 +950,20 @@ bool Application::init()
 
 void Application::RecreateSwapChain() 
 {
+	VkResult result = vkGetPhysicalDeviceSurfaceCapabilitiesKHR(this->m_physicalDevices[device_index], m_windowSurface, &this->deviceCapabilities);
+	assert(result == VK_SUCCESS);
+
 	for (unsigned i = 0; i < imageCount; ++i)
 	{
 		vkDestroyImageView(this->m_logicalDevice, this->imageViews[i], nullptr);
 		vkDestroyFramebuffer(this->m_logicalDevice, this->frameBuffer[i], nullptr);
 	}
+
+	width = deviceCapabilities.currentExtent.width;
+	height = deviceCapabilities.currentExtent.height;
+
+	delete[] frameBuffer;
+	delete[] swapChainImages;
 
 	vkDestroySwapchainKHR(this->m_logicalDevice, this->swapChain, nullptr);
 
@@ -1018,9 +1026,10 @@ void Application::loop()
 				//-create swap chain
 				//-create frame buffers
 				RecreateSwapChain();
+				//uTransform.proj = glm::perspective(glm::radians(45.f), (float)width / height, 0.1f, 1000.f); //proj
+				//memcpy(pGpuMemory, (void*)&uTransform, (size_t)(sizeof(uTransformObject)));
 				break;
 			}
-
 			assert(result == VK_SUCCESS);
 
 			result = vkResetCommandBuffer(this->commandBuffer, 0);
@@ -1109,9 +1118,10 @@ void Application::loop()
 			if (result == VK_ERROR_OUT_OF_DATE_KHR)
 			{
 				RecreateSwapChain();
+				/*uTransform.proj = glm::perspective(glm::radians(45.f), (float)width / height, 0.1f, 1000.f);
+				memcpy(pGpuMemory, (void*)&uTransform, (size_t)(sizeof(uTransformObject)));*/
 				break;
 			}
-
 			assert(result == VK_SUCCESS);
 
 			if (e.type == SDL_QUIT || (e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_ESCAPE))
