@@ -26,10 +26,9 @@ vec3 colors[3] = vec3[3]
 );
 
 
-//do nothing shader
 void main ()
 {
 	
-	gl_Position =  vec4(positions[gl_VertexIndex], 0.f, 1.f); //gl_VertexID for OpenGL --> it's a vulkan extension idea.
+	gl_Position = uTransform.proj * uTransform.view * uTransform.model * vec4(positions[gl_VertexIndex], 0.f, 1.f); //gl_VertexID for OpenGL --> it's a vulkan extension idea.
 	fragColor = colors[gl_VertexIndex];
 }

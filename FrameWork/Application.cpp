@@ -5,9 +5,11 @@
 #include <SDL2/SDL_vulkan.h>
 #include <glm/gtc/matrix_transform.hpp>
 
+unsigned long long width = 640;
+unsigned long long height = 480;
 
-#define SCREEN_WIDTH 640
-#define SCREEN_HEIGHT 480 
+#define SCREEN_WIDTH width
+#define SCREEN_HEIGHT height 
 
 
 static glm::vec4 X_BASIS = { 1,0,0,0 };
@@ -25,11 +27,10 @@ struct uTransformObject
 
 static uTransformObject uTransform =
 {
-	glm::mat4(X_BASIS, Y_BASIS, Z_BASIS, W_BASIS), //model
-	glm::lookAt(glm::vec3(0,0,10),glm::vec3(0,0,0), glm::vec3(0,-1,0)),
-	glm::perspective(glm::radians(90.f), (float)SCREEN_WIDTH / SCREEN_HEIGHT, 0.1f, 10.f)
+	glm::mat4(1.f), //model
+	glm::lookAt(glm::vec3(0,0,10.f),glm::vec3(0.f,0.f,0.f), glm::vec3(0.f,1.f,0.f)), //view
+	glm::perspective(glm::radians(45.f), (float)SCREEN_WIDTH / SCREEN_HEIGHT,  0.1f, 1000.f) //proj
 };
-
 
 
 
@@ -51,7 +52,6 @@ void Application::CreateInstance()
 {
 	VkResult result;
 
-	
 	//create instance info.
 	VkInstanceCreateInfo createInfo;
 
@@ -154,7 +154,7 @@ void Application::CreateWindow()
 	}
 
 	//TODO: cleanup
-	this->window = SDL_CreateWindow("SDL Tutorial", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_VULKAN);
+	this->window = SDL_CreateWindow("Caleb's Vulkan Engine", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_VULKAN);
 
 	if (this->window == NULL)
 	{
@@ -609,10 +609,12 @@ void Application::CreateUniformBuffers()
 
 	//fill data buffer --> THIS COULD BE ITS OWN MODULE...
 	void* pGpuMemory;
-	result = vkMapMemory(this->m_logicalDevice, vdm, 0, VK_WHOLE_SIZE, 0, &pGpuMemory);	// 0 and 0 are offset and flags
+	//TODO: cleanup
+	result = vkMapMemory(this->m_logicalDevice, vdm, 0, sizeof(uTransformObject), 0, &pGpuMemory);	// 0 and 0 are offset and flags
 	memcpy(pGpuMemory, (void*)&uTransform, (size_t)(sizeof(uTransformObject)));
-	vkUnmapMemory(this->m_logicalDevice, vdm);
 	assert(result == VK_SUCCESS);
+	/*vkUnmapMemory(this->m_logicalDevice, vdm);
+	assert(result == VK_SUCCESS);*/
 
 
 }
@@ -720,7 +722,7 @@ void Application::CreatePipeline(VkPipelineShaderStageCreateInfo* pStages, int n
 		VK_FALSE, //depthClampEnable
 		VK_FALSE, //rasterizerDiscardEnable
 		VK_POLYGON_MODE_FILL, //polygonMode
-		VK_CULL_MODE_BACK_BIT, //cullMode
+		VK_CULL_MODE_NONE, //cullMode
 		VK_FRONT_FACE_CLOCKWISE, //frontFace
 		VK_FALSE, //depthBiasEnable
 		0.f, //depthBiasConstantFactor
@@ -885,7 +887,7 @@ bool Application::init()
 {
 
 	//uniform stuffs;
-	uTransform.proj[1][1] *= -1;
+	/*uTransform.proj[1][1] *= -1.f;*/
 
 	VkResult result = VK_SUCCESS;
 	
@@ -930,6 +932,8 @@ bool Application::init()
 	
 	CreateBuffers();
 
+	CreateUniformBuffers();
+
 	CreateDescriptorSets();
 
 	CreatePipeline(shaderStages, 2);
@@ -950,6 +954,25 @@ bool Application::init()
 void Application::loop() 
 {
 	VkResult result;
+
+	VkWriteDescriptorSet descriptorWrite{};
+	descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+	descriptorWrite.dstSet = this->descriptorSets;
+	descriptorWrite.dstBinding = 0;
+	descriptorWrite.dstArrayElement = 0;
+	descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+	descriptorWrite.descriptorCount = 1;
+	
+	VkDescriptorBufferInfo bufferInfo{};
+	bufferInfo.buffer = vkBuffer;
+	bufferInfo.offset = 0;
+	bufferInfo.range = sizeof(uTransformObject);
+
+	descriptorWrite.pBufferInfo = &bufferInfo;
+	descriptorWrite.pImageInfo = nullptr; // Optional
+	descriptorWrite.pTexelBufferView = nullptr; // Optional
+
+	vkUpdateDescriptorSets(this->m_logicalDevice, 1, &descriptorWrite, 0, nullptr);
 
 	//render graphics.
 	SDL_Event e; bool quit = false;
@@ -1043,7 +1066,7 @@ void Application::loop()
 			result = vkQueuePresentKHR(presentQueue, &presentInfo);
 			assert(result == VK_SUCCESS);
 
-			if (e.type == SDL_QUIT)
+			if (e.type == SDL_QUIT || (e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_ESCAPE))
 			{
 				quit = true;
 			}
