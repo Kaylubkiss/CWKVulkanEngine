@@ -161,7 +161,7 @@ void Application::CreateWindow()
 	}
 
 	//TODO: make this work.
-	/*SDL_SetWindowResizable(this->window, SDL_TRUE);*/
+	SDL_SetWindowResizable(this->window, SDL_TRUE);
 }
 
 void Application::CreateWindowSurface() 
@@ -949,6 +949,25 @@ bool Application::init()
 
 }
 
+void Application::RecreateSwapChain() 
+{
+	for (unsigned i = 0; i < imageCount; ++i)
+	{
+		vkDestroyImageView(this->m_logicalDevice, this->imageViews[i], nullptr);
+		vkDestroyFramebuffer(this->m_logicalDevice, this->frameBuffer[i], nullptr);
+	}
+
+	vkDestroySwapchainKHR(this->m_logicalDevice, this->swapChain, nullptr);
+
+	CreateSwapChain();
+
+	CreateImageViews();
+
+	CreateFrameBuffers();
+
+}
+
+
 void Application::loop() 
 {
 	VkResult result;
@@ -986,17 +1005,23 @@ void Application::loop()
 
 			uint32_t imageIndex;
 			result = vkAcquireNextImageKHR(this->m_logicalDevice, swapChain, UINT64_MAX, this->imageAvailableSemaphore, VK_NULL_HANDLE, &imageIndex);
+
+
+			if (result == VK_ERROR_OUT_OF_DATE_KHR)
+			{
+				//TODO: 
+				// if vk_out_of_date error, recreate the swap chain.
+				//-delete the framebuffers
+				//-destroy the swap chain images.
+				//-destroy swap chain
+				//then,
+				//-create swap chain
+				//-create frame buffers
+				RecreateSwapChain();
+				break;
+			}
+
 			assert(result == VK_SUCCESS);
-
-			//TODO: 
-			// if vk_out_of_date error, recreate the swap chain.
-			//-delete the framebuffers
-			//-destroy the swap chain images.
-			//-destroy swap chain
-			//then,
-			//-create swap chain
-			//-create frame buffers
-
 
 			result = vkResetCommandBuffer(this->commandBuffer, 0);
 			assert(result == VK_SUCCESS);
@@ -1080,6 +1105,13 @@ void Application::loop()
 			presentInfo.pImageIndices = &imageIndex;
 
 			result = vkQueuePresentKHR(presentQueue, &presentInfo);
+
+			if (result == VK_ERROR_OUT_OF_DATE_KHR)
+			{
+				RecreateSwapChain();
+				break;
+			}
+
 			assert(result == VK_SUCCESS);
 
 			if (e.type == SDL_QUIT || (e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_ESCAPE))

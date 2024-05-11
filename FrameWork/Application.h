@@ -91,6 +91,7 @@ private:
 	void CreateSemaphores();
 	void CreateFences();
 	void CreateUniformBuffers();
+	void RecreateSwapChain();
 
 
 	bool init();
