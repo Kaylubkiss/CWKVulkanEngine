@@ -4,6 +4,7 @@
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEFAULT_ALIGNED_GENTYPES
 #include <glm/glm.hpp>
+#include <vector>
 
 
 
@@ -53,7 +54,7 @@ private:
 	VkDescriptorSet descriptorSets;
 	VkDescriptorSetLayout descriptorSetLayout; //dunno if this should be here...
 
-	void* pGpuMemory;
+	std::vector<void*> uniformBufferMemory;
 
 	const char* enabledLayerNames[1] = {
 		"VK_LAYER_KHRONOS_validation"

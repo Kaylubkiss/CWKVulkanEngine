@@ -5,8 +5,8 @@
 #include <SDL2/SDL_vulkan.h>
 #include <glm/gtc/matrix_transform.hpp>
 
-unsigned long long width = 1920;
-unsigned long long height = 1080;
+unsigned long long width = 640;
+unsigned long long height = 480;
 
 #define SCREEN_WIDTH width
 #define SCREEN_HEIGHT height 
@@ -28,7 +28,7 @@ static uTransformObject uTransform =
 {
 	glm::mat4(1.), //model
 	glm::lookAt(glm::vec3(0.f, 0.f ,10.f),glm::vec3(0.f, 0.f, 0.f), glm::vec3(0.f,1.f,0.f)), //view
-	glm::perspective(glm::radians(45.f), (float)SCREEN_WIDTH / SCREEN_HEIGHT,  0.1f, 1000.f) //proj
+	glm::perspective(glm::radians(45.f), (float)4/3,  0.1f, 1000.f) //proj
 };
 
 
@@ -117,7 +117,13 @@ void Application::EnumeratePhysicalDevices()
 		throw std::runtime_error("could not find any GPUs to use!\n");
 	}
 
+
 	this->m_physicalDevices = new VkPhysicalDevice[max_devices];
+
+	if (this->m_physicalDevices == NULL) 
+	{
+		throw std::runtime_error("could not allocate array of physical devices\n");
+	}
 
 	result = vkEnumeratePhysicalDevices(this->m_instance, &max_devices, this->m_physicalDevices);
 
@@ -153,7 +159,7 @@ void Application::CreateWindow()
 	}
 
 	//TODO: cleanup
-	this->window = SDL_CreateWindow("Caleb's Vulkan Engine", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_VULKAN);
+	this->window = SDL_CreateWindow("Caleb's Vulkan Engine", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, static_cast<int>(SCREEN_WIDTH), static_cast<int>(SCREEN_HEIGHT), SDL_WINDOW_VULKAN);
 
 	if (this->window == NULL)
 	{
@@ -234,7 +240,6 @@ void Application::CreateLogicalDevice()
 	VkDeviceQueueCreateInfo* deviceQueueCreateInfos = new VkDeviceQueueCreateInfo[2]; //presentation and graphics.
 
 	uint32_t uniqueQueueFamilies[2] = { graphicsFamily, presentFamily };
-	//TODO: create logical device.
 	for (unsigned i = 0; i < 2; ++i)
 	{
 		VkDeviceQueueCreateInfo deviceQueueInfo = {}; //to be passed into deviceCreateInfo's struct members.
@@ -368,11 +373,13 @@ void Application::CreateSwapChain()
 
 	surfaceFormats = new VkSurfaceFormatKHR[surfaceFormatCount];
 
+	assert(surfaceFormats != nullptr);
+
 	vkGetPhysicalDeviceSurfaceFormatsKHR(this->m_physicalDevices[device_index], this->m_windowSurface, &surfaceFormatCount, surfaceFormats);
 	assert(result == VK_SUCCESS);
 
 	//choose suitable format
-	unsigned surfaceIndex = -1;
+	int surfaceIndex = -1;
 
 	for (unsigned i = 0; i < surfaceFormatCount; ++i)
 	{
@@ -456,7 +463,6 @@ void Application::CreateImageViews()
 			subresourceRange
 		};
 
-		//TODO: cleanup
 		result = vkCreateImageView(this->m_logicalDevice, &imageViewCreateInfo, nullptr, &imageViews[i]);
 
 		assert(result == VK_SUCCESS);
@@ -498,7 +504,6 @@ VkPipelineShaderStageCreateInfo Application::CreateShaderModule(const char* name
 		reinterpret_cast<const uint32_t*>(buffer)
 	};
 
-	//TODO: cleanup
 	result = vkCreateShaderModule(this->m_logicalDevice, &shaderVertModuleInfo, nullptr, &shaderModule);
 
 	assert(result == VK_SUCCESS);
@@ -536,12 +541,11 @@ void Application::CreateFrameBuffers()
 			this->m_renderPass,
 			1,
 			&imageViews[i], //only captures the color of the image.
-			width, //width
-			height, //height
+			(uint32_t)width, //width
+			(uint32_t)height, //height
 			1 //1 layer
 		};
 
-		//TODO: cleanup
 		result = vkCreateFramebuffer(this->m_logicalDevice, &framebufferCreateInfo, nullptr, &this->frameBuffer[i]);
 
 		assert(result == VK_SUCCESS);
@@ -610,9 +614,8 @@ void Application::CreateUniformBuffers()
 
 
 	//fill data buffer --> THIS COULD BE ITS OWN MODULE...
-	//TODO: cleanup
-	result = vkMapMemory(this->m_logicalDevice, vdm, 0, sizeof(uTransformObject), 0, &pGpuMemory);	// 0 and 0 are offset and flags
-	memcpy(pGpuMemory, (void*)&uTransform, (size_t)(sizeof(uTransformObject)));
+	result = vkMapMemory(this->m_logicalDevice, vdm, 0, sizeof(uTransformObject), 0, &uniformBufferMemory.back());	// 0 and 0 are offset and flags
+	memcpy(uniformBufferMemory.back(), (void*)&uTransform, (size_t)(sizeof(uTransformObject)));
 	assert(result == VK_SUCCESS);
 
 }
@@ -776,7 +779,7 @@ void Application::CreatePipeline(VkPipelineShaderStageCreateInfo* pStages, int n
 		VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
 		nullptr,
 		0,
-		numStages,
+		(uint32_t)numStages,
 		pStages,
 		//TODO: VkPipelineVertexInputStateCreateInfo
 		&vertexInputCreateInfo,
@@ -881,15 +884,16 @@ bool Application::init()
 
 	//uniform stuffs;
 	/*uTransform.proj[1][1] *= -1.f;*/
-	
+	uniformBufferMemory.push_back(NULL);
+
 	this->m_viewPort.width = (float)width;
 	this->m_viewPort.height = (float)height;
 	this->m_viewPort.minDepth = 0;
 	this->m_viewPort.maxDepth = 1;
 
 
-	this->m_scissor.extent.width = width;
-	this->m_scissor.extent.height = height;
+	this->m_scissor.extent.width = (uint32_t)width;
+	this->m_scissor.extent.height = (uint32_t)height;
 
 	VkResult result = VK_SUCCESS;
 	
@@ -1022,8 +1026,8 @@ void Application::loop()
 			{
 				int deltaX = e.motion.xrel;
 				int deltaY = e.motion.yrel;
-				uTransform.view = glm::mat4(X_BASIS, Y_BASIS, Z_BASIS, {deltaX * .01f, deltaY * .01f, 0, 1}) * uTransform.view;
-				memcpy(pGpuMemory, (void*)&uTransform, (size_t)(sizeof(uTransformObject)));
+				uTransform.view = glm::mat4(X_BASIS, Y_BASIS, Z_BASIS, {deltaX * .008f, deltaY * .008f, 0, 1}) * uTransform.view;
+				memcpy(uniformBufferMemory.back(), (void*)&uTransform, (size_t)(sizeof(uTransformObject)));
 			}
 
 			if (e.type == SDL_MOUSEWHEEL) 
@@ -1033,12 +1037,12 @@ void Application::loop()
 				if (direction < 0) 
 				{
 					uTransform.view = glm::mat4(X_BASIS, Y_BASIS, Z_BASIS, { 0,0, -.5f, 1 }) * uTransform.view;
-					memcpy(pGpuMemory, (void*)&uTransform, (size_t)(sizeof(uTransformObject)));
+					memcpy(uniformBufferMemory.back(), (void*)&uTransform, (size_t)(sizeof(uTransformObject)));
 				}
 				else 
 				{
 					uTransform.view = glm::mat4(X_BASIS, Y_BASIS, Z_BASIS, {0,0, 0.5f, 1}) * uTransform.view;
-					memcpy(pGpuMemory, (void*)&uTransform, (size_t)(sizeof(uTransformObject)));
+					memcpy(uniformBufferMemory.back(), (void*)&uTransform, (size_t)(sizeof(uTransformObject)));
 				}
 
 			}
@@ -1067,8 +1071,8 @@ void Application::loop()
 			RecreateSwapChain();
 			int width, height;
 			SDL_GetWindowSizeInPixels(this->window, &width, &height);
-			this->m_viewPort.width = width;
-			this->m_viewPort.height = height;
+			this->m_viewPort.width = (float)width;
+			this->m_viewPort.height = (float)height;
 			this->m_scissor.extent.width = width;
 			this->m_scissor.extent.height = height;
 
@@ -1158,8 +1162,8 @@ void Application::loop()
 			RecreateSwapChain();
 			int width, height;
 			SDL_GetWindowSizeInPixels(this->window, &width, &height);
-			this->m_viewPort.width = width;
-			this->m_viewPort.height = height;
+			this->m_viewPort.width = (float)width;
+			this->m_viewPort.height = (float)height;
 			this->m_scissor.extent.width = width;
 			this->m_scissor.extent.height = height;
 
