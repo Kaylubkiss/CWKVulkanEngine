@@ -5,8 +5,8 @@
 #include <SDL2/SDL_vulkan.h>
 #include <glm/gtc/matrix_transform.hpp>
 
-unsigned long long width = 640;
-unsigned long long height = 480;
+unsigned long long width = 1920;
+unsigned long long height = 1080;
 
 #define SCREEN_WIDTH width
 #define SCREEN_HEIGHT height 
@@ -161,7 +161,7 @@ void Application::CreateWindow()
 	}
 
 	//TODO: make this work.
-	/*SDL_SetWindowResizable(this->window, SDL_TRUE);*/
+	SDL_SetWindowResizable(this->window, SDL_TRUE);
 }
 
 void Application::CreateWindowSurface() 
@@ -685,17 +685,13 @@ void Application::CreatePipeline(VkPipelineShaderStageCreateInfo* pStages, int n
 		VK_FALSE //primitiveRestartEnable
 	};
 
-	VkDynamicState dynamicState = VK_DYNAMIC_STATE_VIEWPORT;
+	VkDynamicState dynamicState[2] = { VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR };
 	VkPipelineDynamicStateCreateInfo dynamicStateCreateInfo{};
 	dynamicStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
-	dynamicStateCreateInfo.dynamicStateCount = 1;
-	dynamicStateCreateInfo.pDynamicStates = &dynamicState;
+	dynamicStateCreateInfo.dynamicStateCount = 2;
+	dynamicStateCreateInfo.pDynamicStates = dynamicState;
 
-	VkRect2D dummyScissor =
-	{
-		{ 0, 0 }, // offset
-		{ SCREEN_WIDTH, SCREEN_HEIGHT } // extent
-	};
+	//
 
 
 
@@ -707,7 +703,7 @@ void Application::CreatePipeline(VkPipelineShaderStageCreateInfo* pStages, int n
 		1, //viewportCount
 		nullptr, //pViewPorts
 		1, //scissorCount
-		&dummyScissor, //pScissors
+		nullptr, //pScissors
 	};
 
 	//TODO (RESEARCH): look at what the depth optinos and lineWidth options do.
@@ -885,6 +881,15 @@ bool Application::init()
 
 	//uniform stuffs;
 	/*uTransform.proj[1][1] *= -1.f;*/
+	
+	this->m_viewPort.width = (float)width;
+	this->m_viewPort.height = (float)height;
+	this->m_viewPort.minDepth = 0;
+	this->m_viewPort.maxDepth = 1;
+
+
+	this->m_scissor.extent.width = width;
+	this->m_scissor.extent.height = height;
 
 	VkResult result = VK_SUCCESS;
 	
@@ -1019,6 +1024,22 @@ void Application::loop()
 				int deltaY = e.motion.yrel;
 				uTransform.view = glm::mat4(X_BASIS, Y_BASIS, Z_BASIS, {deltaX * .01f, deltaY * .01f, 0, 1}) * uTransform.view;
 				memcpy(pGpuMemory, (void*)&uTransform, (size_t)(sizeof(uTransformObject)));
+			}
+
+			if (e.type == SDL_MOUSEWHEEL) 
+			{
+				int direction = e.wheel.y;
+
+				if (direction < 0) 
+				{
+					uTransform.view = glm::mat4(X_BASIS, Y_BASIS, Z_BASIS, { 0,0, -.5f, 1 }) * uTransform.view;
+					memcpy(pGpuMemory, (void*)&uTransform, (size_t)(sizeof(uTransformObject)));
+				}
+				else 
+				{
+					uTransform.view = glm::mat4(X_BASIS, Y_BASIS, Z_BASIS, {0,0, 0.5f, 1}) * uTransform.view;
+					memcpy(pGpuMemory, (void*)&uTransform, (size_t)(sizeof(uTransformObject)));
+				}
 
 			}
 		}
@@ -1044,10 +1065,13 @@ void Application::loop()
 			//-create swap chain
 			//-create frame buffers
 			RecreateSwapChain();
-			uTransform.model = glm::mat4(1.f);
-			uTransform.view = glm::lookAt(glm::vec3(0.0f, 0.0f, 10.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-			uTransform.proj = glm::perspective(glm::radians(45.f), (float)width / height, 0.1f, 1000.f);
-			memcpy(pGpuMemory, (void*)&uTransform, (size_t)(sizeof(uTransformObject)));
+			int width, height;
+			SDL_GetWindowSizeInPixels(this->window, &width, &height);
+			this->m_viewPort.width = width;
+			this->m_viewPort.height = height;
+			this->m_scissor.extent.width = width;
+			this->m_scissor.extent.height = height;
+
 			continue;
 		}
 		assert(result == VK_SUCCESS);
@@ -1085,14 +1109,8 @@ void Application::loop()
 		vkCmdBindPipeline(this->commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->pipeline);
 		vkCmdBindDescriptorSets(this->commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->pipelineLayout, 0, 1, &descriptorSets, 0, nullptr);
 
-		//TODO:
-		/*int width, height;
-		SDL_GetWindowSizeInPixels(this->window, &width, &height);
-
-		this->m_viewPort.width = (float)width;
-		this->m_viewPort.height = (float)height;*/
-
 		vkCmdSetViewport(this->commandBuffer, 0, 1, &this->m_viewPort);
+		vkCmdSetScissor(this->commandBuffer, 0, 1, &this->m_scissor);
 
 		vkCmdDraw(this->commandBuffer, 3, 1, 0, 0);
 
@@ -1138,11 +1156,12 @@ void Application::loop()
 		if (result == VK_ERROR_OUT_OF_DATE_KHR)
 		{
 			RecreateSwapChain();
-			uTransform.model = glm::mat4(1.f);
-			uTransform.view =  glm::lookAt(glm::vec3(0.0f, 0.0f, 10.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-			uTransform.proj = glm::perspective(glm::radians(45.f), (float)width / height, 0.1f, 1000.f);
-
-			memcpy(pGpuMemory, (void*)&uTransform, (size_t)(sizeof(uTransformObject)));
+			int width, height;
+			SDL_GetWindowSizeInPixels(this->window, &width, &height);
+			this->m_viewPort.width = width;
+			this->m_viewPort.height = height;
+			this->m_scissor.extent.width = width;
+			this->m_scissor.extent.height = height;
 
 			continue;
 		}

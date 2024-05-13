@@ -44,7 +44,8 @@ private:
 
 	VkFence inFlightFence = VK_NULL_HANDLE;
 
-	VkViewport m_viewPort = {0,0, (float)640, (float)480, 0, 1};
+	VkViewport m_viewPort = {};
+	VkRect2D m_scissor = {};
 
 	VkImage* swapChainImages = nullptr;
 
