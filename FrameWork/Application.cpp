@@ -26,8 +26,8 @@ struct uTransformObject
 
 static uTransformObject uTransform =
 {
-	glm::mat4(1.f), //model
-	glm::lookAt(glm::vec3(0,0,10.f),glm::vec3(0.f,0.f,0.f), glm::vec3(0.f,1.f,0.f)), //view
+	glm::mat4(1.), //model
+	glm::lookAt(glm::vec3(0.f, 0.f ,10.f),glm::vec3(0.f, 0.f, 0.f), glm::vec3(0.f,1.f,0.f)), //view
 	glm::perspective(glm::radians(45.f), (float)SCREEN_WIDTH / SCREEN_HEIGHT,  0.1f, 1000.f) //proj
 };
 
@@ -161,7 +161,7 @@ void Application::CreateWindow()
 	}
 
 	//TODO: make this work.
-	SDL_SetWindowResizable(this->window, SDL_TRUE);
+	/*SDL_SetWindowResizable(this->window, SDL_TRUE);*/
 }
 
 void Application::CreateWindowSurface() 
@@ -536,8 +536,8 @@ void Application::CreateFrameBuffers()
 			this->m_renderPass,
 			1,
 			&imageViews[i], //only captures the color of the image.
-			SCREEN_WIDTH, //width
-			SCREEN_HEIGHT, //height
+			width, //width
+			height, //height
 			1 //1 layer
 		};
 
@@ -950,6 +950,8 @@ bool Application::init()
 
 void Application::RecreateSwapChain() 
 {
+	vkDeviceWaitIdle(this->m_logicalDevice);
+
 	VkResult result = vkGetPhysicalDeviceSurfaceCapabilitiesKHR(this->m_physicalDevices[device_index], m_windowSurface, &this->deviceCapabilities);
 	assert(result == VK_SUCCESS);
 
@@ -1005,130 +1007,146 @@ void Application::loop()
 	{
 		while (SDL_PollEvent(&e))
 		{
-			//vulkan shit
-			result = vkWaitForFences(this->m_logicalDevice, 1, &this->inFlightFence, VK_TRUE, UINT64_MAX);
-			assert(result == VK_SUCCESS);
-			result = vkResetFences(this->m_logicalDevice, 1, &this->inFlightFence);
-			assert(result == VK_SUCCESS);
-
-			uint32_t imageIndex;
-			result = vkAcquireNextImageKHR(this->m_logicalDevice, swapChain, UINT64_MAX, this->imageAvailableSemaphore, VK_NULL_HANDLE, &imageIndex);
-
-
-			if (result == VK_ERROR_OUT_OF_DATE_KHR)
-			{
-				//TODO: 
-				// if vk_out_of_date error, recreate the swap chain.
-				//-delete the framebuffers
-				//-destroy the swap chain images.
-				//-destroy swap chain
-				//then,
-				//-create swap chain
-				//-create frame buffers
-				RecreateSwapChain();
-				//uTransform.proj = glm::perspective(glm::radians(45.f), (float)width / height, 0.1f, 1000.f); //proj
-				//memcpy(pGpuMemory, (void*)&uTransform, (size_t)(sizeof(uTransformObject)));
-				break;
-			}
-			assert(result == VK_SUCCESS);
-
-			result = vkResetCommandBuffer(this->commandBuffer, 0);
-			assert(result == VK_SUCCESS);
-
-
-			////always begin recording command buffers by calling vkBeginCommandBuffer --> just tells vulkan about the usage of a particular command buffer.
-			//always begin recording command buffers by calling vkBeginCommandBuffer --> just tells vulkan about the usage of a particular command buffer.
-			VkCommandBufferBeginInfo cmdBufferBeginInfo = {};
-			cmdBufferBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-			cmdBufferBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-			//everything else is default...
-
-			result = vkBeginCommandBuffer(this->commandBuffer, &cmdBufferBeginInfo);
-
-			assert(result == VK_SUCCESS);
-
-			VkRenderPassBeginInfo renderPassInfo = {};
-			renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-			renderPassInfo.renderPass = this->m_renderPass;
-			renderPassInfo.framebuffer = frameBuffer[imageIndex];
-			renderPassInfo.renderArea.offset = { 0,0 };
-			renderPassInfo.renderArea.extent = deviceCapabilities.currentExtent;
-
-			VkClearValue clearColor = { {{.0f, 0.5f, 0.5f, 1.0f}} };
-			renderPassInfo.clearValueCount = 1;
-			renderPassInfo.pClearValues = &clearColor;
-
-			//put this in a draw frame
-			vkCmdBeginRenderPass(this->commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
-
-			//bind the graphics pipeline
-			vkCmdBindPipeline(this->commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->pipeline);
-			vkCmdBindDescriptorSets(this->commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->pipelineLayout, 0, 1, &descriptorSets, 0, nullptr);
-
-			//TODO:
-			/*int width, height;
-			SDL_GetWindowSizeInPixels(this->window, &width, &height);
-
-			this->m_viewPort.width = (float)width;
-			this->m_viewPort.height = (float)height;*/
-
-			vkCmdSetViewport(this->commandBuffer, 0, 1, &this->m_viewPort);
-
-			vkCmdDraw(this->commandBuffer, 3, 1, 0, 0);
-
-
-			vkCmdEndRenderPass(this->commandBuffer);
-
-			result = vkEndCommandBuffer(this->commandBuffer);
-			assert(result == VK_SUCCESS);
-
-			VkSubmitInfo submitInfo{};
-			submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-
-			VkSemaphore waitSemaphores[] = { imageAvailableSemaphore };
-			VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
-			submitInfo.waitSemaphoreCount = 1;
-			submitInfo.pWaitSemaphores = waitSemaphores;
-			submitInfo.pWaitDstStageMask = waitStages;
-
-			submitInfo.commandBufferCount = 1;
-			submitInfo.pCommandBuffers = &this->commandBuffer;
-
-			VkSemaphore signalSemaphores[] = { renderFinishedSemaphore };
-			submitInfo.signalSemaphoreCount = 1;
-			submitInfo.pSignalSemaphores = signalSemaphores;
-
-			result = vkQueueSubmit(graphicsQueue, 1, &submitInfo, this->inFlightFence);
-			assert(result == VK_SUCCESS);
-
-			VkPresentInfoKHR presentInfo{};
-			presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
-
-			presentInfo.waitSemaphoreCount = 1;
-			presentInfo.pWaitSemaphores = signalSemaphores;
-
-			VkSwapchainKHR swapChains[] = { swapChain };
-			presentInfo.swapchainCount = 1;
-			presentInfo.pSwapchains = swapChains;
-
-			presentInfo.pImageIndices = &imageIndex;
-
-			result = vkQueuePresentKHR(presentQueue, &presentInfo);
-
-			if (result == VK_ERROR_OUT_OF_DATE_KHR)
-			{
-				RecreateSwapChain();
-				/*uTransform.proj = glm::perspective(glm::radians(45.f), (float)width / height, 0.1f, 1000.f);
-				memcpy(pGpuMemory, (void*)&uTransform, (size_t)(sizeof(uTransformObject)));*/
-				break;
-			}
-			assert(result == VK_SUCCESS);
 
 			if (e.type == SDL_QUIT || (e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_ESCAPE))
 			{
 				quit = true;
 			}
+
+			if (e.type == SDL_MOUSEMOTION && e.button.button == SDL_BUTTON(SDL_BUTTON_LEFT)) 
+			{
+				int deltaX = e.motion.xrel;
+				int deltaY = e.motion.yrel;
+				uTransform.view = glm::mat4(X_BASIS, Y_BASIS, Z_BASIS, {deltaX * .01f, deltaY * .01f, 0, 1}) * uTransform.view;
+				memcpy(pGpuMemory, (void*)&uTransform, (size_t)(sizeof(uTransformObject)));
+
+			}
 		}
+
+		//vulkan shit
+		result = vkWaitForFences(this->m_logicalDevice, 1, &this->inFlightFence, VK_TRUE, UINT64_MAX);
+		assert(result == VK_SUCCESS);
+		result = vkResetFences(this->m_logicalDevice, 1, &this->inFlightFence);
+		assert(result == VK_SUCCESS);
+
+		uint32_t imageIndex;
+		result = vkAcquireNextImageKHR(this->m_logicalDevice, swapChain, UINT64_MAX, this->imageAvailableSemaphore, VK_NULL_HANDLE, &imageIndex);
+
+
+		if (result == VK_ERROR_OUT_OF_DATE_KHR)
+		{
+			//TODO: 
+			// if vk_out_of_date error, recreate the swap chain.
+			//-delete the framebuffers
+			//-destroy the swap chain images.
+			//-destroy swap chain
+			//then,
+			//-create swap chain
+			//-create frame buffers
+			RecreateSwapChain();
+			uTransform.model = glm::mat4(1.f);
+			uTransform.view = glm::lookAt(glm::vec3(0.0f, 0.0f, 10.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+			uTransform.proj = glm::perspective(glm::radians(45.f), (float)width / height, 0.1f, 1000.f);
+			memcpy(pGpuMemory, (void*)&uTransform, (size_t)(sizeof(uTransformObject)));
+			continue;
+		}
+		assert(result == VK_SUCCESS);
+
+		result = vkResetCommandBuffer(this->commandBuffer, 0);
+		assert(result == VK_SUCCESS);
+
+
+		////always begin recording command buffers by calling vkBeginCommandBuffer --> just tells vulkan about the usage of a particular command buffer.
+		//always begin recording command buffers by calling vkBeginCommandBuffer --> just tells vulkan about the usage of a particular command buffer.
+		VkCommandBufferBeginInfo cmdBufferBeginInfo = {};
+		cmdBufferBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+		cmdBufferBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+		//everything else is default...
+
+		result = vkBeginCommandBuffer(this->commandBuffer, &cmdBufferBeginInfo);
+
+		assert(result == VK_SUCCESS);
+
+		VkRenderPassBeginInfo renderPassInfo = {};
+		renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+		renderPassInfo.renderPass = this->m_renderPass;
+		renderPassInfo.framebuffer = frameBuffer[imageIndex];
+		renderPassInfo.renderArea.offset = { 0,0 };
+		renderPassInfo.renderArea.extent = deviceCapabilities.currentExtent;
+
+		VkClearValue clearColor = { {{.0f, 0.5f, 0.5f, 1.0f}} };
+		renderPassInfo.clearValueCount = 1;
+		renderPassInfo.pClearValues = &clearColor;
+
+		//put this in a draw frame
+		vkCmdBeginRenderPass(this->commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+		//bind the graphics pipeline
+		vkCmdBindPipeline(this->commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->pipeline);
+		vkCmdBindDescriptorSets(this->commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->pipelineLayout, 0, 1, &descriptorSets, 0, nullptr);
+
+		//TODO:
+		/*int width, height;
+		SDL_GetWindowSizeInPixels(this->window, &width, &height);
+
+		this->m_viewPort.width = (float)width;
+		this->m_viewPort.height = (float)height;*/
+
+		vkCmdSetViewport(this->commandBuffer, 0, 1, &this->m_viewPort);
+
+		vkCmdDraw(this->commandBuffer, 3, 1, 0, 0);
+
+
+		vkCmdEndRenderPass(this->commandBuffer);
+
+		result = vkEndCommandBuffer(this->commandBuffer);
+		assert(result == VK_SUCCESS);
+
+		VkSubmitInfo submitInfo{};
+		submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+
+		VkSemaphore waitSemaphores[] = { imageAvailableSemaphore };
+		VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
+		submitInfo.waitSemaphoreCount = 1;
+		submitInfo.pWaitSemaphores = waitSemaphores;
+		submitInfo.pWaitDstStageMask = waitStages;
+
+		submitInfo.commandBufferCount = 1;
+		submitInfo.pCommandBuffers = &this->commandBuffer;
+
+		VkSemaphore signalSemaphores[] = { renderFinishedSemaphore };
+		submitInfo.signalSemaphoreCount = 1;
+		submitInfo.pSignalSemaphores = signalSemaphores;
+
+		result = vkQueueSubmit(graphicsQueue, 1, &submitInfo, this->inFlightFence);
+		assert(result == VK_SUCCESS);
+
+		VkPresentInfoKHR presentInfo{};
+		presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+
+		presentInfo.waitSemaphoreCount = 1;
+		presentInfo.pWaitSemaphores = signalSemaphores;
+
+		VkSwapchainKHR swapChains[] = { swapChain };
+		presentInfo.swapchainCount = 1;
+		presentInfo.pSwapchains = swapChains;
+
+		presentInfo.pImageIndices = &imageIndex;
+
+		result = vkQueuePresentKHR(presentQueue, &presentInfo);
+
+		if (result == VK_ERROR_OUT_OF_DATE_KHR)
+		{
+			RecreateSwapChain();
+			uTransform.model = glm::mat4(1.f);
+			uTransform.view =  glm::lookAt(glm::vec3(0.0f, 0.0f, 10.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+			uTransform.proj = glm::perspective(glm::radians(45.f), (float)width / height, 0.1f, 1000.f);
+
+			memcpy(pGpuMemory, (void*)&uTransform, (size_t)(sizeof(uTransformObject)));
+
+			continue;
+		}
+		assert(result == VK_SUCCESS);
 	}
 
 	vkDeviceWaitIdle(this->m_logicalDevice);
