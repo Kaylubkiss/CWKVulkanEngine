@@ -5,6 +5,7 @@
 #define GLM_FORCE_DEFAULT_ALIGNED_GENTYPES
 #include <glm/glm.hpp>
 #include <vector>
+#include "Mesh.h"
 
 
 
@@ -13,6 +14,8 @@ class Application
 public:
 	void run();
 private:
+	Mesh debugCube;
+
 	//variabless
 	SDL_Window* window = nullptr;
 	VkInstance m_instance = VK_NULL_HANDLE;

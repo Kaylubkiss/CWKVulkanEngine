@@ -11,12 +11,20 @@ struct Vertex
 
 struct Mesh
 {
-	std::vector<Vertex> vertexBuffer;
-	std::vector<int> indexBuffer;
-
 	int numVertices = 0;
 	int numTris = 0;
 	int numIndices = 0;
+
+	std::vector<Vertex> vertexBuffer;
+	std::vector<int> indexBuffer;
+
 };
 
-void LoadMeshOBJ(char* fileName, Mesh& mesh);
+struct Object 
+{
+	glm::mat4 m_ModelTransform;
+
+	Mesh m_Mesh;
+};
+
+void LoadMeshOBJ(const char* fileName, Mesh& mesh);

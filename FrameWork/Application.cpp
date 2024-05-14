@@ -28,7 +28,7 @@ static uTransformObject uTransform =
 {
 	glm::mat4(1.), //model
 	glm::lookAt(glm::vec3(0.f, 0.f ,10.f),glm::vec3(0.f, 0.f, 0.f), glm::vec3(0.f,1.f,0.f)), //view
-	glm::perspective(glm::radians(45.f), (float)4/3,  0.1f, 1000.f) //proj
+	glm::perspective(glm::radians(45.f), (float)width/height,  0.1f, 1000.f) //proj
 };
 
 
@@ -667,6 +667,13 @@ void Application::CreateDescriptorSets()
 void Application::CreatePipeline(VkPipelineShaderStageCreateInfo* pStages, int numStages) 
 {
 	VkResult result;
+
+	VkVertexInputBindingDescription vBindingDescription = {};
+	vBindingDescription.stride = sizeof(Vertex);
+	
+	VkVertexInputAttributeDescription vInputAttribute = {};
+	vInputAttribute.format = VK_FORMAT_B8G8R8A8_SRGB;
+
 	//all vertex info is in the shaders for now...
 	VkPipelineVertexInputStateCreateInfo vertexInputCreateInfo =
 	{
@@ -694,10 +701,7 @@ void Application::CreatePipeline(VkPipelineShaderStageCreateInfo* pStages, int n
 	dynamicStateCreateInfo.dynamicStateCount = 2;
 	dynamicStateCreateInfo.pDynamicStates = dynamicState;
 
-	//
-
-
-
+	
 	VkPipelineViewportStateCreateInfo viewPortCreateInfo =
 	{
 		VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO,
@@ -884,6 +888,8 @@ bool Application::init()
 
 	//uniform stuffs;
 	/*uTransform.proj[1][1] *= -1.f;*/
+	
+	LoadMeshOBJ("cube.obj", this->debugCube);
 	uniformBufferMemory.push_back(NULL);
 
 	this->m_viewPort.width = (float)width;
@@ -1075,7 +1081,8 @@ void Application::loop()
 			this->m_viewPort.height = (float)height;
 			this->m_scissor.extent.width = width;
 			this->m_scissor.extent.height = height;
-
+			uTransform.proj = glm::perspective(glm::radians(45.f), this->m_viewPort.width / this->m_viewPort.height, 0.1f, 1000.f); //proj
+			memcpy(uniformBufferMemory.back(), (void*)&uTransform, (size_t)(sizeof(uTransformObject)));
 			continue;
 		}
 		assert(result == VK_SUCCESS);
@@ -1167,6 +1174,8 @@ void Application::loop()
 			this->m_scissor.extent.width = width;
 			this->m_scissor.extent.height = height;
 
+			uTransform.proj = glm::perspective(glm::radians(45.f), this->m_viewPort.width / this->m_viewPort.height, 0.1f, 1000.f); //proj
+			memcpy(uniformBufferMemory.back(), (void*)&uTransform, (size_t)(sizeof(uTransformObject)));
 			continue;
 		}
 		assert(result == VK_SUCCESS);

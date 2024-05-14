@@ -1,7 +1,7 @@
 #include "Mesh.h"
 #include <iostream>
 
-bool readDataLine(char* lineBuf, int& lineNum, FILE* fp, int MAX_LINE_LEN)
+static bool readDataLine(char* lineBuf, int& lineNum, FILE* fp, int MAX_LINE_LEN)
 {
 	while (!feof(fp)) 
 	{
@@ -39,7 +39,7 @@ bool readDataLine(char* lineBuf, int& lineNum, FILE* fp, int MAX_LINE_LEN)
 }
 
 //boiler plate from framework of graphics class.
-void LoadMeshOBJ(char* fileName, Mesh& mesh) 
+void LoadMeshOBJ(const char* fileName, Mesh& mesh) 
 {
     const int MAX_LINE_LEN = 1024;
     char lineBuf[MAX_LINE_LEN + 1];
@@ -97,7 +97,7 @@ void LoadMeshOBJ(char* fileName, Mesh& mesh)
                     tokWS = strtok_s(NULL, " ", &ct);
                 }
 
-                if (faceData.size() > 3)
+                if (faceData.size() > 3) //assume last line is newline.
                 {
                     std::cerr << "Only triangulated mesh is accepted.\n";
                     exit(1);
