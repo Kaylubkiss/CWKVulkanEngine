@@ -105,7 +105,6 @@ private:
 	void CreateSwapChain();
 	void CreateImageViews();
 	void CreateFrameBuffers();
-	VkPipelineShaderStageCreateInfo CreateShaderModule(const char* name, VkShaderModule& shaderModule, VkShaderStageFlagBits stage);
 	void CreateDescriptorSets();
 	void CreatePipeline(VkPipelineShaderStageCreateInfo* pStages, int numStages);
 	void CreateCommandPools();
@@ -114,7 +113,10 @@ private:
 	void CreateFences();
 	void CreateBuffers();
 	void CreateUniformBuffers();
+	VkPipelineShaderStageCreateInfo CreateShaderModule(const char* name, VkShaderModule& shaderModule, VkShaderStageFlagBits stage);
+	
 	void RecreateSwapChain();
+	void ResizeViewport();
 
 
 	bool init();

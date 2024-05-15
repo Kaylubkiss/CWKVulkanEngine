@@ -947,6 +947,18 @@ void Application::RecreateSwapChain()
 
 }
 
+void Application::ResizeWindow() 
+{
+	int width, height;
+	SDL_GetWindowSizeInPixels(this->window, &width, &height);
+	this->m_viewPort.width = (float)width;
+	this->m_viewPort.height = (float)height;
+	this->m_scissor.extent.width = width;
+	this->m_scissor.extent.height = height;
+	uTransform.proj = glm::perspective(glm::radians(45.f), this->m_viewPort.width / this->m_viewPort.height, 0.1f, 1000.f); //proj
+	memcpy(uniformBuffers.back().mappedMemory, (void*)&uTransform, (size_t)(sizeof(uTransformObject)));
+
+}
 
 void Application::loop() 
 {
@@ -1030,14 +1042,9 @@ void Application::loop()
 			//-create swap chain
 			//-create frame buffers
 			RecreateSwapChain();
-			int width, height;
-			SDL_GetWindowSizeInPixels(this->window, &width, &height);
-			this->m_viewPort.width = (float)width;
-			this->m_viewPort.height = (float)height;
-			this->m_scissor.extent.width = width;
-			this->m_scissor.extent.height = height;
-			uTransform.proj = glm::perspective(glm::radians(45.f), this->m_viewPort.width / this->m_viewPort.height, 0.1f, 1000.f); //proj
-			memcpy(uniformBuffers.back().mappedMemory, (void*)&uTransform, (size_t)(sizeof(uTransformObject)));
+			ResizeViewport();
+			
+			
 			continue;
 		}
 		assert(result == VK_SUCCESS);
@@ -1122,15 +1129,7 @@ void Application::loop()
 		if (result == VK_ERROR_OUT_OF_DATE_KHR)
 		{
 			RecreateSwapChain();
-			int width, height;
-			SDL_GetWindowSizeInPixels(this->window, &width, &height);
-			this->m_viewPort.width = (float)width;
-			this->m_viewPort.height = (float)height;
-			this->m_scissor.extent.width = width;
-			this->m_scissor.extent.height = height;
-
-			uTransform.proj = glm::perspective(glm::radians(45.f), this->m_viewPort.width / this->m_viewPort.height, 0.1f, 1000.f); //proj
-			memcpy(uniformBuffers.back().mappedMemory, (void*)&uTransform, (size_t)(sizeof(uTransformObject)));
+			ResizeViewport();
 			continue;
 		}
 		assert(result == VK_SUCCESS);
