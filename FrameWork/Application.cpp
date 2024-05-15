@@ -103,6 +103,8 @@ void Application::CreateInstance()
 	result = vkCreateInstance(&createInfo, nullptr, &this->m_instance);
 	assert(result == VK_SUCCESS);
 
+	delete [] extensionNames;
+
 }
 
 void Application::EnumeratePhysicalDevices() 
@@ -210,7 +212,7 @@ void Application::FindQueueFamilies()
 
 	for (unsigned i = 0; i < queueFamilyPropertyCount; ++i)
 	{
-		if (queueFamilies[i].queueFlags & VK_QUEUE_GRAPHICS_BIT)
+		if ((queueFamilies[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) != 0)
 		{
 			graphicsFamily = i;
 			setGraphicsQueue = true;
@@ -285,6 +287,8 @@ void Application::CreateLogicalDevice()
 	result = vkCreateDevice(this->m_physicalDevices[device_index], &deviceCreateInfo, nullptr, &this->m_logicalDevice);
 
 	assert(result == VK_SUCCESS);
+
+	delete[] deviceQueueCreateInfos;
 
 
 }
