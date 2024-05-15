@@ -1159,6 +1159,12 @@ void Application::exit()
 
 	/*vkDestroyBuffer(this->m_logicalDevice, this->vkBuffer, nullptr);*/
 
+	for (unsigned i = 0; i < uniformBuffers.size(); ++i) 
+	{
+		vkDestroyBuffer(this->m_logicalDevice, this->uniformBuffers[i].buffer, nullptr);
+		vkUnmapMemory(this->m_logicalDevice, this->uniformBuffers[i].memory);
+	}
+
 	for (unsigned i = 0; i < imageCount; ++i)
 	{
 		vkDestroyImageView(this->m_logicalDevice, this->imageViews[i], nullptr);
