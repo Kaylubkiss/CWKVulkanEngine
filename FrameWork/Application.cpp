@@ -947,7 +947,7 @@ void Application::RecreateSwapChain()
 
 }
 
-void Application::ResizeWindow() 
+void Application::ResizeViewport()
 {
 	int width, height;
 	SDL_GetWindowSizeInPixels(this->window, &width, &height);
