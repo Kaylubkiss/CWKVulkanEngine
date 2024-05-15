@@ -8,10 +8,29 @@
 #include "Mesh.h"
 
 
+struct UniformBuffer
+{
+	VkBuffer buffer;
+	VkDeviceMemory memory;
+	void* mappedMemory;
+
+	void operator=(const UniformBuffer& rhs)
+	{
+		this->buffer = rhs.buffer;
+		this->memory = rhs.memory;
+		this->mappedMemory = rhs.mappedMemory;
+	}
+
+	//assume that build info is shared among all buffers.
+	UniformBuffer(size_t size);
+};
 
 class Application
 {
 public:
+	
+	const VkPhysicalDevice& PhysicalDevice();
+	const VkDevice& LogicalDevice();
 	void run();
 private:
 	Mesh debugCube;
@@ -35,8 +54,6 @@ private:
 	VkShaderModule shaderFragModule = VK_NULL_HANDLE;
 	VkShaderModule* ShaderStages[2] = { &shaderVertModule, &shaderFragModule };
 
-	VkBuffer vkBuffer = VK_NULL_HANDLE;
-
 	VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
 	VkPipeline pipeline = VK_NULL_HANDLE;
 
@@ -57,7 +74,7 @@ private:
 	VkDescriptorSet descriptorSets;
 	VkDescriptorSetLayout descriptorSetLayout; //dunno if this should be here...
 
-	std::vector<void*> uniformBufferMemory;
+	std::vector<UniformBuffer> uniformBuffers;
 
 	const char* enabledLayerNames[1] = {
 		"VK_LAYER_KHRONOS_validation"
@@ -89,13 +106,13 @@ private:
 	void CreateImageViews();
 	void CreateFrameBuffers();
 	VkPipelineShaderStageCreateInfo CreateShaderModule(const char* name, VkShaderModule& shaderModule, VkShaderStageFlagBits stage);
-	void CreateBuffers();
 	void CreateDescriptorSets();
 	void CreatePipeline(VkPipelineShaderStageCreateInfo* pStages, int numStages);
 	void CreateCommandPools();
 	void CreateCommandBuffers();
 	void CreateSemaphores();
 	void CreateFences();
+	void CreateBuffers();
 	void CreateUniformBuffers();
 	void RecreateSwapChain();
 
@@ -103,4 +120,19 @@ private:
 	bool init();
 	void loop();
 	void exit();
+
+	friend struct UniformBuffers;
 };
+
+
+static struct ApplicationManager
+{
+	ApplicationManager();
+	~ApplicationManager();
+	Application* GetApplication();
+} appManager;
+
+
+#define _Application appManager.GetApplication()
+
+

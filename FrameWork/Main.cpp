@@ -8,8 +8,7 @@
 int main(int argc, char* argv[])
 {
 	//NOT READY TO START VULKAN APPLICATION, TOO MANY LEAKS!!!
-	Application app;
-	app.run();
+	appManager.GetApplication()->run();
 
 	return 0;
 }

@@ -97,7 +97,7 @@ void LoadMeshOBJ(const char* fileName, Mesh& mesh)
                     tokWS = strtok_s(NULL, " ", &ct);
                 }
 
-                if (faceData.size() > 3) //assume last line is newline.
+                if (faceData.size() > 3) 
                 {
                     std::cerr << "Only triangulated mesh is accepted.\n";
                     exit(1);

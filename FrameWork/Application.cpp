@@ -23,6 +23,10 @@ struct uTransformObject
 	glm::mat4 proj;
 };
 
+static int s_count = 0;
+static typename std::aligned_storage<sizeof(Application), alignof(Application)>::type applicationBuffer;
+
+Application& app = reinterpret_cast<Application&> (applicationBuffer);
 
 static uTransformObject uTransform =
 {
@@ -556,68 +560,17 @@ void Application::CreateFrameBuffers()
 void Application::CreateBuffers() 
 {
 	VkResult result;
-	VkBufferCreateInfo bufferCreateInfo = {};
-
-	bufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-	bufferCreateInfo.pNext = nullptr;
-	bufferCreateInfo.flags = 0;
-	bufferCreateInfo.size = sizeof(uTransformObject);
-	bufferCreateInfo.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
-
-	bufferCreateInfo.queueFamilyIndexCount = 0;
-	bufferCreateInfo.pQueueFamilyIndices = (const uint32_t*)nullptr;
-	bufferCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;	// can only use CONCURRENT if .queueFamilyIndexCount > 0
-
-	result = vkCreateBuffer(this->m_logicalDevice, &bufferCreateInfo, nullptr, &this->vkBuffer);
-	assert(result == VK_SUCCESS);
+	
+	//does nothing, because all the buffers I use are uniform buffers
 
 }
 
-void Application::CreateUniformBuffers() 
+
+
+void Application::CreateUniformBuffers()
 {
-	VkResult result;
 
-	VkMemoryRequirements			memoryRequirments;
-	vkGetBufferMemoryRequirements(this->m_logicalDevice, this->vkBuffer, &memoryRequirments);
-
-	VkMemoryAllocateInfo			vmai;
-	vmai.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-	vmai.pNext = nullptr;
-	vmai.allocationSize = memoryRequirments.size;
-
-
-
-	VkPhysicalDeviceMemoryProperties	vpdmp;
-	vkGetPhysicalDeviceMemoryProperties(this->m_physicalDevices[device_index], &vpdmp);
-	for (unsigned int i = 0; i < vpdmp.memoryTypeCount; i++)
-	{
-		VkMemoryType vmt = vpdmp.memoryTypes[i];
-		VkMemoryPropertyFlags vmpf = vmt.propertyFlags;
-		if ((memoryRequirments.memoryTypeBits & (1 << i)) != 0)
-		{
-			if ((vmpf & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) != 0)
-			{
-				vmai.memoryTypeIndex = i;
-				break;
-			}
-		}
-	}
-
-
-	VkDeviceMemory				vdm;
-	result = vkAllocateMemory(this->m_logicalDevice, &vmai, nullptr, &vdm);
-	assert(result == VK_SUCCESS);
-
-
-	result = vkBindBufferMemory(this->m_logicalDevice, vkBuffer, vdm, 0);		// 0 is the offset
-	assert(result == VK_SUCCESS);
-
-
-	//fill data buffer --> THIS COULD BE ITS OWN MODULE...
-	result = vkMapMemory(this->m_logicalDevice, vdm, 0, sizeof(uTransformObject), 0, &uniformBufferMemory.back());	// 0 and 0 are offset and flags
-	memcpy(uniformBufferMemory.back(), (void*)&uTransform, (size_t)(sizeof(uTransformObject)));
-	assert(result == VK_SUCCESS);
-
+	this->uniformBuffers.push_back(UniformBuffer(sizeof(uTransformObject)));
 }
 
 void Application::CreateDescriptorSets() 
@@ -890,7 +843,6 @@ bool Application::init()
 	/*uTransform.proj[1][1] *= -1.f;*/
 	
 	LoadMeshOBJ("cube.obj", this->debugCube);
-	uniformBufferMemory.push_back(NULL);
 
 	this->m_viewPort.width = (float)width;
 	this->m_viewPort.height = (float)height;
@@ -942,7 +894,7 @@ bool Application::init()
 
 	////create layout 
 	
-	CreateBuffers();
+	//CreateBuffers();
 
 	CreateUniformBuffers();
 
@@ -957,6 +909,9 @@ bool Application::init()
 	CreateSemaphores();
 
 	CreateFences();
+
+	VkPhysicalDevice GetPhysicalDevice();
+	VkDevice GetLogicalDevice();
 
 	return true;
 
@@ -1006,7 +961,7 @@ void Application::loop()
 	descriptorWrite.descriptorCount = 1;
 	
 	VkDescriptorBufferInfo bufferInfo{};
-	bufferInfo.buffer = vkBuffer;
+	bufferInfo.buffer = uniformBuffers.back().buffer;
 	bufferInfo.offset = 0;
 	bufferInfo.range = sizeof(uTransformObject);
 
@@ -1033,7 +988,7 @@ void Application::loop()
 				int deltaX = e.motion.xrel;
 				int deltaY = e.motion.yrel;
 				uTransform.view = glm::mat4(X_BASIS, Y_BASIS, Z_BASIS, {deltaX * .008f, deltaY * .008f, 0, 1}) * uTransform.view;
-				memcpy(uniformBufferMemory.back(), (void*)&uTransform, (size_t)(sizeof(uTransformObject)));
+				memcpy(uniformBuffers.back().mappedMemory, (void*)&uTransform, (size_t)(sizeof(uTransformObject)));
 			}
 
 			if (e.type == SDL_MOUSEWHEEL) 
@@ -1043,12 +998,12 @@ void Application::loop()
 				if (direction < 0) 
 				{
 					uTransform.view = glm::mat4(X_BASIS, Y_BASIS, Z_BASIS, { 0,0, -.5f, 1 }) * uTransform.view;
-					memcpy(uniformBufferMemory.back(), (void*)&uTransform, (size_t)(sizeof(uTransformObject)));
+					memcpy(uniformBuffers.back().mappedMemory, (void*)&uTransform, (size_t)(sizeof(uTransformObject)));
 				}
 				else 
 				{
 					uTransform.view = glm::mat4(X_BASIS, Y_BASIS, Z_BASIS, {0,0, 0.5f, 1}) * uTransform.view;
-					memcpy(uniformBufferMemory.back(), (void*)&uTransform, (size_t)(sizeof(uTransformObject)));
+					memcpy(uniformBuffers.back().mappedMemory, (void*)&uTransform, (size_t)(sizeof(uTransformObject)));
 				}
 
 			}
@@ -1082,7 +1037,7 @@ void Application::loop()
 			this->m_scissor.extent.width = width;
 			this->m_scissor.extent.height = height;
 			uTransform.proj = glm::perspective(glm::radians(45.f), this->m_viewPort.width / this->m_viewPort.height, 0.1f, 1000.f); //proj
-			memcpy(uniformBufferMemory.back(), (void*)&uTransform, (size_t)(sizeof(uTransformObject)));
+			memcpy(uniformBuffers.back().mappedMemory, (void*)&uTransform, (size_t)(sizeof(uTransformObject)));
 			continue;
 		}
 		assert(result == VK_SUCCESS);
@@ -1175,7 +1130,7 @@ void Application::loop()
 			this->m_scissor.extent.height = height;
 
 			uTransform.proj = glm::perspective(glm::radians(45.f), this->m_viewPort.width / this->m_viewPort.height, 0.1f, 1000.f); //proj
-			memcpy(uniformBufferMemory.back(), (void*)&uTransform, (size_t)(sizeof(uTransformObject)));
+			memcpy(uniformBuffers.back().mappedMemory, (void*)&uTransform, (size_t)(sizeof(uTransformObject)));
 			continue;
 		}
 		assert(result == VK_SUCCESS);
@@ -1203,7 +1158,7 @@ void Application::exit()
 
 	vkDestroyDescriptorSetLayout(this->m_logicalDevice, this->descriptorSetLayout, nullptr);
 
-	vkDestroyBuffer(this->m_logicalDevice, this->vkBuffer, nullptr);
+	/*vkDestroyBuffer(this->m_logicalDevice, this->vkBuffer, nullptr);*/
 
 	for (unsigned i = 0; i < imageCount; ++i)
 	{
@@ -1234,5 +1189,102 @@ void Application::exit()
 	SDL_Quit();
 
 }
+
+const VkPhysicalDevice& Application::PhysicalDevice() 
+{
+	return this->m_physicalDevices[device_index];
+}
+
+const VkDevice& Application::LogicalDevice()
+{
+	return this->m_logicalDevice;
+}
+
+
+ApplicationManager::ApplicationManager()
+{
+	if (++s_count == 1)
+	{
+		new (&app) Application();
+	}
+}
+
+ApplicationManager::~ApplicationManager() 
+{
+	if (--s_count == 0) 
+	{
+		(&app)->~Application();
+	}
+
+}
+
+
+Application* ApplicationManager::GetApplication() 
+{
+	return (&app);
+}
+
+UniformBuffer::UniformBuffer(size_t size) 
+{
+	VkResult result;
+
+	VkPhysicalDeviceMemoryProperties	vpdmp;
+	vkGetPhysicalDeviceMemoryProperties(_Application->PhysicalDevice(), &vpdmp);
+
+	VkBufferCreateInfo bufferCreateInfo = {};
+
+	bufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+	bufferCreateInfo.pNext = nullptr;
+	bufferCreateInfo.flags = 0;
+	bufferCreateInfo.size = size;/*sizeof(uTransformObject)*/
+	bufferCreateInfo.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+
+	bufferCreateInfo.queueFamilyIndexCount = 0;
+	bufferCreateInfo.pQueueFamilyIndices = (const uint32_t*)nullptr;
+	bufferCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;	// can only use CONCURRENT if .queueFamilyIndexCount > 0
+
+	result = vkCreateBuffer(_Application->LogicalDevice(), &bufferCreateInfo, nullptr, &this->buffer);
+	assert(result == VK_SUCCESS);
+
+	VkMemoryRequirements			memoryRequirments;
+	vkGetBufferMemoryRequirements(_Application->LogicalDevice(), this->buffer, &memoryRequirments);
+
+	VkMemoryAllocateInfo			vmai;
+	vmai.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+	vmai.pNext = nullptr;
+	vmai.allocationSize = memoryRequirments.size;
+
+
+	for (unsigned int i = 0; i < vpdmp.memoryTypeCount; i++)
+	{
+		VkMemoryType vmt = vpdmp.memoryTypes[i];
+		VkMemoryPropertyFlags vmpf = vmt.propertyFlags;
+		if ((memoryRequirments.memoryTypeBits & (1 << i)) != 0)
+		{
+			if ((vmpf & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) != 0)
+			{
+				vmai.memoryTypeIndex = i;
+				break;
+			}
+		}
+	}
+
+
+	result = vkAllocateMemory(_Application->LogicalDevice(), &vmai, nullptr, &this->memory);
+	assert(result == VK_SUCCESS);
+
+
+	result = vkBindBufferMemory(_Application->LogicalDevice(), this->buffer, this->memory, 0);		// 0 is the offset
+	assert(result == VK_SUCCESS);
+
+
+	//fill data buffer --> THIS COULD BE ITS OWN MODULE...
+	result = vkMapMemory(_Application->LogicalDevice(), this->memory, 0, sizeof(uTransformObject), 0, &this->mappedMemory);	// 0 and 0 are offset and flags
+	memcpy(this->mappedMemory, (void*)&uTransform, (size_t)(sizeof(uTransformObject)));
+	/*vkUnmapMemory(this->m_logicalDevice, (VkDeviceMemory)uniformBufferMemory[i]); */
+	assert(result == VK_SUCCESS);
+
+}
+
 
 
