@@ -78,13 +78,12 @@ void Application::CreateInstance()
 		throw std::runtime_error("could not grab extensions from SDL!");
 	}
 
-	extensionNames = new const char* [extensionCount + 1];
+	extensionNames = new const char* [extensionCount];
 
 	if (SDL_Vulkan_GetInstanceExtensions(window, &extensionCount, &(extensionNames[0])) != SDL_TRUE)
 	{
 		throw std::runtime_error("could not grab extensions from SDL!");
 	}
-	extensionNames[extensionCount] = VK_EXT_DEBUG_UTILS_EXTENSION_NAME;
 	createInfo.enabledExtensionCount = extensionCount;
 	createInfo.ppEnabledExtensionNames = &(extensionNames[0]);
 
