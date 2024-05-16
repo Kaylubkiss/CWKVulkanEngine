@@ -11,6 +11,11 @@ unsigned long long height = 480;
 #define SCREEN_WIDTH width
 #define SCREEN_HEIGHT height 
 
+static int s_count = 0;
+static typename std::aligned_storage<sizeof(Application), alignof(Application)>::type applicationBuffer;
+
+Application& app = reinterpret_cast<Application&> (applicationBuffer);
+
 static glm::vec4 X_BASIS = { 1,0,0,0 };
 static glm::vec4 Y_BASIS = { 0,1,0,0 };
 static glm::vec4 Z_BASIS = { 0,0,1,0 };
@@ -23,10 +28,6 @@ struct uTransformObject
 	glm::mat4 proj;
 };
 
-static int s_count = 0;
-static typename std::aligned_storage<sizeof(Application), alignof(Application)>::type applicationBuffer;
-
-Application& app = reinterpret_cast<Application&> (applicationBuffer);
 
 static uTransformObject uTransform =
 {
@@ -574,7 +575,7 @@ void Application::CreateBuffers()
 void Application::CreateUniformBuffers()
 {
 
-	this->uniformBuffers.push_back(UniformBuffer(sizeof(uTransformObject)));
+	this->uniformBuffers.push_back(Buffer(sizeof(uTransformObject), (void*)&uTransform));
 }
 
 void Application::CreateDescriptorSets() 
@@ -1233,9 +1234,12 @@ Application* ApplicationManager::GetApplication()
 	return (&app);
 }
 
-UniformBuffer::UniformBuffer(size_t size) 
+
+Buffer::Buffer(size_t size, void* data)
 {
 	VkResult result;
+
+	this->mData = data;
 
 	VkPhysicalDeviceMemoryProperties	vpdmp;
 	vkGetPhysicalDeviceMemoryProperties(_Application->PhysicalDevice(), &vpdmp);
@@ -1288,8 +1292,8 @@ UniformBuffer::UniformBuffer(size_t size)
 
 
 	//fill data buffer --> THIS COULD BE ITS OWN MODULE...
-	result = vkMapMemory(_Application->LogicalDevice(), this->memory, 0, sizeof(uTransformObject), 0, &this->mappedMemory);	// 0 and 0 are offset and flags
-	memcpy(this->mappedMemory, (void*)&uTransform, (size_t)(sizeof(uTransformObject)));
+	result = vkMapMemory(_Application->LogicalDevice(), this->memory, 0, size, 0, &this->mappedMemory);	// 0 and 0 are offset and flags
+	memcpy(this->mappedMemory, this->mData, size);
 	/*vkUnmapMemory(this->m_logicalDevice, (VkDeviceMemory)uniformBufferMemory[i]); */
 	assert(result == VK_SUCCESS);
 

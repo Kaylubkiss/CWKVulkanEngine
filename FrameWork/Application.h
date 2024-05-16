@@ -7,14 +7,15 @@
 #include <vector>
 #include "Mesh.h"
 
-
-struct UniformBuffer
+struct Buffer
 {
 	VkBuffer buffer;
 	VkDeviceMemory memory;
 	void* mappedMemory;
+	
+	void* mData;
 
-	void operator=(const UniformBuffer& rhs)
+	void operator=(const Buffer& rhs)
 	{
 		this->buffer = rhs.buffer;
 		this->memory = rhs.memory;
@@ -22,7 +23,7 @@ struct UniformBuffer
 	}
 
 	//assume that build info is shared among all buffers.
-	UniformBuffer(size_t size);
+	Buffer(size_t size, void* data);
 };
 
 class Application
@@ -74,7 +75,7 @@ private:
 	VkDescriptorSet descriptorSets;
 	VkDescriptorSetLayout descriptorSetLayout; //dunno if this should be here...
 
-	std::vector<UniformBuffer> uniformBuffers;
+	std::vector<Buffer> uniformBuffers;
 
 	const char* enabledLayerNames[1] = {
 		"VK_LAYER_KHRONOS_validation"
