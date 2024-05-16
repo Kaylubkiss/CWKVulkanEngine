@@ -1,40 +1,18 @@
 #pragma once
-#include <vulkan/vulkan.h> //in A: drive under "VulkanSDK"
-#include <SDL2/SDL.h>
-#define GLM_FORCE_RADIANS
-#define GLM_FORCE_DEFAULT_ALIGNED_GENTYPES
-#include <glm/glm.hpp>
-#include <vector>
+#include "Common.h"
 #include "Mesh.h"
+#include <SDL2/SDL.h>
+#include <vector>
 
-struct Buffer
-{
-	VkBuffer buffer;
-	VkDeviceMemory memory;
-	void* mappedMemory;
-	
-	void* mData;
-
-	void operator=(const Buffer& rhs)
-	{
-		this->buffer = rhs.buffer;
-		this->memory = rhs.memory;
-		this->mappedMemory = rhs.mappedMemory;
-	}
-
-	//assume that build info is shared among all buffers.
-	Buffer(size_t size, void* data);
-};
 
 class Application
 {
 public:
-	
 	const VkPhysicalDevice& PhysicalDevice();
 	const VkDevice& LogicalDevice();
 	void run();
 private:
-	Mesh debugCube;
+	Object debugCube;
 
 	//variabless
 	SDL_Window* window = nullptr;
@@ -77,6 +55,7 @@ private:
 
 	std::vector<Buffer> uniformBuffers;
 
+
 	const char* enabledLayerNames[1] = {
 		"VK_LAYER_KHRONOS_validation"
 	};
@@ -115,7 +94,6 @@ private:
 	void CreateBuffers();
 	void CreateUniformBuffers();
 	VkPipelineShaderStageCreateInfo CreateShaderModule(const char* name, VkShaderModule& shaderModule, VkShaderStageFlagBits stage);
-	
 	void RecreateSwapChain();
 	void ResizeViewport();
 
@@ -124,18 +102,9 @@ private:
 	void loop();
 	void exit();
 
-	friend struct UniformBuffers;
 };
 
 
-static struct ApplicationManager
-{
-	ApplicationManager();
-	~ApplicationManager();
-	Application* GetApplication();
-} appManager;
 
-
-#define _Application appManager.GetApplication()
 
 

@@ -5,16 +5,13 @@
 #include <SDL2/SDL_vulkan.h>
 #include <glm/gtc/matrix_transform.hpp>
 
-unsigned long long width = 640;
-unsigned long long height = 480;
+static unsigned long long width = 640;
+static unsigned long long height = 480;
 
 #define SCREEN_WIDTH width
 #define SCREEN_HEIGHT height 
 
-static int s_count = 0;
-static typename std::aligned_storage<sizeof(Application), alignof(Application)>::type applicationBuffer;
 
-Application& app = reinterpret_cast<Application&> (applicationBuffer);
 
 static glm::vec4 X_BASIS = { 1,0,0,0 };
 static glm::vec4 Y_BASIS = { 0,1,0,0 };
@@ -41,10 +38,8 @@ static uTransformObject uTransform =
 void Application::run() 
 {
 	//initialize all resources.
-	if (!init()) 
-	{
-		std::cerr << "could not start the application!\n";
-	}
+	init();
+
 	//render, update, render, update...
 	loop();
 
@@ -840,13 +835,55 @@ void Application::CreateFences()
 	assert(result == VK_SUCCESS);
 }
 
+void Application::RecreateSwapChain() 
+{
+	vkDeviceWaitIdle(this->m_logicalDevice);
+
+	VkResult result = vkGetPhysicalDeviceSurfaceCapabilitiesKHR(this->m_physicalDevices[device_index], m_windowSurface, &this->deviceCapabilities);
+	assert(result == VK_SUCCESS);
+
+	for (unsigned i = 0; i < imageCount; ++i)
+	{
+		vkDestroyImageView(this->m_logicalDevice, this->imageViews[i], nullptr);
+		vkDestroyFramebuffer(this->m_logicalDevice, this->frameBuffer[i], nullptr);
+	}
+
+	width = deviceCapabilities.currentExtent.width;
+	height = deviceCapabilities.currentExtent.height;
+
+	delete[] frameBuffer;
+	delete[] swapChainImages;
+
+	vkDestroySwapchainKHR(this->m_logicalDevice, this->swapChain, nullptr);
+
+	CreateSwapChain();
+
+	CreateImageViews();
+
+	CreateFrameBuffers();
+
+}
+
+void Application::ResizeViewport()
+{
+	int width, height;
+	SDL_GetWindowSizeInPixels(this->window, &width, &height);
+	this->m_viewPort.width = (float)width;
+	this->m_viewPort.height = (float)height;
+	this->m_scissor.extent.width = width;
+	this->m_scissor.extent.height = height;
+	uTransform.proj = glm::perspective(glm::radians(45.f), this->m_viewPort.width / this->m_viewPort.height, 0.1f, 1000.f); //proj
+	memcpy(uniformBuffers.back().mappedMemory, (void*)&uTransform, (size_t)(sizeof(uTransformObject)));
+
+}
+
 bool Application::init() 
 {
 
 	//uniform stuffs;
 	/*uTransform.proj[1][1] *= -1.f;*/
 	
-	LoadMeshOBJ("cube.obj", this->debugCube);
+	/*LoadMeshOBJ("cube.obj", this->debugCube);*/
 
 	this->m_viewPort.width = (float)width;
 	this->m_viewPort.height = (float)height;
@@ -922,47 +959,6 @@ bool Application::init()
 
 }
 
-void Application::RecreateSwapChain() 
-{
-	vkDeviceWaitIdle(this->m_logicalDevice);
-
-	VkResult result = vkGetPhysicalDeviceSurfaceCapabilitiesKHR(this->m_physicalDevices[device_index], m_windowSurface, &this->deviceCapabilities);
-	assert(result == VK_SUCCESS);
-
-	for (unsigned i = 0; i < imageCount; ++i)
-	{
-		vkDestroyImageView(this->m_logicalDevice, this->imageViews[i], nullptr);
-		vkDestroyFramebuffer(this->m_logicalDevice, this->frameBuffer[i], nullptr);
-	}
-
-	width = deviceCapabilities.currentExtent.width;
-	height = deviceCapabilities.currentExtent.height;
-
-	delete[] frameBuffer;
-	delete[] swapChainImages;
-
-	vkDestroySwapchainKHR(this->m_logicalDevice, this->swapChain, nullptr);
-
-	CreateSwapChain();
-
-	CreateImageViews();
-
-	CreateFrameBuffers();
-
-}
-
-void Application::ResizeViewport()
-{
-	int width, height;
-	SDL_GetWindowSizeInPixels(this->window, &width, &height);
-	this->m_viewPort.width = (float)width;
-	this->m_viewPort.height = (float)height;
-	this->m_scissor.extent.width = width;
-	this->m_scissor.extent.height = height;
-	uTransform.proj = glm::perspective(glm::radians(45.f), this->m_viewPort.width / this->m_viewPort.height, 0.1f, 1000.f); //proj
-	memcpy(uniformBuffers.back().mappedMemory, (void*)&uTransform, (size_t)(sizeof(uTransformObject)));
-
-}
 
 void Application::loop() 
 {
@@ -1047,8 +1043,6 @@ void Application::loop()
 			//-create frame buffers
 			RecreateSwapChain();
 			ResizeViewport();
-			
-			
 			continue;
 		}
 		assert(result == VK_SUCCESS);
@@ -1090,6 +1084,8 @@ void Application::loop()
 		vkCmdSetScissor(this->commandBuffer, 0, 1, &this->m_scissor);
 
 		vkCmdDraw(this->commandBuffer, 3, 1, 0, 0);
+
+		/*vkCmdBindVertexBuffers(this->commandBuffer, 0, )*/
 
 
 		vkCmdEndRenderPass(this->commandBuffer);
@@ -1210,93 +1206,6 @@ const VkDevice& Application::LogicalDevice()
 }
 
 
-ApplicationManager::ApplicationManager()
-{
-	if (++s_count == 1)
-	{
-		new (&app) Application();
-	}
-}
-
-ApplicationManager::~ApplicationManager() 
-{
-	if (--s_count == 0) 
-	{
-		(&app)->~Application();
-	}
-
-}
-
-
-Application* ApplicationManager::GetApplication() 
-{
-	return (&app);
-}
-
-
-Buffer::Buffer(size_t size, void* data)
-{
-	VkResult result;
-
-	this->mData = data;
-
-	VkPhysicalDeviceMemoryProperties	vpdmp;
-	vkGetPhysicalDeviceMemoryProperties(_Application->PhysicalDevice(), &vpdmp);
-
-	VkBufferCreateInfo bufferCreateInfo = {};
-
-	bufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-	bufferCreateInfo.pNext = nullptr;
-	bufferCreateInfo.flags = 0;
-	bufferCreateInfo.size = size;/*sizeof(uTransformObject)*/
-	bufferCreateInfo.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
-
-	bufferCreateInfo.queueFamilyIndexCount = 0;
-	bufferCreateInfo.pQueueFamilyIndices = (const uint32_t*)nullptr;
-	bufferCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;	// can only use CONCURRENT if .queueFamilyIndexCount > 0
-
-	result = vkCreateBuffer(_Application->LogicalDevice(), &bufferCreateInfo, nullptr, &this->buffer);
-	assert(result == VK_SUCCESS);
-
-	VkMemoryRequirements			memoryRequirments;
-	vkGetBufferMemoryRequirements(_Application->LogicalDevice(), this->buffer, &memoryRequirments);
-
-	VkMemoryAllocateInfo			vmai;
-	vmai.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-	vmai.pNext = nullptr;
-	vmai.allocationSize = memoryRequirments.size;
-
-
-	for (unsigned int i = 0; i < vpdmp.memoryTypeCount; i++)
-	{
-		VkMemoryType vmt = vpdmp.memoryTypes[i];
-		VkMemoryPropertyFlags vmpf = vmt.propertyFlags;
-		if ((memoryRequirments.memoryTypeBits & (1 << i)) != 0)
-		{
-			if ((vmpf & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) != 0)
-			{
-				vmai.memoryTypeIndex = i;
-				break;
-			}
-		}
-	}
-
-
-	result = vkAllocateMemory(_Application->LogicalDevice(), &vmai, nullptr, &this->memory);
-	assert(result == VK_SUCCESS);
-
-
-	result = vkBindBufferMemory(_Application->LogicalDevice(), this->buffer, this->memory, 0);		// 0 is the offset
-	assert(result == VK_SUCCESS);
-
-
-	//fill data buffer --> THIS COULD BE ITS OWN MODULE...
-	result = vkMapMemory(_Application->LogicalDevice(), this->memory, 0, size, 0, &this->mappedMemory);	// 0 and 0 are offset and flags
-	memcpy(this->mappedMemory, this->mData, size);
-	/*vkUnmapMemory(this->m_logicalDevice, (VkDeviceMemory)uniformBufferMemory[i]); */
-	assert(result == VK_SUCCESS);
-
-}
 
 
 

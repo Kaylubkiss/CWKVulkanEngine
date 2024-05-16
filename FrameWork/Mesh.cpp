@@ -1,6 +1,15 @@
 #include "Mesh.h"
 #include <iostream>
 
+
+Object::Object(const char* fileName) 
+{
+    LoadMeshOBJ("cube.obj", this->mMesh);
+    this->vertexBuffer = Buffer(sizeof(this->mMesh.vertexBufferData), &this->mMesh.vertexBufferData);
+    this->indexBuffer = Buffer(sizeof(this->mMesh.indexBufferData), &this->mMesh.indexBufferData);
+}
+
+
 static bool readDataLine(char* lineBuf, int& lineNum, FILE* fp, int MAX_LINE_LEN)
 {
 	while (!feof(fp)) 
@@ -70,12 +79,12 @@ void LoadMeshOBJ(const char* fileName, Mesh& mesh)
                     v.pos = glm::vec3(x, y, z);
                     if (posID >= mesh.numVertices)
                     {
-                        mesh.vertexBuffer.push_back(v);
+                        mesh.vertexBufferData.push_back(v);
                         ++mesh.numVertices;
                     }
                     else 
                     {
-                        mesh.vertexBuffer[posID].pos = v.pos;
+                        mesh.vertexBufferData[posID].pos = v.pos;
                     }
 
                     ++posID;
@@ -111,7 +120,7 @@ void LoadMeshOBJ(const char* fileName, Mesh& mesh)
                     if (ptrFront == NULL)
                     {
                         vertNum = atoi(faceData[i]) - 1;
-                        mesh.indexBuffer.push_back(vertNum);
+                        mesh.indexBufferData.push_back(vertNum);
                         ++mesh.numIndices;
                     }
                     else
@@ -123,7 +132,7 @@ void LoadMeshOBJ(const char* fileName, Mesh& mesh)
 
                         if (ptrRear == ptrFront)
                         {
-                            mesh.indexBuffer.push_back(vertNum);
+                            mesh.indexBufferData.push_back(vertNum);
                             ++mesh.numIndices;
                         }
                         else
@@ -134,7 +143,7 @@ void LoadMeshOBJ(const char* fileName, Mesh& mesh)
                             }
 
                             tokRear = strtok_s(NULL, "/", &cF);
-                            mesh.indexBuffer.push_back(vertNum);
+                            mesh.indexBufferData.push_back(vertNum);
                             ++mesh.numIndices;
                         }
                     }
@@ -154,3 +163,4 @@ void LoadMeshOBJ(const char* fileName, Mesh& mesh)
 
 
 }
+

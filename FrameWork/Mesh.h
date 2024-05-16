@@ -1,5 +1,5 @@
 #pragma once
-#include <glm/glm.hpp>
+#include "Common.h"
 #include <vector>
 
 struct Vertex 
@@ -15,16 +15,23 @@ struct Mesh
 	int numTris = 0;
 	int numIndices = 0;
 
-	std::vector<Vertex> vertexBuffer;
-	std::vector<int> indexBuffer;
+	std::vector<Vertex> vertexBufferData;
+	std::vector<int> indexBufferData;
 
 };
 
 struct Object 
 {
-	glm::mat4 m_ModelTransform;
+	glm::mat4 mTransform = glm::mat4(1.f);
+	
+	Mesh mMesh;
+	
+	Buffer vertexBuffer;
+	Buffer indexBuffer;
+	
 
-	Mesh m_Mesh;
+	Object(const char* fileName);
+	Object() : mMesh(), vertexBuffer(), indexBuffer() {};
 };
 
 void LoadMeshOBJ(const char* fileName, Mesh& mesh);
