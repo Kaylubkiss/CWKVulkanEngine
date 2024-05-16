@@ -71,9 +71,9 @@ private:
 
 	VkImage* swapChainImages = nullptr;
 
-	VkDescriptorPool descriptorPool;
-	VkDescriptorSet descriptorSets;
-	VkDescriptorSetLayout descriptorSetLayout; //dunno if this should be here...
+	VkDescriptorPool descriptorPool = VK_NULL_HANDLE;
+	VkDescriptorSet descriptorSets = VK_NULL_HANDLE;
+	VkDescriptorSetLayout descriptorSetLayout = VK_NULL_HANDLE; //dunno if this should be here...
 
 	std::vector<Buffer> uniformBuffers;
 

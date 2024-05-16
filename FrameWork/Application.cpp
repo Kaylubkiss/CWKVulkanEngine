@@ -80,12 +80,12 @@ void Application::CreateInstance()
 
 	extensionNames = new const char* [extensionCount];
 
-	if (SDL_Vulkan_GetInstanceExtensions(window, &extensionCount, &(extensionNames[0])) != SDL_TRUE)
+	if (SDL_Vulkan_GetInstanceExtensions(window, &extensionCount, (extensionNames)) != SDL_TRUE)
 	{
 		throw std::runtime_error("could not grab extensions from SDL!");
 	}
 	createInfo.enabledExtensionCount = extensionCount;
-	createInfo.ppEnabledExtensionNames = &(extensionNames[0]);
+	createInfo.ppEnabledExtensionNames = (extensionNames);
 
 
 	//this could be useful for logging, profiling, debugging, whatever.
