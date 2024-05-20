@@ -31,7 +31,7 @@ Application* ApplicationManager::GetApplication()
 }
 
 
-Buffer::Buffer(size_t size, void* data)
+Buffer::Buffer(size_t size, VkBufferUsageFlags usage, void* data)
 {
 	VkResult result;
 
@@ -46,7 +46,7 @@ Buffer::Buffer(size_t size, void* data)
 	bufferCreateInfo.pNext = nullptr;
 	bufferCreateInfo.flags = 0;
 	bufferCreateInfo.size = size;/*sizeof(uTransformObject)*/
-	bufferCreateInfo.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+	bufferCreateInfo.usage = usage;
 
 	bufferCreateInfo.queueFamilyIndexCount = 0;
 	bufferCreateInfo.pQueueFamilyIndices = (const uint32_t*)nullptr;
@@ -88,9 +88,9 @@ Buffer::Buffer(size_t size, void* data)
 
 
 	//fill data buffer --> THIS COULD BE ITS OWN MODULE...
-	result = vkMapMemory(_Application->LogicalDevice(), this->memory, 0, size, 0, &this->mappedMemory);	// 0 and 0 are offset and flags
+	result = vkMapMemory(_Application->LogicalDevice(), this->memory, 0, VK_WHOLE_SIZE, 0, &this->mappedMemory);	// 0 and 0 are offset and flags
 	memcpy(this->mappedMemory, this->mData, size);
-	/*vkUnmapMemory(this->m_logicalDevice, (VkDeviceMemory)uniformBufferMemory[i]); */
+	vkUnmapMemory(_Application->LogicalDevice(), this->memory);
 	assert(result == VK_SUCCESS);
 
 }

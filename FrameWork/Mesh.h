@@ -4,9 +4,9 @@
 
 struct Vertex 
 {
-	glm::vec3 pos;
-	glm::vec3 nrm;
-	glm::vec3 uv;
+	glm::vec3 pos = {0,0,0};
+	glm::vec3 nrm = {0,0.25f,.5f};
+	glm::vec2 uv = {0,0};
 };
 
 struct Mesh
@@ -16,22 +16,24 @@ struct Mesh
 	int numIndices = 0;
 
 	std::vector<Vertex> vertexBufferData;
-	std::vector<int> indexBufferData;
+	std::vector<uint16_t> indexBufferData; //setting this to uint16_t fixed the issue. INVESTIGATE THIS.
 
 };
 
 struct Object 
 {
+	glm::vec3 mCenter = glm::vec3(0.f);
 	glm::mat4 mTransform = glm::mat4(1.f);
 	
 	Mesh mMesh;
 	
-	Buffer vertexBuffer;
-	Buffer indexBuffer;
+	Buffer vertex;
+	Buffer index;
+
 	
 
 	Object(const char* fileName);
-	Object() : mMesh(), vertexBuffer(), indexBuffer() {};
+	Object() : mMesh(), vertex(), index() {};
 };
 
 void LoadMeshOBJ(const char* fileName, Mesh& mesh);

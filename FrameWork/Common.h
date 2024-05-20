@@ -1,23 +1,13 @@
 #pragma once
+//IF ENABLED: this means older versions of code compiled with mvsc from before 2017 will probably not be compatible.
+//IF DISABLED: alignment may not be correct. For now, I'm willing to let this happen until something goes bad.
+#define _DISABLE_EXTENDED_ALIGNED_STORAGE 
 #include <vulkan/vulkan.h>
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEFAULT_ALIGNED_GENTYPES
-#define _ENABLE_EXTENDED_ALIGNED_STORAGE
 #include <glm/glm.hpp>
 
 class Application; //forward declare class.
-
-
-static struct ApplicationManager
-{
-	ApplicationManager();
-	~ApplicationManager();
-	Application* GetApplication();
-} appManager;
-
-
-#define _Application appManager.GetApplication()
-
 
 struct Buffer
 {
@@ -35,7 +25,19 @@ struct Buffer
 	}
 
 	//assume that build info is shared among all buffers.
-	Buffer(size_t size, void* data);
+	Buffer(size_t size, VkBufferUsageFlags usage, void* data);
 	Buffer() : buffer(VK_NULL_HANDLE), memory(VK_NULL_HANDLE), mappedMemory(NULL), mData(NULL) {};
 };
+
+static struct ApplicationManager
+{
+	ApplicationManager();
+	~ApplicationManager();
+	Application* GetApplication();
+} appManager;
+
+
+#define _Application appManager.GetApplication()
+
+
 

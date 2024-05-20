@@ -569,7 +569,7 @@ void Application::CreateBuffers()
 void Application::CreateUniformBuffers()
 {
 
-	this->uniformBuffers.push_back(Buffer(sizeof(uTransformObject), (void*)&uTransform));
+	this->uniformBuffers.push_back(Buffer(sizeof(uTransformObject), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, (void*)&uTransform));
 }
 
 void Application::CreateDescriptorSets() 
@@ -616,15 +616,59 @@ void Application::CreateDescriptorSets()
 
 }
 
+
+void Application::WriteDescriptorSets() 
+{
+	VkWriteDescriptorSet descriptorWrite{};
+	descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+	descriptorWrite.dstSet = this->descriptorSets;
+	descriptorWrite.dstBinding = 0;
+	descriptorWrite.dstArrayElement = 0;
+	descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+	descriptorWrite.descriptorCount = 1;
+
+	VkDescriptorBufferInfo bufferInfo{};
+	bufferInfo.buffer = uniformBuffers.back().buffer;
+	bufferInfo.offset = 0;
+	bufferInfo.range = sizeof(uTransformObject);
+
+	descriptorWrite.pBufferInfo = &bufferInfo;
+	descriptorWrite.pImageInfo = nullptr; // Optional
+	descriptorWrite.pTexelBufferView = nullptr; // Optional
+
+	vkUpdateDescriptorSets(this->m_logicalDevice, 1, &descriptorWrite, 0, nullptr);
+
+}
 void Application::CreatePipeline(VkPipelineShaderStageCreateInfo* pStages, int numStages) 
 {
 	VkResult result;
 
 	VkVertexInputBindingDescription vBindingDescription = {};
-	vBindingDescription.stride = sizeof(Vertex);
+	vBindingDescription.stride = sizeof(struct Vertex);
+	vBindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
 	
-	VkVertexInputAttributeDescription vInputAttribute = {};
-	vInputAttribute.format = VK_FORMAT_B8G8R8A8_SRGB;
+	VkVertexInputAttributeDescription vInputAttribute[3] = {};
+
+	//position
+	vInputAttribute[0].format = VK_FORMAT_R32G32B32_SFLOAT;
+	vInputAttribute[0].location = 0;
+	vInputAttribute[0].binding = 0;
+	vInputAttribute[0].offset = offsetof(struct Vertex, pos);
+
+	//normal
+	vInputAttribute[1].format = vInputAttribute[0].format;
+	vInputAttribute[1].location = 1;
+	vInputAttribute[1].binding = 0;
+	vInputAttribute[1].offset = offsetof(struct Vertex, nrm);
+
+	//texture 
+	vInputAttribute[2].format = VK_FORMAT_R32G32_SFLOAT; 
+	vInputAttribute[2].location = 2;
+	vInputAttribute[2].binding = 0;
+	vInputAttribute[2].offset = offsetof(struct Vertex, uv);
+
+
+
 
 	//all vertex info is in the shaders for now...
 	VkPipelineVertexInputStateCreateInfo vertexInputCreateInfo =
@@ -632,10 +676,10 @@ void Application::CreatePipeline(VkPipelineShaderStageCreateInfo* pStages, int n
 		VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
 		nullptr, //pNext
 		0, //flags
-		0, //vertexBindingDescriptionCount
-		nullptr,
-		0,
-		nullptr
+		1, //vertexBindingDescriptionCount
+		&vBindingDescription,
+		3,
+		vInputAttribute
 	};
 
 	VkPipelineInputAssemblyStateCreateInfo pipelineAssemblyCreateInfo =
@@ -675,7 +719,7 @@ void Application::CreatePipeline(VkPipelineShaderStageCreateInfo* pStages, int n
 		VK_FALSE, //rasterizerDiscardEnable
 		VK_POLYGON_MODE_FILL, //polygonMode
 		VK_CULL_MODE_NONE, //cullMode
-		VK_FRONT_FACE_CLOCKWISE, //frontFace
+		VK_FRONT_FACE_COUNTER_CLOCKWISE, //frontFace
 		VK_FALSE, //depthBiasEnable
 		0.f, //depthBiasConstantFactor
 		0.f, //depthBiasClamp
@@ -884,6 +928,7 @@ bool Application::init()
 	/*uTransform.proj[1][1] *= -1.f;*/
 	
 	/*LoadMeshOBJ("cube.obj", this->debugCube);*/
+	
 
 	this->m_viewPort.width = (float)width;
 	this->m_viewPort.height = (float)height;
@@ -940,6 +985,8 @@ bool Application::init()
 	CreateUniformBuffers();
 
 	CreateDescriptorSets();
+	
+	WriteDescriptorSets();
 
 	CreatePipeline(shaderStages, 2);
 
@@ -954,6 +1001,8 @@ bool Application::init()
 	VkPhysicalDevice GetPhysicalDevice();
 	VkDevice GetLogicalDevice();
 
+	debugCube = Object("cube.obj");
+
 	return true;
 
 
@@ -963,25 +1012,6 @@ bool Application::init()
 void Application::loop() 
 {
 	VkResult result;
-
-	VkWriteDescriptorSet descriptorWrite{};
-	descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-	descriptorWrite.dstSet = this->descriptorSets;
-	descriptorWrite.dstBinding = 0;
-	descriptorWrite.dstArrayElement = 0;
-	descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-	descriptorWrite.descriptorCount = 1;
-	
-	VkDescriptorBufferInfo bufferInfo{};
-	bufferInfo.buffer = uniformBuffers.back().buffer;
-	bufferInfo.offset = 0;
-	bufferInfo.range = sizeof(uTransformObject);
-
-	descriptorWrite.pBufferInfo = &bufferInfo;
-	descriptorWrite.pImageInfo = nullptr; // Optional
-	descriptorWrite.pTexelBufferView = nullptr; // Optional
-
-	vkUpdateDescriptorSets(this->m_logicalDevice, 1, &descriptorWrite, 0, nullptr);
 
 	//render graphics.
 	SDL_Event e; bool quit = false;
@@ -1015,6 +1045,26 @@ void Application::loop()
 				else 
 				{
 					uTransform.view = glm::mat4(X_BASIS, Y_BASIS, Z_BASIS, {0,0, 0.5f, 1}) * uTransform.view;
+					memcpy(uniformBuffers.back().mappedMemory, (void*)&uTransform, (size_t)(sizeof(uTransformObject)));
+				}
+			}
+
+			int deltaX = e.motion.xrel;
+			int deltaY = e.motion.yrel;
+
+			if (deltaX && deltaX != std::numeric_limits<int>::max()) 
+			{
+				if (e.type == SDL_MOUSEMOTION && e.button.button == SDL_BUTTON(SDL_BUTTON_RIGHT))
+				{
+					uTransform.view = glm::rotate(glm::mat4(1.f), (float)deltaX * .008f, glm::vec3(0, 1, 0)) * uTransform.view;
+					memcpy(uniformBuffers.back().mappedMemory, (void*)&uTransform, (size_t)(sizeof(uTransformObject)));
+				}
+			}
+			else if (deltaY && deltaY != std::numeric_limits<int>::max())
+			{
+				if (e.type == SDL_MOUSEMOTION && e.button.button == SDL_BUTTON(SDL_BUTTON_RIGHT))
+				{
+					uTransform.view = glm::rotate(glm::mat4(1.f), (float)deltaY * .008f, glm::vec3(1, 0, 0)) * uTransform.view;
 					memcpy(uniformBuffers.back().mappedMemory, (void*)&uTransform, (size_t)(sizeof(uTransformObject)));
 				}
 
@@ -1083,10 +1133,15 @@ void Application::loop()
 		vkCmdSetViewport(this->commandBuffer, 0, 1, &this->m_viewPort);
 		vkCmdSetScissor(this->commandBuffer, 0, 1, &this->m_scissor);
 
-		vkCmdDraw(this->commandBuffer, 3, 1, 0, 0);
+	/*	vkCmdDraw(this->commandBuffer, 3, 1, 0, 0);*/
+		VkDeviceSize offsets[1] = { 0 };
+		VkBuffer  vBuffers[] = { debugCube.vertex.buffer };
+		vkCmdBindVertexBuffers(this->commandBuffer, 0, 1, vBuffers, offsets);
+		vkCmdBindIndexBuffer(this->commandBuffer, debugCube.index.buffer, 0, VK_INDEX_TYPE_UINT16);
 
-		/*vkCmdBindVertexBuffers(this->commandBuffer, 0, )*/
-
+		vkCmdDrawIndexed(this->commandBuffer, static_cast<uint32_t>(debugCube.mMesh.indexBufferData.size()), 1, 0, 0, 0);
+	
+		/*vkCmdDraw(this->commandBuffer, 3, 1, 0, 0);*/
 
 		vkCmdEndRenderPass(this->commandBuffer);
 
@@ -1162,7 +1217,7 @@ void Application::exit()
 	for (unsigned i = 0; i < uniformBuffers.size(); ++i) 
 	{
 		vkDestroyBuffer(this->m_logicalDevice, this->uniformBuffers[i].buffer, nullptr);
-		vkUnmapMemory(this->m_logicalDevice, this->uniformBuffers[i].memory);
+	/*	vkUnmapMemory(this->m_logicalDevice, this->uniformBuffers[i].memory);*/
 	}
 
 	for (unsigned i = 0; i < imageCount; ++i)

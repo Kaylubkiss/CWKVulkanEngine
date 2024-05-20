@@ -1,12 +1,41 @@
 #include "Mesh.h"
 #include <iostream>
-
+#include <algorithm>
 
 Object::Object(const char* fileName) 
 {
     LoadMeshOBJ("cube.obj", this->mMesh);
-    this->vertexBuffer = Buffer(sizeof(this->mMesh.vertexBufferData), &this->mMesh.vertexBufferData);
-    this->indexBuffer = Buffer(sizeof(this->mMesh.indexBufferData), &this->mMesh.indexBufferData);
+
+    glm::vec3 min_points(0.f);
+    glm::vec3 max_points(0.f);
+
+    for (unsigned i = 0; i < this->mMesh.vertexBufferData.size(); ++i)
+    {
+        min_points.x = std::min(min_points.x, mMesh.vertexBufferData[i].pos.x);
+        min_points.y = std::min(min_points.y, mMesh.vertexBufferData[i].pos.y);
+        min_points.z = std::min(min_points.z, mMesh.vertexBufferData[i].pos.z);
+
+        max_points.x = std::max(max_points.x, mMesh.vertexBufferData[i].pos.x);
+        max_points.y = std::max(max_points.y, mMesh.vertexBufferData[i].pos.y);
+        max_points.z = std::max(max_points.z, mMesh.vertexBufferData[i].pos.z);
+    }
+
+    mCenter = (max_points + min_points) / 2.f;
+    float unitScale = std::max({ glm::length(max_points.x - min_points.x), glm::length(max_points.y - min_points.y), glm::length(max_points.z - min_points.z) });
+
+    for (size_t i = 0; i < this->mMesh.vertexBufferData.size(); ++i)
+    {
+        this->mMesh.vertexBufferData[i].pos = (this->mMesh.vertexBufferData[i].pos - mCenter) / unitScale;
+    }
+
+    size_t sizeOfVertexBuffer = (sizeof(Vertex) * this->mMesh.vertexBufferData.size());
+    this->vertex = Buffer(sizeOfVertexBuffer, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, this->mMesh.vertexBufferData.data());
+
+    size_t sizeOfIndexBuffer = (sizeof(int) * this->mMesh.indexBufferData.size());
+    this->index = Buffer(sizeOfIndexBuffer, VK_BUFFER_USAGE_INDEX_BUFFER_BIT, this->mMesh.indexBufferData.data());
+
+    
+
 }
 
 

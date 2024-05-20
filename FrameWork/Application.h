@@ -86,6 +86,7 @@ private:
 	void CreateImageViews();
 	void CreateFrameBuffers();
 	void CreateDescriptorSets();
+	void WriteDescriptorSets();
 	void CreatePipeline(VkPipelineShaderStageCreateInfo* pStages, int numStages);
 	void CreateCommandPools();
 	void CreateCommandBuffers();
