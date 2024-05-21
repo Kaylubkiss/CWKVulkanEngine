@@ -31,7 +31,7 @@ Application* ApplicationManager::GetApplication()
 }
 
 
-Buffer::Buffer(size_t size, VkBufferUsageFlags usage, void* data)
+Buffer::Buffer(size_t size, VkBufferUsageFlags usage, VkMemoryPropertyFlags flags, void* data)
 {
 	VkResult result;
 
@@ -70,7 +70,7 @@ Buffer::Buffer(size_t size, VkBufferUsageFlags usage, void* data)
 		VkMemoryPropertyFlags vmpf = vmt.propertyFlags;
 		if ((memoryRequirments.memoryTypeBits & (1 << i)) != 0)
 		{
-			if ((vmpf & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) != 0)
+			if ((vmpf & flags) != 0)
 			{
 				vmai.memoryTypeIndex = i;
 				break;

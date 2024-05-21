@@ -29,10 +29,10 @@ Object::Object(const char* fileName)
     }
 
     size_t sizeOfVertexBuffer = (sizeof(Vertex) * this->mMesh.vertexBufferData.size());
-    this->vertex = Buffer(sizeOfVertexBuffer, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, this->mMesh.vertexBufferData.data());
+    this->vertex = Buffer(sizeOfVertexBuffer, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, this->mMesh.vertexBufferData.data());
 
     size_t sizeOfIndexBuffer = (sizeof(int) * this->mMesh.indexBufferData.size());
-    this->index = Buffer(sizeOfIndexBuffer, VK_BUFFER_USAGE_INDEX_BUFFER_BIT, this->mMesh.indexBufferData.data());
+    this->index = Buffer(sizeOfIndexBuffer, VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, this->mMesh.indexBufferData.data());
 
     
 

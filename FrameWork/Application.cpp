@@ -4,6 +4,8 @@
 #include <fstream>
 #include <SDL2/SDL_vulkan.h>
 #include <glm/gtc/matrix_transform.hpp>
+#define STB_IMAGE_IMPLEMENTATION
+#include <stb_image.h>
 
 static unsigned long long width = 640;
 static unsigned long long height = 480;
@@ -564,13 +566,38 @@ void Application::CreateBuffers()
 
 }
 
-
-
 void Application::CreateUniformBuffers()
 {
-
-	this->uniformBuffers.push_back(Buffer(sizeof(uTransformObject), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, (void*)&uTransform));
+	this->uniformBuffers.push_back(Buffer(sizeof(uTransformObject), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, (void*)&uTransform));
 }
+
+void Application::CreateTexture() 
+{
+	int textureWidth, textureHeight, textureChannels;
+	stbi_uc* pixels = stbi_load("External/textures/texture.jpg", &textureWidth, &textureHeight, &textureChannels, STBI_rgb_alpha);
+	VkDeviceSize imageSize = textureWidth * textureHeight * 4;
+
+	if (pixels == NULL) 
+	{
+		throw std::runtime_error("failed to load texture image!");
+	}
+
+	imageBuffer = Buffer(imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, pixels);
+
+	stbi_image_free(pixels);
+
+	VkImageCreateInfo imageCreateInfo = { };
+	imageCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+	imageCreateInfo.imageType = VK_IMAGE_TYPE_2D;
+	imageCreateInfo.extent.width = static_cast<uint32_t>(textureWidth);
+	imageCreateInfo.extent.height = static_cast<uint32_t>(textureHeight);
+	imageCreateInfo.extent.depth = 1;
+	imageCreateInfo.mipLevels = 1;
+	imageCreateInfo.arrayLayers = 1;
+
+
+}
+
 
 void Application::CreateDescriptorSets() 
 {
@@ -639,6 +666,7 @@ void Application::WriteDescriptorSets()
 	vkUpdateDescriptorSets(this->m_logicalDevice, 1, &descriptorWrite, 0, nullptr);
 
 }
+
 void Application::CreatePipeline(VkPipelineShaderStageCreateInfo* pStages, int numStages) 
 {
 	VkResult result;
@@ -1219,6 +1247,8 @@ void Application::exit()
 		vkDestroyBuffer(this->m_logicalDevice, this->uniformBuffers[i].buffer, nullptr);
 	/*	vkUnmapMemory(this->m_logicalDevice, this->uniformBuffers[i].memory);*/
 	}
+
+	vkDestroyBuffer(this->m_logicalDevice, imageBuffer.buffer, nullptr);
 
 	for (unsigned i = 0; i < imageCount; ++i)
 	{

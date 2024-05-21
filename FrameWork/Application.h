@@ -10,6 +10,7 @@ class Application
 public:
 	const VkPhysicalDevice& PhysicalDevice();
 	const VkDevice& LogicalDevice();
+
 	void run();
 private:
 	Object debugCube;
@@ -25,6 +26,7 @@ private:
 
 	VkRenderPass m_renderPass = VK_NULL_HANDLE;
 	VkSurfaceKHR m_windowSurface = nullptr;
+
 	VkFramebuffer* frameBuffer = nullptr;
 	VkSwapchainKHR swapChain = VK_NULL_HANDLE;
 	VkImageView* imageViews = nullptr;
@@ -54,6 +56,8 @@ private:
 	VkDescriptorSetLayout descriptorSetLayout = VK_NULL_HANDLE; //dunno if this should be here...
 
 	std::vector<Buffer> uniformBuffers;
+
+	Buffer imageBuffer;
 
 
 	const char* enabledLayerNames[1] = {
@@ -97,6 +101,10 @@ private:
 	VkPipelineShaderStageCreateInfo CreateShaderModule(const char* name, VkShaderModule& shaderModule, VkShaderStageFlagBits stage);
 	void RecreateSwapChain();
 	void ResizeViewport();
+
+
+
+	void CreateTexture();
 
 
 	bool init();

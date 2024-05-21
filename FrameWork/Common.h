@@ -25,9 +25,16 @@ struct Buffer
 	}
 
 	//assume that build info is shared among all buffers.
-	Buffer(size_t size, VkBufferUsageFlags usage, void* data);
+	Buffer(size_t size, VkBufferUsageFlags usage, VkMemoryPropertyFlags flags, void* data);
 	Buffer() : buffer(VK_NULL_HANDLE), memory(VK_NULL_HANDLE), mappedMemory(NULL), mData(NULL) {};
 };
+
+//struct Texture 
+//{
+//
+//	Texture() {}
+//};
+
 
 static struct ApplicationManager
 {
