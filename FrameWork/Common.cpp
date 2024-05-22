@@ -33,8 +33,12 @@ Application* ApplicationManager::GetApplication()
 
 Buffer::Buffer(size_t size, VkBufferUsageFlags usage, VkMemoryPropertyFlags flags, void* data)
 {
+
+	assert(_Application != NULL);
+
 	VkResult result;
 
+	this->size = static_cast<VkDeviceSize>(size);
 	this->mData = data;
 
 	VkPhysicalDeviceMemoryProperties	vpdmp;
@@ -95,7 +99,42 @@ Buffer::Buffer(size_t size, VkBufferUsageFlags usage, VkMemoryPropertyFlags flag
 
 }
 
+//Buffer::~Buffer() 
+//{
+//	assert(_Application != NULL);
+//
+//	vkDestroyBuffer(_Application->LogicalDevice(), this->buffer, nullptr);
+//
+//}
 
+
+//Buffer::Buffer(const Buffer& rhs) : buffer(VK_NULL_HANDLE), memory(VK_NULL_HANDLE), size(0), mappedMemory(NULL), mData(NULL)
+//{
+//	assert(_Application != NULL);
+//
+//	VkCommandBufferAllocateInfo allocInfo = {};
+//	allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+//	allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+//	allocInfo.commandBufferCount = 1;
+//	allocInfo.commandPool = _Application->CommandPool();
+//
+//	VkCommandBuffer cmdBuffer;
+//	vkAllocateCommandBuffers(_Application->LogicalDevice(), &allocInfo, &cmdBuffer);
+//
+//
+//	VkBufferCopy copyRegion = {};
+//
+//	copyRegion.size = rhs.size;
+//
+//	vkCmdCopyBuffer(cmdBuffer, rhs.buffer, this->buffer, 1, &copyRegion);
+//
+//	this->memory = rhs.memory;
+//	this->mappedMemory = rhs.mappedMemory;
+//	this->mData = rhs.mData;
+//	this->size = rhs.size;
+//
+//	vkFreeCommandBuffers(_Application->LogicalDevice(), _Application->CommandPool(), 1, &cmdBuffer);
+//}
 
 
 

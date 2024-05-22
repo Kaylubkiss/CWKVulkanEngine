@@ -10,6 +10,8 @@ class Application
 public:
 	const VkPhysicalDevice& PhysicalDevice();
 	const VkDevice& LogicalDevice();
+	const VkQueue& GraphicsQueue();
+	const VkCommandPool& CommandPool();
 
 	void run();
 private:
@@ -57,8 +59,8 @@ private:
 
 	std::vector<Buffer> uniformBuffers;
 
-	Buffer imageBuffer;
-
+	VkImage textureImage;
+	VkDeviceMemory textureMemory;
 
 	const char* enabledLayerNames[1] = {
 		"VK_LAYER_KHRONOS_validation"
@@ -101,8 +103,11 @@ private:
 	VkPipelineShaderStageCreateInfo CreateShaderModule(const char* name, VkShaderModule& shaderModule, VkShaderStageFlagBits stage);
 	void RecreateSwapChain();
 	void ResizeViewport();
-
-
+	void CreateImage(uint32_t width, uint32_t height, 
+					 VkFormat format, VkImageTiling tiling, 
+					 VkImageUsageFlags usage, VkMemoryPropertyFlags flags, 
+					 VkImage& image, VkDeviceMemory& imageMemory
+					);
 
 	void CreateTexture();
 

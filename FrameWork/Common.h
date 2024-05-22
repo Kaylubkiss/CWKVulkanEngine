@@ -13,6 +13,8 @@ struct Buffer
 {
 	VkBuffer buffer;
 	VkDeviceMemory memory;
+	VkDeviceSize size;
+
 	void* mappedMemory;
 
 	void* mData;
@@ -22,18 +24,17 @@ struct Buffer
 		this->buffer = rhs.buffer;
 		this->memory = rhs.memory;
 		this->mappedMemory = rhs.mappedMemory;
+		this->mData = rhs.mData;
 	}
+
+	/*Buffer(const Buffer& rhs);*/
 
 	//assume that build info is shared among all buffers.
 	Buffer(size_t size, VkBufferUsageFlags usage, VkMemoryPropertyFlags flags, void* data);
-	Buffer() : buffer(VK_NULL_HANDLE), memory(VK_NULL_HANDLE), mappedMemory(NULL), mData(NULL) {};
+	Buffer() : buffer(VK_NULL_HANDLE), memory(VK_NULL_HANDLE), size(0), mappedMemory(NULL), mData(NULL) {};
+	/*~Buffer();*/ //this gets called in std::vector and causes headache. we don't want that.
 };
 
-//struct Texture 
-//{
-//
-//	Texture() {}
-//};
 
 
 static struct ApplicationManager

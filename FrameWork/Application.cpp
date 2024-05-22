@@ -571,8 +571,149 @@ void Application::CreateUniformBuffers()
 	this->uniformBuffers.push_back(Buffer(sizeof(uTransformObject), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, (void*)&uTransform));
 }
 
+void Application::CreateImage
+(
+	uint32_t width, uint32_t height,
+	VkFormat format, VkImageTiling tiling,
+	VkImageUsageFlags usage, VkMemoryPropertyFlags flags,
+	VkImage& image, VkDeviceMemory& imageMemory
+) 
+{
+	VkResult result;
+
+	VkPhysicalDeviceMemoryProperties	vpdmp;
+	vkGetPhysicalDeviceMemoryProperties(this->m_physicalDevices[device_index], &vpdmp);
+
+	VkImageCreateInfo imageCreateInfo = { };
+	imageCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+	imageCreateInfo.imageType = VK_IMAGE_TYPE_2D;
+	imageCreateInfo.extent.width = width;
+	imageCreateInfo.extent.height = height;
+	imageCreateInfo.extent.depth = 1;
+	imageCreateInfo.mipLevels = 1;
+	imageCreateInfo.arrayLayers = 1;
+	imageCreateInfo.format = VK_FORMAT_R8G8B8A8_SRGB;
+	imageCreateInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
+	imageCreateInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+	imageCreateInfo.usage = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+	imageCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+	imageCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+
+
+	result = vkCreateImage(this->m_logicalDevice, &imageCreateInfo, nullptr, &this->textureImage);
+	assert(result == VK_SUCCESS);
+
+	VkMemoryRequirements memRequirements;
+
+	vkGetImageMemoryRequirements(this->m_logicalDevice, this->textureImage, &memRequirements);
+
+	VkMemoryAllocateInfo memAllocInfo = {};
+	memAllocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+	memAllocInfo.allocationSize = memRequirements.size;
+
+	for (unsigned int i = 0; i < vpdmp.memoryTypeCount; i++)
+	{
+		VkMemoryType vmt = vpdmp.memoryTypes[i];
+		VkMemoryPropertyFlags vmpf = vmt.propertyFlags;
+		if ((memRequirements.memoryTypeBits & (1 << i)) != 0)
+		{
+			if ((vmpf & flags) != 0)
+			{
+				memAllocInfo.memoryTypeIndex = i;
+				break;
+			}
+		}
+	}
+
+	result = vkAllocateMemory(this->m_logicalDevice, &memAllocInfo, nullptr, &imageMemory);
+	assert(result == VK_SUCCESS);
+
+	vkBindImageMemory(this->m_logicalDevice, image, imageMemory, 0);
+
+}
+
+const VkQueue& Application::GraphicsQueue() 
+{
+	return this->graphicsQueue;
+}
+
+const VkCommandPool& Application::CommandPool() 
+{
+	return this->commandPool;
+}
+
+static VkCommandBuffer beginCmd() 
+{
+	assert(_Application != NULL);
+
+	VkCommandBufferAllocateInfo allocInfo = {};
+	allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+	allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+	allocInfo.commandPool = _Application->CommandPool();
+	allocInfo.commandBufferCount = 1;
+
+	VkCommandBuffer cmdBuffer;
+	vkAllocateCommandBuffers(_Application->LogicalDevice(), &allocInfo, &cmdBuffer);
+
+	VkCommandBufferBeginInfo beginInfo = {};
+	beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+	beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+
+	vkBeginCommandBuffer(cmdBuffer, &beginInfo);
+
+	return cmdBuffer;
+
+}
+
+static void endCmd(VkCommandBuffer commandBuffer) 
+{
+	assert(_Application != NULL);
+
+	vkEndCommandBuffer(commandBuffer);
+
+	VkSubmitInfo submitInfo = {};
+	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+	submitInfo.commandBufferCount = 1;
+	submitInfo.pCommandBuffers = &commandBuffer;
+
+	vkQueueSubmit(_Application->GraphicsQueue(), 1, &submitInfo, VK_NULL_HANDLE);
+	vkQueueWaitIdle(_Application->GraphicsQueue());
+
+	vkFreeCommandBuffers(_Application->LogicalDevice(), _Application->CommandPool(), 1, &commandBuffer);
+
+}
+
+static void TransitionImageLayout(VkImage image, VkFormat format, 
+								  VkImageLayout oldLayout, VkImageLayout newLayout) 
+{
+	VkCommandBuffer cmdBuffer = beginCmd();
+
+	VkImageMemoryBarrier barrier = {};
+	barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+	barrier.oldLayout = oldLayout;
+	barrier.newLayout = newLayout;
+	barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+	barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+	barrier.image = image;
+	barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+	barrier.subresourceRange.baseMipLevel = 0;
+	barrier.subresourceRange.levelCount = 1;
+	barrier.subresourceRange.baseArrayLayer = 0;
+	barrier.subresourceRange.layerCount = 1;
+
+	//TODO: mipmapping
+
+	//first two parameters 
+	vkCmdPipelineBarrier(cmdBuffer, /*TODO*/0, /*TODO*/0, 0, 0, nullptr, 0, nullptr, 1, &barrier);
+
+	endCmd(cmdBuffer);
+
+}
+
 void Application::CreateTexture() 
 {
+	VkResult result;
+
 	int textureWidth, textureHeight, textureChannels;
 	stbi_uc* pixels = stbi_load("External/textures/texture.jpg", &textureWidth, &textureHeight, &textureChannels, STBI_rgb_alpha);
 	VkDeviceSize imageSize = textureWidth * textureHeight * 4;
@@ -582,22 +723,14 @@ void Application::CreateTexture()
 		throw std::runtime_error("failed to load texture image!");
 	}
 
-	imageBuffer = Buffer(imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, pixels);
+	Buffer stagingBuffer = Buffer(static_cast<size_t>(imageSize), VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, pixels);
 
 	stbi_image_free(pixels);
 
-	VkImageCreateInfo imageCreateInfo = { };
-	imageCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-	imageCreateInfo.imageType = VK_IMAGE_TYPE_2D;
-	imageCreateInfo.extent.width = static_cast<uint32_t>(textureWidth);
-	imageCreateInfo.extent.height = static_cast<uint32_t>(textureHeight);
-	imageCreateInfo.extent.depth = 1;
-	imageCreateInfo.mipLevels = 1;
-	imageCreateInfo.arrayLayers = 1;
-
-
+	CreateImage(textureWidth, textureHeight, VK_FORMAT_R8G8B8A8_SRGB, 
+				VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+				VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, this->textureImage, this->textureMemory);
 }
-
 
 void Application::CreateDescriptorSets() 
 {
@@ -654,7 +787,7 @@ void Application::WriteDescriptorSets()
 	descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 	descriptorWrite.descriptorCount = 1;
 
-	VkDescriptorBufferInfo bufferInfo{};
+	VkDescriptorBufferInfo bufferInfo = {};
 	bufferInfo.buffer = uniformBuffers.back().buffer;
 	bufferInfo.offset = 0;
 	bufferInfo.range = sizeof(uTransformObject);
@@ -954,9 +1087,6 @@ bool Application::init()
 
 	//uniform stuffs;
 	/*uTransform.proj[1][1] *= -1.f;*/
-	
-	/*LoadMeshOBJ("cube.obj", this->debugCube);*/
-	
 
 	this->m_viewPort.width = (float)width;
 	this->m_viewPort.height = (float)height;
@@ -1009,17 +1139,17 @@ bool Application::init()
 	////create layout 
 	
 	//CreateBuffers();
-
 	CreateUniformBuffers();
 
 	CreateDescriptorSets();
-	
-	WriteDescriptorSets();
 
+	WriteDescriptorSets();
+	
 	CreatePipeline(shaderStages, 2);
 
+	//commands
 	CreateCommandPools();
-
+	
 	CreateCommandBuffers();
 
 	CreateSemaphores();
@@ -1169,6 +1299,7 @@ void Application::loop()
 
 		vkCmdDrawIndexed(this->commandBuffer, static_cast<uint32_t>(debugCube.mMesh.indexBufferData.size()), 1, 0, 0, 0);
 	
+		//this will draw a triangle, if you change the vertex buffer.
 		/*vkCmdDraw(this->commandBuffer, 3, 1, 0, 0);*/
 
 		vkCmdEndRenderPass(this->commandBuffer);
@@ -1244,11 +1375,9 @@ void Application::exit()
 
 	for (unsigned i = 0; i < uniformBuffers.size(); ++i) 
 	{
-		vkDestroyBuffer(this->m_logicalDevice, this->uniformBuffers[i].buffer, nullptr);
-	/*	vkUnmapMemory(this->m_logicalDevice, this->uniformBuffers[i].memory);*/
+		vkDestroyBuffer(_Application->LogicalDevice(), uniformBuffers[i].buffer, nullptr);
 	}
 
-	vkDestroyBuffer(this->m_logicalDevice, imageBuffer.buffer, nullptr);
 
 	for (unsigned i = 0; i < imageCount; ++i)
 	{
