@@ -1156,9 +1156,6 @@ bool Application::init()
 
 	CreateFences();
 
-	VkPhysicalDevice GetPhysicalDevice();
-	VkDevice GetLogicalDevice();
-
 	debugCube = Object("cube.obj");
 
 	return true;
