@@ -13,6 +13,7 @@ layout( location = 1 ) in vec3 aNorm;
 layout( location = 2 ) in vec2 aUv;
 
 layout(location = 0) out vec3 fragColor;
+layout(location = 1) out vec2 fragTexCoord;
 
 //centered around unit square --> make sure to orientate ccw
 vec2 positions[3] = vec2[3]
@@ -35,4 +36,5 @@ void main ()
 	
 	gl_Position = uTransform.proj * uTransform.view * uTransform.model * vec4(aPos, 1.f); //gl_VertexID for OpenGL --> it's a vulkan extension idea.
 	fragColor = aNorm;
+	fragTexCoord = aUv;
 }

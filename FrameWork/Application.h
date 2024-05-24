@@ -61,6 +61,8 @@ private:
 
 	VkImage textureImage;
 	VkDeviceMemory textureMemory;
+	VkImageView textureImageView;
+	VkSampler textureSampler;
 
 	const char* enabledLayerNames[1] = {
 		"VK_LAYER_KHRONOS_validation"
@@ -110,6 +112,8 @@ private:
 					);
 
 	void CreateTexture();
+	void CreateTextureView();
+	void CreateTextureSampler();
 
 
 	bool init();

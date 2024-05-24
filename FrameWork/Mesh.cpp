@@ -28,13 +28,27 @@ Object::Object(const char* fileName)
         this->mMesh.vertexBufferData[i].pos = (this->mMesh.vertexBufferData[i].pos - mCenter) / unitScale;
     }
 
+  
+    //back face
+    mMesh.vertexBufferData[0].uv = { 1,0 };
+    mMesh.vertexBufferData[2].uv = { 1,1 };
+    mMesh.vertexBufferData[6].uv = { 0,1 };
+    mMesh.vertexBufferData[4].uv = { 0,0 };
+
+
+    //front face
+    mMesh.vertexBufferData[1].uv = { 0,0 };
+    mMesh.vertexBufferData[3].uv = { 0,1 };
+    mMesh.vertexBufferData[5].uv = { 1,0 };
+    mMesh.vertexBufferData[7].uv = { 1,1 };
+
     size_t sizeOfVertexBuffer = (sizeof(Vertex) * this->mMesh.vertexBufferData.size());
     this->vertex = Buffer(sizeOfVertexBuffer, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, this->mMesh.vertexBufferData.data());
 
     size_t sizeOfIndexBuffer = (sizeof(int) * this->mMesh.indexBufferData.size());
     this->index = Buffer(sizeOfIndexBuffer, VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, this->mMesh.indexBufferData.data());
 
-    
+
 
 }
 

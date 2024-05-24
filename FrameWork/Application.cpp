@@ -140,7 +140,7 @@ void Application::EnumeratePhysicalDevices()
 		vkGetPhysicalDeviceProperties(this->m_physicalDevices[i], &properties);
 		vkGetPhysicalDeviceFeatures(this->m_physicalDevices[i], &features);
 
-		if (properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU && features.geometryShader)
+		if (properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU && features.geometryShader && features.samplerAnisotropy)
 		{
 			device_index = i;
 		}
@@ -262,6 +262,7 @@ void Application::CreateLogicalDevice()
 	VkPhysicalDeviceFeatures deviceFeatures = {};
 	deviceFeatures.geometryShader = VK_TRUE;
 	deviceFeatures.tessellationShader = VK_TRUE;
+	deviceFeatures.samplerAnisotropy = VK_TRUE;
 
 	VkDeviceCreateInfo deviceCreateInfo = {};
 	deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
@@ -703,11 +704,60 @@ static void TransitionImageLayout(VkImage image, VkFormat format,
 
 	//TODO: mipmapping
 
+	VkPipelineStageFlags srcStage = 0;
+	VkPipelineStageFlags dstStage = 0;
+	
+	if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED &&
+		newLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL) 
+	{
+		barrier.srcAccessMask = 0;
+		barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+
+		srcStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+		dstStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+	}
+	else if (oldLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL &&
+			 newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) 
+	{
+		barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+		barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+
+		srcStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+		dstStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+	}
+	else 
+	{
+		throw std::invalid_argument("bad layout transition");
+	}
+
 	//first two parameters 
-	vkCmdPipelineBarrier(cmdBuffer, /*TODO*/0, /*TODO*/0, 0, 0, nullptr, 0, nullptr, 1, &barrier);
+	vkCmdPipelineBarrier(cmdBuffer, srcStage, dstStage, 0, 0, nullptr, 0, nullptr, 1, &barrier);
 
 	endCmd(cmdBuffer);
 
+}
+
+static void copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height) 
+{
+	VkCommandBuffer cmdBuffer = beginCmd();
+
+	VkBufferImageCopy region = {};
+	region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+	region.imageSubresource.mipLevel = 0;
+	region.imageSubresource.baseArrayLayer = 0;
+	region.imageSubresource.layerCount = 1;
+
+	region.imageOffset = { 0,0,0 };
+	region.imageExtent = 
+	{
+		width,
+		height,
+		1 
+	};
+
+	vkCmdCopyBufferToImage(cmdBuffer, buffer, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
+
+	endCmd(cmdBuffer);
 }
 
 void Application::CreateTexture() 
@@ -715,7 +765,7 @@ void Application::CreateTexture()
 	VkResult result;
 
 	int textureWidth, textureHeight, textureChannels;
-	stbi_uc* pixels = stbi_load("External/textures/texture.jpg", &textureWidth, &textureHeight, &textureChannels, STBI_rgb_alpha);
+	stbi_uc* pixels = stbi_load("External/textures/puppy1.bmp", &textureWidth, &textureHeight, &textureChannels, STBI_rgb_alpha);
 	VkDeviceSize imageSize = textureWidth * textureHeight * 4;
 
 	if (pixels == NULL) 
@@ -730,36 +780,115 @@ void Application::CreateTexture()
 	CreateImage(textureWidth, textureHeight, VK_FORMAT_R8G8B8A8_SRGB, 
 				VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
 				VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, this->textureImage, this->textureMemory);
+
+	TransitionImageLayout(this->textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED, 
+															VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+	
+	copyBufferToImage(stagingBuffer.buffer, this->textureImage, static_cast<uint32_t>(textureWidth), static_cast<uint32_t>(textureHeight));
+	
+	TransitionImageLayout(this->textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+
+	vkDestroyBuffer(this->m_logicalDevice, stagingBuffer.buffer, nullptr);
+	vkFreeMemory(this->m_logicalDevice, stagingBuffer.memory, nullptr);
 }
 
-void Application::CreateDescriptorSets() 
+void Application::CreateTextureView()
 {
 	VkResult result;
-	VkDescriptorSetLayoutBinding layoutBinding{};
 
-	layoutBinding.binding = 0;
-	layoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-	layoutBinding.descriptorCount = 1; //one uniform struct.
-	layoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+	VkImageViewCreateInfo viewInfo = {};
+	viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+	viewInfo.image = this->textureImage;
+	viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+	viewInfo.format = VK_FORMAT_R8G8B8A8_SRGB;
+	viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+	viewInfo.subresourceRange.baseMipLevel = 0;
+	viewInfo.subresourceRange.levelCount = 1;
+	viewInfo.subresourceRange.baseArrayLayer = 0;
+	viewInfo.subresourceRange.layerCount = 1;
+	
+	result = vkCreateImageView(this->m_logicalDevice, &viewInfo, nullptr, &this->textureImageView);
+
+	assert(result == VK_SUCCESS);
+
+
+}
+
+void Application::CreateTextureSampler() 
+{
+	VkResult result;
+
+	VkSamplerCreateInfo createInfo = {};
+	createInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+	createInfo.magFilter = VK_FILTER_LINEAR;
+	createInfo.minFilter = VK_FILTER_LINEAR;
+	createInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+	createInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+	createInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+
+	createInfo.anisotropyEnable = VK_TRUE;
+
+	VkPhysicalDeviceProperties pdp = { };
+	vkGetPhysicalDeviceProperties(this->m_physicalDevices[device_index], &pdp);
+
+	createInfo.maxAnisotropy = pdp.limits.maxSamplerAnisotropy / 2.f;
+
+	createInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
+	createInfo.unnormalizedCoordinates = VK_FALSE;
+
+	createInfo.compareEnable = VK_FALSE;
+	createInfo.compareOp = VK_COMPARE_OP_ALWAYS;
+
+	createInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+
+	result = vkCreateSampler(this->m_logicalDevice, &createInfo, nullptr, &this->textureSampler);
+
+	assert(result == VK_SUCCESS);
+
+
+}
+void Application::CreateDescriptorSets()
+{
+	VkResult result;
+	
+	VkDescriptorSetLayoutBinding uTransformBinding{};
+	uTransformBinding.binding = 0;
+	uTransformBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+	uTransformBinding.descriptorCount = 1; //one uniform struct.
+	uTransformBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT; //we are going to use the transforms in the vertex shader.
+
+	VkDescriptorSetLayoutBinding samplerBinding = {};
+	samplerBinding.binding = 1;
+	samplerBinding.descriptorCount = 1;
+	samplerBinding.pImmutableSamplers = nullptr;
+	samplerBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+	samplerBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT; //we are going to use the sampler in the fragment shader.
+
+
+	VkDescriptorSetLayoutBinding bindings[2] = { uTransformBinding, samplerBinding };
+
 
 	VkDescriptorSetLayoutCreateInfo layoutInfo = {};
 	layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-	layoutInfo.bindingCount = 1;
-	layoutInfo.pBindings = &layoutBinding;
+	layoutInfo.bindingCount = 2;
+	layoutInfo.pBindings = bindings;
 
 	result = vkCreateDescriptorSetLayout(this->m_logicalDevice, &layoutInfo, nullptr, &descriptorSetLayout);
 	assert(result == VK_SUCCESS);
 
 	//create descriptor pool
-	VkDescriptorPoolSize poolSize{};
-	poolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-	poolSize.descriptorCount = 1; //just one uniform buffer.
+	VkDescriptorPoolSize poolSize[2] = {};
+	poolSize[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+	poolSize[0].descriptorCount = 1; //max numbers of frames in flight.
+
+	poolSize[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+	poolSize[1].descriptorCount = 1; //max numbers of frames in flight.
 
 	VkDescriptorPoolCreateInfo poolInfo{};
 	poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-	poolInfo.poolSizeCount = 1;
-	poolInfo.pPoolSizes = &poolSize;
-	poolInfo.maxSets = 1;
+	poolInfo.poolSizeCount = 2;
+	poolInfo.pPoolSizes = poolSize;
+	poolInfo.maxSets = 1; //max numbers of frames in flight.
 
 	result = vkCreateDescriptorPool(this->m_logicalDevice, &poolInfo, nullptr, &this->descriptorPool);
 	assert(result == VK_SUCCESS);
@@ -770,7 +899,7 @@ void Application::CreateDescriptorSets()
 	descriptorAllocInfo.descriptorSetCount = 1;
 	descriptorAllocInfo.pSetLayouts = &descriptorSetLayout;
 
-	result = vkAllocateDescriptorSets(this->m_logicalDevice, &descriptorAllocInfo, &descriptorSets);
+	result = vkAllocateDescriptorSets(this->m_logicalDevice, &descriptorAllocInfo, &this->descriptorSets);
 	assert(result == VK_SUCCESS);
 
 
@@ -779,24 +908,37 @@ void Application::CreateDescriptorSets()
 
 void Application::WriteDescriptorSets() 
 {
-	VkWriteDescriptorSet descriptorWrite{};
-	descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-	descriptorWrite.dstSet = this->descriptorSets;
-	descriptorWrite.dstBinding = 0;
-	descriptorWrite.dstArrayElement = 0;
-	descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-	descriptorWrite.descriptorCount = 1;
-
 	VkDescriptorBufferInfo bufferInfo = {};
 	bufferInfo.buffer = uniformBuffers.back().buffer;
 	bufferInfo.offset = 0;
 	bufferInfo.range = sizeof(uTransformObject);
 
-	descriptorWrite.pBufferInfo = &bufferInfo;
-	descriptorWrite.pImageInfo = nullptr; // Optional
-	descriptorWrite.pTexelBufferView = nullptr; // Optional
+	VkDescriptorImageInfo imageInfo = {};
+	imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+	imageInfo.imageView = this->textureImageView;
+	imageInfo.sampler = this->textureSampler;
 
-	vkUpdateDescriptorSets(this->m_logicalDevice, 1, &descriptorWrite, 0, nullptr);
+	VkWriteDescriptorSet descriptorWrite[2] = {};
+	descriptorWrite[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+	descriptorWrite[0].dstSet = this->descriptorSets;
+	descriptorWrite[0].dstBinding = 0;
+	descriptorWrite[0].dstArrayElement = 0;
+	descriptorWrite[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+	descriptorWrite[0].descriptorCount = 1;
+	descriptorWrite[0].pBufferInfo = &bufferInfo;
+	descriptorWrite[0].pImageInfo = nullptr; // Optional
+	descriptorWrite[0].pTexelBufferView = nullptr; // Optional
+
+	descriptorWrite[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+	descriptorWrite[1].dstSet = this->descriptorSets;
+	descriptorWrite[1].dstBinding = 1;
+	descriptorWrite[1].dstArrayElement = 0;
+	descriptorWrite[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+	descriptorWrite[1].descriptorCount = 1;
+	descriptorWrite[1].pImageInfo = &imageInfo;
+	descriptorWrite[1].pTexelBufferView = nullptr; // Optional
+
+	vkUpdateDescriptorSets(this->m_logicalDevice, 2, descriptorWrite, 0, nullptr);
 
 }
 
@@ -1137,21 +1279,22 @@ bool Application::init()
 	VkPipelineShaderStageCreateInfo shaderStages[] = { shaderVertStageInfo, shaderFragModuleInfo };
 
 	////create layout 
+	CreateCommandPools();
+	CreateCommandBuffers();
 	
 	//CreateBuffers();
 	CreateUniformBuffers();
 
-	CreateDescriptorSets();
+	CreateTexture();
+	CreateTextureView();
+	CreateTextureSampler();
 
+	CreateDescriptorSets();
 	WriteDescriptorSets();
 	
 	CreatePipeline(shaderStages, 2);
 
 	//commands
-	CreateCommandPools();
-	
-	CreateCommandBuffers();
-
 	CreateSemaphores();
 
 	CreateFences();
@@ -1274,7 +1417,7 @@ void Application::loop()
 		renderPassInfo.renderArea.offset = { 0,0 };
 		renderPassInfo.renderArea.extent = deviceCapabilities.currentExtent;
 
-		VkClearValue clearColor = { {{.0f, 0.5f, 0.5f, 1.0f}} };
+		VkClearValue clearColor = { {{.1f, 0.1f, 0.1f, 1.0f}} };
 		renderPassInfo.clearValueCount = 1;
 		renderPassInfo.pClearValues = &clearColor;
 
@@ -1372,8 +1515,15 @@ void Application::exit()
 
 	for (unsigned i = 0; i < uniformBuffers.size(); ++i) 
 	{
-		vkDestroyBuffer(_Application->LogicalDevice(), uniformBuffers[i].buffer, nullptr);
+		vkDestroyBuffer(this->m_logicalDevice, uniformBuffers[i].buffer, nullptr);
+		vkFreeMemory(this->m_logicalDevice, uniformBuffers[i].memory, nullptr);
 	}
+
+	vkDestroySampler(this->m_logicalDevice, this->textureSampler, nullptr);
+	vkDestroyImageView(this->m_logicalDevice,this->textureImageView, nullptr);
+
+	vkDestroyImage(this->m_logicalDevice, textureImage, nullptr);
+	vkFreeMemory(this->m_logicalDevice, textureMemory, nullptr);
 
 
 	for (unsigned i = 0; i < imageCount; ++i)

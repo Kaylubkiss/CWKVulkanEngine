@@ -5,7 +5,7 @@
 struct Vertex 
 {
 	glm::vec3 pos = {0,0,0};
-	glm::vec3 nrm = {0,0.25f,.5f};
+	glm::vec3 nrm = {.2f,.5f,0};
 	glm::vec2 uv = {0,0};
 };
 
