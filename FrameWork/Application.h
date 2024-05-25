@@ -64,6 +64,11 @@ private:
 	VkImageView textureImageView;
 	VkSampler textureSampler;
 
+	VkImage depthImage;
+	VkDeviceMemory depthImageMemory;
+	VkImageView depthImageView;
+	VkFormat depthFormat;
+
 	const char* enabledLayerNames[1] = {
 		"VK_LAYER_KHRONOS_validation"
 	};
@@ -111,9 +116,14 @@ private:
 					 VkImage& image, VkDeviceMemory& imageMemory
 					);
 
+	void CreateDepthResources();
+	
 	void CreateTexture();
+	void CreateCubeMap();
 	void CreateTextureView();
 	void CreateTextureSampler();
+
+	VkFormat findSupportedFormat(const std::vector<VkFormat>& possibleFormats, VkImageTiling tiling, VkFormatFeatureFlags features);
 
 
 	bool init();

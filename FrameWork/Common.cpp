@@ -39,7 +39,7 @@ Buffer::Buffer(size_t size, VkBufferUsageFlags usage, VkMemoryPropertyFlags flag
 	VkResult result;
 
 	this->size = static_cast<VkDeviceSize>(size);
-	this->mData = data;
+	/*this->mData = data;*/
 
 	VkPhysicalDeviceMemoryProperties	vpdmp;
 	vkGetPhysicalDeviceMemoryProperties(_Application->PhysicalDevice(), &vpdmp);
@@ -92,49 +92,45 @@ Buffer::Buffer(size_t size, VkBufferUsageFlags usage, VkMemoryPropertyFlags flag
 
 
 	//fill data buffer --> THIS COULD BE ITS OWN MODULE...
-	result = vkMapMemory(_Application->LogicalDevice(), this->memory, 0, VK_WHOLE_SIZE, 0, &this->mappedMemory);	// 0 and 0 are offset and flags
-	memcpy(this->mappedMemory, this->mData, size);
+	vkMapMemory(_Application->LogicalDevice(), this->memory, 0, VK_WHOLE_SIZE, 0, &this->mappedMemory);
+	memcpy(this->mappedMemory, data, this->size);
 	vkUnmapMemory(_Application->LogicalDevice(), this->memory);
-	assert(result == VK_SUCCESS);
+}
+
+
+void Buffer::FillData(const void* data, size_t dataCount, size_t stride)
+{
+	
+
+	for (size_t i = 0; i < dataCount; ++i) 
+	{
+		
+	}
+
+
 
 }
 
-//Buffer::~Buffer() 
-//{
-//	assert(_Application != NULL);
-//
-//	vkDestroyBuffer(_Application->LogicalDevice(), this->buffer, nullptr);
-//
-//}
 
+void Buffer::RecordData() 
+{
+	VkResult result;
 
-//Buffer::Buffer(const Buffer& rhs) : buffer(VK_NULL_HANDLE), memory(VK_NULL_HANDLE), size(0), mappedMemory(NULL), mData(NULL)
-//{
-//	assert(_Application != NULL);
-//
-//	VkCommandBufferAllocateInfo allocInfo = {};
-//	allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-//	allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-//	allocInfo.commandBufferCount = 1;
-//	allocInfo.commandPool = _Application->CommandPool();
-//
-//	VkCommandBuffer cmdBuffer;
-//	vkAllocateCommandBuffers(_Application->LogicalDevice(), &allocInfo, &cmdBuffer);
-//
-//
-//	VkBufferCopy copyRegion = {};
-//
-//	copyRegion.size = rhs.size;
-//
-//	vkCmdCopyBuffer(cmdBuffer, rhs.buffer, this->buffer, 1, &copyRegion);
-//
-//	this->memory = rhs.memory;
-//	this->mappedMemory = rhs.mappedMemory;
-//	this->mData = rhs.mData;
-//	this->size = rhs.size;
-//
-//	vkFreeCommandBuffers(_Application->LogicalDevice(), _Application->CommandPool(), 1, &cmdBuffer);
-//}
+	result = vkMapMemory(_Application->LogicalDevice(), this->memory, 0, VK_WHOLE_SIZE, 0, &this->mappedMemory);	// 0 and 0 are offset and flags
+
+	assert(result == VK_SUCCESS);
+
+}
+void Buffer::StopRecordData() 
+{
+	vkUnmapMemory(_Application->LogicalDevice(), this->memory);
+}
+
+void Buffer::CopyData(void* data)
+{
+	memcpy(this->mappedMemory , data, this->size);
+}
+
 
 
 

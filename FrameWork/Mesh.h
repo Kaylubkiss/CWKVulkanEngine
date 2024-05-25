@@ -2,6 +2,12 @@
 #include "Common.h"
 #include <vector>
 
+enum MeshType
+{
+	M_NONE = 0,
+	M_CUBE,
+};
+
 struct Vertex 
 {
 	glm::vec3 pos = {0,0,0};
@@ -32,7 +38,7 @@ struct Object
 
 	
 
-	Object(const char* fileName);
+	Object(const char* fileName, MeshType type = M_NONE);
 	Object() : mMesh(), vertex(), index() {};
 };
 

@@ -295,7 +295,24 @@ void Application::CreateRenderPass()
 {
 	VkResult result;
 
-	VkAttachmentDescription renderPassAttachment =
+	VkAttachmentDescription depthAttachment = {};
+	depthAttachment.format = this->depthFormat;
+	depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+	depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+	depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+	depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+	depthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+	depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+	depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+	VkAttachmentReference depthAttachmentReference = 
+	{
+		1,
+		VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL
+	};
+
+
+	VkAttachmentDescription colorAttachment =
 	{
 		//in memory tight scenarios, 
 		// we can tell vulkan not to do anything 
@@ -313,7 +330,7 @@ void Application::CreateRenderPass()
 		VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, //final layout.
 	};
 
-	VkAttachmentReference attachmentReference =
+	VkAttachmentReference colorAttachmentReference =
 	{
 		0,
 		VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
@@ -326,21 +343,22 @@ void Application::CreateRenderPass()
 		0, //input attachment count
 		nullptr, //pointer to input attachments
 		1, //color attachment count
-		&attachmentReference,
+		&colorAttachmentReference,
 		nullptr, //resolve attachments
-		nullptr, //depth stencil attachments
+		&depthAttachmentReference, //depth stencil attachment
 		0, //preserve attachment count
 		nullptr //pointer to reserved attachments.
 	};
 
+	VkAttachmentDescription attachments[2] = { colorAttachment, depthAttachment };
 
 	VkRenderPassCreateInfo renderPassCreateInfo =
 	{
 		VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
 		nullptr, //pNext
 		0, //flags are for future use...
-		1, //attachment count
-		&renderPassAttachment,
+		2, //attachment count
+		attachments,
 		1, //subpass count
 		&subpass, //pointer to subpasses
 		0, //dependency count
@@ -538,6 +556,8 @@ void Application::CreateFrameBuffers()
 
 	for (unsigned i = 0; i < imageCount; ++i) {
 
+		VkImageView attachments[2] = {imageViews[i], this->depthImageView};
+
 		//create framebuffer info
 		VkFramebufferCreateInfo framebufferCreateInfo =
 		{
@@ -545,8 +565,8 @@ void Application::CreateFrameBuffers()
 			nullptr, //pNext
 			0, //reserved for future expansion.. flags are zero now.
 			this->m_renderPass,
-			1,
-			&imageViews[i], //only captures the color of the image.
+			2,// attachmentCount
+			attachments, //attachments
 			(uint32_t)width, //width
 			(uint32_t)height, //height
 			1 //1 layer
@@ -570,6 +590,9 @@ void Application::CreateBuffers()
 void Application::CreateUniformBuffers()
 {
 	this->uniformBuffers.push_back(Buffer(sizeof(uTransformObject), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, (void*)&uTransform));
+	/*uniformBuffers.back().RecordData();
+	uniformBuffers.back().CopyData();
+	uniformBuffers.back().StopRecordData();*/
 }
 
 void Application::CreateImage
@@ -593,20 +616,20 @@ void Application::CreateImage
 	imageCreateInfo.extent.depth = 1;
 	imageCreateInfo.mipLevels = 1;
 	imageCreateInfo.arrayLayers = 1;
-	imageCreateInfo.format = VK_FORMAT_R8G8B8A8_SRGB;
-	imageCreateInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
+	imageCreateInfo.format = format;
+	imageCreateInfo.tiling = tiling;
 	imageCreateInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-	imageCreateInfo.usage = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+	imageCreateInfo.usage = usage;
 	imageCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 	imageCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;
 
 
-	result = vkCreateImage(this->m_logicalDevice, &imageCreateInfo, nullptr, &this->textureImage);
+	result = vkCreateImage(this->m_logicalDevice, &imageCreateInfo, nullptr, &image);
 	assert(result == VK_SUCCESS);
 
 	VkMemoryRequirements memRequirements;
 
-	vkGetImageMemoryRequirements(this->m_logicalDevice, this->textureImage, &memRequirements);
+	vkGetImageMemoryRequirements(this->m_logicalDevice, image, &memRequirements);
 
 	VkMemoryAllocateInfo memAllocInfo = {};
 	memAllocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
@@ -760,12 +783,83 @@ static void copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, ui
 	endCmd(cmdBuffer);
 }
 
+VkFormat Application::findSupportedFormat(const std::vector<VkFormat>& possibleFormats, 
+VkImageTiling tiling, VkFormatFeatureFlags features) 
+{
+	for (VkFormat format : possibleFormats) 
+	{
+		VkFormatProperties properties;
+		vkGetPhysicalDeviceFormatProperties(this->m_physicalDevices[device_index], format, &properties);
+
+		if (tiling == VK_IMAGE_TILING_LINEAR && (properties.linearTilingFeatures & features) == features) 
+		{
+			return format;
+		}
+		else if (tiling == VK_IMAGE_TILING_OPTIMAL && (properties.optimalTilingFeatures & features) == features) 
+		{
+			return format;
+		}
+
+	}
+
+	throw std::runtime_error("couldn't find a suitable format supported on the physical device.");
+}
+void Application::CreateDepthResources() 
+{
+	this->depthFormat = findSupportedFormat(
+		{ VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT }, 
+		VK_IMAGE_TILING_OPTIMAL, VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
+
+	//create depth image
+	CreateImage(width,height, depthFormat, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
+	VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, this->depthImage,
+	this->depthImageMemory);
+	//create depth image view 
+	VkResult result;
+
+	VkImageViewCreateInfo viewInfo = {};
+	viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+	viewInfo.image = this->depthImage;
+	viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+	viewInfo.format = depthFormat;
+	viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+	viewInfo.subresourceRange.baseMipLevel = 0;
+	viewInfo.subresourceRange.levelCount = 1;
+	viewInfo.subresourceRange.baseArrayLayer = 0;
+	viewInfo.subresourceRange.layerCount = 1;
+
+	result = vkCreateImageView(this->m_logicalDevice, &viewInfo, nullptr, &this->depthImageView);
+
+	assert(result == VK_SUCCESS);
+
+}
+
+void Application::CreateCubeMap() 
+{
+	unsigned char* textureData[6];
+	int textureWidth, textureHeight, textureChannels;
+	textureData[0] = stbi_load("External/textures/texture.jpg", &textureWidth, &textureHeight, &textureChannels, STBI_rgb_alpha);
+	textureData[1] = stbi_load("External/textures/texture.jpg", &textureWidth, &textureHeight, &textureChannels, STBI_rgb_alpha);
+	textureData[2] = stbi_load("External/textures/texture.jpg", &textureWidth, &textureHeight, &textureChannels, STBI_rgb_alpha);
+	textureData[3] = stbi_load("External/textures/texture.jpg", &textureWidth, &textureHeight, &textureChannels, STBI_rgb_alpha);
+	textureData[4] = stbi_load("External/textures/texture.jpg", &textureWidth, &textureHeight, &textureChannels, STBI_rgb_alpha);
+	textureData[5] = stbi_load("External/textures/texture.jpg", &textureWidth, &textureHeight, &textureChannels, STBI_rgb_alpha);
+	
+	VkDeviceSize imageSize = textureWidth * textureHeight * 4 * 6;
+	VkDeviceSize layerSize = imageSize / 6;
+
+	/*VkBuffer stagingBuffer = Buffer(imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, NULL);*/
+
+
+}
+
+
 void Application::CreateTexture() 
 {
 	VkResult result;
 
 	int textureWidth, textureHeight, textureChannels;
-	stbi_uc* pixels = stbi_load("External/textures/puppy1.bmp", &textureWidth, &textureHeight, &textureChannels, STBI_rgb_alpha);
+	stbi_uc* pixels = stbi_load("External/textures/texture.jpg", &textureWidth, &textureHeight, &textureChannels, STBI_rgb_alpha);
 	VkDeviceSize imageSize = textureWidth * textureHeight * 4;
 
 	if (pixels == NULL) 
@@ -774,6 +868,10 @@ void Application::CreateTexture()
 	}
 
 	Buffer stagingBuffer = Buffer(static_cast<size_t>(imageSize), VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, pixels);
+	/*stagingBuffer.FillData(pixels, 1, 0);*/
+	//stagingBuffer.RecordData();
+	//stagingBuffer.CopyData(pixels);
+	//stagingBuffer.StopRecordData();
 
 	stbi_image_free(pixels);
 
@@ -981,7 +1079,7 @@ void Application::CreatePipeline(VkPipelineShaderStageCreateInfo* pStages, int n
 		0, //flags
 		1, //vertexBindingDescriptionCount
 		&vBindingDescription,
-		3,
+		3, //attribute count
 		vInputAttribute
 	};
 
@@ -1059,6 +1157,24 @@ void Application::CreatePipeline(VkPipelineShaderStageCreateInfo* pStages, int n
 	colorBlendCreateInfo.blendConstants[2] = 0;
 	colorBlendCreateInfo.blendConstants[3] = 0;
 
+
+	//depthstencil testing
+	VkPipelineDepthStencilStateCreateInfo depthStencilCreateInfo = {};
+	depthStencilCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+	depthStencilCreateInfo.depthTestEnable = VK_TRUE;
+	depthStencilCreateInfo.depthWriteEnable = VK_TRUE;
+	depthStencilCreateInfo.depthCompareOp = VK_COMPARE_OP_LESS;
+	
+	depthStencilCreateInfo.depthBoundsTestEnable = VK_FALSE;
+	depthStencilCreateInfo.minDepthBounds = 0.f;
+	depthStencilCreateInfo.maxDepthBounds = 1.f;
+	
+	//no stencil test for now.
+	depthStencilCreateInfo.stencilTestEnable = VK_FALSE;
+	depthStencilCreateInfo.front = {};
+	depthStencilCreateInfo.back = {};
+
+
 	VkPipelineLayoutCreateInfo				pipelineLayoutCreateInfo = {};
 	pipelineLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
 	pipelineLayoutCreateInfo.pNext = nullptr;
@@ -1067,6 +1183,7 @@ void Application::CreatePipeline(VkPipelineShaderStageCreateInfo* pStages, int n
 	pipelineLayoutCreateInfo.pSetLayouts = &descriptorSetLayout;
 	pipelineLayoutCreateInfo.pushConstantRangeCount = 0;
 	pipelineLayoutCreateInfo.pPushConstantRanges = (VkPushConstantRange*)nullptr;
+
 
 	result = vkCreatePipelineLayout(this->m_logicalDevice, &pipelineLayoutCreateInfo, nullptr, &this->pipelineLayout);
 
@@ -1097,7 +1214,7 @@ void Application::CreatePipeline(VkPipelineShaderStageCreateInfo* pStages, int n
 		//TODO: VkPipelineMultisampleStateCreateInfo,
 		&multiSampleCreateInfo,
 		//TODO: VkPipelineDepthStencilStateCreateInfo,
-		nullptr,
+		&depthStencilCreateInfo,
 		//TODO: VkPipelineColorBlendStateCreateInfo,
 		&colorBlendCreateInfo,
 		//TODO: VkPipelineDynamicStateCreateInfo,
@@ -1265,13 +1382,12 @@ bool Application::init()
 
 	// If you want to draw a triangle:
 	// - create renderpass object
-	CreateRenderPass();
 
+	
 	CreateSwapChain();
 
 	CreateImageViews();
 	
-	CreateFrameBuffers();
 
 	VkPipelineShaderStageCreateInfo shaderVertStageInfo = CreateShaderModule("vert.spv", this->shaderVertModule, VK_SHADER_STAGE_VERTEX_BIT);
 	VkPipelineShaderStageCreateInfo shaderFragModuleInfo = CreateShaderModule("frag.spv", this->shaderFragModule, VK_SHADER_STAGE_FRAGMENT_BIT);
@@ -1289,8 +1405,13 @@ bool Application::init()
 	CreateTextureView();
 	CreateTextureSampler();
 
+	CreateDepthResources();
+	
 	CreateDescriptorSets();
 	WriteDescriptorSets();
+	
+	CreateRenderPass();
+	CreateFrameBuffers();
 	
 	CreatePipeline(shaderStages, 2);
 
@@ -1299,7 +1420,7 @@ bool Application::init()
 
 	CreateFences();
 
-	debugCube = Object("cube.obj");
+	debugCube = Object("cube.obj", MeshType::M_CUBE);
 
 	return true;
 
@@ -1417,9 +1538,12 @@ void Application::loop()
 		renderPassInfo.renderArea.offset = { 0,0 };
 		renderPassInfo.renderArea.extent = deviceCapabilities.currentExtent;
 
-		VkClearValue clearColor = { {{.1f, 0.1f, 0.1f, 1.0f}} };
-		renderPassInfo.clearValueCount = 1;
-		renderPassInfo.pClearValues = &clearColor;
+		VkClearValue clearColors[2] = {};
+		clearColors[0].color = { {0.f, 0.f, 0.f, 1.f} };
+		clearColors[1].depthStencil = { 1.f, 0 };
+
+		renderPassInfo.clearValueCount = 2;
+		renderPassInfo.pClearValues = clearColors;
 
 		//put this in a draw frame
 		vkCmdBeginRenderPass(this->commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
