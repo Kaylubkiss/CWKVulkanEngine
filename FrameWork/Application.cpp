@@ -600,7 +600,7 @@ void Application::CreateImage
 	uint32_t width, uint32_t height,
 	VkFormat format, VkImageTiling tiling,
 	VkImageUsageFlags usage, VkMemoryPropertyFlags flags,
-	VkImage& image, VkDeviceMemory& imageMemory
+	VkImage& image, VkDeviceMemory& imageMemory, uint32_t arrayLayerCount
 ) 
 {
 	VkResult result;
@@ -615,7 +615,7 @@ void Application::CreateImage
 	imageCreateInfo.extent.height = height;
 	imageCreateInfo.extent.depth = 1;
 	imageCreateInfo.mipLevels = 1;
-	imageCreateInfo.arrayLayers = 1;
+	imageCreateInfo.arrayLayers = arrayLayerCount;
 	imageCreateInfo.format = format;
 	imageCreateInfo.tiling = tiling;
 	imageCreateInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
@@ -813,7 +813,7 @@ void Application::CreateDepthResources()
 	//create depth image
 	CreateImage(width,height, depthFormat, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
 	VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, this->depthImage,
-	this->depthImageMemory);
+	this->depthImageMemory, 1);
 	//create depth image view 
 	VkResult result;
 
@@ -834,22 +834,35 @@ void Application::CreateDepthResources()
 
 }
 
+static const std::string& PathToTextures() 
+{
+	return "External/textures/";
+}
+
 void Application::CreateCubeMap() 
 {
 	unsigned char* textureData[6];
 	int textureWidth, textureHeight, textureChannels;
-	textureData[0] = stbi_load("External/textures/texture.jpg", &textureWidth, &textureHeight, &textureChannels, STBI_rgb_alpha);
-	textureData[1] = stbi_load("External/textures/texture.jpg", &textureWidth, &textureHeight, &textureChannels, STBI_rgb_alpha);
-	textureData[2] = stbi_load("External/textures/texture.jpg", &textureWidth, &textureHeight, &textureChannels, STBI_rgb_alpha);
-	textureData[3] = stbi_load("External/textures/texture.jpg", &textureWidth, &textureHeight, &textureChannels, STBI_rgb_alpha);
-	textureData[4] = stbi_load("External/textures/texture.jpg", &textureWidth, &textureHeight, &textureChannels, STBI_rgb_alpha);
-	textureData[5] = stbi_load("External/textures/texture.jpg", &textureWidth, &textureHeight, &textureChannels, STBI_rgb_alpha);
+	textureData[0] = stbi_load((PathToTextures() + std::string("texture.jpg")).c_str(), &textureWidth, &textureHeight, &textureChannels, STBI_rgb_alpha);
+	textureData[1] = stbi_load((PathToTextures() + std::string("texture.jpg")).c_str(), &textureWidth, &textureHeight, &textureChannels, STBI_rgb_alpha);
+	textureData[2] = stbi_load((PathToTextures() + std::string("texture.jpg")).c_str(), &textureWidth, &textureHeight, &textureChannels, STBI_rgb_alpha);
+	textureData[3] = stbi_load((PathToTextures() + std::string("texture.jpg")).c_str(), &textureWidth, &textureHeight, &textureChannels, STBI_rgb_alpha);
+	textureData[4] = stbi_load((PathToTextures() + std::string("texture.jpg")).c_str(), &textureWidth, &textureHeight, &textureChannels, STBI_rgb_alpha);
+	textureData[5] = stbi_load((PathToTextures() + std::string("texture.jpg")).c_str(), &textureWidth, &textureHeight, &textureChannels, STBI_rgb_alpha);
 	
 	VkDeviceSize imageSize = textureWidth * textureHeight * 4 * 6;
 	VkDeviceSize layerSize = imageSize / 6;
 
-	/*VkBuffer stagingBuffer = Buffer(imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, NULL);*/
+	Buffer stagingBuffer = Buffer(imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, NULL);
 
+	vkMapMemory(this->m_logicalDevice, stagingBuffer.memory, 0, VK_WHOLE_SIZE, 0, &stagingBuffer.mappedMemory);
+
+	for (unsigned i = 0; i < 6; ++i) 
+	{
+		memcpy(reinterpret_cast<unsigned char*>(stagingBuffer.mappedMemory) + layerSize * i, textureData[i], layerSize);
+	}
+
+	vkUnmapMemory(this->m_logicalDevice, stagingBuffer.memory);
 
 }
 
@@ -877,7 +890,7 @@ void Application::CreateTexture()
 
 	CreateImage(textureWidth, textureHeight, VK_FORMAT_R8G8B8A8_SRGB, 
 				VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-				VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, this->textureImage, this->textureMemory);
+				VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, this->textureImage, this->textureMemory, 1);
 
 	TransitionImageLayout(this->textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED, 
 															VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
@@ -1312,6 +1325,11 @@ void Application::RecreateSwapChain()
 		vkDestroyFramebuffer(this->m_logicalDevice, this->frameBuffer[i], nullptr);
 	}
 
+	
+	vkDestroyImageView(this->m_logicalDevice, this->depthImageView, nullptr);
+	vkDestroyImage(this->m_logicalDevice, this->depthImage, nullptr);
+	
+
 	width = deviceCapabilities.currentExtent.width;
 	height = deviceCapabilities.currentExtent.height;
 
@@ -1323,6 +1341,8 @@ void Application::RecreateSwapChain()
 	CreateSwapChain();
 
 	CreateImageViews();
+
+	CreateDepthResources();
 
 	CreateFrameBuffers();
 

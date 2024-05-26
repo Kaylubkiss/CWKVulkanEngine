@@ -92,9 +92,12 @@ Buffer::Buffer(size_t size, VkBufferUsageFlags usage, VkMemoryPropertyFlags flag
 
 
 	//fill data buffer --> THIS COULD BE ITS OWN MODULE...
-	vkMapMemory(_Application->LogicalDevice(), this->memory, 0, VK_WHOLE_SIZE, 0, &this->mappedMemory);
-	memcpy(this->mappedMemory, data, this->size);
-	vkUnmapMemory(_Application->LogicalDevice(), this->memory);
+	if (data != NULL) 
+	{
+		vkMapMemory(_Application->LogicalDevice(), this->memory, 0, VK_WHOLE_SIZE, 0, &this->mappedMemory);
+		memcpy(this->mappedMemory, data, this->size);
+		vkUnmapMemory(_Application->LogicalDevice(), this->memory);
+	}
 }
 
 
@@ -121,14 +124,15 @@ void Buffer::RecordData()
 	assert(result == VK_SUCCESS);
 
 }
-void Buffer::StopRecordData() 
-{
-	vkUnmapMemory(_Application->LogicalDevice(), this->memory);
-}
 
 void Buffer::CopyData(void* data)
 {
 	memcpy(this->mappedMemory , data, this->size);
+}
+
+void Buffer::StopRecordData() 
+{
+	vkUnmapMemory(_Application->LogicalDevice(), this->memory);
 }
 
 

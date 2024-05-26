@@ -4,6 +4,7 @@
 #include <SDL2/SDL.h>
 #include <vector>
 
+#define TEXTURE_PATH "External/textures/"
 
 class Application
 {
@@ -113,15 +114,16 @@ private:
 	void CreateImage(uint32_t width, uint32_t height, 
 					 VkFormat format, VkImageTiling tiling, 
 					 VkImageUsageFlags usage, VkMemoryPropertyFlags flags, 
-					 VkImage& image, VkDeviceMemory& imageMemory
+					 VkImage& image, VkDeviceMemory& imageMemory, uint32_t arrayLayerCount
 					);
 
 	void CreateDepthResources();
 	
 	void CreateTexture();
-	void CreateCubeMap();
 	void CreateTextureView();
 	void CreateTextureSampler();
+
+	void CreateCubeMap();
 
 	VkFormat findSupportedFormat(const std::vector<VkFormat>& possibleFormats, VkImageTiling tiling, VkFormatFeatureFlags features);
 

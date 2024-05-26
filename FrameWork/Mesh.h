@@ -1,6 +1,8 @@
 #pragma once
 #include "Common.h"
+#include <iostream>
 #include <vector>
+#include <string>
 
 enum MeshType
 {
@@ -42,4 +44,4 @@ struct Object
 	Object() : mMesh(), vertex(), index() {};
 };
 
-void LoadMeshOBJ(const char* fileName, Mesh& mesh);
+void LoadMeshOBJ(const std::string& path, Mesh& mesh);

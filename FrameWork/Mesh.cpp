@@ -1,5 +1,6 @@
 #include "Mesh.h"
-#include <iostream>
+#include <fstream>
+#include <sstream>
 #include <algorithm>
 
 Object::Object(const char* fileName, MeshType type)
@@ -100,120 +101,54 @@ static bool readDataLine(char* lineBuf, int& lineNum, FILE* fp, int MAX_LINE_LEN
 
 }
 
-//boiler plate from framework of graphics class.
-void LoadMeshOBJ(const char* fileName, Mesh& mesh) 
+//boiler plate from framework of graphics class
+void LoadMeshOBJ(const std::string& path, Mesh& mesh) 
 {
-    const int MAX_LINE_LEN = 1024;
-    char lineBuf[MAX_LINE_LEN + 1];
-    int numLines;
 
-    FILE* fp;
-    if (fopen_s(&fp, fileName, "r") != 0)
-    {
-        std::cerr << "Failed to open " << fileName << "\n";
-        exit(1);
+    std::ifstream file;
+
+    file.open(path, std::ios::in);
+
+    if (!file) {
+        std::cout << "had an error opening file!\n";
+        return;
     }
+    std::string line;
 
-    int posID = 0;
-
-    while (!feof(fp))
+    while (std::getline(file, line))
     {
-        if (readDataLine(lineBuf, numLines, fp, MAX_LINE_LEN))
+        std::istringstream lineSStream(line);
+        std::string type;
+        lineSStream >> type;
+
+        if (type == "v") {
+
+            float x, y, z;
+
+            lineSStream >> x >> y >> z;
+
+            Vertex vert = { glm::vec3(x,y,z), glm::vec3(0), glm::vec2(0) };
+
+            mesh.vertexBufferData.push_back(vert);
+        }
+        else if (type == "f") //this will only work for files that have delimiters '/' for their faces.
         {
-            if (lineBuf[0] == 'v')
+            std::string str_f;
+            while (lineSStream >> str_f)
             {
-                char dataType[MAX_LINE_LEN + 1];
-                float x, y, z;
-                sscanf_s(lineBuf, "%s %f %f %f", dataType, sizeof(dataType), &x, &y, &z);
-
-                Vertex v;
-                if (!strcmp(dataType, "v"))
-                {
-                    v.pos = glm::vec3(x, y, z);
-                    if (posID >= mesh.numVertices)
-                    {
-                        mesh.vertexBufferData.push_back(v);
-                        ++mesh.numVertices;
-                    }
-                    else 
-                    {
-                        mesh.vertexBufferData[posID].pos = v.pos;
-                    }
-
-                    ++posID;
-                }
+                std::istringstream ref(str_f);
+                std::string vStr;
+                std::getline(ref, vStr, '/');
+                int v = atoi(vStr.c_str()) - 1;
+                mesh.indexBufferData.push_back(v);
+                std::getline(ref, vStr, '/');
+                std::getline(ref, vStr, '/');
             }
-            else if (lineBuf[0] == 'f')
-            {
-                ++mesh.numTris;
 
-                std::vector<char*> faceData;
-                char* tokWS, * ptrFront, * ptrRear;
-                char* ct;
-
-                tokWS = strtok_s(lineBuf, " ", &ct);
-                tokWS = strtok_s(NULL, " ", &ct);
-                while (tokWS != NULL)
-                {
-                    faceData.push_back(tokWS);
-                    tokWS = strtok_s(NULL, " ", &ct);
-                }
-
-                if (faceData.size() > 3) 
-                {
-                    std::cerr << "Only triangulated mesh is accepted.\n";
-                    exit(1);
-                }
-
-                for (int i = 0; i < (int)faceData.size(); i++)
-                {
-                    int vertNum;
-
-                    ptrFront = strchr(faceData[i], '/');
-                    if (ptrFront == NULL)
-                    {
-                        vertNum = atoi(faceData[i]) - 1;
-                        mesh.indexBufferData.push_back(vertNum);
-                        ++mesh.numIndices;
-                    }
-                    else
-                    {
-                        char* tokFront, * tokRear, * cF;
-                        ptrRear = strrchr(faceData[i], '/');
-                        tokFront = strtok_s(faceData[i], "/", &cF);
-                        vertNum = atoi(tokFront) - 1;
-
-                        if (ptrRear == ptrFront)
-                        {
-                            mesh.indexBufferData.push_back(vertNum);
-                            ++mesh.numIndices;
-                        }
-                        else
-                        {
-                            if (ptrRear != ptrFront + 1)
-                            {
-                                tokRear = strtok_s(NULL, "/", &cF);
-                            }
-
-                            tokRear = strtok_s(NULL, "/", &cF);
-                            mesh.indexBufferData.push_back(vertNum);
-                            ++mesh.numIndices;
-                        }
-                    }
-                }
-            }
         }
     }
 
-    if (fp) 
-    {
-        if (fclose(fp))
-        {
-            std::cerr << "Failed to close " << fileName << "\n";
-            exit(1);
-        }
-    }
-
-
+    file.close();
 }
+
 
