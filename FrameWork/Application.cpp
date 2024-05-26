@@ -12,6 +12,7 @@ static unsigned long long height = 480;
 
 #define SCREEN_WIDTH width
 #define SCREEN_HEIGHT height 
+#define VK_CHECK_RESULT(function) {VkResult check = function; assert(check == VK_SUCCESS);}
 
 
 
@@ -51,7 +52,6 @@ void Application::run()
 
 void Application::CreateInstance() 
 {
-	VkResult result;
 
 	//create instance info.
 	VkInstanceCreateInfo createInfo;
@@ -97,8 +97,7 @@ void Application::CreateInstance()
 	//also, setting the pAllocator to null will make vulkan do its
 	//own memory management, whereas we can create our own allocator
 	//for vulkan to use
-	result = vkCreateInstance(&createInfo, nullptr, &this->m_instance);
-	assert(result == VK_SUCCESS);
+	VK_CHECK_RESULT(vkCreateInstance(&createInfo, nullptr, &this->m_instance));
 
 	delete [] extensionNames;
 
@@ -108,12 +107,9 @@ void Application::EnumeratePhysicalDevices()
 {
 	//list the physical devices
 	uint32_t max_devices = 0;
-	VkResult result;
 
 	//vulkan will ignor whatever was set in physicalDeviceCount and overwrite max_devices 
-	result = vkEnumeratePhysicalDevices(this->m_instance, &max_devices, nullptr);
-
-	assert(result == VK_SUCCESS);
+	VK_CHECK_RESULT(vkEnumeratePhysicalDevices(this->m_instance, &max_devices, nullptr));
 
 	if (max_devices == 0)
 	{
@@ -128,9 +124,7 @@ void Application::EnumeratePhysicalDevices()
 		throw std::runtime_error("could not allocate array of physical devices\n");
 	}
 
-	result = vkEnumeratePhysicalDevices(this->m_instance, &max_devices, this->m_physicalDevices);
-
-	assert(result == VK_SUCCESS);
+	VK_CHECK_RESULT(vkEnumeratePhysicalDevices(this->m_instance, &max_devices, this->m_physicalDevices));
 
 	for (unsigned i = 0; i < max_devices; ++i)
 	{
@@ -218,7 +212,7 @@ void Application::FindQueueFamilies()
 
 
 		VkBool32 presentSupport = false;
-		vkGetPhysicalDeviceSurfaceSupportKHR(this->m_physicalDevices[device_index], i, this->m_windowSurface, &presentSupport);
+		VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceSupportKHR(this->m_physicalDevices[device_index], i, this->m_windowSurface, &presentSupport));
 
 		if (presentSupport)
 		{
@@ -282,9 +276,7 @@ void Application::CreateLogicalDevice()
 	deviceCreateInfo.pQueueCreateInfos = deviceQueueCreateInfos;
 	deviceCreateInfo.queueCreateInfoCount = 1;
 
-	result = vkCreateDevice(this->m_physicalDevices[device_index], &deviceCreateInfo, nullptr, &this->m_logicalDevice);
-
-	assert(result == VK_SUCCESS);
+	VK_CHECK_RESULT(vkCreateDevice(this->m_physicalDevices[device_index], &deviceCreateInfo, nullptr, &this->m_logicalDevice));
 
 	delete[] deviceQueueCreateInfos;
 
@@ -366,28 +358,24 @@ void Application::CreateRenderPass()
 	};
 
 	//two render passes are compatible if their attachment references are the same
-	result = vkCreateRenderPass(this->m_logicalDevice, &renderPassCreateInfo, nullptr, &this->m_renderPass);
-
-	assert(result == VK_SUCCESS);
+	VK_CHECK_RESULT(vkCreateRenderPass(this->m_logicalDevice, &renderPassCreateInfo, nullptr, &this->m_renderPass));
 
 }
 
 void Application::CreateSwapChain() 
 {
-	VkResult result;
 
 	VkSwapchainCreateInfoKHR swapChainInfo = {};
 	swapChainInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
 	swapChainInfo.surface = m_windowSurface;
 
-	result = vkGetPhysicalDeviceSurfaceCapabilitiesKHR(this->m_physicalDevices[device_index], m_windowSurface, &deviceCapabilities);
-	assert(result == VK_SUCCESS);
+	VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(this->m_physicalDevices[device_index], m_windowSurface, &deviceCapabilities));
+
 
 	uint32_t surfaceFormatCount = 0;
 	VkSurfaceFormatKHR* surfaceFormats = nullptr;
 
-	result = vkGetPhysicalDeviceSurfaceFormatsKHR(this->m_physicalDevices[device_index], this->m_windowSurface, &surfaceFormatCount, nullptr);
-	assert(result == VK_SUCCESS);
+	VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceFormatsKHR(this->m_physicalDevices[device_index], this->m_windowSurface, &surfaceFormatCount, nullptr));
 
 	//surfaceFormatCount now filled..
 	if (surfaceFormatCount == 0)
@@ -399,8 +387,8 @@ void Application::CreateSwapChain()
 
 	assert(surfaceFormats != nullptr);
 
-	vkGetPhysicalDeviceSurfaceFormatsKHR(this->m_physicalDevices[device_index], this->m_windowSurface, &surfaceFormatCount, surfaceFormats);
-	assert(result == VK_SUCCESS);
+	VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceFormatsKHR(this->m_physicalDevices[device_index], this->m_windowSurface, &surfaceFormatCount, surfaceFormats));
+
 
 	//choose suitable format
 	int surfaceIndex = -1;
@@ -434,8 +422,7 @@ void Application::CreateSwapChain()
 	swapChainInfo.oldSwapchain = this->swapChain; //resizing needs a reference to the old swap chain.
 
 
-	result = vkCreateSwapchainKHR(this->m_logicalDevice, &swapChainInfo, nullptr, &this->swapChain);
-	assert(result == VK_SUCCESS);
+	VK_CHECK_RESULT(vkCreateSwapchainKHR(this->m_logicalDevice, &swapChainInfo, nullptr, &this->swapChain));
 
 	delete[] surfaceFormats;
 
@@ -443,13 +430,13 @@ void Application::CreateSwapChain()
 
 void Application::CreateImageViews()
 {
-	VkResult result;
 
-	result = vkGetSwapchainImagesKHR(this->m_logicalDevice, swapChain, &imageCount, nullptr);
-	assert(result == VK_SUCCESS);
+
+	VK_CHECK_RESULT(vkGetSwapchainImagesKHR(this->m_logicalDevice, swapChain, &imageCount, nullptr));
 
 	this->swapChainImages = new VkImage[imageCount];
-	result = vkGetSwapchainImagesKHR(this->m_logicalDevice, swapChain, &imageCount, this->swapChainImages);
+
+	VK_CHECK_RESULT(vkGetSwapchainImagesKHR(this->m_logicalDevice, swapChain, &imageCount, this->swapChainImages));
 
 	//create imageview --> allow image to be seen in a different format.
 	this->imageViews = new VkImageView[imageCount];
@@ -487,10 +474,9 @@ void Application::CreateImageViews()
 			subresourceRange
 		};
 
-		result = vkCreateImageView(this->m_logicalDevice, &imageViewCreateInfo, nullptr, &imageViews[i]);
+		VK_CHECK_RESULT(vkCreateImageView(this->m_logicalDevice, &imageViewCreateInfo, nullptr, &imageViews[i]));
 
-		assert(result == VK_SUCCESS);
-
+		
 
 	}
 
@@ -498,7 +484,6 @@ void Application::CreateImageViews()
 
 VkPipelineShaderStageCreateInfo Application::CreateShaderModule(const char* name, VkShaderModule& shaderModule, VkShaderStageFlagBits stage) 
 {
-	VkResult result;
 	std::ifstream file(name, std::ios::ate | std::ios::binary); //when we initialize, we std::ios::ate points to the end.
 
 	if (!file.is_open())
@@ -528,9 +513,7 @@ VkPipelineShaderStageCreateInfo Application::CreateShaderModule(const char* name
 		reinterpret_cast<const uint32_t*>(buffer)
 	};
 
-	result = vkCreateShaderModule(this->m_logicalDevice, &shaderVertModuleInfo, nullptr, &shaderModule);
-
-	assert(result == VK_SUCCESS);
+	VK_CHECK_RESULT(vkCreateShaderModule(this->m_logicalDevice, &shaderVertModuleInfo, nullptr, &shaderModule));
 
 	VkPipelineShaderStageCreateInfo shaderStageInfo =
 	{
@@ -551,7 +534,7 @@ VkPipelineShaderStageCreateInfo Application::CreateShaderModule(const char* name
 
 void Application::CreateFrameBuffers() 
 {
-	VkResult result;
+
 	this->frameBuffer = new VkFramebuffer[imageCount];
 
 	for (unsigned i = 0; i < imageCount; ++i) {
@@ -572,9 +555,7 @@ void Application::CreateFrameBuffers()
 			1 //1 layer
 		};
 
-		result = vkCreateFramebuffer(this->m_logicalDevice, &framebufferCreateInfo, nullptr, &this->frameBuffer[i]);
-
-		assert(result == VK_SUCCESS);
+		VK_CHECK_RESULT(vkCreateFramebuffer(this->m_logicalDevice, &framebufferCreateInfo, nullptr, &this->frameBuffer[i]));
 	}
 
 }
@@ -600,7 +581,6 @@ void Application::CreateImage
 	VkImage& image, VkDeviceMemory& imageMemory, uint32_t arrayLayerCount
 ) 
 {
-	VkResult result;
 
 	VkPhysicalDeviceMemoryProperties	vpdmp;
 	vkGetPhysicalDeviceMemoryProperties(this->m_physicalDevices[device_index], &vpdmp);
@@ -621,8 +601,7 @@ void Application::CreateImage
 	imageCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;
 
 
-	result = vkCreateImage(this->m_logicalDevice, &imageCreateInfo, nullptr, &image);
-	assert(result == VK_SUCCESS);
+	VK_CHECK_RESULT(vkCreateImage(this->m_logicalDevice, &imageCreateInfo, nullptr, &image));
 
 	VkMemoryRequirements memRequirements;
 
@@ -646,10 +625,10 @@ void Application::CreateImage
 		}
 	}
 
-	result = vkAllocateMemory(this->m_logicalDevice, &memAllocInfo, nullptr, &imageMemory);
-	assert(result == VK_SUCCESS);
+	VK_CHECK_RESULT(vkAllocateMemory(this->m_logicalDevice, &memAllocInfo, nullptr, &imageMemory));
 
-	vkBindImageMemory(this->m_logicalDevice, image, imageMemory, 0);
+
+	VK_CHECK_RESULT(vkBindImageMemory(this->m_logicalDevice, image, imageMemory, 0));
 
 }
 
@@ -674,13 +653,13 @@ static VkCommandBuffer beginCmd()
 	allocInfo.commandBufferCount = 1;
 
 	VkCommandBuffer cmdBuffer;
-	vkAllocateCommandBuffers(_Application->LogicalDevice(), &allocInfo, &cmdBuffer);
+	VK_CHECK_RESULT(vkAllocateCommandBuffers(_Application->LogicalDevice(), &allocInfo, &cmdBuffer));
 
 	VkCommandBufferBeginInfo beginInfo = {};
 	beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 	beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
 
-	vkBeginCommandBuffer(cmdBuffer, &beginInfo);
+	VK_CHECK_RESULT(vkBeginCommandBuffer(cmdBuffer, &beginInfo));
 
 	return cmdBuffer;
 
@@ -690,15 +669,15 @@ static void endCmd(VkCommandBuffer commandBuffer)
 {
 	assert(_Application != NULL);
 
-	vkEndCommandBuffer(commandBuffer);
+	VK_CHECK_RESULT(vkEndCommandBuffer(commandBuffer));
 
 	VkSubmitInfo submitInfo = {};
 	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 	submitInfo.commandBufferCount = 1;
 	submitInfo.pCommandBuffers = &commandBuffer;
 
-	vkQueueSubmit(_Application->GraphicsQueue(), 1, &submitInfo, VK_NULL_HANDLE);
-	vkQueueWaitIdle(_Application->GraphicsQueue());
+	VK_CHECK_RESULT(vkQueueSubmit(_Application->GraphicsQueue(), 1, &submitInfo, VK_NULL_HANDLE));
+	VK_CHECK_RESULT(vkQueueWaitIdle(_Application->GraphicsQueue()));
 
 	vkFreeCommandBuffers(_Application->LogicalDevice(), _Application->CommandPool(), 1, &commandBuffer);
 
@@ -812,7 +791,6 @@ void Application::CreateDepthResources()
 	VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, this->depthImage,
 	this->depthImageMemory, 1);
 	//create depth image view 
-	VkResult result;
 
 	VkImageViewCreateInfo viewInfo = {};
 	viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -825,9 +803,7 @@ void Application::CreateDepthResources()
 	viewInfo.subresourceRange.baseArrayLayer = 0;
 	viewInfo.subresourceRange.layerCount = 1;
 
-	result = vkCreateImageView(this->m_logicalDevice, &viewInfo, nullptr, &this->depthImageView);
-
-	assert(result == VK_SUCCESS);
+	VK_CHECK_RESULT(vkCreateImageView(this->m_logicalDevice, &viewInfo, nullptr, &this->depthImageView));
 
 }
 
@@ -866,7 +842,6 @@ void Application::CreateCubeMap()
 
 void Application::CreateTexture() 
 {
-	VkResult result;
 
 	int textureWidth, textureHeight, textureChannels;
 	stbi_uc* pixels = stbi_load("External/textures/texture.jpg", &textureWidth, &textureHeight, &textureChannels, STBI_rgb_alpha);
@@ -898,7 +873,6 @@ void Application::CreateTexture()
 
 void Application::CreateTextureView()
 {
-	VkResult result;
 
 	VkImageViewCreateInfo viewInfo = {};
 	viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -911,17 +885,11 @@ void Application::CreateTextureView()
 	viewInfo.subresourceRange.baseArrayLayer = 0;
 	viewInfo.subresourceRange.layerCount = 1;
 	
-	result = vkCreateImageView(this->m_logicalDevice, &viewInfo, nullptr, &this->textureImageView);
-
-	assert(result == VK_SUCCESS);
-
-
+	VK_CHECK_RESULT(vkCreateImageView(this->m_logicalDevice, &viewInfo, nullptr, &this->textureImageView));
 }
 
 void Application::CreateTextureSampler() 
 {
-	VkResult result;
-
 	VkSamplerCreateInfo createInfo = {};
 	createInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
 	createInfo.magFilter = VK_FILTER_LINEAR;
@@ -945,15 +913,10 @@ void Application::CreateTextureSampler()
 
 	createInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
 
-	result = vkCreateSampler(this->m_logicalDevice, &createInfo, nullptr, &this->textureSampler);
-
-	assert(result == VK_SUCCESS);
-
-
+	VK_CHECK_RESULT(vkCreateSampler(this->m_logicalDevice, &createInfo, nullptr, &this->textureSampler));
 }
 void Application::CreateDescriptorSets()
 {
-	VkResult result;
 	
 	VkDescriptorSetLayoutBinding uTransformBinding{};
 	uTransformBinding.binding = 0;
@@ -977,8 +940,7 @@ void Application::CreateDescriptorSets()
 	layoutInfo.bindingCount = 2;
 	layoutInfo.pBindings = bindings;
 
-	result = vkCreateDescriptorSetLayout(this->m_logicalDevice, &layoutInfo, nullptr, &descriptorSetLayout);
-	assert(result == VK_SUCCESS);
+	VK_CHECK_RESULT(vkCreateDescriptorSetLayout(this->m_logicalDevice, &layoutInfo, nullptr, &descriptorSetLayout));
 
 	//create descriptor pool
 	VkDescriptorPoolSize poolSize[2] = {};
@@ -994,8 +956,7 @@ void Application::CreateDescriptorSets()
 	poolInfo.pPoolSizes = poolSize;
 	poolInfo.maxSets = 1; //max numbers of frames in flight.
 
-	result = vkCreateDescriptorPool(this->m_logicalDevice, &poolInfo, nullptr, &this->descriptorPool);
-	assert(result == VK_SUCCESS);
+	VK_CHECK_RESULT(vkCreateDescriptorPool(this->m_logicalDevice, &poolInfo, nullptr, &this->descriptorPool));
 
 	VkDescriptorSetAllocateInfo descriptorAllocInfo{};
 	descriptorAllocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
@@ -1003,8 +964,7 @@ void Application::CreateDescriptorSets()
 	descriptorAllocInfo.descriptorSetCount = 1;
 	descriptorAllocInfo.pSetLayouts = &descriptorSetLayout;
 
-	result = vkAllocateDescriptorSets(this->m_logicalDevice, &descriptorAllocInfo, &this->descriptorSets);
-	assert(result == VK_SUCCESS);
+	VK_CHECK_RESULT(vkAllocateDescriptorSets(this->m_logicalDevice, &descriptorAllocInfo, &this->descriptorSets));
 
 
 }
@@ -1048,7 +1008,6 @@ void Application::WriteDescriptorSets()
 
 void Application::CreatePipeline(VkPipelineShaderStageCreateInfo* pStages, int numStages) 
 {
-	VkResult result;
 
 	VkVertexInputBindingDescription vBindingDescription = {};
 	vBindingDescription.stride = sizeof(struct Vertex);
@@ -1191,9 +1150,7 @@ void Application::CreatePipeline(VkPipelineShaderStageCreateInfo* pStages, int n
 	pipelineLayoutCreateInfo.pPushConstantRanges = (VkPushConstantRange*)nullptr;
 
 
-	result = vkCreatePipelineLayout(this->m_logicalDevice, &pipelineLayoutCreateInfo, nullptr, &this->pipelineLayout);
-
-	assert(result == VK_SUCCESS);
+	VK_CHECK_RESULT(vkCreatePipelineLayout(this->m_logicalDevice, &pipelineLayoutCreateInfo, nullptr, &this->pipelineLayout));
 
 	VkPipelineMultisampleStateCreateInfo multiSampleCreateInfo = {};
 	multiSampleCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
@@ -1238,29 +1195,23 @@ void Application::CreatePipeline(VkPipelineShaderStageCreateInfo* pStages, int n
 	};
 
 	//TODO: cleanup
-	result = vkCreateGraphicsPipelines(this->m_logicalDevice, VK_NULL_HANDLE, 1, &gfxPipelineCreateInfo, nullptr, &this->pipeline);
-	assert(result == VK_SUCCESS);
+	VK_CHECK_RESULT(vkCreateGraphicsPipelines(this->m_logicalDevice, VK_NULL_HANDLE, 1, &gfxPipelineCreateInfo, nullptr, &this->pipeline));
 
 }
 
 void Application::CreateCommandPools() 
 {
-	VkResult result;
 	VkCommandPoolCreateInfo commandPoolCreateInfo = {};
 	commandPoolCreateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
 	commandPoolCreateInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT; //recording commands every frame.
 	commandPoolCreateInfo.queueFamilyIndex = 0; //only one physical device on initial development machine.
 
 	//TODO: cleanup
-	result = vkCreateCommandPool(this->m_logicalDevice, &commandPoolCreateInfo, nullptr, &this->commandPool);
-
-	assert(result == VK_SUCCESS);
-
+	VK_CHECK_RESULT(vkCreateCommandPool(this->m_logicalDevice, &commandPoolCreateInfo, nullptr, &this->commandPool));
 }
 
 void Application::CreateCommandBuffers() 
 {
-	VkResult result;
 	VkCommandBufferAllocateInfo cmdBufferCreateInfo = {};
 
 	cmdBufferCreateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -1269,48 +1220,37 @@ void Application::CreateCommandBuffers()
 	cmdBufferCreateInfo.commandBufferCount = 1;
 
 	//TODO: cleanup
-	result = vkAllocateCommandBuffers(this->m_logicalDevice, &cmdBufferCreateInfo, &this->commandBuffer);
-
-	assert(result == VK_SUCCESS);
-
+	VK_CHECK_RESULT(vkAllocateCommandBuffers(this->m_logicalDevice, &cmdBufferCreateInfo, &this->commandBuffer));
 }
 
 void Application::CreateSemaphores() 
 {
-
-	VkResult result;
-
 	VkSemaphoreCreateInfo semaphoreInfo = {};
 	semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
 
 	//TODO: cleanup
-	result = vkCreateSemaphore(this->m_logicalDevice, &semaphoreInfo, nullptr, &this->imageAvailableSemaphore);
-	assert(result == VK_SUCCESS);
+	VK_CHECK_RESULT(vkCreateSemaphore(this->m_logicalDevice, &semaphoreInfo, nullptr, &this->imageAvailableSemaphore));
 
 	//TODO: cleanup
-	result = vkCreateSemaphore(this->m_logicalDevice, &semaphoreInfo, nullptr, &this->renderFinishedSemaphore);
-	assert(result == VK_SUCCESS);
+	VK_CHECK_RESULT(vkCreateSemaphore(this->m_logicalDevice, &semaphoreInfo, nullptr, &this->renderFinishedSemaphore));
 
 }
 
 void Application::CreateFences() 
 {
-	VkResult result;
 	VkFenceCreateInfo fenceInfo = {};
 	fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
 	fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT; //to prevent indefinite waiting on first frame.
 
 	//TODO: cleanup
-	result = vkCreateFence(this->m_logicalDevice, &fenceInfo, nullptr, &this->inFlightFence);
-	assert(result == VK_SUCCESS);
+	VK_CHECK_RESULT(vkCreateFence(this->m_logicalDevice, &fenceInfo, nullptr, &this->inFlightFence));
 }
 
 void Application::RecreateSwapChain() 
 {
-	vkDeviceWaitIdle(this->m_logicalDevice);
+	VK_CHECK_RESULT(vkDeviceWaitIdle(this->m_logicalDevice));
 
-	VkResult result = vkGetPhysicalDeviceSurfaceCapabilitiesKHR(this->m_physicalDevices[device_index], m_windowSurface, &this->deviceCapabilities);
-	assert(result == VK_SUCCESS);
+	VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(this->m_physicalDevices[device_index], m_windowSurface, &this->deviceCapabilities));
 
 	for (unsigned i = 0; i < imageCount; ++i)
 	{
@@ -1443,7 +1383,6 @@ bool Application::init()
 
 void Application::loop() 
 {
-	VkResult result;
 
 	//render graphics.
 	SDL_Event e; bool quit = false;
@@ -1504,13 +1443,11 @@ void Application::loop()
 		}
 
 		//vulkan shit
-		result = vkWaitForFences(this->m_logicalDevice, 1, &this->inFlightFence, VK_TRUE, UINT64_MAX);
-		assert(result == VK_SUCCESS);
-		result = vkResetFences(this->m_logicalDevice, 1, &this->inFlightFence);
-		assert(result == VK_SUCCESS);
+		VK_CHECK_RESULT(vkWaitForFences(this->m_logicalDevice, 1, &this->inFlightFence, VK_TRUE, UINT64_MAX));
+		VK_CHECK_RESULT(vkResetFences(this->m_logicalDevice, 1, &this->inFlightFence));
 
 		uint32_t imageIndex;
-		result = vkAcquireNextImageKHR(this->m_logicalDevice, swapChain, UINT64_MAX, this->imageAvailableSemaphore, VK_NULL_HANDLE, &imageIndex);
+		VkResult result = vkAcquireNextImageKHR(this->m_logicalDevice, swapChain, UINT64_MAX, this->imageAvailableSemaphore, VK_NULL_HANDLE, &imageIndex);
 
 
 		if (result == VK_ERROR_OUT_OF_DATE_KHR)
@@ -1529,8 +1466,7 @@ void Application::loop()
 		}
 		assert(result == VK_SUCCESS);
 
-		result = vkResetCommandBuffer(this->commandBuffer, 0);
-		assert(result == VK_SUCCESS);
+		VK_CHECK_RESULT(vkResetCommandBuffer(this->commandBuffer, 0));
 
 
 		////always begin recording command buffers by calling vkBeginCommandBuffer --> just tells vulkan about the usage of a particular command buffer.
@@ -1540,9 +1476,7 @@ void Application::loop()
 		cmdBufferBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
 		//everything else is default...
 
-		result = vkBeginCommandBuffer(this->commandBuffer, &cmdBufferBeginInfo);
-
-		assert(result == VK_SUCCESS);
+		VK_CHECK_RESULT(vkBeginCommandBuffer(this->commandBuffer, &cmdBufferBeginInfo));
 
 		VkRenderPassBeginInfo renderPassInfo = {};
 		renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
@@ -1581,8 +1515,7 @@ void Application::loop()
 
 		vkCmdEndRenderPass(this->commandBuffer);
 
-		result = vkEndCommandBuffer(this->commandBuffer);
-		assert(result == VK_SUCCESS);
+		VK_CHECK_RESULT(vkEndCommandBuffer(this->commandBuffer));
 
 		VkSubmitInfo submitInfo{};
 		submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -1600,8 +1533,7 @@ void Application::loop()
 		submitInfo.signalSemaphoreCount = 1;
 		submitInfo.pSignalSemaphores = signalSemaphores;
 
-		result = vkQueueSubmit(graphicsQueue, 1, &submitInfo, this->inFlightFence);
-		assert(result == VK_SUCCESS);
+		VK_CHECK_RESULT(vkQueueSubmit(graphicsQueue, 1, &submitInfo, this->inFlightFence));
 
 		VkPresentInfoKHR presentInfo{};
 		presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
@@ -1626,7 +1558,7 @@ void Application::loop()
 		assert(result == VK_SUCCESS);
 	}
 
-	vkDeviceWaitIdle(this->m_logicalDevice);
+	VK_CHECK_RESULT(vkDeviceWaitIdle(this->m_logicalDevice));
 
 }
 
