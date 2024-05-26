@@ -162,7 +162,7 @@ void Application::CreateWindow()
 	}
 
 	//TODO: cleanup
-	this->window = SDL_CreateWindow("Caleb's Vulkan Engine", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, static_cast<int>(SCREEN_WIDTH), static_cast<int>(SCREEN_HEIGHT), SDL_WINDOW_VULKAN);
+	this->window = SDL_CreateWindow("Caleb's Vulkan Engine", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, static_cast<int>(SCREEN_WIDTH), static_cast<int>(SCREEN_HEIGHT), SDL_WINDOW_VULKAN | SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
 
 	if (this->window == NULL)
 	{
@@ -170,7 +170,7 @@ void Application::CreateWindow()
 	}
 
 	//TODO: make this work.
-	SDL_SetWindowResizable(this->window, SDL_TRUE);
+	//SDL_SetWindowResizable(this->window, SDL_TRUE);
 }
 
 void Application::CreateWindowSurface() 
@@ -1125,7 +1125,7 @@ void Application::CreatePipeline(VkPipelineShaderStageCreateInfo* pStages, int n
 		VK_FALSE, //depthClampEnable
 		VK_FALSE, //rasterizerDiscardEnable
 		VK_POLYGON_MODE_FILL, //polygonMode
-		VK_CULL_MODE_NONE, //cullMode
+		VK_CULL_MODE_BACK_BIT, //cullMode
 		VK_FRONT_FACE_COUNTER_CLOCKWISE, //frontFace
 		VK_FALSE, //depthBiasEnable
 		0.f, //depthBiasConstantFactor
@@ -1350,7 +1350,7 @@ void Application::ResizeViewport()
 	this->m_scissor.extent.width = width;
 	this->m_scissor.extent.height = height;
 	uTransform.proj = glm::perspective(glm::radians(45.f), this->m_viewPort.width / this->m_viewPort.height, 0.1f, 1000.f); //proj
-	/*uTransform.proj[1][1] *= -1.f;*/
+	uTransform.proj[1][1] *= -1.f;
 	memcpy(uniformBuffers.back().mappedMemory, (void*)&uTransform, (size_t)(sizeof(uTransformObject)));
 
 }
@@ -1359,15 +1359,12 @@ bool Application::init()
 {
 
 	//uniform stuffs;
-	/*uTransform.proj[1][1] *= -1.f;*/
+	uTransform.proj[1][1] *= -1.f;
 
 	this->m_viewPort.width = (float)width;
 	this->m_viewPort.height = (float)height;
 	this->m_viewPort.minDepth = 0;
 	this->m_viewPort.maxDepth = 1;
-
-
-
 
 	this->m_scissor.extent.width = (uint32_t)width;
 	this->m_scissor.extent.height = (uint32_t)height;
@@ -1464,7 +1461,7 @@ void Application::loop()
 			{
 				int deltaX = e.motion.xrel;
 				int deltaY = e.motion.yrel;
-				uTransform.view = glm::mat4(X_BASIS, Y_BASIS, Z_BASIS, {deltaX * .008f, deltaY * .008f, 0, 1}) * uTransform.view;
+				uTransform.view = glm::mat4(X_BASIS, Y_BASIS, Z_BASIS, {deltaX * .008f, -deltaY * .008f, 0, 1}) * uTransform.view;
 				memcpy(uniformBuffers.back().mappedMemory, (void*)&uTransform, (size_t)(sizeof(uTransformObject)));
 			}
 
