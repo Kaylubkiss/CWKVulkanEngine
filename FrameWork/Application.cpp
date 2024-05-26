@@ -590,9 +590,6 @@ void Application::CreateBuffers()
 void Application::CreateUniformBuffers()
 {
 	this->uniformBuffers.push_back(Buffer(sizeof(uTransformObject), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, (void*)&uTransform));
-	/*uniformBuffers.back().RecordData();
-	uniformBuffers.back().CopyData();
-	uniformBuffers.back().StopRecordData();*/
 }
 
 void Application::CreateImage
@@ -881,10 +878,6 @@ void Application::CreateTexture()
 	}
 
 	Buffer stagingBuffer = Buffer(static_cast<size_t>(imageSize), VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, pixels);
-	/*stagingBuffer.FillData(pixels, 1, 0);*/
-	//stagingBuffer.RecordData();
-	//stagingBuffer.CopyData(pixels);
-	//stagingBuffer.StopRecordData();
 
 	stbi_image_free(pixels);
 
@@ -1357,6 +1350,7 @@ void Application::ResizeViewport()
 	this->m_scissor.extent.width = width;
 	this->m_scissor.extent.height = height;
 	uTransform.proj = glm::perspective(glm::radians(45.f), this->m_viewPort.width / this->m_viewPort.height, 0.1f, 1000.f); //proj
+	/*uTransform.proj[1][1] *= -1.f;*/
 	memcpy(uniformBuffers.back().mappedMemory, (void*)&uTransform, (size_t)(sizeof(uTransformObject)));
 
 }
@@ -1371,6 +1365,8 @@ bool Application::init()
 	this->m_viewPort.height = (float)height;
 	this->m_viewPort.minDepth = 0;
 	this->m_viewPort.maxDepth = 1;
+
+
 
 
 	this->m_scissor.extent.width = (uint32_t)width;

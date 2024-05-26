@@ -5,7 +5,7 @@
 
 Object::Object(const char* fileName, MeshType type)
 {
-    LoadMeshOBJ("cube.obj", this->mMesh);
+    LoadMeshOBJ(fileName, this->mMesh);
 
     glm::vec3 min_points(0.f);
     glm::vec3 max_points(0.f);
@@ -19,6 +19,8 @@ Object::Object(const char* fileName, MeshType type)
         max_points.x = std::max(max_points.x, mMesh.vertexBufferData[i].pos.x);
         max_points.y = std::max(max_points.y, mMesh.vertexBufferData[i].pos.y);
         max_points.z = std::max(max_points.z, mMesh.vertexBufferData[i].pos.z);
+
+        mMesh.vertexBufferData[i].nrm = glm::vec3(2.f, .5f, 0.f);
     }
 
     mCenter = (max_points + min_points) / 2.f;
@@ -60,44 +62,6 @@ Object::Object(const char* fileName, MeshType type)
     this->index.StopRecordData();*/
 
 
-
-}
-
-
-static bool readDataLine(char* lineBuf, int& lineNum, FILE* fp, int MAX_LINE_LEN)
-{
-	while (!feof(fp)) 
-	{
-		++lineNum;
-
-		char* line = fgets(lineBuf, MAX_LINE_LEN + 1, fp);
-
-		int lineLen = strlen(lineBuf);
-		if (lineLen == MAX_LINE_LEN && lineBuf[MAX_LINE_LEN - 1] != '\n') 
-		{
-			continue;
-		}
-
-		if (lineLen > 1 && lineBuf[0] == '#') 
-		{
-			continue;
-		}
-
-		if (lineLen == 1) 
-		{
-			continue;
-		}
-
-		for (unsigned i = 0; i < lineLen; ++i) 
-		{
-			if (!isspace(lineBuf[i])) 
-			{
-				return true;
-			}
-		}
-	}
-
-	return false;
 
 }
 
