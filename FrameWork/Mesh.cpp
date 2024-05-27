@@ -52,7 +52,7 @@ Object::Object(const char* fileName, MeshType type)
 
     size_t sizeOfVertexBuffer = (sizeof(Vertex) * this->mMesh.vertexBufferData.size());
     this->vertex = Buffer(sizeOfVertexBuffer, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, this->mMesh.vertexBufferData.data());
-    size_t sizeOfIndexBuffer = (sizeof(int) * this->mMesh.indexBufferData.size());
+    size_t sizeOfIndexBuffer = (sizeof(uint16_t) * this->mMesh.indexBufferData.size());
     this->index = Buffer(sizeOfIndexBuffer, VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, this->mMesh.indexBufferData.data());
 
 
@@ -103,6 +103,8 @@ void LoadMeshOBJ(const std::string& path, Mesh& mesh)
                 int v = atoi(vStr.c_str()) - 1; //vertex index
                 mesh.indexBufferData.push_back(v);
                 std::getline(ref, vStr, '/'); //vertex texture index
+                uint16_t uvIndex = atoi(vStr.c_str()) - 1;
+            
                 uvIndices.push_back(atoi(vStr.c_str()) - 1);
                 std::getline(ref, vStr, '/'); //vertex normals index
             }
@@ -116,38 +118,41 @@ void LoadMeshOBJ(const std::string& path, Mesh& mesh)
         }
     }
 
-    //now see if the texture coordinates are different.
-    size_t original_vertex_buffer_size = mesh.vertexBufferData.size();
-
-    for (size_t i = 0; i < uvIndices.size(); ++i)
+    if (uvData.size() > 0) 
     {
-        uint16_t& vertIndex = mesh.indexBufferData[i];
+        //now see if the texture coordinates are different.
+        size_t original_vertex_buffer_size = mesh.vertexBufferData.size();
 
-        if (mesh.vertexBufferData[vertIndex].uv.x < 0)
+        for (size_t i = 0; i < uvIndices.size(); ++i)
         {
-            mesh.vertexBufferData[vertIndex].uv = uvData[uvIndices[i]];
-        }
-        else
-        {
-            if (mesh.vertexBufferData[vertIndex].uv != uvData[uvIndices[i]])
+            uint16_t& vertIndex = mesh.indexBufferData[i];
+
+            if (mesh.vertexBufferData[vertIndex].uv.x < 0)
             {
-                bool found = false;
-                for (size_t j = original_vertex_buffer_size; j < mesh.vertexBufferData.size(); ++j)
+                mesh.vertexBufferData[vertIndex].uv = uvData[uvIndices[i]];
+            }
+            else
+            {
+                if (mesh.vertexBufferData[vertIndex].uv != uvData[uvIndices[i]])
                 {
-                    if (mesh.vertexBufferData[j].pos == mesh.vertexBufferData[vertIndex].pos && 
-                        mesh.vertexBufferData[j].uv == uvData[uvIndices[i]])
+                    bool found = false;
+                    for (size_t j = original_vertex_buffer_size; j < mesh.vertexBufferData.size(); ++j)
                     {
-                        found = true;
-                        vertIndex = static_cast<uint16_t>(j);
-                        break;
+                        if (mesh.vertexBufferData[j].pos == mesh.vertexBufferData[vertIndex].pos &&
+                            mesh.vertexBufferData[j].uv == uvData[uvIndices[i]])
+                        {
+                            found = true;
+                            vertIndex = static_cast<uint16_t>(j);
+                            break;
+                        }
                     }
-                }
 
-                if (!found)
-                {
-                    mesh.vertexBufferData.push_back(mesh.vertexBufferData[vertIndex]);
-                    mesh.indexBufferData[i] = static_cast<uint16_t>(mesh.vertexBufferData.size() - 1);
-                    mesh.vertexBufferData.back().uv = uvData[uvIndices[i]];
+                    if (!found)
+                    {
+                        mesh.vertexBufferData.push_back(mesh.vertexBufferData[vertIndex]);
+                        mesh.indexBufferData[i] = static_cast<uint16_t>(mesh.vertexBufferData.size() - 1);
+                        mesh.vertexBufferData.back().uv = uvData[uvIndices[i]];
+                    }
                 }
             }
         }

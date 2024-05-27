@@ -813,6 +813,11 @@ static const std::string& PathToTextures()
 	return "External/textures/";
 }
 
+static std::string PathToObjects() {
+
+	return "External/objects/";
+}
+
 void Application::CreateCubeMap() 
 {
 	/*unsigned char* textureData[6];
@@ -1381,7 +1386,7 @@ bool Application::init()
 
 	CreateFences();
 
-	debugCube = Object("gcube.obj", MeshType::M_CUBE);
+	debugCube = Object((PathToObjects() + "gcube.obj").c_str(), MeshType::M_CUBE);
 
 	return true;
 
