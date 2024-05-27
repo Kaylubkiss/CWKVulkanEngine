@@ -100,11 +100,15 @@ void LoadMeshOBJ(const std::string& path, Mesh& mesh)
                 std::istringstream ref(str_f);
                 std::string vStr;
                 std::getline(ref, vStr, '/');
-                int v = atoi(vStr.c_str()) - 1; //vertex index
+                int v = atoi(vStr.c_str()); //vertex index
+                if (v < 0) 
+                {
+                    v *= -1;
+                }
+                v -= 1;
                 mesh.indexBufferData.push_back(v);
                 std::getline(ref, vStr, '/'); //vertex texture index
                 uint16_t uvIndex = atoi(vStr.c_str()) - 1;
-            
                 uvIndices.push_back(atoi(vStr.c_str()) - 1);
                 std::getline(ref, vStr, '/'); //vertex normals index
             }
