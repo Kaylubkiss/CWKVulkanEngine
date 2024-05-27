@@ -7,6 +7,7 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 
+
 static unsigned long long width = 640;
 static unsigned long long height = 480;
 
@@ -814,7 +815,7 @@ static const std::string& PathToTextures()
 
 void Application::CreateCubeMap() 
 {
-	unsigned char* textureData[6];
+	/*unsigned char* textureData[6];
 	int textureWidth, textureHeight, textureChannels;
 	textureData[0] = stbi_load((PathToTextures() + std::string("texture.jpg")).c_str(), &textureWidth, &textureHeight, &textureChannels, STBI_rgb_alpha);
 	textureData[1] = stbi_load((PathToTextures() + std::string("texture.jpg")).c_str(), &textureWidth, &textureHeight, &textureChannels, STBI_rgb_alpha);
@@ -835,7 +836,14 @@ void Application::CreateCubeMap()
 		memcpy(reinterpret_cast<unsigned char*>(stagingBuffer.mappedMemory) + layerSize * i, textureData[i], layerSize);
 	}
 
-	vkUnmapMemory(this->m_logicalDevice, stagingBuffer.memory);
+	vkUnmapMemory(this->m_logicalDevice, stagingBuffer.memory);*/
+
+	/*ktxResult result;
+	ktxTexture* ktxTexture;*/
+
+
+
+
 
 }
 
@@ -1373,7 +1381,7 @@ bool Application::init()
 
 	CreateFences();
 
-	debugCube = Object("cube.obj", MeshType::M_CUBE);
+	debugCube = Object("gcube.obj", MeshType::M_CUBE);
 
 	return true;
 

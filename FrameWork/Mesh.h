@@ -14,7 +14,7 @@ struct Vertex
 {
 	glm::vec3 pos = {0,0,0};
 	glm::vec3 nrm = {.2f,.5f,0};
-	glm::vec2 uv = {0,0};
+	glm::vec2 uv = {-1.f,-1.f};
 };
 
 struct Mesh
@@ -25,6 +25,8 @@ struct Mesh
 
 	std::vector<Vertex> vertexBufferData;
 	std::vector<uint16_t> indexBufferData; //setting this to uint16_t fixed the issue. INVESTIGATE THIS.
+
+	
 
 };
 

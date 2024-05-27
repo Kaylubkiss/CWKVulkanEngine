@@ -2,6 +2,7 @@
 #include <fstream>
 #include <sstream>
 #include <algorithm>
+#include <unordered_map>
 
 Object::Object(const char* fileName, MeshType type)
 {
@@ -32,22 +33,22 @@ Object::Object(const char* fileName, MeshType type)
     }
 
   
-    if (type == M_CUBE) 
-    {
-        //back face
-        mMesh.vertexBufferData[0].uv = { 1,1 };
-        mMesh.vertexBufferData[2].uv = { 1,0 };
-        mMesh.vertexBufferData[6].uv = { 0,0 };
-        mMesh.vertexBufferData[4].uv = { 0,1 };
+    //if (type == M_CUBE) 
+    //{
+    //    //back face
+    //    mMesh.vertexBufferData[0].uv = { 1,1 };
+    //    mMesh.vertexBufferData[2].uv = { 1,0 };
+    //    mMesh.vertexBufferData[6].uv = { 0,0 };
+    //    mMesh.vertexBufferData[4].uv = { 0,1 };
 
 
-        //front face
-        mMesh.vertexBufferData[1].uv = { 0,1 };
-        mMesh.vertexBufferData[3].uv = { 0,0 };
-        mMesh.vertexBufferData[5].uv = { 1,1 };
-        mMesh.vertexBufferData[7].uv = { 1,0 };
+    //    //front face
+    //    mMesh.vertexBufferData[1].uv = { 0,1 };
+    //    mMesh.vertexBufferData[3].uv = { 0,0 };
+    //    mMesh.vertexBufferData[5].uv = { 1,1 };
+    //    mMesh.vertexBufferData[7].uv = { 1,0 };
 
-    }
+    //}
 
     size_t sizeOfVertexBuffer = (sizeof(Vertex) * this->mMesh.vertexBufferData.size());
     this->vertex = Buffer(sizeOfVertexBuffer, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, this->mMesh.vertexBufferData.data());
@@ -59,10 +60,13 @@ Object::Object(const char* fileName, MeshType type)
 }
 
 //boiler plate from framework of graphics class
-void LoadMeshOBJ(const std::string& path, Mesh& mesh) 
+void LoadMeshOBJ(const std::string& path, Mesh& mesh)
 {
 
     std::ifstream file;
+
+    std::vector<glm::vec2> uvData;
+    std::vector<uint16_t> uvIndices;
 
     file.open(path, std::ios::in);
 
@@ -84,7 +88,7 @@ void LoadMeshOBJ(const std::string& path, Mesh& mesh)
 
             lineSStream >> x >> y >> z;
 
-            Vertex vert = { glm::vec3(x,y,z), glm::vec3(0), glm::vec2(0) };
+            Vertex vert = { glm::vec3(x,y,z), glm::vec3(0), glm::vec2(-1, -1) };
 
             mesh.vertexBufferData.push_back(vert);
         }
@@ -96,12 +100,56 @@ void LoadMeshOBJ(const std::string& path, Mesh& mesh)
                 std::istringstream ref(str_f);
                 std::string vStr;
                 std::getline(ref, vStr, '/');
-                int v = atoi(vStr.c_str()) - 1;
+                int v = atoi(vStr.c_str()) - 1; //vertex index
                 mesh.indexBufferData.push_back(v);
-                std::getline(ref, vStr, '/');
-                std::getline(ref, vStr, '/');
+                std::getline(ref, vStr, '/'); //vertex texture index
+                uvIndices.push_back(atoi(vStr.c_str()) - 1);
+                std::getline(ref, vStr, '/'); //vertex normals index
             }
+        }
+        else if (type == "vt")
+        {
+            float u, v;
 
+            lineSStream >> u >> v;
+            uvData.push_back({ u,v });
+        }
+    }
+
+    //now see if the texture coordinates are different.
+    size_t original_vertex_buffer_size = mesh.vertexBufferData.size();
+
+    for (size_t i = 0; i < uvIndices.size(); ++i)
+    {
+        uint16_t& vertIndex = mesh.indexBufferData[i];
+
+        if (mesh.vertexBufferData[vertIndex].uv.x < 0)
+        {
+            mesh.vertexBufferData[vertIndex].uv = uvData[uvIndices[i]];
+        }
+        else
+        {
+            if (mesh.vertexBufferData[vertIndex].uv != uvData[uvIndices[i]])
+            {
+                bool found = false;
+                for (size_t j = original_vertex_buffer_size; j < mesh.vertexBufferData.size(); ++j)
+                {
+                    if (mesh.vertexBufferData[j].pos == mesh.vertexBufferData[vertIndex].pos && 
+                        mesh.vertexBufferData[j].uv == uvData[uvIndices[i]])
+                    {
+                        found = true;
+                        vertIndex = static_cast<uint16_t>(j);
+                        break;
+                    }
+                }
+
+                if (!found)
+                {
+                    mesh.vertexBufferData.push_back(mesh.vertexBufferData[vertIndex]);
+                    mesh.indexBufferData[i] = static_cast<uint16_t>(mesh.vertexBufferData.size() - 1);
+                    mesh.vertexBufferData.back().uv = uvData[uvIndices[i]];
+                }
+            }
         }
     }
 
