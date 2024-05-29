@@ -1465,7 +1465,7 @@ bool Application::init()
 
 	
 
-	debugCube = Object((PathToObjects() + "gcube.obj").c_str(), MeshType::M_CUBE);
+	debugCube = Object((PathToObjects() + "head.OBJ").c_str(), MeshType::M_CUBE);
 
 	return true;
 
