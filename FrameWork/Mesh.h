@@ -24,12 +24,18 @@ struct Vertex
 };
 
 namespace std {
-	template<> struct hash<Vertex> {
-		size_t operator()(Vertex const& vertex) const {
-			return ((hash<glm::vec3>()(vertex.pos) ^
-				(hash<glm::vec3>()(vertex.nrm) << 1)) >> 1) ^
-				(hash<glm::vec2>()(vertex.uv) << 1);
-		}
+	template<> 
+	struct hash<Vertex> {
+		
+		
+			size_t operator()(Vertex const& vertex) const 
+			{
+				size_t h1 = hash<glm::vec3>{}(vertex.pos);
+				size_t h2 = hash<glm::vec3>{}(vertex.nrm);
+				size_t h3 = hash<glm::vec2>{}(vertex.uv);
+
+				return ((h1 ^ (h2 << 1)) >> 1) ^ (h3 << 1);
+			}
 	};
 }
 

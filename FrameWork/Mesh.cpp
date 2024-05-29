@@ -91,7 +91,7 @@ void LoadMeshOBJ(const std::string& path, Mesh& mesh)
             vert.uv = 
             {
                 attrib.texcoords[2 * index.texcoord_index + 0],
-                1 - attrib.texcoords[2 * index.texcoord_index + 1]
+                1 - attrib.texcoords[2 * index.texcoord_index + 1] //vulkan is upside down.
             };
 
 
