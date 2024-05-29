@@ -4,8 +4,6 @@
 #include <SDL2/SDL.h>
 #include <vector>
 
-#define TEXTURE_PATH "External/textures/"
-
 class Application
 {
 public:
@@ -17,6 +15,8 @@ public:
 	void run();
 private:
 	Object debugCube;
+
+	VkDebugUtilsMessengerEXT debugMessenger;
 
 	//variabless
 	SDL_Window* window = nullptr;
@@ -90,6 +90,8 @@ private:
 
 	//functions
 	void CreateInstance();
+	void FillDebugMessenger(VkDebugUtilsMessengerCreateInfoEXT& createInfo);
+	void CreateDebugMessenger();
 	void CreateWindow();
 	void CreateWindowSurface();
 	void EnumeratePhysicalDevices();

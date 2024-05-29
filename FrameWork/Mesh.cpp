@@ -3,6 +3,8 @@
 #include <sstream>
 #include <algorithm>
 #include <unordered_map>
+#define TINYOBJLOADER_IMPLEMENTATION
+#include "tiny_obj_loader.h"
 
 Object::Object(const char* fileName, MeshType type)
 {
@@ -50,119 +52,65 @@ Object::Object(const char* fileName, MeshType type)
 
     //}
 
-    size_t sizeOfVertexBuffer = (sizeof(Vertex) * this->mMesh.vertexBufferData.size());
+    size_t sizeOfVertexBuffer = sizeof(std::vector<Vertex>) + (sizeof(Vertex) * this->mMesh.vertexBufferData.size());
     this->vertex = Buffer(sizeOfVertexBuffer, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, this->mMesh.vertexBufferData.data());
-    size_t sizeOfIndexBuffer = (sizeof(uint16_t) * this->mMesh.indexBufferData.size());
+    size_t sizeOfIndexBuffer = sizeof(std::vector<uint16_t>) + (sizeof(uint16_t) * this->mMesh.indexBufferData.size());
     this->index = Buffer(sizeOfIndexBuffer, VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, this->mMesh.indexBufferData.data());
 
 
 
 }
 
-//boiler plate from framework of graphics class
-void LoadMeshOBJ(const std::string& path, Mesh& mesh)
+void LoadMeshOBJ(const std::string& path, Mesh& mesh) 
 {
+    tinyobj::attrib_t attrib;
+    std::vector<tinyobj::shape_t> shapes;
+    std::vector<tinyobj::material_t> materials;
+    std::string warn, err;
 
-    std::ifstream file;
-
-    std::vector<glm::vec2> uvData;
-    std::vector<uint16_t> uvIndices;
-
-    file.open(path, std::ios::in);
-
-    if (!file) {
-        std::cout << "had an error opening file!\n";
-        return;
+    if (!tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, path.c_str())) {
+        throw std::runtime_error(warn + err);
     }
-    std::string line;
 
-    while (std::getline(file, line))
+    std::unordered_map<Vertex, uint32_t> uniqueVertices = {};
+
+
+    for (const auto& shape : shapes) 
     {
-        std::istringstream lineSStream(line);
-        std::string type;
-        lineSStream >> type;
-
-        if (type == "v") {
-
-            float x, y, z;
-
-            lineSStream >> x >> y >> z;
-
-            Vertex vert = { glm::vec3(x,y,z), glm::vec3(0), glm::vec2(-1, -1) };
-
-            mesh.vertexBufferData.push_back(vert);
-        }
-        else if (type == "f") //this will only work for files that have delimiters '/' for their faces.
+        for (const auto& index : shape.mesh.indices) 
         {
-            std::string str_f;
-            while (lineSStream >> str_f)
+            Vertex vert = {};
+
+            vert.pos =
             {
-                std::istringstream ref(str_f);
-                std::string vStr;
-                std::getline(ref, vStr, '/');
-                int v = atoi(vStr.c_str()); //vertex index
-                if (v < 0) 
-                {
-                    v *= -1;
-                }
-                v -= 1;
-                mesh.indexBufferData.push_back(v);
-                std::getline(ref, vStr, '/'); //vertex texture index
-                uint16_t uvIndex = atoi(vStr.c_str()) - 1;
-                uvIndices.push_back(atoi(vStr.c_str()) - 1);
-                std::getline(ref, vStr, '/'); //vertex normals index
-            }
-        }
-        else if (type == "vt")
-        {
-            float u, v;
+                attrib.vertices[3 * index.vertex_index + 0],
+                attrib.vertices[3 * index.vertex_index + 1],
+                attrib.vertices[3 * index.vertex_index + 2]
+            };
 
-            lineSStream >> u >> v;
-            uvData.push_back({ u,v });
+            vert.uv = 
+            {
+                attrib.texcoords[2 * index.texcoord_index + 0],
+                1 - attrib.texcoords[2 * index.texcoord_index + 1]
+            };
+
+
+            if (uniqueVertices.count(vert) == 0) 
+            {
+                uniqueVertices[vert] = static_cast<uint32_t>(mesh.vertexBufferData.size());
+                mesh.vertexBufferData.push_back(vert);
+            }
+
+            mesh.indexBufferData.push_back(uniqueVertices[vert]);
+
+
+
+
+
         }
+
     }
 
-    if (uvData.size() > 0) 
-    {
-        //now see if the texture coordinates are different.
-        size_t original_vertex_buffer_size = mesh.vertexBufferData.size();
-
-        for (size_t i = 0; i < uvIndices.size(); ++i)
-        {
-            uint16_t& vertIndex = mesh.indexBufferData[i];
-
-            if (mesh.vertexBufferData[vertIndex].uv.x < 0)
-            {
-                mesh.vertexBufferData[vertIndex].uv = uvData[uvIndices[i]];
-            }
-            else
-            {
-                if (mesh.vertexBufferData[vertIndex].uv != uvData[uvIndices[i]])
-                {
-                    bool found = false;
-                    for (size_t j = original_vertex_buffer_size; j < mesh.vertexBufferData.size(); ++j)
-                    {
-                        if (mesh.vertexBufferData[j].pos == mesh.vertexBufferData[vertIndex].pos &&
-                            mesh.vertexBufferData[j].uv == uvData[uvIndices[i]])
-                        {
-                            found = true;
-                            vertIndex = static_cast<uint16_t>(j);
-                            break;
-                        }
-                    }
-
-                    if (!found)
-                    {
-                        mesh.vertexBufferData.push_back(mesh.vertexBufferData[vertIndex]);
-                        mesh.indexBufferData[i] = static_cast<uint16_t>(mesh.vertexBufferData.size() - 1);
-                        mesh.vertexBufferData.back().uv = uvData[uvIndices[i]];
-                    }
-                }
-            }
-        }
-    }
-
-    file.close();
 }
 
 

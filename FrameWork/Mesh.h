@@ -3,6 +3,8 @@
 #include <iostream>
 #include <vector>
 #include <string>
+#define GLM_ENABLE_EXPERIMENTAL
+#include <glm/gtx/hash.hpp>
 
 enum MeshType
 {
@@ -15,7 +17,21 @@ struct Vertex
 	glm::vec3 pos = {0,0,0};
 	glm::vec3 nrm = {.2f,.5f,0};
 	glm::vec2 uv = {-1.f,-1.f};
+
+	bool operator==(const Vertex& other) const {
+		return pos == other.pos && nrm == other.nrm && uv == other.uv;
+	}
 };
+
+namespace std {
+	template<> struct hash<Vertex> {
+		size_t operator()(Vertex const& vertex) const {
+			return ((hash<glm::vec3>()(vertex.pos) ^
+				(hash<glm::vec3>()(vertex.nrm) << 1)) >> 1) ^
+				(hash<glm::vec2>()(vertex.uv) << 1);
+		}
+	};
+}
 
 struct Mesh
 {
@@ -47,3 +63,4 @@ struct Object
 };
 
 void LoadMeshOBJ(const std::string& path, Mesh& mesh);
+

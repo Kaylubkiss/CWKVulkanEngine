@@ -11,6 +11,7 @@
 static unsigned long long width = 640;
 static unsigned long long height = 480;
 
+
 #define SCREEN_WIDTH width
 #define SCREEN_HEIGHT height 
 #define VK_CHECK_RESULT(function) {VkResult check = function; assert(check == VK_SUCCESS);}
@@ -38,6 +39,19 @@ static uTransformObject uTransform =
 };
 
 
+static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
+VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+VkDebugUtilsMessageTypeFlagsEXT messageType,
+const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
+void* pUserData) 
+{
+	if (messageSeverity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT) 
+	{
+		std::cerr << pCallbackData->pMessage << std::endl;
+	}
+
+	return VK_FALSE;
+}
 
 void Application::run() 
 {
@@ -51,6 +65,30 @@ void Application::run()
 	exit();
 }
 
+void Application::FillDebugMessenger(VkDebugUtilsMessengerCreateInfoEXT& createInfo)
+{
+	createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
+	createInfo.messageSeverity = 
+		VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |
+		VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
+		VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+	createInfo.messageType =
+		VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
+		VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
+		VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
+
+	createInfo.pfnUserCallback = debugCallback;
+
+}
+
+
+//void Application::CreateDebugMessenger(VkInstance instance, 
+//const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, 
+//const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pDebugMessenger) 
+//{
+//	
+//
+//}
 void Application::CreateInstance() 
 {
 
@@ -71,18 +109,25 @@ void Application::CreateInstance()
 	unsigned int extensionCount = 0;
 	const char** extensionNames;
 
+	VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo = {};
+	FillDebugMessenger(debugCreateInfo);
+
 	if (SDL_Vulkan_GetInstanceExtensions(window, &extensionCount, nullptr) != SDL_TRUE)
 	{
 		throw std::runtime_error("could not grab extensions from SDL!");
 	}
 
-	extensionNames = new const char* [extensionCount];
+	extensionNames = new const char* [extensionCount + 1];
 
 	if (SDL_Vulkan_GetInstanceExtensions(window, &extensionCount, (extensionNames)) != SDL_TRUE)
 	{
 		throw std::runtime_error("could not grab extensions from SDL!");
 	}
-	createInfo.enabledExtensionCount = extensionCount;
+
+
+	extensionNames[extensionCount] = VK_EXT_DEBUG_UTILS_EXTENSION_NAME;
+	
+	createInfo.enabledExtensionCount = extensionCount + 1;
 	createInfo.ppEnabledExtensionNames = (extensionNames);
 
 
@@ -90,6 +135,7 @@ void Application::CreateInstance()
 	//it intercepts the API
 	createInfo.ppEnabledLayerNames = enabledLayerNames;
 	createInfo.enabledLayerCount = 1;
+	createInfo.pNext = (VkDebugUtilsMessengerCreateInfoEXT*)&debugCreateInfo;
 
 	//create instance.
 	//this function, if successful, will create a "handle object"
@@ -102,7 +148,21 @@ void Application::CreateInstance()
 
 	delete [] extensionNames;
 
+
+	auto func = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(this->m_instance, "vkCreateDebugUtilsMessengerEXT");
+
+	if (func != nullptr) {
+
+		func(this->m_instance, &debugCreateInfo, nullptr, &this->debugMessenger);
+	}
+	else 
+	{
+		throw std::runtime_error("could not set up debug messenger");
+
+	}
+
 }
+
 
 void Application::EnumeratePhysicalDevices() 
 {
@@ -368,7 +428,7 @@ void Application::CreateSwapChain()
 
 	VkSwapchainCreateInfoKHR swapChainInfo = {};
 	swapChainInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-	swapChainInfo.surface = m_windowSurface;
+	swapChainInfo.surface = this->m_windowSurface;
 
 	VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(this->m_physicalDevices[device_index], m_windowSurface, &deviceCapabilities));
 
@@ -420,7 +480,22 @@ void Application::CreateSwapChain()
 	swapChainInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
 	swapChainInfo.presentMode = VK_PRESENT_MODE_FIFO_KHR; //this is always guaranteed.
 	swapChainInfo.clipped = VK_TRUE;
-	swapChainInfo.oldSwapchain = this->swapChain; //resizing needs a reference to the old swap chain.
+	swapChainInfo.oldSwapchain = nullptr; //resizing needs a reference to the old swap chain
+
+	/*auto* SetDebugName = reinterpret_cast<PFN_vkSetDebugUtilsObjectNameEXT>(vkGetDeviceProcAddr(this->m_logicalDevice, "vkSetDebugUtilsObjectNameEXT"));*/
+	/*VkDebugUtilsObjectNameInfoEXT debugDescriptorPool = {};
+	debugDescriptorPool.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+	debugDescriptorPool.objectType = VK_OBJECT_TYPE_DESCRIPTOR_POOL;
+	debugDescriptorPool.objectHandle = (uint64_t)VK_NULL_HANDLE;
+
+
+	VkDebugUtilsObjectNameInfoEXT debugFrameBuffer = {};
+	debugFrameBuffer.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+	debugFrameBuffer.objectType = VK_OBJECT_TYPE_FRAMEBUFFER;
+	debugFrameBuffer.objectHandle = (uint64_t)VK_NULL_HANDLE;
+
+	SetDebugName(this->m_logicalDevice, &debugFrameBuffer);
+	SetDebugName(this->m_logicalDevice, &debugDescriptorPool);*/
 
 
 	VK_CHECK_RESULT(vkCreateSwapchainKHR(this->m_logicalDevice, &swapChainInfo, nullptr, &this->swapChain));
@@ -439,6 +514,8 @@ void Application::CreateImageViews()
 
 	VK_CHECK_RESULT(vkGetSwapchainImagesKHR(this->m_logicalDevice, swapChain, &imageCount, this->swapChainImages));
 
+
+	
 	//create imageview --> allow image to be seen in a different format.
 	this->imageViews = new VkImageView[imageCount];
 
@@ -1386,6 +1463,8 @@ bool Application::init()
 
 	CreateFences();
 
+	
+
 	debugCube = Object((PathToObjects() + "gcube.obj").c_str(), MeshType::M_CUBE);
 
 	return true;
@@ -1627,7 +1706,15 @@ void Application::exit()
 	vkDestroyDevice(this->m_logicalDevice, nullptr);
 	
 	delete[] m_physicalDevices;
- 
+	
+	auto func = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(this->m_instance, "vkDestroyDebugUtilsMessengerEXT");
+
+	if (func != nullptr) 
+	{
+		func(this->m_instance, this->debugMessenger, nullptr);
+	}
+
+
 	vkDestroySurfaceKHR(this->m_instance, this->m_windowSurface, nullptr);
 
 	vkDestroyInstance(this->m_instance, nullptr);

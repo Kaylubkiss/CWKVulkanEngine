@@ -17,21 +17,18 @@ struct Buffer
 
 	void* mappedMemory = NULL;
 
-	/*void* mData;*/
-
 	void operator=(const Buffer& rhs)
 	{
 		this->buffer = rhs.buffer;
 		this->memory = rhs.memory;
 		this->mappedMemory = rhs.mappedMemory;
-		/*this->mData = rhs.mData;*/
 	}
 
 	/*Buffer(const Buffer& rhs);*/
 
 	//assume that build info is shared among all buffers.
 	Buffer(size_t size, VkBufferUsageFlags usage, VkMemoryPropertyFlags flags, void* data);
-	Buffer() : buffer(VK_NULL_HANDLE), memory(VK_NULL_HANDLE), size(0), mappedMemory(NULL) /*mData(NULL) */{};
+	Buffer() : buffer(VK_NULL_HANDLE), memory(VK_NULL_HANDLE), size(0), mappedMemory(NULL) {};
 	void FillData(const void* data, size_t dataCount, size_t stride);
 	void RecordData();
 	void StopRecordData();
