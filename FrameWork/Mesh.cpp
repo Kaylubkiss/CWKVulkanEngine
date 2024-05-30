@@ -10,6 +10,8 @@ Object::Object(const char* fileName, MeshType type)
 {
     LoadMeshOBJ(fileName, this->mMesh);
 
+    this->mMesh.numVertices = this->mMesh.vertexBufferData.size();
+
     glm::vec3 min_points(0.f);
     glm::vec3 max_points(0.f);
 
@@ -57,6 +59,10 @@ Object::Object(const char* fileName, MeshType type)
     size_t sizeOfIndexBuffer = sizeof(std::vector<uint16_t>) + (sizeof(uint16_t) * this->mMesh.indexBufferData.size());
     this->index = Buffer(sizeOfIndexBuffer, VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, this->mMesh.indexBufferData.data());
 
+    std::cout << std::endl;
+    std::cout << "loaded in " + std::string(fileName) << std::endl;
+    std::cout << this->mMesh.numVertices << " vertices loaded in." << std::endl << std::endl;
+   
 
 
 }
@@ -72,12 +78,16 @@ void LoadMeshOBJ(const std::string& path, Mesh& mesh)
         throw std::runtime_error(warn + err);
     }
 
+    if (!warn.empty()) 
+    {
+        std::cout << warn << std::endl << std::endl;
+    }
     std::unordered_map<Vertex, uint32_t> uniqueVertices = {};
 
 
-    for (const auto& shape : shapes) 
+    for (const auto& shape : shapes)
     {
-        for (const auto& index : shape.mesh.indices) 
+        for (const auto& index : shape.mesh.indices)
         {
             Vertex vert = {};
 
@@ -88,14 +98,14 @@ void LoadMeshOBJ(const std::string& path, Mesh& mesh)
                 attrib.vertices[3 * index.vertex_index + 2]
             };
 
-            vert.uv = 
+            vert.uv =
             {
                 attrib.texcoords[2 * index.texcoord_index + 0],
                 1 - attrib.texcoords[2 * index.texcoord_index + 1] //vulkan is upside down.
             };
 
 
-            if (uniqueVertices.count(vert) == 0) 
+            if (uniqueVertices.count(vert) == 0)
             {
                 uniqueVertices[vert] = static_cast<uint32_t>(mesh.vertexBufferData.size());
                 mesh.vertexBufferData.push_back(vert);
@@ -103,14 +113,8 @@ void LoadMeshOBJ(const std::string& path, Mesh& mesh)
 
             mesh.indexBufferData.push_back(uniqueVertices[vert]);
 
-
-
-
-
         }
-
     }
-
 }
 
 

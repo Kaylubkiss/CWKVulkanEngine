@@ -14,6 +14,7 @@ static unsigned long long height = 480;
 
 #define SCREEN_WIDTH width
 #define SCREEN_HEIGHT height 
+
 #define VK_CHECK_RESULT(function) {VkResult check = function; assert(check == VK_SUCCESS);}
 
 
@@ -82,13 +83,6 @@ void Application::FillDebugMessenger(VkDebugUtilsMessengerCreateInfoEXT& createI
 }
 
 
-//void Application::CreateDebugMessenger(VkInstance instance, 
-//const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, 
-//const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pDebugMessenger) 
-//{
-//	
-//
-//}
 void Application::CreateInstance() 
 {
 
@@ -885,7 +879,7 @@ void Application::CreateDepthResources()
 
 }
 
-static const std::string& PathToTextures() 
+static std::string PathToTextures() 
 {
 	return "External/textures/";
 }
@@ -930,11 +924,11 @@ void Application::CreateCubeMap()
 }
 
 
-void Application::CreateTexture() 
+void Application::CreateTexture(const std::string& fileName)
 {
 
 	int textureWidth, textureHeight, textureChannels;
-	stbi_uc* pixels = stbi_load("External/textures/texture.jpg", &textureWidth, &textureHeight, &textureChannels, STBI_rgb_alpha);
+	stbi_uc* pixels = stbi_load((PathToTextures() + fileName).c_str(), &textureWidth, &textureHeight, &textureChannels, STBI_rgb_alpha);
 	VkDeviceSize imageSize = textureWidth * textureHeight * 4;
 
 	if (pixels == NULL) 
@@ -959,9 +953,12 @@ void Application::CreateTexture()
 
 	vkDestroyBuffer(this->m_logicalDevice, stagingBuffer.buffer, nullptr);
 	vkFreeMemory(this->m_logicalDevice, stagingBuffer.memory, nullptr);
+
+	CreateTextureView(this->textureImage);
+
 }
 
-void Application::CreateTextureView()
+void Application::CreateTextureView(const VkImage& textureImage)
 {
 
 	VkImageViewCreateInfo viewInfo = {};
@@ -1444,8 +1441,8 @@ bool Application::init()
 	//CreateBuffers();
 	CreateUniformBuffers();
 
-	CreateTexture();
-	CreateTextureView();
+	CreateTexture("texture.jpg");
+	//CreateTextureView();
 	CreateTextureSampler();
 
 	CreateDepthResources();
@@ -1465,189 +1462,196 @@ bool Application::init()
 
 	
 
-	debugCube = Object((PathToObjects() + "head.OBJ").c_str(), MeshType::M_CUBE);
+	debugCube = Object((PathToObjects() + "freddy.obj").c_str(), MeshType::M_CUBE);
 
 	return true;
 
 
 }
 
+bool Application::UpdateInput() 
+{
+	SDL_Event e;
+	while (SDL_PollEvent(&e))
+	{
+
+		if (e.type == SDL_QUIT || (e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_ESCAPE))
+		{
+			return true;
+		}
+
+		if (e.type == SDL_MOUSEMOTION && e.button.button == SDL_BUTTON(SDL_BUTTON_LEFT))
+		{
+			int deltaX = e.motion.xrel;
+			int deltaY = e.motion.yrel;
+			uTransform.view = glm::mat4(X_BASIS, Y_BASIS, Z_BASIS, { deltaX * .008f, -deltaY * .008f, 0, 1 }) * uTransform.view;
+			memcpy(uniformBuffers.back().mappedMemory, (void*)&uTransform, (size_t)(sizeof(uTransformObject)));
+		}
+
+		if (e.type == SDL_MOUSEWHEEL)
+		{
+			int direction = e.wheel.y;
+
+			if (direction < 0)
+			{
+				uTransform.view = glm::mat4(X_BASIS, Y_BASIS, Z_BASIS, { 0,0, -.5f, 1 }) * uTransform.view;
+				memcpy(uniformBuffers.back().mappedMemory, (void*)&uTransform, (size_t)(sizeof(uTransformObject)));
+			}
+			else
+			{
+				uTransform.view = glm::mat4(X_BASIS, Y_BASIS, Z_BASIS, { 0,0, 0.5f, 1 }) * uTransform.view;
+				memcpy(uniformBuffers.back().mappedMemory, (void*)&uTransform, (size_t)(sizeof(uTransformObject)));
+			}
+		}
+
+		int deltaX = e.motion.xrel;
+		int deltaY = e.motion.yrel;
+
+		if (deltaX && deltaX != std::numeric_limits<int>::max())
+		{
+			if (e.type == SDL_MOUSEMOTION && e.button.button == SDL_BUTTON(SDL_BUTTON_RIGHT))
+			{
+				uTransform.view = glm::rotate(glm::mat4(1.f), (float)deltaX * .008f, glm::vec3(0, 1, 0)) * uTransform.view;
+				memcpy(uniformBuffers.back().mappedMemory, (void*)&uTransform, (size_t)(sizeof(uTransformObject)));
+			}
+		}
+		else if (deltaY && deltaY != std::numeric_limits<int>::max())
+		{
+			if (e.type == SDL_MOUSEMOTION && e.button.button == SDL_BUTTON(SDL_BUTTON_RIGHT))
+			{
+				uTransform.view = glm::rotate(glm::mat4(1.f), (float)deltaY * .008f, glm::vec3(1, 0, 0)) * uTransform.view;
+				memcpy(uniformBuffers.back().mappedMemory, (void*)&uTransform, (size_t)(sizeof(uTransformObject)));
+			}
+
+		}
+	}
+
+	return false;
+}
+
+
+void Application::Render() 
+{
+	//vulkan shit
+	VK_CHECK_RESULT(vkWaitForFences(this->m_logicalDevice, 1, &this->inFlightFence, VK_TRUE, UINT64_MAX));
+	VK_CHECK_RESULT(vkResetFences(this->m_logicalDevice, 1, &this->inFlightFence));
+
+	uint32_t imageIndex;
+	VkResult result = vkAcquireNextImageKHR(this->m_logicalDevice, swapChain, UINT64_MAX, this->imageAvailableSemaphore, VK_NULL_HANDLE, &imageIndex);
+
+
+	if (result == VK_ERROR_OUT_OF_DATE_KHR)
+	{
+		RecreateSwapChain();
+		ResizeViewport();
+		return;
+	}
+
+	assert(result == VK_SUCCESS);
+
+	VK_CHECK_RESULT(vkResetCommandBuffer(this->commandBuffer, 0));
+
+
+	////always begin recording command buffers by calling vkBeginCommandBuffer --> just tells vulkan about the usage of a particular command buffer.
+	//always begin recording command buffers by calling vkBeginCommandBuffer --> just tells vulkan about the usage of a particular command buffer.
+	VkCommandBufferBeginInfo cmdBufferBeginInfo = {};
+	cmdBufferBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+	cmdBufferBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+	//everything else is default...
+
+	VK_CHECK_RESULT(vkBeginCommandBuffer(this->commandBuffer, &cmdBufferBeginInfo));
+
+	VkRenderPassBeginInfo renderPassInfo = {};
+	renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+	renderPassInfo.renderPass = this->m_renderPass;
+	renderPassInfo.framebuffer = frameBuffer[imageIndex];
+	renderPassInfo.renderArea.offset = { 0,0 };
+	renderPassInfo.renderArea.extent = deviceCapabilities.currentExtent;
+
+	VkClearValue clearColors[2] = {};
+	clearColors[0].color = { {0.f, 0.f, 0.f, 1.f} };
+	clearColors[1].depthStencil = { 1.f, 0 };
+
+	renderPassInfo.clearValueCount = 2;
+	renderPassInfo.pClearValues = clearColors;
+
+	//put this in a draw frame
+	vkCmdBeginRenderPass(this->commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+	//bind the graphics pipeline
+	vkCmdBindPipeline(this->commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->pipeline);
+	vkCmdBindDescriptorSets(this->commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->pipelineLayout, 0, 1, &descriptorSets, 0, nullptr);
+
+	vkCmdSetViewport(this->commandBuffer, 0, 1, &this->m_viewPort);
+	vkCmdSetScissor(this->commandBuffer, 0, 1, &this->m_scissor);
+
+	/*	vkCmdDraw(this->commandBuffer, 3, 1, 0, 0);*/
+	VkDeviceSize offsets[1] = { 0 };
+	VkBuffer  vBuffers[] = { debugCube.vertex.buffer };
+	vkCmdBindVertexBuffers(this->commandBuffer, 0, 1, vBuffers, offsets);
+	vkCmdBindIndexBuffer(this->commandBuffer, debugCube.index.buffer, 0, VK_INDEX_TYPE_UINT16);
+
+	vkCmdDrawIndexed(this->commandBuffer, static_cast<uint32_t>(debugCube.mMesh.indexBufferData.size()), 1, 0, 0, 0);
+
+	//this will draw a triangle, if you change the vertex buffer.
+	/*vkCmdDraw(this->commandBuffer, 3, 1, 0, 0);*/
+
+	vkCmdEndRenderPass(this->commandBuffer);
+
+	VK_CHECK_RESULT(vkEndCommandBuffer(this->commandBuffer));
+
+	VkSubmitInfo submitInfo{};
+	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+
+	VkSemaphore waitSemaphores[] = { imageAvailableSemaphore };
+	VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
+	submitInfo.waitSemaphoreCount = 1;
+	submitInfo.pWaitSemaphores = waitSemaphores;
+	submitInfo.pWaitDstStageMask = waitStages;
+
+	submitInfo.commandBufferCount = 1;
+	submitInfo.pCommandBuffers = &this->commandBuffer;
+
+	VkSemaphore signalSemaphores[] = { renderFinishedSemaphore };
+	submitInfo.signalSemaphoreCount = 1;
+	submitInfo.pSignalSemaphores = signalSemaphores;
+
+	VK_CHECK_RESULT(vkQueueSubmit(graphicsQueue, 1, &submitInfo, this->inFlightFence));
+
+	VkPresentInfoKHR presentInfo{};
+	presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+
+	presentInfo.waitSemaphoreCount = 1;
+	presentInfo.pWaitSemaphores = signalSemaphores;
+
+	VkSwapchainKHR swapChains[] = { swapChain };
+	presentInfo.swapchainCount = 1;
+	presentInfo.pSwapchains = swapChains;
+
+	presentInfo.pImageIndices = &imageIndex;
+
+	result = vkQueuePresentKHR(presentQueue, &presentInfo);
+
+	if (result == VK_ERROR_OUT_OF_DATE_KHR)
+	{
+		RecreateSwapChain();
+		ResizeViewport();
+		return;
+	}
+	assert(result == VK_SUCCESS);
+
+}
 
 void Application::loop() 
 {
 
 	//render graphics.
-	SDL_Event e; bool quit = false;
+	bool quit = false;
 	while (quit == false)
-	{
-		while (SDL_PollEvent(&e))
-		{
+	{	
+		quit = UpdateInput();
 
-			if (e.type == SDL_QUIT || (e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_ESCAPE))
-			{
-				quit = true;
-			}
-
-			if (e.type == SDL_MOUSEMOTION && e.button.button == SDL_BUTTON(SDL_BUTTON_LEFT)) 
-			{
-				int deltaX = e.motion.xrel;
-				int deltaY = e.motion.yrel;
-				uTransform.view = glm::mat4(X_BASIS, Y_BASIS, Z_BASIS, {deltaX * .008f, -deltaY * .008f, 0, 1}) * uTransform.view;
-				memcpy(uniformBuffers.back().mappedMemory, (void*)&uTransform, (size_t)(sizeof(uTransformObject)));
-			}
-
-			if (e.type == SDL_MOUSEWHEEL) 
-			{
-				int direction = e.wheel.y;
-
-				if (direction < 0) 
-				{
-					uTransform.view = glm::mat4(X_BASIS, Y_BASIS, Z_BASIS, { 0,0, -.5f, 1 }) * uTransform.view;
-					memcpy(uniformBuffers.back().mappedMemory, (void*)&uTransform, (size_t)(sizeof(uTransformObject)));
-				}
-				else 
-				{
-					uTransform.view = glm::mat4(X_BASIS, Y_BASIS, Z_BASIS, {0,0, 0.5f, 1}) * uTransform.view;
-					memcpy(uniformBuffers.back().mappedMemory, (void*)&uTransform, (size_t)(sizeof(uTransformObject)));
-				}
-			}
-
-			int deltaX = e.motion.xrel;
-			int deltaY = e.motion.yrel;
-
-			if (deltaX && deltaX != std::numeric_limits<int>::max()) 
-			{
-				if (e.type == SDL_MOUSEMOTION && e.button.button == SDL_BUTTON(SDL_BUTTON_RIGHT))
-				{
-					uTransform.view = glm::rotate(glm::mat4(1.f), (float)deltaX * .008f, glm::vec3(0, 1, 0)) * uTransform.view;
-					memcpy(uniformBuffers.back().mappedMemory, (void*)&uTransform, (size_t)(sizeof(uTransformObject)));
-				}
-			}
-			else if (deltaY && deltaY != std::numeric_limits<int>::max())
-			{
-				if (e.type == SDL_MOUSEMOTION && e.button.button == SDL_BUTTON(SDL_BUTTON_RIGHT))
-				{
-					uTransform.view = glm::rotate(glm::mat4(1.f), (float)deltaY * .008f, glm::vec3(1, 0, 0)) * uTransform.view;
-					memcpy(uniformBuffers.back().mappedMemory, (void*)&uTransform, (size_t)(sizeof(uTransformObject)));
-				}
-
-			}
-		}
-
-		//vulkan shit
-		VK_CHECK_RESULT(vkWaitForFences(this->m_logicalDevice, 1, &this->inFlightFence, VK_TRUE, UINT64_MAX));
-		VK_CHECK_RESULT(vkResetFences(this->m_logicalDevice, 1, &this->inFlightFence));
-
-		uint32_t imageIndex;
-		VkResult result = vkAcquireNextImageKHR(this->m_logicalDevice, swapChain, UINT64_MAX, this->imageAvailableSemaphore, VK_NULL_HANDLE, &imageIndex);
-
-
-		if (result == VK_ERROR_OUT_OF_DATE_KHR)
-		{
-			//TODO: 
-			// if vk_out_of_date error, recreate the swap chain.
-			//-delete the framebuffers
-			//-destroy the swap chain images.
-			//-destroy swap chain
-			//then,
-			//-create swap chain
-			//-create frame buffers
-			RecreateSwapChain();
-			ResizeViewport();
-			continue;
-		}
-		assert(result == VK_SUCCESS);
-
-		VK_CHECK_RESULT(vkResetCommandBuffer(this->commandBuffer, 0));
-
-
-		////always begin recording command buffers by calling vkBeginCommandBuffer --> just tells vulkan about the usage of a particular command buffer.
-		//always begin recording command buffers by calling vkBeginCommandBuffer --> just tells vulkan about the usage of a particular command buffer.
-		VkCommandBufferBeginInfo cmdBufferBeginInfo = {};
-		cmdBufferBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-		cmdBufferBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-		//everything else is default...
-
-		VK_CHECK_RESULT(vkBeginCommandBuffer(this->commandBuffer, &cmdBufferBeginInfo));
-
-		VkRenderPassBeginInfo renderPassInfo = {};
-		renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-		renderPassInfo.renderPass = this->m_renderPass;
-		renderPassInfo.framebuffer = frameBuffer[imageIndex];
-		renderPassInfo.renderArea.offset = { 0,0 };
-		renderPassInfo.renderArea.extent = deviceCapabilities.currentExtent;
-
-		VkClearValue clearColors[2] = {};
-		clearColors[0].color = { {0.f, 0.f, 0.f, 1.f} };
-		clearColors[1].depthStencil = { 1.f, 0 };
-
-		renderPassInfo.clearValueCount = 2;
-		renderPassInfo.pClearValues = clearColors;
-
-		//put this in a draw frame
-		vkCmdBeginRenderPass(this->commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
-
-		//bind the graphics pipeline
-		vkCmdBindPipeline(this->commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->pipeline);
-		vkCmdBindDescriptorSets(this->commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->pipelineLayout, 0, 1, &descriptorSets, 0, nullptr);
-
-		vkCmdSetViewport(this->commandBuffer, 0, 1, &this->m_viewPort);
-		vkCmdSetScissor(this->commandBuffer, 0, 1, &this->m_scissor);
-
-	/*	vkCmdDraw(this->commandBuffer, 3, 1, 0, 0);*/
-		VkDeviceSize offsets[1] = { 0 };
-		VkBuffer  vBuffers[] = { debugCube.vertex.buffer };
-		vkCmdBindVertexBuffers(this->commandBuffer, 0, 1, vBuffers, offsets);
-		vkCmdBindIndexBuffer(this->commandBuffer, debugCube.index.buffer, 0, VK_INDEX_TYPE_UINT16);
-
-		vkCmdDrawIndexed(this->commandBuffer, static_cast<uint32_t>(debugCube.mMesh.indexBufferData.size()), 1, 0, 0, 0);
-	
-		//this will draw a triangle, if you change the vertex buffer.
-		/*vkCmdDraw(this->commandBuffer, 3, 1, 0, 0);*/
-
-		vkCmdEndRenderPass(this->commandBuffer);
-
-		VK_CHECK_RESULT(vkEndCommandBuffer(this->commandBuffer));
-
-		VkSubmitInfo submitInfo{};
-		submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-
-		VkSemaphore waitSemaphores[] = { imageAvailableSemaphore };
-		VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
-		submitInfo.waitSemaphoreCount = 1;
-		submitInfo.pWaitSemaphores = waitSemaphores;
-		submitInfo.pWaitDstStageMask = waitStages;
-
-		submitInfo.commandBufferCount = 1;
-		submitInfo.pCommandBuffers = &this->commandBuffer;
-
-		VkSemaphore signalSemaphores[] = { renderFinishedSemaphore };
-		submitInfo.signalSemaphoreCount = 1;
-		submitInfo.pSignalSemaphores = signalSemaphores;
-
-		VK_CHECK_RESULT(vkQueueSubmit(graphicsQueue, 1, &submitInfo, this->inFlightFence));
-
-		VkPresentInfoKHR presentInfo{};
-		presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
-
-		presentInfo.waitSemaphoreCount = 1;
-		presentInfo.pWaitSemaphores = signalSemaphores;
-
-		VkSwapchainKHR swapChains[] = { swapChain };
-		presentInfo.swapchainCount = 1;
-		presentInfo.pSwapchains = swapChains;
-
-		presentInfo.pImageIndices = &imageIndex;
-
-		result = vkQueuePresentKHR(presentQueue, &presentInfo);
-
-		if (result == VK_ERROR_OUT_OF_DATE_KHR)
-		{
-			RecreateSwapChain();
-			ResizeViewport();
-			continue;
-		}
-		assert(result == VK_SUCCESS);
+		Render();
 	}
 
 	VK_CHECK_RESULT(vkDeviceWaitIdle(this->m_logicalDevice));

@@ -121,9 +121,11 @@ private:
 
 	void CreateDepthResources();
 	
-	void CreateTexture();
-	void CreateTextureView();
+	void CreateTexture(const std::string& fileName);
+	void CreateTextureView(const VkImage& textureImage);
 	void CreateTextureSampler();
+
+	bool UpdateInput();
 
 	void CreateCubeMap();
 
@@ -134,6 +136,7 @@ private:
 	void loop();
 	void exit();
 
+	void Render();
 };
 
 
