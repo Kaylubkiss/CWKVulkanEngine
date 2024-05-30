@@ -1649,7 +1649,10 @@ void Application::loop()
 	bool quit = false;
 	while (quit == false)
 	{	
-		quit = UpdateInput();
+		if (UpdateInput()) 
+		{
+			quit = true;
+		}
 
 		Render();
 	}
