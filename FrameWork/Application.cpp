@@ -1420,13 +1420,6 @@ void Application::InitGui()
 	init_info.Allocator = nullptr;
 	init_info.CheckVkResultFn = check_vk_result;
 	ImGui_ImplVulkan_Init(&init_info);
-
-
-	VkCommandBuffer cmdBuffer = beginCmd();
-	ImGui_ImplVulkan_CreateFontsTexture();
-	endCmd(cmdBuffer);
-
-	ImGui_ImplVulkan_DestroyFontsTexture();
 }
 
 
