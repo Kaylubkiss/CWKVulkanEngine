@@ -1598,7 +1598,7 @@ void Application::DrawGui()
 	}
 
 	windowisfocused = ImGui::IsWindowFocused();
-
+	
 	ImGui::End();
 	ImGui::Render();
 	ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), this->commandBuffer);
@@ -1710,7 +1710,7 @@ void Application::Render()
 
 	result = vkQueuePresentKHR(presentQueue, &presentInfo);
 
-	if (result == VK_ERROR_OUT_OF_DATE_KHR)
+	if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
 	{
 		RecreateSwapChain();
 		ResizeViewport();
