@@ -8,6 +8,8 @@
 #include <stb_image.h>
 
 
+
+
 static unsigned long long width = 640;
 static unsigned long long height = 480;
 
@@ -1267,21 +1269,20 @@ void Application::CreatePipeline(VkPipelineShaderStageCreateInfo* pStages, int n
 		&depthStencilCreateInfo,
 		//TODO: VkPipelineColorBlendStateCreateInfo,
 		&colorBlendCreateInfo,
-		//TODO: VkPipelineDynamicStateCreateInfo,
+		//VkPipelineDynamicStateCreateInfo,
 		&dynamicStateCreateInfo,
-		//TODO: VkPipelineLayout,
+		//VkPipelineLayout,
 		this->pipelineLayout,
-		//TODO: VkRenderPass,
+		//VkRenderPass,
 		this->m_renderPass,
-		//TODO: subpass,
+		//subpass,
 		0,
-		//TODO: basePipelineHandle,
+		//basePipelineHandle,
 		VK_NULL_HANDLE,
-		//TODO: basePipelineIndex   
+		//basePipelineIndex   
 		0
 	};
 
-	//TODO: cleanup
 	VK_CHECK_RESULT(vkCreateGraphicsPipelines(this->m_logicalDevice, VK_NULL_HANDLE, 1, &gfxPipelineCreateInfo, nullptr, &this->pipeline));
 
 }
@@ -1293,7 +1294,6 @@ void Application::CreateCommandPools()
 	commandPoolCreateInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT; //recording commands every frame.
 	commandPoolCreateInfo.queueFamilyIndex = 0; //only one physical device on initial development machine.
 
-	//TODO: cleanup
 	VK_CHECK_RESULT(vkCreateCommandPool(this->m_logicalDevice, &commandPoolCreateInfo, nullptr, &this->commandPool));
 }
 
@@ -1315,10 +1315,8 @@ void Application::CreateSemaphores()
 	VkSemaphoreCreateInfo semaphoreInfo = {};
 	semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
 
-	//TODO: cleanup
 	VK_CHECK_RESULT(vkCreateSemaphore(this->m_logicalDevice, &semaphoreInfo, nullptr, &this->imageAvailableSemaphore));
 
-	//TODO: cleanup
 	VK_CHECK_RESULT(vkCreateSemaphore(this->m_logicalDevice, &semaphoreInfo, nullptr, &this->renderFinishedSemaphore));
 
 }
@@ -1329,7 +1327,6 @@ void Application::CreateFences()
 	fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
 	fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT; //to prevent indefinite waiting on first frame.
 
-	//TODO: cleanup
 	VK_CHECK_RESULT(vkCreateFence(this->m_logicalDevice, &fenceInfo, nullptr, &this->inFlightFence));
 }
 
@@ -1382,6 +1379,37 @@ void Application::ResizeViewport()
 
 }
 
+
+void Application::InitGui() 
+{
+	IMGUI_CHECKVERSION();
+	ImGui::CreateContext();
+
+	ImGuiIO& io = ImGui::GetIO(); (void)io;
+	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+
+	// Setup Platform/Renderer backends
+	ImGui_ImplSDL2_InitForVulkan(this->window);
+	ImGui_ImplVulkan_InitInfo init_info = {};
+	init_info.Instance = this->m_instance;
+	init_info.PhysicalDevice = this->m_physicalDevices[device_index];
+	init_info.Device = this->m_logicalDevice;
+	init_info.QueueFamily = this->graphicsFamily;
+	init_info.Queue = this->graphicsQueue;
+	init_info.PipelineCache = VK_NULL_HANDLE;
+	init_info.DescriptorPool = this->descriptorPool;
+	init_info.RenderPass = this->m_renderPass;
+	init_info.Subpass = 0;
+	init_info.MinImageCount = 0;
+	init_info.ImageCount = this->imageCount;
+	init_info.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
+	init_info.Allocator = nullptr;
+	init_info.CheckVkResultFn = nullptr;
+	ImGui_ImplVulkan_Init(&init_info);
+
+}
+
+
 bool Application::init() 
 {
 
@@ -1404,6 +1432,7 @@ bool Application::init()
 
 	CreateWindowSurface();
 
+	
 	//setup the debug callbacks... (optional...)
 
 	EnumeratePhysicalDevices();
@@ -1663,7 +1692,6 @@ void Application::loop()
 
 void Application::exit()
 {
-	//TODO: release all created resources from init.
 	
 	vkDestroySemaphore(this->m_logicalDevice, this->imageAvailableSemaphore, nullptr);
 
@@ -1678,8 +1706,6 @@ void Application::exit()
 	vkDestroyDescriptorPool(this->m_logicalDevice, this->descriptorPool, nullptr);
 
 	vkDestroyDescriptorSetLayout(this->m_logicalDevice, this->descriptorSetLayout, nullptr);
-
-	/*vkDestroyBuffer(this->m_logicalDevice, this->vkBuffer, nullptr);*/
 
 	for (unsigned i = 0; i < uniformBuffers.size(); ++i) 
 	{

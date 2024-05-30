@@ -137,6 +137,8 @@ private:
 	void exit();
 
 	void Render();
+
+	void InitGui();
 };
 
 
