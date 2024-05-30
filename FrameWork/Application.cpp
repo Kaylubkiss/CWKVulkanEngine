@@ -6,9 +6,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
-
-
-
+#include <imgui/imgui_demo.cpp>
 
 static unsigned long long width = 640;
 static unsigned long long height = 480;
@@ -19,7 +17,14 @@ static unsigned long long height = 480;
 
 #define VK_CHECK_RESULT(function) {VkResult check = function; assert(check == VK_SUCCESS);}
 
-
+static void check_vk_result(VkResult err)
+{
+	if (err == 0)
+		return;
+	fprintf(stderr, "[vulkan] Error: VkResult = %d\n", err);
+	if (err < 0)
+		abort();
+}
 
 static glm::vec4 X_BASIS = { 1,0,0,0 };
 static glm::vec4 Y_BASIS = { 0,1,0,0 };
@@ -230,6 +235,9 @@ void Application::CreateWindowSurface()
 	{
 		throw std::runtime_error("could not create window surface!");
 	}
+
+
+
 }
 
 void Application::FindQueueFamilies() 
@@ -1032,18 +1040,19 @@ void Application::CreateDescriptorSets()
 	VK_CHECK_RESULT(vkCreateDescriptorSetLayout(this->m_logicalDevice, &layoutInfo, nullptr, &descriptorSetLayout));
 
 	//create descriptor pool
-	VkDescriptorPoolSize poolSize[2] = {};
+	VkDescriptorPoolSize poolSize[3] = {};
 	poolSize[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 	poolSize[0].descriptorCount = 1; //max numbers of frames in flight.
 
 	poolSize[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-	poolSize[1].descriptorCount = 1; //max numbers of frames in flight.
+	poolSize[1].descriptorCount = 1 * 2; //max numbers of frames in flight times two to accomodate the gui.
 
 	VkDescriptorPoolCreateInfo poolInfo{};
 	poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-	poolInfo.poolSizeCount = 2;
+	poolInfo.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
+	poolInfo.poolSizeCount = (uint32_t)2;
 	poolInfo.pPoolSizes = poolSize;
-	poolInfo.maxSets = 1; //max numbers of frames in flight.
+	poolInfo.maxSets = 1 * 2; //max numbers of frames in flight.
 
 	VK_CHECK_RESULT(vkCreateDescriptorPool(this->m_logicalDevice, &poolInfo, nullptr, &this->descriptorPool));
 
@@ -1362,7 +1371,6 @@ void Application::RecreateSwapChain()
 	CreateDepthResources();
 
 	CreateFrameBuffers();
-
 }
 
 void Application::ResizeViewport()
@@ -1389,7 +1397,13 @@ void Application::InitGui()
 	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
 
 	// Setup Platform/Renderer backends
-	ImGui_ImplSDL2_InitForVulkan(this->window);
+	if (!ImGui_ImplSDL2_InitForVulkan(this->window)) {
+
+		throw std::runtime_error("couldn't initialize imgui for vulkan!!!\n");
+		return;
+	}
+
+
 	ImGui_ImplVulkan_InitInfo init_info = {};
 	init_info.Instance = this->m_instance;
 	init_info.PhysicalDevice = this->m_physicalDevices[device_index];
@@ -1400,13 +1414,19 @@ void Application::InitGui()
 	init_info.DescriptorPool = this->descriptorPool;
 	init_info.RenderPass = this->m_renderPass;
 	init_info.Subpass = 0;
-	init_info.MinImageCount = 0;
+	init_info.MinImageCount = 2;
 	init_info.ImageCount = this->imageCount;
 	init_info.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
 	init_info.Allocator = nullptr;
-	init_info.CheckVkResultFn = nullptr;
+	init_info.CheckVkResultFn = check_vk_result;
 	ImGui_ImplVulkan_Init(&init_info);
 
+
+	VkCommandBuffer cmdBuffer = beginCmd();
+	ImGui_ImplVulkan_CreateFontsTexture();
+	endCmd(cmdBuffer);
+
+	ImGui_ImplVulkan_DestroyFontsTexture();
 }
 
 
@@ -1423,8 +1443,6 @@ bool Application::init()
 
 	this->m_scissor.extent.width = (uint32_t)width;
 	this->m_scissor.extent.height = (uint32_t)height;
-
-	VkResult result = VK_SUCCESS;
 	
 	CreateWindow();
 
@@ -1490,6 +1508,7 @@ bool Application::init()
 	CreateFences();
 
 	
+	InitGui();
 
 	debugCube = Object((PathToObjects() + "freddy.obj").c_str(), MeshType::M_CUBE);
 
@@ -1503,7 +1522,7 @@ bool Application::UpdateInput()
 	SDL_Event e;
 	while (SDL_PollEvent(&e))
 	{
-
+		ImGui_ImplSDL2_ProcessEvent(&e);
 		if (e.type == SDL_QUIT || (e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_ESCAPE))
 		{
 			return true;
@@ -1625,6 +1644,16 @@ void Application::Render()
 	//this will draw a triangle, if you change the vertex buffer.
 	/*vkCmdDraw(this->commandBuffer, 3, 1, 0, 0);*/
 
+
+	ImGui_ImplVulkan_NewFrame();
+	ImGui_ImplSDL2_NewFrame();
+	ImGui::NewFrame();
+
+	ImGui::ShowDemoWindow();
+
+	ImGui::Render();
+	ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), this->commandBuffer);
+
 	vkCmdEndRenderPass(this->commandBuffer);
 
 	VK_CHECK_RESULT(vkEndCommandBuffer(this->commandBuffer));
@@ -1683,16 +1712,22 @@ void Application::loop()
 			quit = true;
 		}
 
+		
+		
 		Render();
 	}
 
 	VK_CHECK_RESULT(vkDeviceWaitIdle(this->m_logicalDevice));
 
+
+
 }
 
 void Application::exit()
 {
-	
+
+	CleanUpGui();
+
 	vkDestroySemaphore(this->m_logicalDevice, this->imageAvailableSemaphore, nullptr);
 
 	vkDestroySemaphore(this->m_logicalDevice, this->renderFinishedSemaphore, nullptr);
@@ -1747,7 +1782,6 @@ void Application::exit()
 		func(this->m_instance, this->debugMessenger, nullptr);
 	}
 
-
 	vkDestroySurfaceKHR(this->m_instance, this->m_windowSurface, nullptr);
 
 	vkDestroyInstance(this->m_instance, nullptr);
@@ -1756,6 +1790,13 @@ void Application::exit()
 
 	SDL_Quit();
 
+}
+
+void Application::CleanUpGui() 
+{
+	ImGui_ImplVulkan_Shutdown();
+	ImGui_ImplSDL2_Shutdown();
+	ImGui::DestroyContext();
 }
 
 const VkPhysicalDevice& Application::PhysicalDevice() 

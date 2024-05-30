@@ -18,6 +18,8 @@ private:
 
 	VkDebugUtilsMessengerEXT debugMessenger;
 
+	ImGui_ImplVulkanH_Window guiWindowData;
+
 	//variabless
 	SDL_Window* window = nullptr;
 	VkInstance m_instance = VK_NULL_HANDLE;
@@ -139,6 +141,7 @@ private:
 	void Render();
 
 	void InitGui();
+	void CleanUpGui();
 };
 
 
