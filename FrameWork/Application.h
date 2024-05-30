@@ -129,6 +129,8 @@ private:
 
 	bool UpdateInput();
 
+	void DrawGui();
+
 	void CreateCubeMap();
 
 	VkFormat findSupportedFormat(const std::vector<VkFormat>& possibleFormats, VkImageTiling tiling, VkFormatFeatureFlags features);

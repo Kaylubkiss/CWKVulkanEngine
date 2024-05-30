@@ -11,6 +11,7 @@
 static unsigned long long width = 640;
 static unsigned long long height = 480;
 
+static bool windowisfocused = false;
 
 #define SCREEN_WIDTH width
 #define SCREEN_HEIGHT height 
@@ -1521,7 +1522,7 @@ bool Application::UpdateInput()
 			return true;
 		}
 
-		if (e.type == SDL_MOUSEMOTION && e.button.button == SDL_BUTTON(SDL_BUTTON_LEFT))
+		if (e.type == SDL_MOUSEMOTION && e.button.button == SDL_BUTTON(SDL_BUTTON_LEFT) && !windowisfocused)
 		{
 			int deltaX = e.motion.xrel;
 			int deltaY = e.motion.yrel;
@@ -1570,6 +1571,37 @@ bool Application::UpdateInput()
 	return false;
 }
 
+void Application::DrawGui() 
+{
+
+	ImGui_ImplVulkan_NewFrame();
+	ImGui_ImplSDL2_NewFrame();
+	ImGui::NewFrame();
+
+	const ImGuiViewport* main_viewport = ImGui::GetMainViewport();
+	ImGui::SetNextWindowPos(ImVec2(main_viewport->WorkPos.x + 650, main_viewport->WorkPos.y + 20), ImGuiCond_FirstUseEver);
+	ImGui::SetNextWindowSize(ImVec2(550, 680), ImGuiCond_FirstUseEver);
+	ImGuiWindowFlags window_flags = 0;
+	window_flags |= ImGuiWindowFlags_MenuBar;
+	// Main body of the Demo window starts here.
+	if (!ImGui::Begin("Dear ImGui Demo", nullptr, window_flags))
+	{
+		// Early out if the window is collapsed, as an optimization.
+
+		windowisfocused = ImGui::IsWindowFocused();
+		ImGui::End();
+		ImGui::Render();
+		ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), this->commandBuffer);
+		return;
+	}
+
+	windowisfocused = ImGui::IsWindowFocused();
+	ImGui::End();
+	ImGui::Render();
+	ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), this->commandBuffer);
+
+
+}
 
 void Application::Render() 
 {
@@ -1637,15 +1669,7 @@ void Application::Render()
 	//this will draw a triangle, if you change the vertex buffer.
 	/*vkCmdDraw(this->commandBuffer, 3, 1, 0, 0);*/
 
-
-	ImGui_ImplVulkan_NewFrame();
-	ImGui_ImplSDL2_NewFrame();
-	ImGui::NewFrame();
-
-	ImGui::ShowDemoWindow();
-
-	ImGui::Render();
-	ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), this->commandBuffer);
+	DrawGui();
 
 	vkCmdEndRenderPass(this->commandBuffer);
 
