@@ -1728,6 +1728,13 @@ void Application::Render()
 
 }
 
+void Application::ComputeDeltaTime()
+{
+	this->timeBefore = this->timeNow;
+	this->timeNow = SDL_GetPerformanceCounter();
+	this->deltaTime = ((this->timeNow - this->timeBefore)) / (double)SDL_GetPerformanceFrequency();
+
+}
 void Application::loop() 
 {
 
@@ -1735,9 +1742,7 @@ void Application::loop()
 	bool quit = false;
 	while (quit == false)
 	{	
-		this->timeBefore = this->timeNow;
-		this->timeNow = SDL_GetPerformanceCounter();
-		this->deltaTime = (this->timeNow - this->timeBefore) / (double)SDL_GetPerformanceFrequency();
+		ComputeDeltaTime();
 
 		if (UpdateInput())
 		{

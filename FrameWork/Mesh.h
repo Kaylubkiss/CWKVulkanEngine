@@ -62,7 +62,6 @@ struct Object
 	Buffer vertex;
 	Buffer index;
 
-	
 
 	Object(const char* fileName);
 	Object() : mMesh(), vertex(), index() {};

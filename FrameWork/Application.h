@@ -147,6 +147,7 @@ private:
 	void loop();
 	void exit();
 
+	void ComputeDeltaTime();
 	void Render();
 
 	void InitGui();
