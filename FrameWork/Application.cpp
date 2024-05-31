@@ -1541,6 +1541,18 @@ bool Application::UpdateInput()
 			memcpy(uniformBuffers.back().mappedMemory, (void*)&uTransform, (size_t)(sizeof(uTransformObject)));
 		}
 
+		if (keystates[SDL_SCANCODE_A] && e.type == SDL_KEYDOWN)
+		{
+			uTransform.view = glm::mat4(X_BASIS, Y_BASIS, Z_BASIS, { -10 * deltaTime,0, 0, 1 }) * uTransform.view;
+			memcpy(uniformBuffers.back().mappedMemory, (void*)&uTransform, (size_t)(sizeof(uTransformObject)));
+		}
+
+		if (keystates[SDL_SCANCODE_D] && e.type == SDL_KEYDOWN)
+		{
+			uTransform.view = glm::mat4(X_BASIS, Y_BASIS, Z_BASIS, { 10 * deltaTime,0, 0, 1 }) * uTransform.view;
+			memcpy(uniformBuffers.back().mappedMemory, (void*)&uTransform, (size_t)(sizeof(uTransformObject)));
+		}
+
 		int deltaX = e.motion.xrel;
 		int deltaY = e.motion.yrel;
 
