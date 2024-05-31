@@ -177,6 +177,7 @@ void Application::EnumeratePhysicalDevices()
 	if (max_devices == 0)
 	{
 		throw std::runtime_error("could not find any GPUs to use!\n");
+		return;
 	}
 
 
@@ -261,6 +262,12 @@ void Application::FindQueueFamilies()
 	}
 
 	queueFamilies = new VkQueueFamilyProperties[queueFamilyPropertyCount];
+
+	if (queueFamilies == nullptr) 
+	{
+		throw std::runtime_error("couldn't allocate queueFamilies array\n");
+		return;
+	}
 
 	vkGetPhysicalDeviceQueueFamilyProperties(this->m_physicalDevices[device_index], &queueFamilyPropertyCount, queueFamilies);
 
@@ -447,7 +454,11 @@ void Application::CreateSwapChain()
 
 	surfaceFormats = new VkSurfaceFormatKHR[surfaceFormatCount];
 
-	assert(surfaceFormats != nullptr);
+	if (surfaceFormats == nullptr) 
+	{
+		throw std::runtime_error("failed to allocate surfaceFormats");
+		return;
+	}
 
 	VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceFormatsKHR(this->m_physicalDevices[device_index], this->m_windowSurface, &surfaceFormatCount, surfaceFormats));
 
@@ -1749,8 +1760,6 @@ void Application::loop()
 			quit = true;
 		}
 
-		
-		
 		Render();
 	}
 

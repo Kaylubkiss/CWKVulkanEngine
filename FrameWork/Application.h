@@ -100,7 +100,7 @@ private:
 	//functions
 	void CreateInstance();
 	void FillDebugMessenger(VkDebugUtilsMessengerCreateInfoEXT& createInfo);
-	void CreateDebugMessenger();
+	/*void CreateDebugMessenger();*/
 	void CreateWindow();
 	void CreateWindowSurface();
 	void EnumeratePhysicalDevices();
