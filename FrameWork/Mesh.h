@@ -64,7 +64,7 @@ struct Object
 
 	
 
-	Object(const char* fileName, MeshType type = M_NONE);
+	Object(const char* fileName);
 	Object() : mMesh(), vertex(), index() {};
 };
 

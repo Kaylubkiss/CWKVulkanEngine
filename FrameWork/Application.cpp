@@ -298,8 +298,6 @@ void Application::FindQueueFamilies()
 
 void Application::CreateLogicalDevice() 
 {
-	VkResult result;
-
 	VkDeviceQueueCreateInfo* deviceQueueCreateInfos = new VkDeviceQueueCreateInfo[2]; //presentation and graphics.
 
 	uint32_t uniqueQueueFamilies[2] = { graphicsFamily, presentFamily };
@@ -351,8 +349,6 @@ void Application::CreateLogicalDevice()
 
 void Application::CreateRenderPass() 
 {
-	VkResult result;
-
 	VkAttachmentDescription depthAttachment = {};
 	depthAttachment.format = this->depthFormat;
 	depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
@@ -645,7 +641,6 @@ void Application::CreateFrameBuffers()
 
 void Application::CreateBuffers() 
 {
-	VkResult result;
 	
 	//does nothing, because all the buffers I use are uniform buffers
 
@@ -870,7 +865,7 @@ void Application::CreateDepthResources()
 		VK_IMAGE_TILING_OPTIMAL, VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
 
 	//create depth image
-	CreateImage(width,height, depthFormat, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
+	CreateImage((uint32_t)width, (uint32_t)height, depthFormat, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
 	VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, this->depthImage,
 	this->depthImageMemory, 1);
 	//create depth image view 
@@ -1504,18 +1499,22 @@ bool Application::init()
 	
 	InitGui();
 
-	debugCube = Object((PathToObjects() + "freddy.obj").c_str(), MeshType::M_CUBE);
+	debugCube = Object((PathToObjects() + "freddy.obj").c_str());
 
+
+	this->timeNow = SDL_GetPerformanceCounter();
 	return true;
 
 
 }
 
-bool Application::UpdateInput() 
+bool Application::UpdateInput()
 {
 	SDL_Event e;
 	while (SDL_PollEvent(&e))
 	{
+		const Uint8* keystates = SDL_GetKeyboardState(nullptr);
+
 		ImGui_ImplSDL2_ProcessEvent(&e);
 		if (e.type == SDL_QUIT || (e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_ESCAPE))
 		{
@@ -1530,20 +1529,16 @@ bool Application::UpdateInput()
 			memcpy(uniformBuffers.back().mappedMemory, (void*)&uTransform, (size_t)(sizeof(uTransformObject)));
 		}
 
-		if (e.type == SDL_MOUSEWHEEL)
+		if (keystates[SDL_SCANCODE_W] && e.type == SDL_KEYDOWN)
 		{
-			int direction = e.wheel.y;
+			uTransform.view = glm::mat4(X_BASIS, Y_BASIS, Z_BASIS, { 0,0, 10 * deltaTime, 1 }) * uTransform.view;
+			memcpy(uniformBuffers.back().mappedMemory, (void*)&uTransform, (size_t)(sizeof(uTransformObject)));
+		}
 
-			if (direction < 0)
-			{
-				uTransform.view = glm::mat4(X_BASIS, Y_BASIS, Z_BASIS, { 0,0, -.5f, 1 }) * uTransform.view;
-				memcpy(uniformBuffers.back().mappedMemory, (void*)&uTransform, (size_t)(sizeof(uTransformObject)));
-			}
-			else
-			{
-				uTransform.view = glm::mat4(X_BASIS, Y_BASIS, Z_BASIS, { 0,0, 0.5f, 1 }) * uTransform.view;
-				memcpy(uniformBuffers.back().mappedMemory, (void*)&uTransform, (size_t)(sizeof(uTransformObject)));
-			}
+		if (keystates[SDL_SCANCODE_S] && e.type == SDL_KEYDOWN)
+		{
+			uTransform.view = glm::mat4(X_BASIS, Y_BASIS, Z_BASIS, { 0,0, -10 * deltaTime, 1 }) * uTransform.view;
+			memcpy(uniformBuffers.back().mappedMemory, (void*)&uTransform, (size_t)(sizeof(uTransformObject)));
 		}
 
 		int deltaX = e.motion.xrel;
@@ -1608,6 +1603,7 @@ void Application::DrawGui()
 
 void Application::Render() 
 {
+	
 	//vulkan shit
 	VK_CHECK_RESULT(vkWaitForFences(this->m_logicalDevice, 1, &this->inFlightFence, VK_TRUE, UINT64_MAX));
 	VK_CHECK_RESULT(vkResetFences(this->m_logicalDevice, 1, &this->inFlightFence));
@@ -1727,7 +1723,11 @@ void Application::loop()
 	bool quit = false;
 	while (quit == false)
 	{	
-		if (UpdateInput()) 
+		this->timeBefore = this->timeNow;
+		this->timeNow = SDL_GetPerformanceCounter();
+		this->deltaTime = (this->timeNow - this->timeBefore) / (double)SDL_GetPerformanceFrequency();
+
+		if (UpdateInput())
 		{
 			quit = true;
 		}

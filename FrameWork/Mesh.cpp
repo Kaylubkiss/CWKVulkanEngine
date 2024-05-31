@@ -6,11 +6,11 @@
 #define TINYOBJLOADER_IMPLEMENTATION
 #include "tiny_obj_loader.h"
 
-Object::Object(const char* fileName, MeshType type)
+Object::Object(const char* fileName)
 {
     LoadMeshOBJ(fileName, this->mMesh);
 
-    this->mMesh.numVertices = this->mMesh.vertexBufferData.size();
+    this->mMesh.numVertices = static_cast<int>(this->mMesh.vertexBufferData.size());
 
     glm::vec3 min_points(0.f);
     glm::vec3 max_points(0.f);
@@ -36,24 +36,6 @@ Object::Object(const char* fileName, MeshType type)
         this->mMesh.vertexBufferData[i].pos = (this->mMesh.vertexBufferData[i].pos - mCenter) / unitScale;
     }
 
-  
-    //if (type == M_CUBE) 
-    //{
-    //    //back face
-    //    mMesh.vertexBufferData[0].uv = { 1,1 };
-    //    mMesh.vertexBufferData[2].uv = { 1,0 };
-    //    mMesh.vertexBufferData[6].uv = { 0,0 };
-    //    mMesh.vertexBufferData[4].uv = { 0,1 };
-
-
-    //    //front face
-    //    mMesh.vertexBufferData[1].uv = { 0,1 };
-    //    mMesh.vertexBufferData[3].uv = { 0,0 };
-    //    mMesh.vertexBufferData[5].uv = { 1,1 };
-    //    mMesh.vertexBufferData[7].uv = { 1,0 };
-
-    //}
-
     size_t sizeOfVertexBuffer = sizeof(std::vector<Vertex>) + (sizeof(Vertex) * this->mMesh.vertexBufferData.size());
     this->vertex = Buffer(sizeOfVertexBuffer, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, this->mMesh.vertexBufferData.data());
     size_t sizeOfIndexBuffer = sizeof(std::vector<uint16_t>) + (sizeof(uint16_t) * this->mMesh.indexBufferData.size());
@@ -62,9 +44,6 @@ Object::Object(const char* fileName, MeshType type)
     std::cout << std::endl;
     std::cout << "loaded in " + std::string(fileName) << std::endl;
     std::cout << this->mMesh.numVertices << " vertices loaded in." << std::endl << std::endl;
-   
-
-
 }
 
 void LoadMeshOBJ(const std::string& path, Mesh& mesh) 

@@ -14,6 +14,11 @@ public:
 
 	void run();
 private:
+	uint64_t timeNow;
+	uint64_t timeBefore;
+
+	double deltaTime;
+
 	Object debugCube;
 
 	VkDebugUtilsMessengerEXT debugMessenger;
@@ -89,6 +94,8 @@ private:
 
 	VkQueue graphicsQueue = {};
 	VkQueue presentQueue = {};
+
+	
 
 	//functions
 	void CreateInstance();
