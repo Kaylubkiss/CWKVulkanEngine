@@ -22,6 +22,12 @@
     <Filter Include="Shaders">
       <UniqueIdentifier>{20172c23-f72d-49c1-bb6f-7eba8cd57db2}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\Geometry">
+      <UniqueIdentifier>{4c06d1b5-92d6-4032-9f61-1d794d114aac}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Geometry">
+      <UniqueIdentifier>{e7fbac1a-a0d4-4fc2-8789-daf51c488d39}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Main.cpp">
@@ -30,19 +36,22 @@
     <ClCompile Include="Application.cpp">
       <Filter>Source Files\CoreEngine</Filter>
     </ClCompile>
-    <ClCompile Include="Mesh.cpp">
+    <ClCompile Include="Common.cpp">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Mesh.cpp">
+      <Filter>Source Files\Geometry</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Application.h">
       <Filter>Header Files\CoreEngine</Filter>
     </ClInclude>
-    <ClInclude Include="Geometry.h">
+    <ClInclude Include="Common.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Mesh.h">
-      <Filter>Header Files</Filter>
+      <Filter>Header Files\Geometry</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

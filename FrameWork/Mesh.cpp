@@ -1,156 +1,99 @@
 #include "Mesh.h"
-#include <iostream>
+#include <fstream>
+#include <sstream>
+#include <algorithm>
+#include <unordered_map>
+#define TINYOBJLOADER_IMPLEMENTATION
+#include "tiny_obj_loader.h"
 
-static bool readDataLine(char* lineBuf, int& lineNum, FILE* fp, int MAX_LINE_LEN)
+Object::Object(const char* fileName)
 {
-	while (!feof(fp)) 
-	{
-		++lineNum;
+    LoadMeshOBJ(fileName, this->mMesh);
 
-		char* line = fgets(lineBuf, MAX_LINE_LEN + 1, fp);
+    this->mMesh.numVertices = static_cast<int>(this->mMesh.vertexBufferData.size());
 
-		int lineLen = strlen(lineBuf);
-		if (lineLen == MAX_LINE_LEN && lineBuf[MAX_LINE_LEN - 1] != '\n') 
-		{
-			continue;
-		}
+    glm::vec3 min_points(0.f);
+    glm::vec3 max_points(0.f);
 
-		if (lineLen > 1 && lineBuf[0] == '#') 
-		{
-			continue;
-		}
+    for (unsigned i = 0; i < this->mMesh.vertexBufferData.size(); ++i)
+    {
+        min_points.x = std::min(min_points.x, mMesh.vertexBufferData[i].pos.x);
+        min_points.y = std::min(min_points.y, mMesh.vertexBufferData[i].pos.y);
+        min_points.z = std::min(min_points.z, mMesh.vertexBufferData[i].pos.z);
 
-		if (lineLen == 1) 
-		{
-			continue;
-		}
+        max_points.x = std::max(max_points.x, mMesh.vertexBufferData[i].pos.x);
+        max_points.y = std::max(max_points.y, mMesh.vertexBufferData[i].pos.y);
+        max_points.z = std::max(max_points.z, mMesh.vertexBufferData[i].pos.z);
 
-		for (unsigned i = 0; i < lineLen; ++i) 
-		{
-			if (!isspace(lineBuf[i])) 
-			{
-				return true;
-			}
-		}
-	}
+        mMesh.vertexBufferData[i].nrm = glm::vec3(2.f, .5f, 0.f);
+    }
 
-	return false;
+    mCenter = (max_points + min_points) / 2.f;
+    float unitScale = std::max({ glm::length(max_points.x - min_points.x), glm::length(max_points.y - min_points.y), glm::length(max_points.z - min_points.z) });
 
+    for (size_t i = 0; i < this->mMesh.vertexBufferData.size(); ++i)
+    {
+        this->mMesh.vertexBufferData[i].pos = (this->mMesh.vertexBufferData[i].pos - mCenter) / unitScale;
+    }
+
+    size_t sizeOfVertexBuffer = sizeof(std::vector<Vertex>) + (sizeof(Vertex) * this->mMesh.vertexBufferData.size());
+    this->vertex = Buffer(sizeOfVertexBuffer, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, this->mMesh.vertexBufferData.data());
+    size_t sizeOfIndexBuffer = sizeof(std::vector<uint16_t>) + (sizeof(uint16_t) * this->mMesh.indexBufferData.size());
+    this->index = Buffer(sizeOfIndexBuffer, VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, this->mMesh.indexBufferData.data());
+
+    std::cout << std::endl;
+    std::cout << "loaded in " + std::string(fileName) << std::endl;
+    std::cout << this->mMesh.numVertices << " vertices loaded in." << std::endl << std::endl;
 }
 
-//boiler plate from framework of graphics class.
-void LoadMeshOBJ(const char* fileName, Mesh& mesh) 
+void LoadMeshOBJ(const std::string& path, Mesh& mesh) 
 {
-    const int MAX_LINE_LEN = 1024;
-    char lineBuf[MAX_LINE_LEN + 1];
-    int numLines;
+    tinyobj::attrib_t attrib;
+    std::vector<tinyobj::shape_t> shapes;
+    std::vector<tinyobj::material_t> materials;
+    std::string warn, err;
 
-    FILE* fp;
-    if (fopen_s(&fp, fileName, "r") != 0)
-    {
-        std::cerr << "Failed to open " << fileName << "\n";
-        exit(1);
+    if (!tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, path.c_str())) {
+        throw std::runtime_error(warn + err);
     }
 
-    int posID = 0;
-
-    while (!feof(fp))
+    if (!warn.empty()) 
     {
-        if (readDataLine(lineBuf, numLines, fp, MAX_LINE_LEN))
+        std::cout << warn << std::endl << std::endl;
+    }
+    std::unordered_map<Vertex, uint32_t> uniqueVertices = {};
+
+
+    for (const auto& shape : shapes)
+    {
+        for (const auto& index : shape.mesh.indices)
         {
-            if (lineBuf[0] == 'v')
+            Vertex vert = {};
+
+            vert.pos =
             {
-                char dataType[MAX_LINE_LEN + 1];
-                float x, y, z;
-                sscanf_s(lineBuf, "%s %f %f %f", dataType, sizeof(dataType), &x, &y, &z);
+                attrib.vertices[3 * index.vertex_index + 0],
+                attrib.vertices[3 * index.vertex_index + 1],
+                attrib.vertices[3 * index.vertex_index + 2]
+            };
 
-                Vertex v;
-                if (!strcmp(dataType, "v"))
-                {
-                    v.pos = glm::vec3(x, y, z);
-                    if (posID >= mesh.numVertices)
-                    {
-                        mesh.vertexBuffer.push_back(v);
-                        ++mesh.numVertices;
-                    }
-                    else 
-                    {
-                        mesh.vertexBuffer[posID].pos = v.pos;
-                    }
-
-                    ++posID;
-                }
-            }
-            else if (lineBuf[0] == 'f')
+            vert.uv =
             {
-                ++mesh.numTris;
+                attrib.texcoords[2 * index.texcoord_index + 0],
+                1 - attrib.texcoords[2 * index.texcoord_index + 1] //vulkan is upside down.
+            };
 
-                std::vector<char*> faceData;
-                char* tokWS, * ptrFront, * ptrRear;
-                char* ct;
 
-                tokWS = strtok_s(lineBuf, " ", &ct);
-                tokWS = strtok_s(NULL, " ", &ct);
-                while (tokWS != NULL)
-                {
-                    faceData.push_back(tokWS);
-                    tokWS = strtok_s(NULL, " ", &ct);
-                }
-
-                if (faceData.size() > 3) 
-                {
-                    std::cerr << "Only triangulated mesh is accepted.\n";
-                    exit(1);
-                }
-
-                for (int i = 0; i < (int)faceData.size(); i++)
-                {
-                    int vertNum;
-
-                    ptrFront = strchr(faceData[i], '/');
-                    if (ptrFront == NULL)
-                    {
-                        vertNum = atoi(faceData[i]) - 1;
-                        mesh.indexBuffer.push_back(vertNum);
-                        ++mesh.numIndices;
-                    }
-                    else
-                    {
-                        char* tokFront, * tokRear, * cF;
-                        ptrRear = strrchr(faceData[i], '/');
-                        tokFront = strtok_s(faceData[i], "/", &cF);
-                        vertNum = atoi(tokFront) - 1;
-
-                        if (ptrRear == ptrFront)
-                        {
-                            mesh.indexBuffer.push_back(vertNum);
-                            ++mesh.numIndices;
-                        }
-                        else
-                        {
-                            if (ptrRear != ptrFront + 1)
-                            {
-                                tokRear = strtok_s(NULL, "/", &cF);
-                            }
-
-                            tokRear = strtok_s(NULL, "/", &cF);
-                            mesh.indexBuffer.push_back(vertNum);
-                            ++mesh.numIndices;
-                        }
-                    }
-                }
+            if (uniqueVertices.count(vert) == 0)
+            {
+                uniqueVertices[vert] = static_cast<uint32_t>(mesh.vertexBufferData.size());
+                mesh.vertexBufferData.push_back(vert);
             }
+
+            mesh.indexBufferData.push_back(uniqueVertices[vert]);
+
         }
     }
-
-    if (fp) 
-    {
-        if (fclose(fp))
-        {
-            std::cerr << "Failed to close " << fileName << "\n";
-            exit(1);
-        }
-    }
-
-
 }
+
+

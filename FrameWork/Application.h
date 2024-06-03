@@ -1,40 +1,29 @@
 #pragma once
-#include <vulkan/vulkan.h> //in A: drive under "VulkanSDK"
-#include <SDL2/SDL.h>
-#define GLM_FORCE_RADIANS
-#define GLM_FORCE_DEFAULT_ALIGNED_GENTYPES
-#include <glm/glm.hpp>
-#include <vector>
+#include "Common.h"
 #include "Mesh.h"
-
-struct Buffer
-{
-	VkBuffer buffer;
-	VkDeviceMemory memory;
-	void* mappedMemory;
-	
-	void* mData;
-
-	void operator=(const Buffer& rhs)
-	{
-		this->buffer = rhs.buffer;
-		this->memory = rhs.memory;
-		this->mappedMemory = rhs.mappedMemory;
-	}
-
-	//assume that build info is shared among all buffers.
-	Buffer(size_t size, void* data);
-};
+#include <SDL2/SDL.h>
+#include <vector>
 
 class Application
 {
 public:
-	
 	const VkPhysicalDevice& PhysicalDevice();
 	const VkDevice& LogicalDevice();
+	const VkQueue& GraphicsQueue();
+	const VkCommandPool& CommandPool();
+
 	void run();
 private:
-	Mesh debugCube;
+	uint64_t timeNow;
+	uint64_t timeBefore;
+
+	double deltaTime;
+
+	Object debugCube;
+
+	VkDebugUtilsMessengerEXT debugMessenger;
+
+	ImGui_ImplVulkanH_Window guiWindowData;
 
 	//variabless
 	SDL_Window* window = nullptr;
@@ -47,6 +36,7 @@ private:
 
 	VkRenderPass m_renderPass = VK_NULL_HANDLE;
 	VkSurfaceKHR m_windowSurface = nullptr;
+
 	VkFramebuffer* frameBuffer = nullptr;
 	VkSwapchainKHR swapChain = VK_NULL_HANDLE;
 	VkImageView* imageViews = nullptr;
@@ -77,6 +67,16 @@ private:
 
 	std::vector<Buffer> uniformBuffers;
 
+	VkImage textureImage;
+	VkDeviceMemory textureMemory;
+	VkImageView textureImageView;
+	VkSampler textureSampler;
+
+	VkImage depthImage;
+	VkDeviceMemory depthImageMemory;
+	VkImageView depthImageView;
+	VkFormat depthFormat;
+
 	const char* enabledLayerNames[1] = {
 		"VK_LAYER_KHRONOS_validation"
 	};
@@ -95,8 +95,12 @@ private:
 	VkQueue graphicsQueue = {};
 	VkQueue presentQueue = {};
 
+	
+
 	//functions
 	void CreateInstance();
+	void FillDebugMessenger(VkDebugUtilsMessengerCreateInfoEXT& createInfo);
+	/*void CreateDebugMessenger();*/
 	void CreateWindow();
 	void CreateWindowSurface();
 	void EnumeratePhysicalDevices();
@@ -107,6 +111,7 @@ private:
 	void CreateImageViews();
 	void CreateFrameBuffers();
 	void CreateDescriptorSets();
+	void WriteDescriptorSets();
 	void CreatePipeline(VkPipelineShaderStageCreateInfo* pStages, int numStages);
 	void CreateCommandPools();
 	void CreateCommandBuffers();
@@ -115,27 +120,41 @@ private:
 	void CreateBuffers();
 	void CreateUniformBuffers();
 	VkPipelineShaderStageCreateInfo CreateShaderModule(const char* name, VkShaderModule& shaderModule, VkShaderStageFlagBits stage);
-	
 	void RecreateSwapChain();
 	void ResizeViewport();
+	void CreateImage(uint32_t width, uint32_t height, 
+					 VkFormat format, VkImageTiling tiling, 
+					 VkImageUsageFlags usage, VkMemoryPropertyFlags flags, 
+					 VkImage& image, VkDeviceMemory& imageMemory, uint32_t arrayLayerCount
+					);
+
+	void CreateDepthResources();
+	
+	void CreateTexture(const std::string& fileName);
+	void CreateTextureView(const VkImage& textureImage);
+	void CreateTextureSampler();
+
+	bool UpdateInput();
+
+	void DrawGui();
+
+	void CreateCubeMap();
+
+	VkFormat findSupportedFormat(const std::vector<VkFormat>& possibleFormats, VkImageTiling tiling, VkFormatFeatureFlags features);
 
 
 	bool init();
 	void loop();
 	void exit();
 
-	friend struct UniformBuffers;
+	void ComputeDeltaTime();
+	void Render();
+
+	void InitGui();
+	void CleanUpGui();
 };
 
 
-static struct ApplicationManager
-{
-	ApplicationManager();
-	~ApplicationManager();
-	Application* GetApplication();
-} appManager;
 
-
-#define _Application appManager.GetApplication()
 
 
