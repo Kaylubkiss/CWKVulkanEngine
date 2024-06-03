@@ -18,7 +18,6 @@ private:
 	uint64_t timeBefore;
 
 	double deltaTime;
-	uint32_t mipLevels;
 
 	Object debugCube;
 
@@ -135,7 +134,7 @@ private:
 
 	void CreateTexture(const std::string& fileName);
 	void CreateTextureView(const VkImage& textureImage, uint32_t mipLevels);
-	void CreateTextureSampler();
+	void CreateTextureSampler(uint32_t mipLevels);
 
 	bool UpdateInput();
 

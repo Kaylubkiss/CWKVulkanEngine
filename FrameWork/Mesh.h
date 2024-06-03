@@ -47,15 +47,12 @@ struct Mesh
 
 	std::vector<Vertex> vertexBufferData;
 	std::vector<uint16_t> indexBufferData; //setting this to uint16_t fixed the issue. INVESTIGATE THIS.
-
-	
-
 };
 
 struct Object 
 {
-	glm::vec3 mCenter = glm::vec3(0.f);
-	glm::mat4 mTransform = glm::mat4(1.f);
+	glm::vec3 mCenter;
+	glm::mat4 mModelTransform;
 	
 	Mesh mMesh;
 	
@@ -64,7 +61,7 @@ struct Object
 
 
 	Object(const char* fileName);
-	Object() : mMesh(), vertex(), index() {};
+	Object() : mCenter(0.f), mModelTransform(1.f), mMesh(), vertex(), index() {};
 };
 
 void LoadMeshOBJ(const std::string& path, Mesh& mesh);

@@ -1022,28 +1022,28 @@ void Application::CreateTexture(const std::string& fileName)
 		throw std::runtime_error("failed to load texture image!");
 	}
 
-	this->mipLevels = static_cast<uint32_t>(std::floor(std::log2(std::max(textureWidth, textureHeight)))) + 1;
+	uint32_t mipLevels = static_cast<uint32_t>(std::floor(std::log2(std::max(textureWidth, textureHeight)))) + 1;
 	
 	Buffer stagingBuffer = Buffer(static_cast<size_t>(imageSize), VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, pixels);
 
 	stbi_image_free(pixels);
 
-	CreateImage(textureWidth, textureHeight, this->mipLevels, VK_FORMAT_R8G8B8A8_SRGB,
+	CreateImage(textureWidth, textureHeight, mipLevels, VK_FORMAT_R8G8B8A8_SRGB,
 				VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
 				VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, this->textureImage, this->textureMemory, 1);
 
 	TransitionImageLayout(this->textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, mipLevels);
 	
-	copyBufferToImage(stagingBuffer.buffer, this->textureImage, static_cast<uint32_t>(textureWidth), static_cast<uint32_t>(textureHeight));
+	copyBufferToImage(stagingBuffer.buffer, this->textureImage, (uint32_t)(textureWidth), (uint32_t)(textureHeight));
 	
-	/*TransitionImageLayout(this->textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, this->mipLevels);*/
-
-	GenerateMipMaps(this->textureImage, VK_FORMAT_R8G8B8A8_SRGB, (uint32_t)textureWidth, (uint32_t)textureHeight, this->mipLevels);
+	GenerateMipMaps(this->textureImage, VK_FORMAT_R8G8B8A8_SRGB, (uint32_t)textureWidth, (uint32_t)textureHeight, mipLevels);
 
 	vkDestroyBuffer(this->m_logicalDevice, stagingBuffer.buffer, nullptr);
 	vkFreeMemory(this->m_logicalDevice, stagingBuffer.memory, nullptr);
 
-	CreateTextureView(this->textureImage, this->mipLevels);
+	CreateTextureView(this->textureImage, mipLevels);
+
+	CreateTextureSampler(mipLevels);
 
 }
 
@@ -1064,7 +1064,7 @@ void Application::CreateTextureView(const VkImage& textureImage, uint32_t mipLev
 	VK_CHECK_RESULT(vkCreateImageView(this->m_logicalDevice, &viewInfo, nullptr, &this->textureImageView));
 }
 
-void Application::CreateTextureSampler() 
+void Application::CreateTextureSampler(uint32_t mipLevels)
 {
 	VkSamplerCreateInfo createInfo = {};
 	createInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
@@ -1089,7 +1089,7 @@ void Application::CreateTextureSampler()
 
 	createInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
 	createInfo.minLod = 0.f;
-	createInfo.maxLod = static_cast<float>(this->mipLevels);
+	createInfo.maxLod = static_cast<float>(mipLevels);
 	createInfo.mipLodBias = 0.f; //optional...
 
 	VK_CHECK_RESULT(vkCreateSampler(this->m_logicalDevice, &createInfo, nullptr, &this->textureSampler));
@@ -1168,7 +1168,7 @@ void Application::WriteDescriptorSets()
 	descriptorWrite[0].dstBinding = 0;
 	descriptorWrite[0].dstArrayElement = 0;
 	descriptorWrite[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-	descriptorWrite[0].descriptorCount = 1;
+	descriptorWrite[0].descriptorCount = 1; //how many buffers
 	descriptorWrite[0].pBufferInfo = &bufferInfo;
 	descriptorWrite[0].pImageInfo = nullptr; // Optional
 	descriptorWrite[0].pTexelBufferView = nullptr; // Optional
@@ -1178,7 +1178,7 @@ void Application::WriteDescriptorSets()
 	descriptorWrite[1].dstBinding = 1;
 	descriptorWrite[1].dstArrayElement = 0;
 	descriptorWrite[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-	descriptorWrite[1].descriptorCount = 1;
+	descriptorWrite[1].descriptorCount = 1; //how many images
 	descriptorWrite[1].pImageInfo = &imageInfo;
 	descriptorWrite[1].pTexelBufferView = nullptr; // Optional
 
@@ -1541,6 +1541,9 @@ bool Application::init()
 	vkGetDeviceQueue(this->m_logicalDevice, graphicsFamily, 0, &graphicsQueue);
 	vkGetDeviceQueue(this->m_logicalDevice, presentFamily, 0, &presentQueue);
 
+	debugCube = Object((PathToObjects() + "freddy.obj").c_str());
+	
+	
 	// If you want to draw a triangle:
 	// - create renderpass object
 
@@ -1562,7 +1565,7 @@ bool Application::init()
 	CreateUniformBuffers();
 
 	CreateTexture("texture.jpg");
-	CreateTextureSampler();
+	
 
 	CreateDepthResources();
 	
@@ -1579,11 +1582,7 @@ bool Application::init()
 
 	CreateFences();
 
-	
 	InitGui();
-
-	debugCube = Object((PathToObjects() + "freddy.obj").c_str());
-
 
 	this->timeNow = SDL_GetPerformanceCounter();
 
