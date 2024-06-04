@@ -1870,6 +1870,9 @@ void Application::exit()
 	vkDestroyImage(this->m_logicalDevice, textureImage, nullptr);
 	vkFreeMemory(this->m_logicalDevice, textureMemory, nullptr);
 
+	vkDestroyImage(this->m_logicalDevice, this->depthImage, nullptr);
+	vkDestroyImageView(this->m_logicalDevice, this->depthImageView, nullptr);
+	vkFreeMemory(this->m_logicalDevice, this->depthImageMemory, nullptr);
 
 	for (unsigned i = 0; i < imageCount; ++i)
 	{
@@ -1883,9 +1886,20 @@ void Application::exit()
 	
 	vkDestroyRenderPass(this->m_logicalDevice, this->m_renderPass, nullptr);
 
+	//this already destroys the images in it.
 	vkDestroySwapchainKHR(this->m_logicalDevice, this->swapChain, nullptr);
 
 	delete[] swapChainImages;
+
+	vkDestroyBuffer(this->m_logicalDevice, this->debugCube.vertex.buffer, nullptr);
+	vkFreeMemory(this->m_logicalDevice, this->debugCube.vertex.memory, nullptr);
+	
+	vkDestroyBuffer(this->m_logicalDevice, this->debugCube.index.buffer, nullptr);
+	vkFreeMemory(this->m_logicalDevice, this->debugCube.index.memory, nullptr);
+
+	vkDestroyFence(this->m_logicalDevice, this->inFlightFence, nullptr);
+
+	vkDestroyCommandPool(this->m_logicalDevice, this->commandPool, nullptr);
 
 	vkDestroyDevice(this->m_logicalDevice, nullptr);
 	
