@@ -16,7 +16,7 @@ class Application; //forward declare class.
 
 struct Buffer
 {
-	VkBuffer buffer;
+	VkBuffer handle;
 	VkDeviceMemory memory;
 	VkDeviceSize size;
 
@@ -24,7 +24,7 @@ struct Buffer
 
 	void operator=(const Buffer& rhs)
 	{
-		this->buffer = rhs.buffer;
+		this->handle = rhs.handle;
 		this->memory = rhs.memory;
 		this->mappedMemory = rhs.mappedMemory;
 	}
@@ -33,7 +33,7 @@ struct Buffer
 
 	//assume that build info is shared among all buffers.
 	Buffer(size_t size, VkBufferUsageFlags usage, VkMemoryPropertyFlags flags, void* data);
-	Buffer() : buffer(VK_NULL_HANDLE), memory(VK_NULL_HANDLE), size(0), mappedMemory(NULL) {};
+	Buffer() : handle(VK_NULL_HANDLE), memory(VK_NULL_HANDLE), size(0), mappedMemory(NULL) {};
 	void FillData(const void* data, size_t dataCount, size_t stride);
 	void RecordData();
 	void StopRecordData();

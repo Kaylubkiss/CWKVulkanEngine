@@ -1031,11 +1031,11 @@ void Application::CreateTexture(const std::string& fileName)
 
 	TransitionImageLayout(this->textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, mipLevels);
 	
-	copyBufferToImage(stagingBuffer.buffer, this->textureImage, (uint32_t)(textureWidth), (uint32_t)(textureHeight));
+	copyBufferToImage(stagingBuffer.handle, this->textureImage, (uint32_t)(textureWidth), (uint32_t)(textureHeight));
 	
 	GenerateMipMaps(this->textureImage, VK_FORMAT_R8G8B8A8_SRGB, (uint32_t)textureWidth, (uint32_t)textureHeight, mipLevels);
 
-	vkDestroyBuffer(this->m_logicalDevice, stagingBuffer.buffer, nullptr);
+	vkDestroyBuffer(this->m_logicalDevice, stagingBuffer.handle, nullptr);
 	vkFreeMemory(this->m_logicalDevice, stagingBuffer.memory, nullptr);
 
 	CreateTextureView(this->textureImage, mipLevels);
@@ -1150,7 +1150,7 @@ void Application::CreateDescriptorSets()
 void Application::WriteDescriptorSets() 
 {
 	VkDescriptorBufferInfo bufferInfo = {};
-	bufferInfo.buffer = uniformBuffers.back().buffer;
+	bufferInfo.buffer = uniformBuffers.back().handle;
 	bufferInfo.offset = 0;
 	bufferInfo.range = sizeof(uTransformObject);
 
@@ -1756,11 +1756,11 @@ void Application::Render()
 	vkCmdSetScissor(this->commandBuffer, 0, 1, &this->m_scissor);
 
 	VkDeviceSize offsets[1] = { 0 };
-	VkBuffer  vBuffers[] = { debugCube.vertexBuffer.buffer};
+	VkBuffer  vBuffers[] = { debugCube.vertexBuffer.handle };
 	
 	
 	vkCmdBindVertexBuffers(this->commandBuffer, 0, 1, vBuffers, offsets);
-	vkCmdBindIndexBuffer(this->commandBuffer, debugCube.indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT16);
+	vkCmdBindIndexBuffer(this->commandBuffer, debugCube.indexBuffer.handle, 0, VK_INDEX_TYPE_UINT16);
 
 	vkCmdDrawIndexed(this->commandBuffer, static_cast<uint32_t>(debugCube.indexBufferData.size()), 1, 0, 0, 0);
 
@@ -1864,7 +1864,7 @@ void Application::exit()
 
 	for (unsigned i = 0; i < uniformBuffers.size(); ++i) 
 	{
-		vkDestroyBuffer(this->m_logicalDevice, uniformBuffers[i].buffer, nullptr);
+		vkDestroyBuffer(this->m_logicalDevice, uniformBuffers[i].handle, nullptr);
 		vkFreeMemory(this->m_logicalDevice, uniformBuffers[i].memory, nullptr);
 	}
 
@@ -1895,10 +1895,10 @@ void Application::exit()
 
 	delete[] swapChainImages;
 
-	vkDestroyBuffer(this->m_logicalDevice, this->debugCube.vertexBuffer.buffer, nullptr);
+	vkDestroyBuffer(this->m_logicalDevice, this->debugCube.vertexBuffer.handle, nullptr);
 	vkFreeMemory(this->m_logicalDevice, this->debugCube.vertexBuffer.memory, nullptr);
 	
-	vkDestroyBuffer(this->m_logicalDevice, this->debugCube.indexBuffer.buffer, nullptr);
+	vkDestroyBuffer(this->m_logicalDevice, this->debugCube.indexBuffer.handle, nullptr);
 	vkFreeMemory(this->m_logicalDevice, this->debugCube.indexBuffer.memory, nullptr);
 
 	vkDestroyFence(this->m_logicalDevice, this->inFlightFence, nullptr);
