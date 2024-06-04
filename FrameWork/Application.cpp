@@ -13,9 +13,6 @@ static unsigned long long height = 480;
 
 static bool windowisfocused = false;
 
-#define SCREEN_WIDTH width
-#define SCREEN_HEIGHT height 
-
 #define VK_CHECK_RESULT(function) {VkResult check = function; assert(check == VK_SUCCESS);}
 
 static void check_vk_result(VkResult err)
@@ -219,7 +216,7 @@ void Application::CreateWindow()
 		printf("SDL could not initialize! SDL_Error: %s\n", SDL_GetError());
 	}
 
-	this->window = SDL_CreateWindow("Caleb's Vulkan Engine", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, static_cast<int>(SCREEN_WIDTH), static_cast<int>(SCREEN_HEIGHT), SDL_WINDOW_VULKAN | SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
+	this->window = SDL_CreateWindow("Caleb's Vulkan Engine", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, static_cast<int>(width), static_cast<int>(height), SDL_WINDOW_VULKAN | SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
 
 	if (this->window == NULL)
 	{
@@ -1157,6 +1154,8 @@ void Application::WriteDescriptorSets()
 	bufferInfo.offset = 0;
 	bufferInfo.range = sizeof(uTransformObject);
 
+	VkDescriptorBufferInfo modelBufferInfo = {};
+
 	VkDescriptorImageInfo imageInfo = {};
 	imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 	imageInfo.imageView = this->textureImageView;
@@ -1541,7 +1540,7 @@ bool Application::init()
 	vkGetDeviceQueue(this->m_logicalDevice, graphicsFamily, 0, &graphicsQueue);
 	vkGetDeviceQueue(this->m_logicalDevice, presentFamily, 0, &presentQueue);
 
-	debugCube = Object((PathToObjects() + "freddy.obj").c_str());
+	debugCube = Object((PathToObjects() + "gcube.obj").c_str());
 	
 	
 	// If you want to draw a triangle:
@@ -1566,7 +1565,6 @@ bool Application::init()
 
 	CreateTexture("texture.jpg");
 	
-
 	CreateDepthResources();
 	
 	CreateDescriptorSets();
@@ -1583,6 +1581,10 @@ bool Application::init()
 	CreateFences();
 
 	InitGui();
+
+	uTransform.model = glm::mat4(1.f);
+	uTransform.model[3] = glm::vec4(0, 0, 8.f, 1);
+	memcpy(uniformBuffers.back().mappedMemory, (void*)&uTransform, (size_t)(sizeof(uTransformObject)));
 
 	this->timeNow = SDL_GetPerformanceCounter();
 
@@ -1754,11 +1756,13 @@ void Application::Render()
 	vkCmdSetScissor(this->commandBuffer, 0, 1, &this->m_scissor);
 
 	VkDeviceSize offsets[1] = { 0 };
-	VkBuffer  vBuffers[] = { debugCube.vertex.buffer };
+	VkBuffer  vBuffers[] = { debugCube.vertexBuffer.buffer};
+	
+	
 	vkCmdBindVertexBuffers(this->commandBuffer, 0, 1, vBuffers, offsets);
-	vkCmdBindIndexBuffer(this->commandBuffer, debugCube.index.buffer, 0, VK_INDEX_TYPE_UINT16);
+	vkCmdBindIndexBuffer(this->commandBuffer, debugCube.indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT16);
 
-	vkCmdDrawIndexed(this->commandBuffer, static_cast<uint32_t>(debugCube.mMesh.indexBufferData.size()), 1, 0, 0, 0);
+	vkCmdDrawIndexed(this->commandBuffer, static_cast<uint32_t>(debugCube.indexBufferData.size()), 1, 0, 0, 0);
 
 	DrawGui();
 
@@ -1891,11 +1895,11 @@ void Application::exit()
 
 	delete[] swapChainImages;
 
-	vkDestroyBuffer(this->m_logicalDevice, this->debugCube.vertex.buffer, nullptr);
-	vkFreeMemory(this->m_logicalDevice, this->debugCube.vertex.memory, nullptr);
+	vkDestroyBuffer(this->m_logicalDevice, this->debugCube.vertexBuffer.buffer, nullptr);
+	vkFreeMemory(this->m_logicalDevice, this->debugCube.vertexBuffer.memory, nullptr);
 	
-	vkDestroyBuffer(this->m_logicalDevice, this->debugCube.index.buffer, nullptr);
-	vkFreeMemory(this->m_logicalDevice, this->debugCube.index.memory, nullptr);
+	vkDestroyBuffer(this->m_logicalDevice, this->debugCube.indexBuffer.buffer, nullptr);
+	vkFreeMemory(this->m_logicalDevice, this->debugCube.indexBuffer.memory, nullptr);
 
 	vkDestroyFence(this->m_logicalDevice, this->inFlightFence, nullptr);
 

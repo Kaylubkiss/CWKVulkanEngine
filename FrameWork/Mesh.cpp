@@ -8,45 +8,50 @@
 
 Object::Object(const char* fileName)
 {
-    LoadMeshOBJ(fileName, this->mMesh);
+    LoadMeshOBJ(fileName, *this);
 
-    this->mMesh.numVertices = static_cast<int>(this->mMesh.vertexBufferData.size());
+    this->numVertices = static_cast<int>(this->vertexBufferData.size());
 
     glm::vec3 min_points(0.f);
     glm::vec3 max_points(0.f);
 
-    for (unsigned i = 0; i < this->mMesh.vertexBufferData.size(); ++i)
+    for (unsigned i = 0; i < this->vertexBufferData.size(); ++i)
     {
-        min_points.x = std::min(min_points.x, mMesh.vertexBufferData[i].pos.x);
-        min_points.y = std::min(min_points.y, mMesh.vertexBufferData[i].pos.y);
-        min_points.z = std::min(min_points.z, mMesh.vertexBufferData[i].pos.z);
+        
+        min_points.x = std::min(min_points.x, vertexBufferData[i].pos.x);
+        min_points.y = std::min(min_points.y, vertexBufferData[i].pos.y);
+        min_points.z = std::min(min_points.z, vertexBufferData[i].pos.z);
 
-        max_points.x = std::max(max_points.x, mMesh.vertexBufferData[i].pos.x);
-        max_points.y = std::max(max_points.y, mMesh.vertexBufferData[i].pos.y);
-        max_points.z = std::max(max_points.z, mMesh.vertexBufferData[i].pos.z);
+        max_points.x = std::max(max_points.x, vertexBufferData[i].pos.x);
+        max_points.y = std::max(max_points.y, vertexBufferData[i].pos.y);
+        max_points.z = std::max(max_points.z, vertexBufferData[i].pos.z);
 
-        mMesh.vertexBufferData[i].nrm = glm::vec3(2.f, .5f, 0.f);
+        this->vertexBufferData[i].nrm = glm::vec3(2.f, .5f, 0.f);
+
+        //TODO: insert paul borke method here.
     }
 
+    //TODO: compute centroid with this method: 
+    // https://web.archive.org/web/20120229233701/http://paulbourke.net/geometry/polyarea/
     mCenter = (max_points + min_points) / 2.f;
     float unitScale = std::max({ glm::length(max_points.x - min_points.x), glm::length(max_points.y - min_points.y), glm::length(max_points.z - min_points.z) });
 
-    for (size_t i = 0; i < this->mMesh.vertexBufferData.size(); ++i)
+    for (size_t i = 0; i < this->vertexBufferData.size(); ++i)
     {
-        this->mMesh.vertexBufferData[i].pos = (this->mMesh.vertexBufferData[i].pos - mCenter) / unitScale;
+        this->vertexBufferData[i].pos = (this->vertexBufferData[i].pos - mCenter) / unitScale;
     }
 
-    size_t sizeOfVertexBuffer = sizeof(std::vector<Vertex>) + (sizeof(Vertex) * this->mMesh.vertexBufferData.size());
-    this->vertex = Buffer(sizeOfVertexBuffer, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, this->mMesh.vertexBufferData.data());
-    size_t sizeOfIndexBuffer = sizeof(std::vector<uint16_t>) + (sizeof(uint16_t) * this->mMesh.indexBufferData.size());
-    this->index = Buffer(sizeOfIndexBuffer, VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, this->mMesh.indexBufferData.data());
+    size_t sizeOfVertexBuffer = sizeof(std::vector<Vertex>) + (sizeof(Vertex) * this->vertexBufferData.size());
+    this->vertexBuffer = Buffer(sizeOfVertexBuffer, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, this->vertexBufferData.data());
+    size_t sizeOfIndexBuffer = sizeof(std::vector<uint16_t>) + (sizeof(uint16_t) * this->indexBufferData.size());
+    this->indexBuffer = Buffer(sizeOfIndexBuffer, VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, this->indexBufferData.data());
 
     std::cout << std::endl;
     std::cout << "loaded in " + std::string(fileName) << std::endl;
-    std::cout << this->mMesh.numVertices << " vertices loaded in." << std::endl << std::endl;
+    std::cout << this->numVertices << " vertices loaded in." << std::endl << std::endl;
 }
 
-void LoadMeshOBJ(const std::string& path, Mesh& mesh) 
+void LoadMeshOBJ(const std::string& path, Object& obj)
 {
     tinyobj::attrib_t attrib;
     std::vector<tinyobj::shape_t> shapes;
@@ -61,6 +66,7 @@ void LoadMeshOBJ(const std::string& path, Mesh& mesh)
     {
         std::cout << warn << std::endl << std::endl;
     }
+
     std::unordered_map<Vertex, uint32_t> uniqueVertices = {};
 
 
@@ -86,11 +92,11 @@ void LoadMeshOBJ(const std::string& path, Mesh& mesh)
 
             if (uniqueVertices.count(vert) == 0)
             {
-                uniqueVertices[vert] = static_cast<uint32_t>(mesh.vertexBufferData.size());
-                mesh.vertexBufferData.push_back(vert);
+                uniqueVertices[vert] = static_cast<uint32_t>(obj.vertexBufferData.size());
+                obj.vertexBufferData.push_back(vert);
             }
 
-            mesh.indexBufferData.push_back(uniqueVertices[vert]);
+            obj.indexBufferData.push_back(uniqueVertices[vert]);
 
         }
     }

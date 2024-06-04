@@ -51,18 +51,20 @@ struct Mesh
 
 struct Object 
 {
+	int numVertices = 0;
 	glm::vec3 mCenter;
+	Buffer vertexBuffer;
+	Buffer indexBuffer;
+	std::vector<Vertex> vertexBufferData;
+	std::vector<uint16_t> indexBufferData;
+
 	glm::mat4 mModelTransform;
-	
-	Mesh mMesh;
-	
-	Buffer vertex;
-	Buffer index;
+	//Mesh mMesh;
 
-
+	
 	Object(const char* fileName);
-	Object() : mCenter(0.f), mModelTransform(1.f), mMesh(), vertex(), index() {};
+	Object() : mCenter(0.f), mModelTransform(1.f), vertexBuffer(), indexBuffer() {};
 };
 
-void LoadMeshOBJ(const std::string& path, Mesh& mesh);
+void LoadMeshOBJ(const std::string& path, Object& obj);
 
