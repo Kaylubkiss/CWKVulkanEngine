@@ -52,7 +52,7 @@ struct Mesh
 struct Object 
 {
 	int numVertices = 0;
-	glm::vec3 mCenter;
+	glm::vec3 mCenter = glm::vec3(0.f);
 	Buffer vertexBuffer;
 	Buffer indexBuffer;
 	std::vector<Vertex> vertexBufferData;

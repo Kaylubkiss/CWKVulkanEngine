@@ -28,12 +28,10 @@ Object::Object(const char* fileName)
 
         this->vertexBufferData[i].nrm = glm::vec3(2.f, .5f, 0.f);
 
-        //TODO: insert paul borke method here.
+        mCenter += vertexBufferData[i].pos;
     }
 
-    //TODO: compute centroid with this method: 
-    // https://web.archive.org/web/20120229233701/http://paulbourke.net/geometry/polyarea/
-    mCenter = (max_points + min_points) / 2.f;
+    mCenter /= this->vertexBufferData.size();
     float unitScale = std::max({ glm::length(max_points.x - min_points.x), glm::length(max_points.y - min_points.y), glm::length(max_points.z - min_points.z) });
 
     for (size_t i = 0; i < this->vertexBufferData.size(); ++i)

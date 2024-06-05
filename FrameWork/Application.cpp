@@ -1540,7 +1540,7 @@ bool Application::init()
 	vkGetDeviceQueue(this->m_logicalDevice, graphicsFamily, 0, &graphicsQueue);
 	vkGetDeviceQueue(this->m_logicalDevice, presentFamily, 0, &presentQueue);
 
-	debugCube = Object((PathToObjects() + "gcube.obj").c_str());
+	debugCube = Object((PathToObjects() + "freddy.obj").c_str());
 	
 	
 	// If you want to draw a triangle:

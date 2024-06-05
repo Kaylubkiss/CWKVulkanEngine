@@ -21,7 +21,6 @@ ApplicationManager::~ApplicationManager()
 	{
 		(&app)->~Application();
 	}
-
 }
 
 
@@ -99,21 +98,6 @@ Buffer::Buffer(size_t size, VkBufferUsageFlags usage, VkMemoryPropertyFlags flag
 		vkUnmapMemory(_Application->LogicalDevice(), this->memory);
 	}
 }
-
-
-void Buffer::FillData(const void* data, size_t dataCount, size_t stride)
-{
-	
-
-	for (size_t i = 0; i < dataCount; ++i) 
-	{
-		
-	}
-
-
-
-}
-
 
 void Buffer::RecordData() 
 {
