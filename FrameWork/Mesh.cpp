@@ -49,6 +49,22 @@ Object::Object(const char* fileName)
     std::cout << this->numVertices << " vertices loaded in." << std::endl << std::endl;
 }
 
+
+void Object::Draw(VkCommandBuffer cmdBuffer, VkPipelineLayout pLayout) 
+{
+    VkDeviceSize offsets[1] = { 0 };
+    VkBuffer  vBuffers[] = { this->vertexBuffer.handle };
+
+    vkCmdBindVertexBuffers(cmdBuffer, 0, 1, &vertexBuffer.handle, offsets);
+    vkCmdBindIndexBuffer(cmdBuffer, indexBuffer.handle, 0, VK_INDEX_TYPE_UINT16);
+
+    vkCmdPushConstants(cmdBuffer, pLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::mat4), (void*)(&mModelTransform));
+
+    vkCmdDrawIndexed(cmdBuffer, static_cast<uint32_t>(indexBufferData.size()), 1, 0, 0, 0);
+
+
+}
+
 void LoadMeshOBJ(const std::string& path, Object& obj)
 {
     tinyobj::attrib_t attrib;

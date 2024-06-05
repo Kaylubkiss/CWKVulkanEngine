@@ -64,6 +64,7 @@ struct Object
 	
 	Object(const char* fileName);
 	Object() : mCenter(0.f), mModelTransform(1.f), vertexBuffer(), indexBuffer() {};
+	void Draw(VkCommandBuffer cmdBuffer, VkPipelineLayout pLayout);
 };
 
 void LoadMeshOBJ(const std::string& path, Object& obj);
