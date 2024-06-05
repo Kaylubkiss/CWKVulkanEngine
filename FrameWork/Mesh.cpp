@@ -91,7 +91,6 @@ void LoadMeshOBJ(const std::string& path, Object& obj)
 
             }
 
-
             if (uniqueVertices.count(vert) == 0)
             {
                 uniqueVertices[vert] = static_cast<uint32_t>(obj.vertexBufferData.size());

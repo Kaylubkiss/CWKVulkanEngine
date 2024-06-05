@@ -20,6 +20,7 @@ private:
 	double deltaTime;
 
 	Object debugCube;
+	Object debugCube2;
 
 	VkDebugUtilsMessengerEXT debugMessenger;
 

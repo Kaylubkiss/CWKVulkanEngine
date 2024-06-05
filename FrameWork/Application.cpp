@@ -1154,8 +1154,6 @@ void Application::WriteDescriptorSets()
 	bufferInfo.offset = 0;
 	bufferInfo.range = sizeof(uTransformObject);
 
-	VkDescriptorBufferInfo modelBufferInfo = {};
-
 	VkDescriptorImageInfo imageInfo = {};
 	imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 	imageInfo.imageView = this->textureImageView;
@@ -1318,6 +1316,12 @@ void Application::CreatePipeline(VkPipelineShaderStageCreateInfo* pStages, int n
 	depthStencilCreateInfo.front = {};
 	depthStencilCreateInfo.back = {};
 
+	VkPushConstantRange pushConstants[1];
+
+	//this is for an object's model transformation.
+	pushConstants[0].offset = 0;
+	pushConstants[0].size = sizeof(glm::mat4);
+	pushConstants[0].stageFlags = VK_PIPELINE_STAGE_VERTEX_SHADER_BIT;
 
 	VkPipelineLayoutCreateInfo				pipelineLayoutCreateInfo = {};
 	pipelineLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
@@ -1325,8 +1329,9 @@ void Application::CreatePipeline(VkPipelineShaderStageCreateInfo* pStages, int n
 	pipelineLayoutCreateInfo.flags = 0;
 	pipelineLayoutCreateInfo.setLayoutCount = 1;
 	pipelineLayoutCreateInfo.pSetLayouts = &descriptorSetLayout;
-	pipelineLayoutCreateInfo.pushConstantRangeCount = 0;
-	pipelineLayoutCreateInfo.pPushConstantRanges = (VkPushConstantRange*)nullptr;
+	pipelineLayoutCreateInfo.pushConstantRangeCount = 1;
+	pipelineLayoutCreateInfo.pPushConstantRanges = pushConstants;
+
 
 
 	VK_CHECK_RESULT(vkCreatePipelineLayout(this->m_logicalDevice, &pipelineLayoutCreateInfo, nullptr, &this->pipelineLayout));
@@ -1540,9 +1545,14 @@ bool Application::init()
 	vkGetDeviceQueue(this->m_logicalDevice, graphicsFamily, 0, &graphicsQueue);
 	vkGetDeviceQueue(this->m_logicalDevice, presentFamily, 0, &presentQueue);
 
-	debugCube = Object((PathToObjects() + "cumulus01.obj").c_str());
-	
-	
+	this->debugCube = Object((PathToObjects() + "freddy.obj").c_str());
+	debugCube.mModelTransform = glm::mat4(1.f);
+	debugCube.mModelTransform[3] = glm::vec4(0, 0, 5.f, 1);
+
+	this->debugCube2 = Object((PathToObjects() + "gcube.obj").c_str());
+	debugCube2.mModelTransform = glm::mat4(1.f);
+	debugCube2.mModelTransform[3] = glm::vec4(-5.f, 0, 5.f, 1);
+
 	// If you want to draw a triangle:
 	// - create renderpass object
 
@@ -1582,9 +1592,9 @@ bool Application::init()
 
 	InitGui();
 
-	uTransform.model = glm::mat4(1.f);
-	uTransform.model[3] = glm::vec4(0, 0, 8.f, 1);
-	memcpy(uniformBuffers.back().mappedMemory, (void*)&uTransform, (size_t)(sizeof(uTransformObject)));
+	//uTransform.model = glm::mat4(1.f);
+	/*uTransform.model[3] = glm::vec4(0, 0, 8.f, 1);*/
+	//memcpy(uniformBuffers.back().mappedMemory, (void*)&uTransform, (size_t)(sizeof(uTransformObject)));
 
 	this->timeNow = SDL_GetPerformanceCounter();
 
@@ -1756,13 +1766,23 @@ void Application::Render()
 	vkCmdSetScissor(this->commandBuffer, 0, 1, &this->m_scissor);
 
 	VkDeviceSize offsets[1] = { 0 };
-	VkBuffer  vBuffers[] = { debugCube.vertexBuffer.handle };
+	VkBuffer  vBuffers[] = { debugCube.vertexBuffer.handle, debugCube2.vertexBuffer.handle };
 	
-	
-	vkCmdBindVertexBuffers(this->commandBuffer, 0, 1, vBuffers, offsets);
+	uTransform.model = debugCube.mModelTransform;
+	memcpy(uniformBuffers.back().mappedMemory, (void*)&uTransform, (size_t)(sizeof(uTransformObject)));
+
+	vkCmdBindVertexBuffers(this->commandBuffer, 0, 1, &debugCube.vertexBuffer.handle, offsets);
 	vkCmdBindIndexBuffer(this->commandBuffer, debugCube.indexBuffer.handle, 0, VK_INDEX_TYPE_UINT16);
 
 	vkCmdDrawIndexed(this->commandBuffer, static_cast<uint32_t>(debugCube.indexBufferData.size()), 1, 0, 0, 0);
+
+	//uTransform.model = debugCube2.mModelTransform;
+	//memcpy(uniformBuffers.back().mappedMemory, (void*)&uTransform, (size_t)(sizeof(uTransformObject)));
+
+	/*vkCmdBindVertexBuffers(this->commandBuffer, 0, 1, &debugCube2.vertexBuffer.handle, offsets);
+	
+	vkCmdBindIndexBuffer(this->commandBuffer, debugCube2.indexBuffer.handle, 0, VK_INDEX_TYPE_UINT16);
+	vkCmdDrawIndexed(this->commandBuffer, static_cast<uint32_t>(debugCube2.indexBufferData.size()), 1, 0, 0, 0);*/
 
 	DrawGui();
 
@@ -1872,7 +1892,7 @@ void Application::exit()
 	vkDestroyImageView(this->m_logicalDevice,this->textureImageView, nullptr);
 
 	vkDestroyImage(this->m_logicalDevice, textureImage, nullptr);
-	vkFreeMemory(this->m_logicalDevice, textureMemory, nullptr);
+	vkFreeMemory(this->m_logicalDevice, this->textureMemory, nullptr);
 
 	vkDestroyImage(this->m_logicalDevice, this->depthImage, nullptr);
 	vkDestroyImageView(this->m_logicalDevice, this->depthImageView, nullptr);
