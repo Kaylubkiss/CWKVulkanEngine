@@ -81,11 +81,15 @@ void LoadMeshOBJ(const std::string& path, Object& obj)
                 attrib.vertices[3 * index.vertex_index + 2]
             };
 
-            vert.uv =
+            if (index.texcoord_index > 0) 
             {
-                attrib.texcoords[2 * index.texcoord_index + 0],
-                1 - attrib.texcoords[2 * index.texcoord_index + 1] //vulkan is upside down.
-            };
+                vert.uv =
+                {
+                    attrib.texcoords[2 * index.texcoord_index + 0],
+                    1 - attrib.texcoords[2 * index.texcoord_index + 1] //vulkan is upside down.
+                };
+
+            }
 
 
             if (uniqueVertices.count(vert) == 0)
