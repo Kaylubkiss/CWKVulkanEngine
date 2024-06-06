@@ -1925,7 +1925,7 @@ void Application::exit()
 	SDL_Quit();
 
 
-	this->mPhysicsCommon.destroyPhysicsWorld(this->mPhysicsWorld);
+	/*this->mPhysicsCommon.destroyPhysicsWorld(this->mPhysicsWorld);*/
 
 }
 
