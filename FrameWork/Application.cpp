@@ -13,9 +13,6 @@ static unsigned long long height = 480;
 
 static bool windowisfocused = false;
 
-#define SCREEN_WIDTH width
-#define SCREEN_HEIGHT height 
-
 #define VK_CHECK_RESULT(function) {VkResult check = function; assert(check == VK_SUCCESS);}
 
 static void check_vk_result(VkResult err)
@@ -56,7 +53,7 @@ void* pUserData)
 {
 	if (messageSeverity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT) 
 	{
-		std::cerr << pCallbackData->pMessage << std::endl;
+		std::cerr << pCallbackData->pMessage << std::endl << std::endl;
 	}
 
 	return VK_FALSE;
@@ -219,16 +216,12 @@ void Application::CreateWindow()
 		printf("SDL could not initialize! SDL_Error: %s\n", SDL_GetError());
 	}
 
-	//TODO: cleanup
-	this->window = SDL_CreateWindow("Caleb's Vulkan Engine", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, static_cast<int>(SCREEN_WIDTH), static_cast<int>(SCREEN_HEIGHT), SDL_WINDOW_VULKAN | SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
+	this->window = SDL_CreateWindow("Caleb's Vulkan Engine", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, static_cast<int>(width), static_cast<int>(height), SDL_WINDOW_VULKAN | SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
 
 	if (this->window == NULL)
 	{
 		printf("Window could not be created! SDL_Error: %s\n", SDL_GetError());
 	}
-
-	//TODO: make this work.
-	//SDL_SetWindowResizable(this->window, SDL_TRUE);
 }
 
 void Application::CreateWindowSurface() 
@@ -237,9 +230,6 @@ void Application::CreateWindowSurface()
 	{
 		throw std::runtime_error("could not create window surface!");
 	}
-
-
-
 }
 
 void Application::FindQueueFamilies() 
@@ -494,21 +484,6 @@ void Application::CreateSwapChain()
 	swapChainInfo.clipped = VK_TRUE;
 	swapChainInfo.oldSwapchain = nullptr; //resizing needs a reference to the old swap chain
 
-	/*auto* SetDebugName = reinterpret_cast<PFN_vkSetDebugUtilsObjectNameEXT>(vkGetDeviceProcAddr(this->m_logicalDevice, "vkSetDebugUtilsObjectNameEXT"));*/
-	/*VkDebugUtilsObjectNameInfoEXT debugDescriptorPool = {};
-	debugDescriptorPool.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
-	debugDescriptorPool.objectType = VK_OBJECT_TYPE_DESCRIPTOR_POOL;
-	debugDescriptorPool.objectHandle = (uint64_t)VK_NULL_HANDLE;
-
-
-	VkDebugUtilsObjectNameInfoEXT debugFrameBuffer = {};
-	debugFrameBuffer.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
-	debugFrameBuffer.objectType = VK_OBJECT_TYPE_FRAMEBUFFER;
-	debugFrameBuffer.objectHandle = (uint64_t)VK_NULL_HANDLE;
-
-	SetDebugName(this->m_logicalDevice, &debugFrameBuffer);
-	SetDebugName(this->m_logicalDevice, &debugDescriptorPool);*/
-
 
 	VK_CHECK_RESULT(vkCreateSwapchainKHR(this->m_logicalDevice, &swapChainInfo, nullptr, &this->swapChain));
 
@@ -525,7 +500,6 @@ void Application::CreateImageViews()
 	this->swapChainImages = new VkImage[imageCount];
 
 	VK_CHECK_RESULT(vkGetSwapchainImagesKHR(this->m_logicalDevice, swapChain, &imageCount, this->swapChainImages));
-
 
 	
 	//create imageview --> allow image to be seen in a different format.
@@ -563,6 +537,11 @@ void Application::CreateImageViews()
 			componentMapping,
 			subresourceRange
 		};
+
+		imageViewCreateInfo.subresourceRange.baseMipLevel = 0;
+		imageViewCreateInfo.subresourceRange.levelCount = 1;
+		imageViewCreateInfo.subresourceRange.baseArrayLayer = 0;
+		imageViewCreateInfo.subresourceRange.layerCount = 1;
 
 		VK_CHECK_RESULT(vkCreateImageView(this->m_logicalDevice, &imageViewCreateInfo, nullptr, &imageViews[i]));
 
@@ -664,7 +643,7 @@ void Application::CreateUniformBuffers()
 
 void Application::CreateImage
 (
-	uint32_t width, uint32_t height,
+	uint32_t width, uint32_t height, uint32_t mipLevels,
 	VkFormat format, VkImageTiling tiling,
 	VkImageUsageFlags usage, VkMemoryPropertyFlags flags,
 	VkImage& image, VkDeviceMemory& imageMemory, uint32_t arrayLayerCount
@@ -680,7 +659,7 @@ void Application::CreateImage
 	imageCreateInfo.extent.width = width;
 	imageCreateInfo.extent.height = height;
 	imageCreateInfo.extent.depth = 1;
-	imageCreateInfo.mipLevels = 1;
+	imageCreateInfo.mipLevels = mipLevels;
 	imageCreateInfo.arrayLayers = arrayLayerCount;
 	imageCreateInfo.format = format;
 	imageCreateInfo.tiling = tiling;
@@ -772,8 +751,8 @@ static void endCmd(VkCommandBuffer commandBuffer)
 
 }
 
-static void TransitionImageLayout(VkImage image, VkFormat format, 
-								  VkImageLayout oldLayout, VkImageLayout newLayout) 
+static void TransitionImageLayout(VkImage image, VkFormat format,
+								  VkImageLayout oldLayout, VkImageLayout newLayout, uint32_t mipLevels) 
 {
 	VkCommandBuffer cmdBuffer = beginCmd();
 
@@ -786,11 +765,9 @@ static void TransitionImageLayout(VkImage image, VkFormat format,
 	barrier.image = image;
 	barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 	barrier.subresourceRange.baseMipLevel = 0;
-	barrier.subresourceRange.levelCount = 1;
+	barrier.subresourceRange.levelCount = mipLevels;
 	barrier.subresourceRange.baseArrayLayer = 0;
 	barrier.subresourceRange.layerCount = 1;
-
-	//TODO: mipmapping
 
 	VkPipelineStageFlags srcStage = 0;
 	VkPipelineStageFlags dstStage = 0;
@@ -876,7 +853,7 @@ void Application::CreateDepthResources()
 		VK_IMAGE_TILING_OPTIMAL, VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
 
 	//create depth image
-	CreateImage((uint32_t)width, (uint32_t)height, depthFormat, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
+	CreateImage((uint32_t)width, (uint32_t)height, 1, depthFormat, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
 	VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, this->depthImage,
 	this->depthImageMemory, 1);
 	//create depth image view 
@@ -941,6 +918,95 @@ void Application::CreateCubeMap()
 }
 
 
+void Application::GenerateMipMaps(VkImage image, VkFormat imgFormat, uint32_t textureWidth, uint32_t textureHeight, uint32_t mipLevels) 
+{
+
+	VkFormatProperties formatProperties;
+	vkGetPhysicalDeviceFormatProperties(this->m_physicalDevices[device_index], imgFormat, &formatProperties);
+
+	if (!(formatProperties.optimalTilingFeatures & VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT)) 
+	{
+		throw std::runtime_error("your physical device does not support linear blitting");
+		//TODO: generate mipmap levels with software/storing mip levels in texture image and sampling that.
+	}
+
+	VkCommandBuffer cmdBuffer = beginCmd();
+
+	VkImageMemoryBarrier barrier = {};
+	barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+	barrier.image = image;
+	barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+	barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+	barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+	barrier.subresourceRange.baseArrayLayer = 0;
+	barrier.subresourceRange.layerCount = 1;
+	barrier.subresourceRange.levelCount = 1;
+
+	uint32_t mipWidth = textureWidth;
+	uint32_t mipHeight = textureHeight;
+
+	for (uint32_t i = 1; i < mipLevels; i++) 
+	{
+		barrier.subresourceRange.baseMipLevel = i - 1;
+		barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+		barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+		barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+		barrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+
+		vkCmdPipelineBarrier(cmdBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, 
+		nullptr, 0, nullptr, 1, &barrier);
+
+		VkImageBlit blit = {};
+		blit.srcOffsets[0] = { 0,0,0 };
+		blit.srcOffsets[1] = { (int)(mipWidth), (int)(mipHeight), 1 };
+		blit.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		blit.srcSubresource.mipLevel = i - 1;
+		blit.srcSubresource.baseArrayLayer = 0;
+		blit.srcSubresource.layerCount = 1;
+		
+		blit.dstOffsets[0] = { 0,0,0 };
+		blit.dstOffsets[1] = { (int)(mipWidth > 1 ? mipWidth / 2 : 1), (int)(mipHeight > 1 ? mipHeight / 2 : 1), 1 };
+		blit.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		blit.dstSubresource.mipLevel = i;
+		blit.dstSubresource.baseArrayLayer = 0;
+		blit.dstSubresource.layerCount = 1;
+
+		vkCmdBlitImage(cmdBuffer, 
+			image,
+			VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+			image,
+			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+			1, 
+			&blit, VK_FILTER_LINEAR);
+
+		barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+		barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+		barrier.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+		barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+
+		vkCmdPipelineBarrier(cmdBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0,
+			0, nullptr, 0, nullptr, 1, &barrier);
+
+
+		if (mipWidth > 1) mipWidth /= 2;
+		if (mipHeight > 1) mipHeight /= 2;
+
+	}
+
+	barrier.subresourceRange.baseMipLevel = mipLevels - 1;
+	barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+	barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+	barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+	barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+
+	vkCmdPipelineBarrier(cmdBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0,
+		0, nullptr, 0, nullptr, 1, &barrier);
+	
+	endCmd(cmdBuffer);
+
+}
+
+
 void Application::CreateTexture(const std::string& fileName)
 {
 
@@ -953,29 +1019,32 @@ void Application::CreateTexture(const std::string& fileName)
 		throw std::runtime_error("failed to load texture image!");
 	}
 
+	uint32_t mipLevels = static_cast<uint32_t>(std::floor(std::log2(std::max(textureWidth, textureHeight)))) + 1;
+	
 	Buffer stagingBuffer = Buffer(static_cast<size_t>(imageSize), VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, pixels);
 
 	stbi_image_free(pixels);
 
-	CreateImage(textureWidth, textureHeight, VK_FORMAT_R8G8B8A8_SRGB, 
-				VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+	CreateImage(textureWidth, textureHeight, mipLevels, VK_FORMAT_R8G8B8A8_SRGB,
+				VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
 				VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, this->textureImage, this->textureMemory, 1);
 
-	TransitionImageLayout(this->textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED, 
-															VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+	TransitionImageLayout(this->textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, mipLevels);
 	
-	copyBufferToImage(stagingBuffer.buffer, this->textureImage, static_cast<uint32_t>(textureWidth), static_cast<uint32_t>(textureHeight));
+	copyBufferToImage(stagingBuffer.handle, this->textureImage, (uint32_t)(textureWidth), (uint32_t)(textureHeight));
 	
-	TransitionImageLayout(this->textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+	GenerateMipMaps(this->textureImage, VK_FORMAT_R8G8B8A8_SRGB, (uint32_t)textureWidth, (uint32_t)textureHeight, mipLevels);
 
-	vkDestroyBuffer(this->m_logicalDevice, stagingBuffer.buffer, nullptr);
+	vkDestroyBuffer(this->m_logicalDevice, stagingBuffer.handle, nullptr);
 	vkFreeMemory(this->m_logicalDevice, stagingBuffer.memory, nullptr);
 
-	CreateTextureView(this->textureImage);
+	CreateTextureView(this->textureImage, mipLevels);
+
+	CreateTextureSampler(mipLevels);
 
 }
 
-void Application::CreateTextureView(const VkImage& textureImage)
+void Application::CreateTextureView(const VkImage& textureImage, uint32_t mipLevels)
 {
 
 	VkImageViewCreateInfo viewInfo = {};
@@ -985,14 +1054,14 @@ void Application::CreateTextureView(const VkImage& textureImage)
 	viewInfo.format = VK_FORMAT_R8G8B8A8_SRGB;
 	viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 	viewInfo.subresourceRange.baseMipLevel = 0;
-	viewInfo.subresourceRange.levelCount = 1;
+	viewInfo.subresourceRange.levelCount = mipLevels;
 	viewInfo.subresourceRange.baseArrayLayer = 0;
 	viewInfo.subresourceRange.layerCount = 1;
 	
 	VK_CHECK_RESULT(vkCreateImageView(this->m_logicalDevice, &viewInfo, nullptr, &this->textureImageView));
 }
 
-void Application::CreateTextureSampler() 
+void Application::CreateTextureSampler(uint32_t mipLevels)
 {
 	VkSamplerCreateInfo createInfo = {};
 	createInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
@@ -1016,6 +1085,9 @@ void Application::CreateTextureSampler()
 	createInfo.compareOp = VK_COMPARE_OP_ALWAYS;
 
 	createInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+	createInfo.minLod = 0.f;
+	createInfo.maxLod = static_cast<float>(mipLevels);
+	createInfo.mipLodBias = 0.f; //optional...
 
 	VK_CHECK_RESULT(vkCreateSampler(this->m_logicalDevice, &createInfo, nullptr, &this->textureSampler));
 }
@@ -1078,7 +1150,7 @@ void Application::CreateDescriptorSets()
 void Application::WriteDescriptorSets() 
 {
 	VkDescriptorBufferInfo bufferInfo = {};
-	bufferInfo.buffer = uniformBuffers.back().buffer;
+	bufferInfo.buffer = uniformBuffers[0].handle;
 	bufferInfo.offset = 0;
 	bufferInfo.range = sizeof(uTransformObject);
 
@@ -1093,7 +1165,7 @@ void Application::WriteDescriptorSets()
 	descriptorWrite[0].dstBinding = 0;
 	descriptorWrite[0].dstArrayElement = 0;
 	descriptorWrite[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-	descriptorWrite[0].descriptorCount = 1;
+	descriptorWrite[0].descriptorCount = 1; //how many buffers
 	descriptorWrite[0].pBufferInfo = &bufferInfo;
 	descriptorWrite[0].pImageInfo = nullptr; // Optional
 	descriptorWrite[0].pTexelBufferView = nullptr; // Optional
@@ -1103,7 +1175,7 @@ void Application::WriteDescriptorSets()
 	descriptorWrite[1].dstBinding = 1;
 	descriptorWrite[1].dstArrayElement = 0;
 	descriptorWrite[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-	descriptorWrite[1].descriptorCount = 1;
+	descriptorWrite[1].descriptorCount = 1; //how many images
 	descriptorWrite[1].pImageInfo = &imageInfo;
 	descriptorWrite[1].pTexelBufferView = nullptr; // Optional
 
@@ -1244,6 +1316,12 @@ void Application::CreatePipeline(VkPipelineShaderStageCreateInfo* pStages, int n
 	depthStencilCreateInfo.front = {};
 	depthStencilCreateInfo.back = {};
 
+	VkPushConstantRange pushConstants[1];
+
+	//this is for an object's model transformation.
+	pushConstants[0].offset = 0;
+	pushConstants[0].size = sizeof(glm::mat4);
+	pushConstants[0].stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
 
 	VkPipelineLayoutCreateInfo				pipelineLayoutCreateInfo = {};
 	pipelineLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
@@ -1251,8 +1329,9 @@ void Application::CreatePipeline(VkPipelineShaderStageCreateInfo* pStages, int n
 	pipelineLayoutCreateInfo.flags = 0;
 	pipelineLayoutCreateInfo.setLayoutCount = 1;
 	pipelineLayoutCreateInfo.pSetLayouts = &descriptorSetLayout;
-	pipelineLayoutCreateInfo.pushConstantRangeCount = 0;
-	pipelineLayoutCreateInfo.pPushConstantRanges = (VkPushConstantRange*)nullptr;
+	pipelineLayoutCreateInfo.pushConstantRangeCount = 1;
+	pipelineLayoutCreateInfo.pPushConstantRanges = pushConstants;
+
 
 
 	VK_CHECK_RESULT(vkCreatePipelineLayout(this->m_logicalDevice, &pipelineLayoutCreateInfo, nullptr, &this->pipelineLayout));
@@ -1390,7 +1469,7 @@ void Application::ResizeViewport()
 	this->m_scissor.extent.height = height;
 	uTransform.proj = glm::perspective(glm::radians(45.f), this->m_viewPort.width / this->m_viewPort.height, 0.1f, 1000.f); //proj
 	uTransform.proj[1][1] *= -1.f;
-	memcpy(uniformBuffers.back().mappedMemory, (void*)&uTransform, (size_t)(sizeof(uTransformObject)));
+	memcpy(uniformBuffers[0].mappedMemory, (void*)&uTransform, (size_t)(sizeof(uTransformObject)));
 
 }
 
@@ -1450,7 +1529,6 @@ bool Application::init()
 
 	CreateWindowSurface();
 
-	
 	//setup the debug callbacks... (optional...)
 
 	EnumeratePhysicalDevices();
@@ -1466,6 +1544,14 @@ bool Application::init()
 
 	vkGetDeviceQueue(this->m_logicalDevice, graphicsFamily, 0, &graphicsQueue);
 	vkGetDeviceQueue(this->m_logicalDevice, presentFamily, 0, &presentQueue);
+
+	this->debugCube = Object((PathToObjects() + "freddy.obj").c_str());
+	debugCube.mModelTransform = glm::mat4(1.f);
+	debugCube.mModelTransform[3] = glm::vec4(0, 0, 5.f, 1);
+
+	this->debugCube2 = Object((PathToObjects() + "gcube.obj").c_str());
+	debugCube2.mModelTransform = glm::mat4(1.f);
+	debugCube2.mModelTransform[3] = glm::vec4(-5.f, 0, 5.f, 1);
 
 	// If you want to draw a triangle:
 	// - create renderpass object
@@ -1485,13 +1571,10 @@ bool Application::init()
 	CreateCommandPools();
 	CreateCommandBuffers();
 	
-	//CreateBuffers();
 	CreateUniformBuffers();
 
 	CreateTexture("texture.jpg");
-	//CreateTextureView();
-	CreateTextureSampler();
-
+	
 	CreateDepthResources();
 	
 	CreateDescriptorSets();
@@ -1507,13 +1590,15 @@ bool Application::init()
 
 	CreateFences();
 
-	
 	InitGui();
 
-	debugCube = Object((PathToObjects() + "freddy.obj").c_str());
-
+	uTransform.model = glm::mat4(1.f);
+	uTransform.model[3] = glm::vec4(0, 0, 8.f, 1);
+	memcpy(uniformBuffers[0].mappedMemory, (void*)&uTransform, (size_t)(sizeof(uTransformObject)));
 
 	this->timeNow = SDL_GetPerformanceCounter();
+
+
 	return true;
 
 
@@ -1537,31 +1622,31 @@ bool Application::UpdateInput()
 			int deltaX = e.motion.xrel;
 			int deltaY = e.motion.yrel;
 			uTransform.view = glm::mat4(X_BASIS, Y_BASIS, Z_BASIS, { deltaX * .008f, -deltaY * .008f, 0, 1 }) * uTransform.view;
-			memcpy(uniformBuffers.back().mappedMemory, (void*)&uTransform, (size_t)(sizeof(uTransformObject)));
+			memcpy(uniformBuffers[0].mappedMemory, (void*)&uTransform, (size_t)(sizeof(uTransformObject)));
 		}
 
 		if (keystates[SDL_SCANCODE_W] && e.type == SDL_KEYDOWN)
 		{
 			uTransform.view = glm::mat4(X_BASIS, Y_BASIS, Z_BASIS, { 0,0, 10 * deltaTime, 1 }) * uTransform.view;
-			memcpy(uniformBuffers.back().mappedMemory, (void*)&uTransform, (size_t)(sizeof(uTransformObject)));
+			memcpy(uniformBuffers[0].mappedMemory, (void*)&uTransform, (size_t)(sizeof(uTransformObject)));
 		}
 
 		if (keystates[SDL_SCANCODE_S] && e.type == SDL_KEYDOWN)
 		{
 			uTransform.view = glm::mat4(X_BASIS, Y_BASIS, Z_BASIS, { 0,0, -10 * deltaTime, 1 }) * uTransform.view;
-			memcpy(uniformBuffers.back().mappedMemory, (void*)&uTransform, (size_t)(sizeof(uTransformObject)));
+			memcpy(uniformBuffers[0].mappedMemory, (void*)&uTransform, (size_t)(sizeof(uTransformObject)));
 		}
 
 		if (keystates[SDL_SCANCODE_A] && e.type == SDL_KEYDOWN)
 		{
 			uTransform.view = glm::mat4(X_BASIS, Y_BASIS, Z_BASIS, { -10 * deltaTime,0, 0, 1 }) * uTransform.view;
-			memcpy(uniformBuffers.back().mappedMemory, (void*)&uTransform, (size_t)(sizeof(uTransformObject)));
+			memcpy(uniformBuffers[0].mappedMemory, (void*)&uTransform, (size_t)(sizeof(uTransformObject)));
 		}
 
 		if (keystates[SDL_SCANCODE_D] && e.type == SDL_KEYDOWN)
 		{
 			uTransform.view = glm::mat4(X_BASIS, Y_BASIS, Z_BASIS, { 10 * deltaTime,0, 0, 1 }) * uTransform.view;
-			memcpy(uniformBuffers.back().mappedMemory, (void*)&uTransform, (size_t)(sizeof(uTransformObject)));
+			memcpy(uniformBuffers[0].mappedMemory, (void*)&uTransform, (size_t)(sizeof(uTransformObject)));
 		}
 
 		int deltaX = e.motion.xrel;
@@ -1572,7 +1657,7 @@ bool Application::UpdateInput()
 			if (e.type == SDL_MOUSEMOTION && e.button.button == SDL_BUTTON(SDL_BUTTON_RIGHT))
 			{
 				uTransform.view = glm::rotate(glm::mat4(1.f), (float)deltaX * .008f, glm::vec3(0, 1, 0)) * uTransform.view;
-				memcpy(uniformBuffers.back().mappedMemory, (void*)&uTransform, (size_t)(sizeof(uTransformObject)));
+				memcpy(uniformBuffers[0].mappedMemory, (void*)&uTransform, (size_t)(sizeof(uTransformObject)));
 			}
 		}
 		else if (deltaY && deltaY != std::numeric_limits<int>::max())
@@ -1580,7 +1665,7 @@ bool Application::UpdateInput()
 			if (e.type == SDL_MOUSEMOTION && e.button.button == SDL_BUTTON(SDL_BUTTON_RIGHT))
 			{
 				uTransform.view = glm::rotate(glm::mat4(1.f), (float)deltaY * .008f, glm::vec3(1, 0, 0)) * uTransform.view;
-				memcpy(uniformBuffers.back().mappedMemory, (void*)&uTransform, (size_t)(sizeof(uTransformObject)));
+				memcpy(uniformBuffers[0].mappedMemory, (void*)&uTransform, (size_t)(sizeof(uTransformObject)));
 			}
 
 		}
@@ -1680,16 +1765,7 @@ void Application::Render()
 	vkCmdSetViewport(this->commandBuffer, 0, 1, &this->m_viewPort);
 	vkCmdSetScissor(this->commandBuffer, 0, 1, &this->m_scissor);
 
-	/*	vkCmdDraw(this->commandBuffer, 3, 1, 0, 0);*/
-	VkDeviceSize offsets[1] = { 0 };
-	VkBuffer  vBuffers[] = { debugCube.vertex.buffer };
-	vkCmdBindVertexBuffers(this->commandBuffer, 0, 1, vBuffers, offsets);
-	vkCmdBindIndexBuffer(this->commandBuffer, debugCube.index.buffer, 0, VK_INDEX_TYPE_UINT16);
-
-	vkCmdDrawIndexed(this->commandBuffer, static_cast<uint32_t>(debugCube.mMesh.indexBufferData.size()), 1, 0, 0, 0);
-
-	//this will draw a triangle, if you change the vertex buffer.
-	/*vkCmdDraw(this->commandBuffer, 3, 1, 0, 0);*/
+	debugCube.Draw(this->commandBuffer, this->pipelineLayout);
 
 	DrawGui();
 
@@ -1735,6 +1811,7 @@ void Application::Render()
 		ResizeViewport();
 		return;
 	}
+
 	assert(result == VK_SUCCESS);
 
 }
@@ -1790,7 +1867,7 @@ void Application::exit()
 
 	for (unsigned i = 0; i < uniformBuffers.size(); ++i) 
 	{
-		vkDestroyBuffer(this->m_logicalDevice, uniformBuffers[i].buffer, nullptr);
+		vkDestroyBuffer(this->m_logicalDevice, uniformBuffers[i].handle, nullptr);
 		vkFreeMemory(this->m_logicalDevice, uniformBuffers[i].memory, nullptr);
 	}
 
@@ -1798,8 +1875,11 @@ void Application::exit()
 	vkDestroyImageView(this->m_logicalDevice,this->textureImageView, nullptr);
 
 	vkDestroyImage(this->m_logicalDevice, textureImage, nullptr);
-	vkFreeMemory(this->m_logicalDevice, textureMemory, nullptr);
+	vkFreeMemory(this->m_logicalDevice, this->textureMemory, nullptr);
 
+	vkDestroyImage(this->m_logicalDevice, this->depthImage, nullptr);
+	vkDestroyImageView(this->m_logicalDevice, this->depthImageView, nullptr);
+	vkFreeMemory(this->m_logicalDevice, this->depthImageMemory, nullptr);
 
 	for (unsigned i = 0; i < imageCount; ++i)
 	{
@@ -1813,9 +1893,20 @@ void Application::exit()
 	
 	vkDestroyRenderPass(this->m_logicalDevice, this->m_renderPass, nullptr);
 
+	//this already destroys the images in it.
 	vkDestroySwapchainKHR(this->m_logicalDevice, this->swapChain, nullptr);
 
 	delete[] swapChainImages;
+
+	vkDestroyBuffer(this->m_logicalDevice, this->debugCube.vertexBuffer.handle, nullptr);
+	vkFreeMemory(this->m_logicalDevice, this->debugCube.vertexBuffer.memory, nullptr);
+	
+	vkDestroyBuffer(this->m_logicalDevice, this->debugCube.indexBuffer.handle, nullptr);
+	vkFreeMemory(this->m_logicalDevice, this->debugCube.indexBuffer.memory, nullptr);
+
+	vkDestroyFence(this->m_logicalDevice, this->inFlightFence, nullptr);
+
+	vkDestroyCommandPool(this->m_logicalDevice, this->commandPool, nullptr);
 
 	vkDestroyDevice(this->m_logicalDevice, nullptr);
 	

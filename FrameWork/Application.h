@@ -20,6 +20,7 @@ private:
 	double deltaTime;
 
 	Object debugCube;
+	Object debugCube2;
 
 	VkDebugUtilsMessengerEXT debugMessenger;
 
@@ -122,7 +123,7 @@ private:
 	VkPipelineShaderStageCreateInfo CreateShaderModule(const char* name, VkShaderModule& shaderModule, VkShaderStageFlagBits stage);
 	void RecreateSwapChain();
 	void ResizeViewport();
-	void CreateImage(uint32_t width, uint32_t height, 
+	void CreateImage(uint32_t width, uint32_t height, uint32_t mipLevels,
 					 VkFormat format, VkImageTiling tiling, 
 					 VkImageUsageFlags usage, VkMemoryPropertyFlags flags, 
 					 VkImage& image, VkDeviceMemory& imageMemory, uint32_t arrayLayerCount
@@ -130,9 +131,11 @@ private:
 
 	void CreateDepthResources();
 	
+	void GenerateMipMaps(VkImage image, VkFormat imgFormat, uint32_t textureWidth, uint32_t textureHeight, uint32_t mipLevels);
+
 	void CreateTexture(const std::string& fileName);
-	void CreateTextureView(const VkImage& textureImage);
-	void CreateTextureSampler();
+	void CreateTextureView(const VkImage& textureImage, uint32_t mipLevels);
+	void CreateTextureSampler(uint32_t mipLevels);
 
 	bool UpdateInput();
 
