@@ -145,6 +145,8 @@ private:
 	void CreateTextureView(const VkImage& textureImage, uint32_t mipLevels);
 	void CreateTextureSampler(uint32_t mipLevels);
 
+	void InitPhysics();
+
 	bool UpdateInput();
 
 	void DrawGui();

@@ -1471,7 +1471,16 @@ void Application::ResizeViewport()
 
 }
 
+void Application::InitPhysics() 
+{
+	this->mPhysicsWorld = this->mPhysicsCommon.createPhysicsWorld();
 
+	Vector3 position(0, 20, 0);
+	Quaternion orientation = Quaternion::identity();
+	Transform transform(position, orientation);
+	RigidBody* body = mPhysicsWorld->createRigidBody(transform);
+
+}
 void Application::InitGui() 
 {
 	IMGUI_CHECKVERSION();
@@ -1551,12 +1560,12 @@ bool Application::init()
 	debugCube2.mModelTransform = glm::mat4(1.f);
 	debugCube2.mModelTransform[3] = glm::vec4(-1.f, 0, 5.f, 1);
 
+	//this->mPhysicsWorld = this->mPhysicsCommon.createPhysicsWorld();
+	//
+	
+	
 	// If you want to draw a triangle:
 	// - create renderpass object
-	this->mPhysicsWorld = this->mPhysicsCommon.createPhysicsWorld();
-
-
-	
 	CreateSwapChain();
 
 	CreateImageViews();
@@ -1592,8 +1601,9 @@ bool Application::init()
 
 	InitGui();
 
-	this->timeNow = SDL_GetPerformanceCounter();
+	InitPhysics();
 
+	this->timeNow = SDL_GetPerformanceCounter();
 
 	return true;
 
@@ -1925,7 +1935,7 @@ void Application::exit()
 	SDL_Quit();
 
 
-	/*this->mPhysicsCommon.destroyPhysicsWorld(this->mPhysicsWorld);*/
+	this->mPhysicsCommon.destroyPhysicsWorld(this->mPhysicsWorld);
 
 }
 
