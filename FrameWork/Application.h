@@ -2,7 +2,9 @@
 #include "Common.h"
 #include "Mesh.h"
 #include <SDL2/SDL.h>
-#include <vector>
+
+
+
 
 class Application
 {
@@ -18,9 +20,15 @@ private:
 	uint64_t timeBefore;
 
 	double deltaTime;
+	const float timeStep = 1.f / 60.f;
 
 	Object debugCube;
 	Object debugCube2;
+
+	PhysicsCommon mPhysicsCommon;
+	PhysicsWorld* mPhysicsWorld = nullptr;
+
+
 
 	VkDebugUtilsMessengerEXT debugMessenger;
 
