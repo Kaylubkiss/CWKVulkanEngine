@@ -14,7 +14,7 @@ public:
 	int GetTexture(const char* fileName);
 	VkPipelineLayout* GetPipelineLayout();
 	void UpdateDescriptorSet(int textureIndex);
-
+	const std::vector<Texture>& Textures();
 	void run();
 private:
 	uint64_t timeNow;
@@ -54,6 +54,7 @@ private:
 	VkShaderModule* ShaderStages[2] = { &shaderVertModule, &shaderFragModule };
 
 	std::vector<VkPipelineLayout> pipelineLayouts;
+
 	VkPipeline pipeline = VK_NULL_HANDLE;
 
 	VkCommandPool commandPool = VK_NULL_HANDLE;
@@ -70,15 +71,10 @@ private:
 	VkImage* swapChainImages = nullptr;
 
 	VkDescriptorPool descriptorPool = VK_NULL_HANDLE;
-	VkDescriptorSet descriptorSets = VK_NULL_HANDLE;
+	//VkDescriptorSet descriptorSets = VK_NULL_HANDLE;
 	VkDescriptorSetLayout descriptorSetLayout = VK_NULL_HANDLE; //dunno if this should be here...
 
 	std::vector<Buffer> uniformBuffers;
-
-	/*VkImage textureImage;
-	VkDeviceMemory textureMemory;
-	VkImageView textureImageView;
-	VkSampler textureSampler;*/
 
 	std::vector<Texture> mTextures;
 

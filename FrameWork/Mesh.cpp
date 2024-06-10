@@ -57,16 +57,15 @@ Object::Object(const char* fileName, const char* textureName, VkPipelineLayout* 
     if (pipelineLayout != nullptr) 
     {
         this->mPipelineLayout = _Application->GetPipelineLayout();
-
     }
-
 }
 
 
 void Object::Draw(VkCommandBuffer cmdBuffer) 
 {
+    const Texture& texture = _Application->Textures()[this->textureIndex];
 
-   
+    vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, *this->mPipelineLayout, 0, 1, &texture.mDescriptor, 0, nullptr);
 
     VkDeviceSize offsets[1] = { 0 };
     VkBuffer  vBuffers[] = { this->vertexBuffer.handle };

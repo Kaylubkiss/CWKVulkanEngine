@@ -13,7 +13,7 @@ static unsigned long long height = 480;
 
 static bool windowisfocused = false;
 
-#define VK_CHECK_RESULT(function) {VkResult check = function; assert(check == VK_SUCCESS);}
+#define VK_CHECK_RESULT(function) {VkResult check = function; assert(check == VK_SUCCESS); if (check != VK_SUCCESS) {std::cout << check << std::endl;}}
 
 static const int const_textureCount = 3;
 
@@ -632,43 +632,6 @@ void Application::CreateFrameBuffers()
 
 }
 
-
-void Application::UpdateDescriptorSet(int textureIndex) 
-{
-	VkDescriptorBufferInfo bufferInfo = {};
-	bufferInfo.buffer = uniformBuffers[0].handle;
-	bufferInfo.offset = 0;
-	bufferInfo.range = sizeof(uTransformObject);
-
-	VkDescriptorImageInfo imageInfo = {};
-
-	imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-	imageInfo.imageView = this->mTextures[textureIndex].mTextureImageView;
-	imageInfo.sampler = this->mTextures[textureIndex].mTextureSampler;
-
-	VkWriteDescriptorSet descriptorWrite[2] = {};
-	descriptorWrite[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-	descriptorWrite[0].dstSet = this->descriptorSets;
-	descriptorWrite[0].dstBinding = 0;
-	descriptorWrite[0].dstArrayElement = 0;
-	descriptorWrite[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-	descriptorWrite[0].descriptorCount = 1; //how many buffers
-	descriptorWrite[0].pBufferInfo = &bufferInfo;
-	descriptorWrite[0].pImageInfo = nullptr; // Optional
-	descriptorWrite[0].pTexelBufferView = nullptr; // Optional
-
-	descriptorWrite[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-	descriptorWrite[1].dstSet = this->descriptorSets;
-	descriptorWrite[1].dstBinding = 1;
-	descriptorWrite[1].dstArrayElement = 0;
-	descriptorWrite[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-	descriptorWrite[1].descriptorCount = 1; //how many images
-	descriptorWrite[1].pImageInfo = &imageInfo;
-	descriptorWrite[1].pTexelBufferView = nullptr; // Optional
-
-	vkUpdateDescriptorSets(this->m_logicalDevice, 2, descriptorWrite, 0, nullptr);
-
-}
 void Application::CreateBuffers() 
 {
 	
@@ -1052,7 +1015,7 @@ void Application::GenerateMipMaps(VkImage image, VkFormat imgFormat, uint32_t te
 void Application::CreateTexture(const std::string& fileName)
 {
 	//TODO: ensure that the same texture isn't allocated twice.
-
+	
 	this->mTextures.push_back(Texture());
 	Texture& newTexture = this->mTextures.back();
 
@@ -1089,6 +1052,7 @@ void Application::CreateTexture(const std::string& fileName)
 
 	CreateTextureSampler(newTexture.mTextureSampler, mipLevels);
 
+	this->mTextures.back().mName = fileName;
 }
 
 void Application::CreateTextureView(const VkImage& textureImage, VkImageView& textureImageView, uint32_t mipLevels)
@@ -1149,32 +1113,9 @@ VkPipelineLayout* Application::GetPipelineLayout()
 void Application::CreateDescriptorSets()
 {
 	
-	VkDescriptorSetLayoutBinding uTransformBinding{};
-	uTransformBinding.binding = 0;
-	uTransformBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-	uTransformBinding.descriptorCount = 1; //one uniform struct.
-	uTransformBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT; //we are going to use the transforms in the vertex shader.
-
-	VkDescriptorSetLayoutBinding samplerBinding = {};
-	samplerBinding.binding = 1;
-	samplerBinding.descriptorCount = 1;
-	samplerBinding.pImmutableSamplers = nullptr;
-	samplerBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-	samplerBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT; //we are going to use the sampler in the fragment shader.
-
-
-	VkDescriptorSetLayoutBinding bindings[2] = { uTransformBinding, samplerBinding };
-
-
-	VkDescriptorSetLayoutCreateInfo layoutInfo = {};
-	layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-	layoutInfo.bindingCount = 2;
-	layoutInfo.pBindings = bindings;
-
-	VK_CHECK_RESULT(vkCreateDescriptorSetLayout(this->m_logicalDevice, &layoutInfo, nullptr, &descriptorSetLayout));
-
+	
 	//create descriptor pool
-	VkDescriptorPoolSize poolSize[3] = {};
+	VkDescriptorPoolSize poolSize[2] = {};
 	poolSize[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 	poolSize[0].descriptorCount = 1; //max numbers of frames in flight.
 
@@ -1186,17 +1127,21 @@ void Application::CreateDescriptorSets()
 	poolInfo.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
 	poolInfo.poolSizeCount = (uint32_t)2;
 	poolInfo.pPoolSizes = poolSize;
-	poolInfo.maxSets = 1 * 2; //max numbers of frames in flight.
+	poolInfo.maxSets = mTextures.size() * 2; //max numbers of frames in flight.
 
 	VK_CHECK_RESULT(vkCreateDescriptorPool(this->m_logicalDevice, &poolInfo, nullptr, &this->descriptorPool));
 
-	VkDescriptorSetAllocateInfo descriptorAllocInfo{};
-	descriptorAllocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-	descriptorAllocInfo.descriptorPool = this->descriptorPool;
-	descriptorAllocInfo.descriptorSetCount = 1;
-	descriptorAllocInfo.pSetLayouts = &descriptorSetLayout;
+	for (size_t i = 0; i < mTextures.size(); ++i) 
+	{
+		VkDescriptorSetAllocateInfo descriptorAllocInfo{};
+		descriptorAllocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+		descriptorAllocInfo.descriptorPool = this->descriptorPool;
+		descriptorAllocInfo.descriptorSetCount = 1;
+		descriptorAllocInfo.pSetLayouts = &descriptorSetLayout;
 
-	VK_CHECK_RESULT(vkAllocateDescriptorSets(this->m_logicalDevice, &descriptorAllocInfo, &this->descriptorSets));
+		VK_CHECK_RESULT(vkAllocateDescriptorSets(this->m_logicalDevice, &descriptorAllocInfo, &this->mTextures[i].mDescriptor));
+
+	}
 
 
 }
@@ -1211,31 +1156,34 @@ void Application::WriteDescriptorSets()
 
 	VkDescriptorImageInfo imageInfo = {};
 
-	imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-	imageInfo.imageView = this->mTextures[0].mTextureImageView;
-	imageInfo.sampler = this->mTextures[0].mTextureSampler;
+	for (size_t i = 0; i < this->mTextures.size(); ++i) 
+	{
+		imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+		imageInfo.imageView = this->mTextures[i].mTextureImageView;
+		imageInfo.sampler = this->mTextures[i].mTextureSampler;
 
-	VkWriteDescriptorSet descriptorWrite[2] = {};
-	descriptorWrite[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-	descriptorWrite[0].dstSet = this->descriptorSets;
-	descriptorWrite[0].dstBinding = 0;
-	descriptorWrite[0].dstArrayElement = 0;
-	descriptorWrite[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-	descriptorWrite[0].descriptorCount = 1; //how many buffers
-	descriptorWrite[0].pBufferInfo = &bufferInfo;
-	descriptorWrite[0].pImageInfo = nullptr; // Optional
-	descriptorWrite[0].pTexelBufferView = nullptr; // Optional
+		VkWriteDescriptorSet descriptorWrite[2] = {};
+		descriptorWrite[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		descriptorWrite[0].dstSet = this->mTextures[i].mDescriptor;
+		descriptorWrite[0].dstBinding = 0;
+		descriptorWrite[0].dstArrayElement = 0;
+		descriptorWrite[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		descriptorWrite[0].descriptorCount = 1; //how many buffers
+		descriptorWrite[0].pBufferInfo = &bufferInfo;
+		descriptorWrite[0].pImageInfo = nullptr; // Optional
+		descriptorWrite[0].pTexelBufferView = nullptr; // Optional
 
-	descriptorWrite[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-	descriptorWrite[1].dstSet = this->descriptorSets;
-	descriptorWrite[1].dstBinding = 1;
-	descriptorWrite[1].dstArrayElement = 0;
-	descriptorWrite[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-	descriptorWrite[1].descriptorCount = 1; //how many images
-	descriptorWrite[1].pImageInfo = &imageInfo;
-	descriptorWrite[1].pTexelBufferView = nullptr; // Optional
+		descriptorWrite[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		descriptorWrite[1].dstSet = this->mTextures[i].mDescriptor;
+		descriptorWrite[1].dstBinding = 1;
+		descriptorWrite[1].dstArrayElement = 0;
+		descriptorWrite[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		descriptorWrite[1].descriptorCount = 1; //how many images
+		descriptorWrite[1].pImageInfo = &imageInfo;
+		descriptorWrite[1].pTexelBufferView = nullptr; // Optional
 
-	vkUpdateDescriptorSets(this->m_logicalDevice, 2, descriptorWrite, 0, nullptr);
+		vkUpdateDescriptorSets(this->m_logicalDevice, 2, descriptorWrite, 0, nullptr);
+	}
 
 }
 
@@ -1372,30 +1320,7 @@ void Application::CreatePipeline(VkPipelineShaderStageCreateInfo* pStages, int n
 	depthStencilCreateInfo.front = {};
 	depthStencilCreateInfo.back = {};
 
-	VkPushConstantRange pushConstants[1];
-
-	//this is for an object's model transformation.
-	pushConstants[0].offset = 0;
-	pushConstants[0].size = sizeof(glm::mat4);
-	pushConstants[0].stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-
-	//pushConstants[1].offset = 0;
-	//pushConstants[1].size = sizeof(int);
-	//pushConstants[1].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-
-	VkPipelineLayoutCreateInfo				pipelineLayoutCreateInfo = {};
-	pipelineLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-	pipelineLayoutCreateInfo.pNext = nullptr;
-	pipelineLayoutCreateInfo.flags = 0;
-	pipelineLayoutCreateInfo.setLayoutCount = 1;
-	pipelineLayoutCreateInfo.pSetLayouts = &descriptorSetLayout;
-	pipelineLayoutCreateInfo.pushConstantRangeCount = 1;
-	pipelineLayoutCreateInfo.pPushConstantRanges = pushConstants;
-
-	this->pipelineLayouts.push_back(VkPipelineLayout());
 	
-	VK_CHECK_RESULT(vkCreatePipelineLayout(this->m_logicalDevice, &pipelineLayoutCreateInfo, nullptr, &this->pipelineLayouts.back()));
-
 	VkPipelineMultisampleStateCreateInfo multiSampleCreateInfo = {};
 	multiSampleCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
 	multiSampleCreateInfo.sampleShadingEnable = VK_FALSE;
@@ -1581,6 +1506,14 @@ void Application::InitGui()
 
 int Application::GetTexture(const char* fileName) 
 {
+	for (size_t i = 0; i < mTextures.size(); ++i) 
+	{
+		if (strcmp(fileName, mTextures[i].mName.c_str()) == 0) 
+		{
+			return i;
+		}
+	}
+
 	this->CreateTexture(std::string(fileName));
 	return this->mTextures.size() - 1;
 }
@@ -1643,8 +1576,66 @@ bool Application::init()
 	CreateTexture("texture.jpg");
 	
 	CreateDepthResources();
+
+
+	VkDescriptorSetLayoutBinding uTransformBinding{};
+	uTransformBinding.binding = 0;
+	uTransformBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+	uTransformBinding.descriptorCount = 1; //one uniform struct.
+	uTransformBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT; //we are going to use the transforms in the vertex shader.
+
+	VkDescriptorSetLayoutBinding samplerBinding = {};
+	samplerBinding.binding = 1;
+	samplerBinding.descriptorCount = 1;
+	samplerBinding.pImmutableSamplers = nullptr;
+	samplerBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+	samplerBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT; //we are going to use the sampler in the fragment shader.
+
+
+	VkDescriptorSetLayoutBinding bindings[2] = { uTransformBinding, samplerBinding };
+
+
+	VkDescriptorSetLayoutCreateInfo layoutInfo = {};
+	layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+	layoutInfo.bindingCount = 2;
+	layoutInfo.pBindings = bindings;
+
+	VK_CHECK_RESULT(vkCreateDescriptorSetLayout(this->m_logicalDevice, &layoutInfo, nullptr, &descriptorSetLayout));
+
+	VkPushConstantRange pushConstants[1];
+
+	//this is for an object's model transformation.
+	pushConstants[0].offset = 0;
+	pushConstants[0].size = sizeof(glm::mat4);
+	pushConstants[0].stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+
+	//pushConstants[1].offset = 0;
+	//pushConstants[1].size = sizeof(int);
+	//pushConstants[1].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+	VkPipelineLayoutCreateInfo				pipelineLayoutCreateInfo = {};
+	pipelineLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+	pipelineLayoutCreateInfo.pNext = nullptr;
+	pipelineLayoutCreateInfo.flags = 0;
+	pipelineLayoutCreateInfo.setLayoutCount = 1;
+	pipelineLayoutCreateInfo.pSetLayouts = &descriptorSetLayout;
+	pipelineLayoutCreateInfo.pushConstantRangeCount = 1;
+	pipelineLayoutCreateInfo.pPushConstantRanges = pushConstants;
+
+	this->pipelineLayouts.push_back(VkPipelineLayout());
+
+	VK_CHECK_RESULT(vkCreatePipelineLayout(this->m_logicalDevice, &pipelineLayoutCreateInfo, nullptr, &this->pipelineLayouts.back()));
+
+	this->debugCube = Object((PathToObjects() + "freddy.obj").c_str(), "texture.jpg", &this->pipelineLayouts.back());
+	debugCube.mModelTransform = glm::mat4(5.f);
+	debugCube.mModelTransform[3] = glm::vec4(1.f, 0, 5.f, 1);
+
+	this->debugCube2 = Object((PathToObjects() + "gcube.obj").c_str(), "texture.jpg", &this->pipelineLayouts.back());
+	debugCube2.mModelTransform = glm::mat4(1.f);
+	debugCube2.mModelTransform[3] = glm::vec4(-1.f, 0, 5.f, 1);
 	
 	CreateDescriptorSets();
+	WriteDescriptorSets();
 	
 	CreateRenderPass();
 	CreateFrameBuffers();
@@ -1660,16 +1651,6 @@ bool Application::init()
 
 	InitPhysics();
 	
-	this->debugCube = Object((PathToObjects() + "freddy.obj").c_str(), "texture.jpg", &this->pipelineLayouts.back());
-	debugCube.mModelTransform = glm::mat4(5.f);
-	debugCube.mModelTransform[3] = glm::vec4(1.f, 0, 5.f, 1);
-
-	this->debugCube2 = Object((PathToObjects() + "gcube.obj").c_str(), "texture.jpg", &this->pipelineLayouts.back());
-	debugCube2.mModelTransform = glm::mat4(1.f);
-	debugCube2.mModelTransform[3] = glm::vec4(-1.f, 0, 5.f, 1);
-
-
-	WriteDescriptorSets();
 
 	this->timeNow = SDL_GetPerformanceCounter();
 
@@ -1834,7 +1815,7 @@ void Application::Render()
 
 	//bind the graphics pipeline
 	vkCmdBindPipeline(this->commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->pipeline);
-	vkCmdBindDescriptorSets(this->commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->pipelineLayouts.back(), 0, 1, &descriptorSets, 0, nullptr);
+	/*vkCmdBindDescriptorSets(this->commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->pipelineLayouts.back(), 0, 1, &descriptorSets, 0, nullptr);*/
 
 	vkCmdSetViewport(this->commandBuffer, 0, 1, &this->m_viewPort);
 	vkCmdSetScissor(this->commandBuffer, 0, 1, &this->m_scissor);
@@ -1918,6 +1899,12 @@ void Application::loop()
 	VK_CHECK_RESULT(vkDeviceWaitIdle(this->m_logicalDevice));
 
 
+
+}
+
+const std::vector<Texture>& Application::Textures() 
+{
+	return this->mTextures;
 
 }
 
