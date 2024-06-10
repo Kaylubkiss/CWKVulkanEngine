@@ -47,6 +47,16 @@ struct Buffer
 	/*~Buffer();*/ //this gets called in std::vector and causes headache. we don't want that.
 };
 
+struct Texture 
+{
+	VkImage mTextureImage;
+	VkDeviceMemory mTextureMemory;
+	VkImageView mTextureImageView;
+	VkSampler mTextureSampler;
+
+	Texture() : mTextureImage(), mTextureMemory(), mTextureImageView(), mTextureSampler() {};
+};
+
 
 
 static struct ApplicationManager

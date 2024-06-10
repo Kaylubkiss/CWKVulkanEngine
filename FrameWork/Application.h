@@ -28,8 +28,6 @@ private:
 	PhysicsCommon mPhysicsCommon;
 	PhysicsWorld* mPhysicsWorld = nullptr;
 
-
-
 	VkDebugUtilsMessengerEXT debugMessenger;
 
 	ImGui_ImplVulkanH_Window guiWindowData;
@@ -76,10 +74,12 @@ private:
 
 	std::vector<Buffer> uniformBuffers;
 
-	VkImage textureImage;
+	/*VkImage textureImage;
 	VkDeviceMemory textureMemory;
 	VkImageView textureImageView;
-	VkSampler textureSampler;
+	VkSampler textureSampler;*/
+
+	std::vector<Texture> mTextures;
 
 	VkImage depthImage;
 	VkDeviceMemory depthImageMemory;
@@ -142,8 +142,8 @@ private:
 	void GenerateMipMaps(VkImage image, VkFormat imgFormat, uint32_t textureWidth, uint32_t textureHeight, uint32_t mipLevels);
 
 	void CreateTexture(const std::string& fileName);
-	void CreateTextureView(const VkImage& textureImage, uint32_t mipLevels);
-	void CreateTextureSampler(uint32_t mipLevels);
+	void CreateTextureView(const VkImage& textureImage, VkImageView& textureImageView, uint32_t mipLevels);
+	void CreateTextureSampler(VkSampler& textureSampler, uint32_t mipLevels);
 
 	void InitPhysics();
 

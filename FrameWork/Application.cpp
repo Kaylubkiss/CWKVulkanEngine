@@ -298,6 +298,7 @@ void Application::CreateLogicalDevice()
 	VkDeviceQueueCreateInfo* deviceQueueCreateInfos = new VkDeviceQueueCreateInfo[2]; //presentation and graphics.
 
 	uint32_t uniqueQueueFamilies[2] = { graphicsFamily, presentFamily };
+
 	for (unsigned i = 0; i < 2; ++i)
 	{
 		VkDeviceQueueCreateInfo deviceQueueInfo = {}; //to be passed into deviceCreateInfo's struct members.
@@ -1009,9 +1010,11 @@ void Application::GenerateMipMaps(VkImage image, VkFormat imgFormat, uint32_t te
 
 void Application::CreateTexture(const std::string& fileName)
 {
+	this->mTextures.push_back(Texture());
 
 	int textureWidth, textureHeight, textureChannels;
 	stbi_uc* pixels = stbi_load((PathToTextures() + fileName).c_str(), &textureWidth, &textureHeight, &textureChannels, STBI_rgb_alpha);
+	
 	VkDeviceSize imageSize = textureWidth * textureHeight * 4;
 
 	if (pixels == NULL) 
@@ -1027,29 +1030,29 @@ void Application::CreateTexture(const std::string& fileName)
 
 	CreateImage(textureWidth, textureHeight, mipLevels, VK_FORMAT_R8G8B8A8_SRGB,
 				VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-				VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, this->textureImage, this->textureMemory, 1);
+				VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, this->mTextures.back().mTextureImage, this->mTextures.back().mTextureMemory, 1);
 
-	TransitionImageLayout(this->textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, mipLevels);
+	TransitionImageLayout(this->mTextures.back().mTextureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, mipLevels);
 	
-	copyBufferToImage(stagingBuffer.handle, this->textureImage, (uint32_t)(textureWidth), (uint32_t)(textureHeight));
+	copyBufferToImage(stagingBuffer.handle, this->mTextures.back().mTextureImage, (uint32_t)(textureWidth), (uint32_t)(textureHeight));
 	
-	GenerateMipMaps(this->textureImage, VK_FORMAT_R8G8B8A8_SRGB, (uint32_t)textureWidth, (uint32_t)textureHeight, mipLevels);
+	GenerateMipMaps(this->mTextures.back().mTextureImage, VK_FORMAT_R8G8B8A8_SRGB, (uint32_t)textureWidth, (uint32_t)textureHeight, mipLevels);
 
 	vkDestroyBuffer(this->m_logicalDevice, stagingBuffer.handle, nullptr);
 	vkFreeMemory(this->m_logicalDevice, stagingBuffer.memory, nullptr);
 
-	CreateTextureView(this->textureImage, mipLevels);
+	CreateTextureView(this->mTextures.back().mTextureImage, this->mTextures.back().mTextureImageView, mipLevels);
 
-	CreateTextureSampler(mipLevels);
+	CreateTextureSampler(this->mTextures.back().mTextureSampler, mipLevels);
 
 }
 
-void Application::CreateTextureView(const VkImage& textureImage, uint32_t mipLevels)
+void Application::CreateTextureView(const VkImage& textureImage, VkImageView& textureImageView, uint32_t mipLevels)
 {
 
 	VkImageViewCreateInfo viewInfo = {};
 	viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-	viewInfo.image = this->textureImage;
+	viewInfo.image = textureImage;
 	viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
 	viewInfo.format = VK_FORMAT_R8G8B8A8_SRGB;
 	viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
@@ -1058,10 +1061,10 @@ void Application::CreateTextureView(const VkImage& textureImage, uint32_t mipLev
 	viewInfo.subresourceRange.baseArrayLayer = 0;
 	viewInfo.subresourceRange.layerCount = 1;
 	
-	VK_CHECK_RESULT(vkCreateImageView(this->m_logicalDevice, &viewInfo, nullptr, &this->textureImageView));
+	VK_CHECK_RESULT(vkCreateImageView(this->m_logicalDevice, &viewInfo, nullptr, &textureImageView));
 }
 
-void Application::CreateTextureSampler(uint32_t mipLevels)
+void Application::CreateTextureSampler(VkSampler& textureSampler, uint32_t mipLevels)
 {
 	VkSamplerCreateInfo createInfo = {};
 	createInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
@@ -1089,7 +1092,7 @@ void Application::CreateTextureSampler(uint32_t mipLevels)
 	createInfo.maxLod = static_cast<float>(mipLevels);
 	createInfo.mipLodBias = 0.f; //optional...
 
-	VK_CHECK_RESULT(vkCreateSampler(this->m_logicalDevice, &createInfo, nullptr, &this->textureSampler));
+	VK_CHECK_RESULT(vkCreateSampler(this->m_logicalDevice, &createInfo, nullptr, &textureSampler));
 }
 void Application::CreateDescriptorSets()
 {
@@ -1154,10 +1157,16 @@ void Application::WriteDescriptorSets()
 	bufferInfo.offset = 0;
 	bufferInfo.range = sizeof(uTransformObject);
 
-	VkDescriptorImageInfo imageInfo = {};
-	imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-	imageInfo.imageView = this->textureImageView;
-	imageInfo.sampler = this->textureSampler;
+	std::vector<VkDescriptorImageInfo> imageInfos = {};
+	for (size_t i = 0; i < mTextures.size(); ++i) 
+	{
+		VkDescriptorImageInfo imageInfo = {};
+		imageInfos.push_back(imageInfo);
+
+		imageInfos[i].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+		imageInfos[i].imageView = this->mTextures[i].mTextureImageView;
+		imageInfos[i].sampler = this->mTextures[i].mTextureSampler;
+	}
 
 	VkWriteDescriptorSet descriptorWrite[2] = {};
 	descriptorWrite[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
@@ -1176,7 +1185,7 @@ void Application::WriteDescriptorSets()
 	descriptorWrite[1].dstArrayElement = 0;
 	descriptorWrite[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 	descriptorWrite[1].descriptorCount = 1; //how many images
-	descriptorWrite[1].pImageInfo = &imageInfo;
+	descriptorWrite[1].pImageInfo = imageInfos.data();
 	descriptorWrite[1].pTexelBufferView = nullptr; // Optional
 
 	vkUpdateDescriptorSets(this->m_logicalDevice, 2, descriptorWrite, 0, nullptr);
@@ -1559,10 +1568,6 @@ bool Application::init()
 	this->debugCube2 = Object((PathToObjects() + "gcube.obj").c_str());
 	debugCube2.mModelTransform = glm::mat4(1.f);
 	debugCube2.mModelTransform[3] = glm::vec4(-1.f, 0, 5.f, 1);
-
-	//this->mPhysicsWorld = this->mPhysicsCommon.createPhysicsWorld();
-	//
-	
 	
 	// If you want to draw a triangle:
 	// - create renderpass object
@@ -1878,11 +1883,14 @@ void Application::exit()
 		vkFreeMemory(this->m_logicalDevice, uniformBuffers[i].memory, nullptr);
 	}
 
-	vkDestroySampler(this->m_logicalDevice, this->textureSampler, nullptr);
-	vkDestroyImageView(this->m_logicalDevice,this->textureImageView, nullptr);
+	for (size_t i = 0; i < this->mTextures.size(); ++i) 
+	{
+		vkDestroySampler(this->m_logicalDevice, this->mTextures[i].mTextureSampler, nullptr);
+		vkDestroyImageView(this->m_logicalDevice, this->mTextures[i].mTextureImageView, nullptr);
+		vkDestroyImage(this->m_logicalDevice, this->mTextures[i].mTextureImage, nullptr);
+		vkFreeMemory(this->m_logicalDevice, this->mTextures[i].mTextureMemory, nullptr);
+	}
 
-	vkDestroyImage(this->m_logicalDevice, textureImage, nullptr);
-	vkFreeMemory(this->m_logicalDevice, this->textureMemory, nullptr);
 
 	vkDestroyImage(this->m_logicalDevice, this->depthImage, nullptr);
 	vkDestroyImageView(this->m_logicalDevice, this->depthImageView, nullptr);
