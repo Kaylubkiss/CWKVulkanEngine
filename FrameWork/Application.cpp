@@ -1630,7 +1630,7 @@ bool Application::init()
 	debugCube.mModelTransform = glm::mat4(5.f);
 	debugCube.mModelTransform[3] = glm::vec4(1.f, 0, 5.f, 1);
 
-	this->debugCube2 = Object((PathToObjects() + "gcube.obj").c_str(), "texture.jpg", &this->pipelineLayouts.back());
+	this->debugCube2 = Object((PathToObjects() + "gcube.obj").c_str(), "puppy1.bmp", &this->pipelineLayouts.back());
 	debugCube2.mModelTransform = glm::mat4(1.f);
 	debugCube2.mModelTransform[3] = glm::vec4(-1.f, 0, 5.f, 1);
 	
