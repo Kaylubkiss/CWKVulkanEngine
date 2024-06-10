@@ -15,6 +15,8 @@ static bool windowisfocused = false;
 
 #define VK_CHECK_RESULT(function) {VkResult check = function; assert(check == VK_SUCCESS);}
 
+static const int const_textureCount = 3;
+
 static void check_vk_result(VkResult err)
 {
 	if (err == 0)
@@ -630,6 +632,43 @@ void Application::CreateFrameBuffers()
 
 }
 
+
+void Application::UpdateDescriptorSet(int textureIndex) 
+{
+	VkDescriptorBufferInfo bufferInfo = {};
+	bufferInfo.buffer = uniformBuffers[0].handle;
+	bufferInfo.offset = 0;
+	bufferInfo.range = sizeof(uTransformObject);
+
+	VkDescriptorImageInfo imageInfo = {};
+
+	imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+	imageInfo.imageView = this->mTextures[textureIndex].mTextureImageView;
+	imageInfo.sampler = this->mTextures[textureIndex].mTextureSampler;
+
+	VkWriteDescriptorSet descriptorWrite[2] = {};
+	descriptorWrite[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+	descriptorWrite[0].dstSet = this->descriptorSets;
+	descriptorWrite[0].dstBinding = 0;
+	descriptorWrite[0].dstArrayElement = 0;
+	descriptorWrite[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+	descriptorWrite[0].descriptorCount = 1; //how many buffers
+	descriptorWrite[0].pBufferInfo = &bufferInfo;
+	descriptorWrite[0].pImageInfo = nullptr; // Optional
+	descriptorWrite[0].pTexelBufferView = nullptr; // Optional
+
+	descriptorWrite[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+	descriptorWrite[1].dstSet = this->descriptorSets;
+	descriptorWrite[1].dstBinding = 1;
+	descriptorWrite[1].dstArrayElement = 0;
+	descriptorWrite[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+	descriptorWrite[1].descriptorCount = 1; //how many images
+	descriptorWrite[1].pImageInfo = &imageInfo;
+	descriptorWrite[1].pTexelBufferView = nullptr; // Optional
+
+	vkUpdateDescriptorSets(this->m_logicalDevice, 2, descriptorWrite, 0, nullptr);
+
+}
 void Application::CreateBuffers() 
 {
 	
@@ -884,6 +923,8 @@ static std::string PathToObjects() {
 	return "External/objects/";
 }
 
+
+//TODO
 void Application::CreateCubeMap() 
 {
 	/*unsigned char* textureData[6];
@@ -1010,7 +1051,10 @@ void Application::GenerateMipMaps(VkImage image, VkFormat imgFormat, uint32_t te
 
 void Application::CreateTexture(const std::string& fileName)
 {
+	//TODO: ensure that the same texture isn't allocated twice.
+
 	this->mTextures.push_back(Texture());
+	Texture& newTexture = this->mTextures.back();
 
 	int textureWidth, textureHeight, textureChannels;
 	stbi_uc* pixels = stbi_load((PathToTextures() + fileName).c_str(), &textureWidth, &textureHeight, &textureChannels, STBI_rgb_alpha);
@@ -1030,20 +1074,20 @@ void Application::CreateTexture(const std::string& fileName)
 
 	CreateImage(textureWidth, textureHeight, mipLevels, VK_FORMAT_R8G8B8A8_SRGB,
 				VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-				VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, this->mTextures.back().mTextureImage, this->mTextures.back().mTextureMemory, 1);
+				VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, newTexture.mTextureImage, newTexture.mTextureMemory, 1);
 
-	TransitionImageLayout(this->mTextures.back().mTextureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, mipLevels);
+	TransitionImageLayout(newTexture.mTextureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, mipLevels);
 	
-	copyBufferToImage(stagingBuffer.handle, this->mTextures.back().mTextureImage, (uint32_t)(textureWidth), (uint32_t)(textureHeight));
+	copyBufferToImage(stagingBuffer.handle, newTexture.mTextureImage, (uint32_t)(textureWidth), (uint32_t)(textureHeight));
 	
-	GenerateMipMaps(this->mTextures.back().mTextureImage, VK_FORMAT_R8G8B8A8_SRGB, (uint32_t)textureWidth, (uint32_t)textureHeight, mipLevels);
+	GenerateMipMaps(newTexture.mTextureImage, VK_FORMAT_R8G8B8A8_SRGB, (uint32_t)textureWidth, (uint32_t)textureHeight, mipLevels);
 
 	vkDestroyBuffer(this->m_logicalDevice, stagingBuffer.handle, nullptr);
 	vkFreeMemory(this->m_logicalDevice, stagingBuffer.memory, nullptr);
 
-	CreateTextureView(this->mTextures.back().mTextureImage, this->mTextures.back().mTextureImageView, mipLevels);
+	CreateTextureView(newTexture.mTextureImage, newTexture.mTextureImageView, mipLevels);
 
-	CreateTextureSampler(this->mTextures.back().mTextureSampler, mipLevels);
+	CreateTextureSampler(newTexture.mTextureSampler, mipLevels);
 
 }
 
@@ -1094,6 +1138,14 @@ void Application::CreateTextureSampler(VkSampler& textureSampler, uint32_t mipLe
 
 	VK_CHECK_RESULT(vkCreateSampler(this->m_logicalDevice, &createInfo, nullptr, &textureSampler));
 }
+
+
+VkPipelineLayout* Application::GetPipelineLayout() 
+{
+	return &(this->pipelineLayouts.back());
+
+}
+
 void Application::CreateDescriptorSets()
 {
 	
@@ -1157,16 +1209,11 @@ void Application::WriteDescriptorSets()
 	bufferInfo.offset = 0;
 	bufferInfo.range = sizeof(uTransformObject);
 
-	std::vector<VkDescriptorImageInfo> imageInfos = {};
-	for (size_t i = 0; i < mTextures.size(); ++i) 
-	{
-		VkDescriptorImageInfo imageInfo = {};
-		imageInfos.push_back(imageInfo);
+	VkDescriptorImageInfo imageInfo = {};
 
-		imageInfos[i].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-		imageInfos[i].imageView = this->mTextures[i].mTextureImageView;
-		imageInfos[i].sampler = this->mTextures[i].mTextureSampler;
-	}
+	imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+	imageInfo.imageView = this->mTextures[0].mTextureImageView;
+	imageInfo.sampler = this->mTextures[0].mTextureSampler;
 
 	VkWriteDescriptorSet descriptorWrite[2] = {};
 	descriptorWrite[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
@@ -1185,7 +1232,7 @@ void Application::WriteDescriptorSets()
 	descriptorWrite[1].dstArrayElement = 0;
 	descriptorWrite[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 	descriptorWrite[1].descriptorCount = 1; //how many images
-	descriptorWrite[1].pImageInfo = imageInfos.data();
+	descriptorWrite[1].pImageInfo = &imageInfo;
 	descriptorWrite[1].pTexelBufferView = nullptr; // Optional
 
 	vkUpdateDescriptorSets(this->m_logicalDevice, 2, descriptorWrite, 0, nullptr);
@@ -1332,6 +1379,10 @@ void Application::CreatePipeline(VkPipelineShaderStageCreateInfo* pStages, int n
 	pushConstants[0].size = sizeof(glm::mat4);
 	pushConstants[0].stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
 
+	//pushConstants[1].offset = 0;
+	//pushConstants[1].size = sizeof(int);
+	//pushConstants[1].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
 	VkPipelineLayoutCreateInfo				pipelineLayoutCreateInfo = {};
 	pipelineLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
 	pipelineLayoutCreateInfo.pNext = nullptr;
@@ -1341,12 +1392,15 @@ void Application::CreatePipeline(VkPipelineShaderStageCreateInfo* pStages, int n
 	pipelineLayoutCreateInfo.pushConstantRangeCount = 1;
 	pipelineLayoutCreateInfo.pPushConstantRanges = pushConstants;
 
-	VK_CHECK_RESULT(vkCreatePipelineLayout(this->m_logicalDevice, &pipelineLayoutCreateInfo, nullptr, &this->pipelineLayout));
+	this->pipelineLayouts.push_back(VkPipelineLayout());
+	
+	VK_CHECK_RESULT(vkCreatePipelineLayout(this->m_logicalDevice, &pipelineLayoutCreateInfo, nullptr, &this->pipelineLayouts.back()));
 
 	VkPipelineMultisampleStateCreateInfo multiSampleCreateInfo = {};
 	multiSampleCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
 	multiSampleCreateInfo.sampleShadingEnable = VK_FALSE;
 	multiSampleCreateInfo.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+
 
 	VkGraphicsPipelineCreateInfo gfxPipelineCreateInfo =
 	{
@@ -1374,7 +1428,7 @@ void Application::CreatePipeline(VkPipelineShaderStageCreateInfo* pStages, int n
 		//VkPipelineDynamicStateCreateInfo,
 		&dynamicStateCreateInfo,
 		//VkPipelineLayout,
-		this->pipelineLayout,
+		this->pipelineLayouts.back(),
 		//VkRenderPass,
 		this->m_renderPass,
 		//subpass,
@@ -1525,6 +1579,12 @@ void Application::InitGui()
 }
 
 
+int Application::GetTexture(const char* fileName) 
+{
+	this->CreateTexture(std::string(fileName));
+	return this->mTextures.size() - 1;
+}
+
 bool Application::init() 
 {
 
@@ -1561,13 +1621,6 @@ bool Application::init()
 	vkGetDeviceQueue(this->m_logicalDevice, graphicsFamily, 0, &graphicsQueue);
 	vkGetDeviceQueue(this->m_logicalDevice, presentFamily, 0, &presentQueue);
 
-	this->debugCube = Object((PathToObjects() + "freddy.obj").c_str());
-	debugCube.mModelTransform = glm::mat4(5.f);
-	debugCube.mModelTransform[3] = glm::vec4(1.f, 0, 5.f, 1);
-
-	this->debugCube2 = Object((PathToObjects() + "gcube.obj").c_str());
-	debugCube2.mModelTransform = glm::mat4(1.f);
-	debugCube2.mModelTransform[3] = glm::vec4(-1.f, 0, 5.f, 1);
 	
 	// If you want to draw a triangle:
 	// - create renderpass object
@@ -1592,7 +1645,6 @@ bool Application::init()
 	CreateDepthResources();
 	
 	CreateDescriptorSets();
-	WriteDescriptorSets();
 	
 	CreateRenderPass();
 	CreateFrameBuffers();
@@ -1607,6 +1659,17 @@ bool Application::init()
 	InitGui();
 
 	InitPhysics();
+	
+	this->debugCube = Object((PathToObjects() + "freddy.obj").c_str(), "texture.jpg", &this->pipelineLayouts.back());
+	debugCube.mModelTransform = glm::mat4(5.f);
+	debugCube.mModelTransform[3] = glm::vec4(1.f, 0, 5.f, 1);
+
+	this->debugCube2 = Object((PathToObjects() + "gcube.obj").c_str(), "texture.jpg", &this->pipelineLayouts.back());
+	debugCube2.mModelTransform = glm::mat4(1.f);
+	debugCube2.mModelTransform[3] = glm::vec4(-1.f, 0, 5.f, 1);
+
+
+	WriteDescriptorSets();
 
 	this->timeNow = SDL_GetPerformanceCounter();
 
@@ -1771,13 +1834,13 @@ void Application::Render()
 
 	//bind the graphics pipeline
 	vkCmdBindPipeline(this->commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->pipeline);
-	vkCmdBindDescriptorSets(this->commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->pipelineLayout, 0, 1, &descriptorSets, 0, nullptr);
+	vkCmdBindDescriptorSets(this->commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->pipelineLayouts.back(), 0, 1, &descriptorSets, 0, nullptr);
 
 	vkCmdSetViewport(this->commandBuffer, 0, 1, &this->m_viewPort);
 	vkCmdSetScissor(this->commandBuffer, 0, 1, &this->m_scissor);
 
-	debugCube.Draw(this->commandBuffer, this->pipelineLayout);
-	debugCube2.Draw(this->commandBuffer, this->pipelineLayout);
+	debugCube.Draw(this->commandBuffer);
+	debugCube2.Draw(this->commandBuffer);
 
 	DrawGui();
 
@@ -1869,7 +1932,10 @@ void Application::exit()
 
 	vkFreeCommandBuffers(this->m_logicalDevice, this->commandPool, 1, &this->commandBuffer);
 
-	vkDestroyPipelineLayout(this->m_logicalDevice, this->pipelineLayout, nullptr);
+	for (size_t i = 0; i < this->pipelineLayouts.size(); ++i) 
+	{
+		vkDestroyPipelineLayout(this->m_logicalDevice, this->pipelineLayouts[i], nullptr);
+	}
 
 	vkDestroyPipeline(this->m_logicalDevice, this->pipeline, nullptr);
 

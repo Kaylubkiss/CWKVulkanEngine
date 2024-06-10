@@ -52,19 +52,18 @@ struct Mesh
 struct Object 
 {
 	int numVertices = 0;
+	int textureIndex = -1;
 	glm::vec3 mCenter = glm::vec3(0.f);
 	Buffer vertexBuffer;
 	Buffer indexBuffer;
+	VkPipelineLayout* mPipelineLayout = nullptr;
 	std::vector<Vertex> vertexBufferData;
 	std::vector<uint16_t> indexBufferData;
-
 	glm::mat4 mModelTransform;
-	//Mesh mMesh;
 
-	
-	Object(const char* fileName);
+	Object(const char* fileName, const char* textureName = nullptr, VkPipelineLayout* pipelineLayout = nullptr);
 	Object() : mCenter(0.f), mModelTransform(1.f), vertexBuffer(), indexBuffer() {};
-	void Draw(VkCommandBuffer cmdBuffer, VkPipelineLayout pLayout);
+	void Draw(VkCommandBuffer cmdBuffer);
 };
 
 void LoadMeshOBJ(const std::string& path, Object& obj);

@@ -4,8 +4,6 @@
 #include <SDL2/SDL.h>
 
 
-
-
 class Application
 {
 public:
@@ -13,6 +11,9 @@ public:
 	const VkDevice& LogicalDevice();
 	const VkQueue& GraphicsQueue();
 	const VkCommandPool& CommandPool();
+	int GetTexture(const char* fileName);
+	VkPipelineLayout* GetPipelineLayout();
+	void UpdateDescriptorSet(int textureIndex);
 
 	void run();
 private:
@@ -52,7 +53,7 @@ private:
 	VkShaderModule shaderFragModule = VK_NULL_HANDLE;
 	VkShaderModule* ShaderStages[2] = { &shaderVertModule, &shaderFragModule };
 
-	VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
+	std::vector<VkPipelineLayout> pipelineLayouts;
 	VkPipeline pipeline = VK_NULL_HANDLE;
 
 	VkCommandPool commandPool = VK_NULL_HANDLE;

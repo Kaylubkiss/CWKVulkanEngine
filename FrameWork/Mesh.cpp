@@ -1,4 +1,5 @@
 #include "Mesh.h"
+#include "Application.h"
 #include <fstream>
 #include <sstream>
 #include <algorithm>
@@ -6,7 +7,7 @@
 #define TINYOBJLOADER_IMPLEMENTATION
 #include "tiny_obj_loader.h"
 
-Object::Object(const char* fileName)
+Object::Object(const char* fileName, const char* textureName, VkPipelineLayout* pipelineLayout)
 {
     LoadMeshOBJ(fileName, *this);
 
@@ -47,18 +48,33 @@ Object::Object(const char* fileName)
     std::cout << std::endl;
     std::cout << "loaded in " + std::string(fileName) << std::endl;
     std::cout << this->numVertices << " vertices loaded in." << std::endl << std::endl;
+
+    if (textureName != nullptr) 
+    {
+        this->textureIndex = _Application->GetTexture(textureName);
+    }
+
+    if (pipelineLayout != nullptr) 
+    {
+        this->mPipelineLayout = _Application->GetPipelineLayout();
+
+    }
+
 }
 
 
-void Object::Draw(VkCommandBuffer cmdBuffer, VkPipelineLayout pLayout) 
+void Object::Draw(VkCommandBuffer cmdBuffer) 
 {
+
+   
+
     VkDeviceSize offsets[1] = { 0 };
     VkBuffer  vBuffers[] = { this->vertexBuffer.handle };
 
     vkCmdBindVertexBuffers(cmdBuffer, 0, 1, &vertexBuffer.handle, offsets);
     vkCmdBindIndexBuffer(cmdBuffer, indexBuffer.handle, 0, VK_INDEX_TYPE_UINT16);
 
-    vkCmdPushConstants(cmdBuffer, pLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::mat4), (void*)(&mModelTransform));
+    vkCmdPushConstants(cmdBuffer, *this->mPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::mat4), (void*)(&mModelTransform));
 
     vkCmdDrawIndexed(cmdBuffer, static_cast<uint32_t>(indexBufferData.size()), 1, 0, 0, 0);
 

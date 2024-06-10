@@ -12,10 +12,10 @@ layout( location = 0 ) in vec3 aPos;
 layout( location = 1 ) in vec3 aNorm;
 layout( location = 2 ) in vec2 aUv;
 
-layout (push_constant) uniform matrix
+layout (push_constant) uniform Matrix
 {
 	mat4 modelMatrix;
-} Matrix;
+} matrix;
 
 layout(location = 0) out vec3 fragColor;
 layout(location = 1) out vec2 fragTexCoord;
@@ -39,7 +39,7 @@ vec3 colors[3] = vec3[3]
 void main ()
 {
 	
-	gl_Position = uTransform.proj * uTransform.view * Matrix.modelMatrix * vec4(aPos, 1.f); 
+	gl_Position = uTransform.proj * uTransform.view * matrix.modelMatrix * vec4(aPos, 1.f); 
 	fragColor = aNorm;
 	fragTexCoord = aUv;
 }

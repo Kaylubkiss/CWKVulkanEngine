@@ -54,6 +54,8 @@ struct Texture
 	VkImageView mTextureImageView;
 	VkSampler mTextureSampler;
 
+	VkDescriptorSet textureDescriptor;
+
 	Texture() : mTextureImage(), mTextureMemory(), mTextureImageView(), mTextureSampler() {};
 };
 
