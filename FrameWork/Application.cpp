@@ -502,9 +502,19 @@ void Application::CreateImageViews()
 
 	this->swapChainImages = new VkImage[imageCount];
 
-	VK_CHECK_RESULT(vkGetSwapchainImagesKHR(this->m_logicalDevice, swapChain, &imageCount, this->swapChainImages));
+	//VK_CHECK_RESULT(vkGetSwapchainImagesKHR(this->m_logicalDevice, swapChain, &imageCount, this->swapChainImages));
 
-	
+	for (size_t i = 0; i < imageCount; ++i) 
+	{
+		VkImageCreateInfo imageCreateInfo = {};
+		imageCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+		imageCreateInfo.extent = { deviceCapabilities.currentExtent.width, deviceCapabilities.currentExtent.height, 0 };
+		imageCreateInfo.format = VK_FORMAT_B8G8R8A8_SRGB;
+
+
+		vkCreateImage(this->m_logicalDevice, );
+
+	}
 	//create imageview --> allow image to be seen in a different format.
 	this->imageViews = new VkImageView[imageCount];
 
