@@ -1,6 +1,6 @@
 #pragma once
 #include "Common.h"
-#include "Mesh.h"
+#include "Object.h"
 #include <SDL2/SDL.h>
 
 
@@ -13,9 +13,9 @@ public:
 	const VkCommandPool& CommandPool();
 	int GetTexture(const char* fileName);
 	VkPipelineLayout* GetPipelineLayout();
-	void UpdateDescriptorSet(int textureIndex);
 	const std::vector<Texture>& Textures();
 	void run();
+	~Application();
 private:
 	uint64_t timeNow;
 	uint64_t timeBefore;
@@ -144,6 +144,8 @@ private:
 
 	void InitPhysics();
 
+	bool CheckValidationSupport();
+
 	bool UpdateInput();
 
 	void DrawGui();
@@ -162,6 +164,10 @@ private:
 
 	void InitGui();
 	void CleanUpGui();
+
+	void DestroyObjects();
+
+	
 };
 
 

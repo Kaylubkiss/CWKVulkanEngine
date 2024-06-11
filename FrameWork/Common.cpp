@@ -99,26 +99,6 @@ Buffer::Buffer(size_t size, VkBufferUsageFlags usage, VkMemoryPropertyFlags flag
 	}
 }
 
-void Buffer::RecordData() 
-{
-	VkResult result;
-
-	result = vkMapMemory(_Application->LogicalDevice(), this->memory, 0, VK_WHOLE_SIZE, 0, &this->mappedMemory);	// 0 and 0 are offset and flags
-
-	assert(result == VK_SUCCESS);
-
-}
-
-void Buffer::CopyData(void* data)
-{
-	memcpy(this->mappedMemory , data, this->size);
-}
-
-void Buffer::StopRecordData() 
-{
-	vkUnmapMemory(_Application->LogicalDevice(), this->memory);
-}
-
 
 
 

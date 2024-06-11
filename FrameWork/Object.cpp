@@ -1,4 +1,4 @@
-#include "Mesh.h"
+#include "Object.h"
 #include "Application.h"
 #include <fstream>
 #include <sstream>
@@ -60,6 +60,14 @@ Object::Object(const char* fileName, const char* textureName, VkPipelineLayout* 
     }
 }
 
+void Object::DestroyResources()
+{
+    vkFreeMemory(_Application->LogicalDevice(), this->vertexBuffer.memory, nullptr);
+    vkDestroyBuffer(_Application->LogicalDevice(), this->vertexBuffer.handle, nullptr);
+    
+    vkFreeMemory(_Application->LogicalDevice(), this->indexBuffer.memory, nullptr);
+    vkDestroyBuffer(_Application->LogicalDevice(), this->indexBuffer.handle, nullptr);
+}
 
 void Object::Draw(VkCommandBuffer cmdBuffer) 
 {

@@ -28,6 +28,9 @@
     <Filter Include="Header Files\Geometry">
       <UniqueIdentifier>{e7fbac1a-a0d4-4fc2-8789-daf51c488d39}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\ImGui">
+      <UniqueIdentifier>{19ddb215-53d6-4588-9483-00f4efcda56a}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Main.cpp">
@@ -39,29 +42,29 @@
     <ClCompile Include="Common.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Mesh.cpp">
+    <ClCompile Include="Object.cpp">
       <Filter>Source Files\Geometry</Filter>
     </ClCompile>
-    <ClCompile Include="External\libraries\imgui\backends\imgui_impl_sdl2.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="External\libraries\imgui\backends\imgui_impl_vulkan.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="External\libraries\imgui\backends\imgui_impl_win32.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="External\libraries\imgui\imgui.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>Source Files\ImGui</Filter>
     </ClCompile>
     <ClCompile Include="External\libraries\imgui\imgui_draw.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>Source Files\ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="External\libraries\imgui\backends\imgui_impl_sdl2.cpp">
+      <Filter>Source Files\ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="External\libraries\imgui\backends\imgui_impl_vulkan.cpp">
+      <Filter>Source Files\ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="External\libraries\imgui\backends\imgui_impl_win32.cpp">
+      <Filter>Source Files\ImGui</Filter>
     </ClCompile>
     <ClCompile Include="External\libraries\imgui\imgui_tables.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>Source Files\ImGui</Filter>
     </ClCompile>
     <ClCompile Include="External\libraries\imgui\imgui_widgets.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>Source Files\ImGui</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -71,7 +74,7 @@
     <ClInclude Include="Common.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Mesh.h">
+    <ClInclude Include="Object.h">
       <Filter>Header Files\Geometry</Filter>
     </ClInclude>
   </ItemGroup>

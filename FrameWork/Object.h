@@ -47,6 +47,8 @@ struct Mesh
 
 	std::vector<Vertex> vertexBufferData;
 	std::vector<uint16_t> indexBufferData; //setting this to uint16_t fixed the issue. INVESTIGATE THIS.
+
+	~Mesh() = default;
 };
 
 struct Object 
@@ -64,6 +66,8 @@ struct Object
 	Object(const char* fileName, const char* textureName = nullptr, VkPipelineLayout* pipelineLayout = nullptr);
 	Object() : mCenter(0.f), mModelTransform(1.f), vertexBuffer(), indexBuffer() {};
 	void Draw(VkCommandBuffer cmdBuffer);
+	void DestroyResources();
+	~Object() = default;
 };
 
 void LoadMeshOBJ(const std::string& path, Object& obj);

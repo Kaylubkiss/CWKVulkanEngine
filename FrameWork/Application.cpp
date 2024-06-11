@@ -8,6 +8,11 @@
 #include <stb_image.h>
 #include <imgui/imgui_demo.cpp>
 
+
+//NOTE: to remove pesky warnings from visual studio, on dynamically allocated arrays,
+//I've used the syntax: *(array + i) to access the array instead of array[i].
+//the static analyzer of visual studio is bad.
+
 static unsigned long long width = 640;
 static unsigned long long height = 480;
 
@@ -94,7 +99,12 @@ void Application::CreateInstance()
 {
 
 	//create instance info.
-	VkInstanceCreateInfo createInfo;
+	VkInstanceCreateInfo createInfo = {};
+	VkApplicationInfo appInfo = {};
+	appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
+	appInfo.apiVersion = VK_API_VERSION_1_3;
+	appInfo.pApplicationName = "Caleb Vulkan Engine";
+	appInfo.engineVersion = 1;
 
 	createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
 	createInfo.pApplicationInfo = nullptr; //best practice is to fill out this info, but we won't for now.
@@ -134,9 +144,15 @@ void Application::CreateInstance()
 
 	//this could be useful for logging, profiling, debugging, whatever.
 	//it intercepts the API
-	createInfo.ppEnabledLayerNames = enabledLayerNames;
-	createInfo.enabledLayerCount = 1;
+
+	if (CheckValidationSupport())
+	{
+		createInfo.ppEnabledLayerNames = enabledLayerNames;
+		createInfo.enabledLayerCount = 1;
+	}
+
 	createInfo.pNext = (VkDebugUtilsMessengerCreateInfoEXT*)&debugCreateInfo;
+	createInfo.pApplicationInfo = &appInfo;
 
 	//create instance.
 	//this function, if successful, will create a "handle object"
@@ -164,6 +180,39 @@ void Application::CreateInstance()
 
 }
 
+bool Application::CheckValidationSupport() 
+{
+	uint32_t layerCount = 0;
+	vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
+
+	std::vector<VkLayerProperties> availableLayers(layerCount);
+
+	vkEnumerateInstanceLayerProperties(&layerCount, availableLayers.data());
+
+	
+	for (const char* layerName : enabledLayerNames) 
+	{
+		bool layerFound = false;
+		for (const VkLayerProperties& layerProperties : availableLayers) 
+		{
+			if (strcmp(layerName, layerProperties.layerName) == 0) 
+			{
+				layerFound = true;
+				break;
+			}
+		}
+
+		if (layerFound == false) 
+		{
+			return false;
+		}
+
+	}
+
+
+	return true;
+
+}
 
 void Application::EnumeratePhysicalDevices() 
 {
@@ -173,7 +222,7 @@ void Application::EnumeratePhysicalDevices()
 	//vulkan will ignor whatever was set in physicalDeviceCount and overwrite max_devices 
 	VK_CHECK_RESULT(vkEnumeratePhysicalDevices(this->m_instance, &max_devices, nullptr));
 
-	if (max_devices == 0)
+	if (max_devices <= 0)
 	{
 		throw std::runtime_error("could not find any GPUs to use!\n");
 		return;
@@ -189,13 +238,13 @@ void Application::EnumeratePhysicalDevices()
 
 	VK_CHECK_RESULT(vkEnumeratePhysicalDevices(this->m_instance, &max_devices, this->m_physicalDevices));
 
-	for (unsigned i = 0; i < max_devices; ++i)
+	for (size_t i = 0; i < max_devices; ++i)
 	{
 		VkPhysicalDeviceProperties properties;
 		VkPhysicalDeviceFeatures features;
 
-		vkGetPhysicalDeviceProperties(this->m_physicalDevices[i], &properties);
-		vkGetPhysicalDeviceFeatures(this->m_physicalDevices[i], &features);
+		vkGetPhysicalDeviceProperties(*(this->m_physicalDevices + i), &properties);
+		vkGetPhysicalDeviceFeatures(*(this->m_physicalDevices + i), &features);
 
 		if (properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU && features.geometryShader && features.samplerAnisotropy)
 		{
@@ -268,7 +317,7 @@ void Application::FindQueueFamilies()
 
 	for (unsigned i = 0; i < queueFamilyPropertyCount; ++i)
 	{
-		if ((queueFamilies[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) != 0)
+		if (((*(queueFamilies + i)).queueFlags & VK_QUEUE_GRAPHICS_BIT) != 0)
 		{
 			graphicsFamily = i;
 			setGraphicsQueue = true;
@@ -440,7 +489,7 @@ void Application::CreateSwapChain()
 	VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceFormatsKHR(this->m_physicalDevices[device_index], this->m_windowSurface, &surfaceFormatCount, nullptr));
 
 	//surfaceFormatCount now filled..
-	if (surfaceFormatCount == 0)
+	if (surfaceFormatCount <= 0)
 	{
 		throw std::runtime_error("no surface formats available...");
 	}
@@ -459,12 +508,17 @@ void Application::CreateSwapChain()
 	//choose suitable format
 	int surfaceIndex = -1;
 
-	for (unsigned i = 0; i < surfaceFormatCount; ++i)
+	for (size_t i = 0; i < surfaceFormatCount; ++i)
 	{
-		if (surfaceFormats[i].format == VK_FORMAT_B8G8R8A8_SRGB && surfaceFormats[i].colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
+		if ((*(surfaceFormats + i)).format == VK_FORMAT_B8G8R8A8_SRGB && (*(surfaceFormats + i)).colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
 		{
 			surfaceIndex = i;
 		}
+	}
+
+	if (surfaceIndex < 0) 
+	{
+		surfaceIndex = 0;
 	}
 
 	if (surfaceIndex < 0)
@@ -472,21 +526,43 @@ void Application::CreateSwapChain()
 		throw std::runtime_error("couldn't find a suitable format for swap chain");
 	}
 
-	swapChainInfo.minImageCount = deviceCapabilities.minImageCount;
-	swapChainInfo.imageColorSpace = surfaceFormats[surfaceIndex].colorSpace;
-	swapChainInfo.imageFormat = surfaceFormats[surfaceIndex].format;
+
+	this->imageCount = deviceCapabilities.minImageCount + 1;
+
+	if (deviceCapabilities.maxImageCount > 0 && imageCount > deviceCapabilities.maxImageCount) 
+	{
+		this->imageCount = deviceCapabilities.maxImageCount;
+	}
+
+	swapChainInfo.minImageCount = this->imageCount;
+	swapChainInfo.imageColorSpace = (*(surfaceFormats + surfaceIndex)).colorSpace;
+	swapChainInfo.imageFormat = (*(surfaceFormats + surfaceIndex)).format;
 	swapChainInfo.imageExtent = deviceCapabilities.currentExtent;
 	swapChainInfo.imageArrayLayers = 1;
 	swapChainInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-	swapChainInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE; //present mode and graphics mode are the same.
-	swapChainInfo.queueFamilyIndexCount = 0;
-	swapChainInfo.pQueueFamilyIndices = nullptr;
+	
+	if (graphicsFamily == presentFamily)
+	{
+		swapChainInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE; //present mode and graphics mode are the same.
+		swapChainInfo.queueFamilyIndexCount = 0;
+		swapChainInfo.pQueueFamilyIndices = nullptr;
+	}
+	else 
+	{
+		uint32_t queueFamilyIndices[] = { graphicsFamily, presentFamily };
+
+		swapChainInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
+		swapChainInfo.queueFamilyIndexCount = 2;
+		swapChainInfo.pQueueFamilyIndices = queueFamilyIndices;
+	}
+	
+	
 	swapChainInfo.preTransform = deviceCapabilities.currentTransform;
 	swapChainInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
 	swapChainInfo.presentMode = VK_PRESENT_MODE_FIFO_KHR; //this is always guaranteed.
 	swapChainInfo.clipped = VK_TRUE;
 	swapChainInfo.oldSwapchain = nullptr; //resizing needs a reference to the old swap chain
-
+	
 
 	VK_CHECK_RESULT(vkCreateSwapchainKHR(this->m_logicalDevice, &swapChainInfo, nullptr, &this->swapChain));
 
@@ -497,28 +573,14 @@ void Application::CreateSwapChain()
 void Application::CreateImageViews()
 {
 
-
-	VK_CHECK_RESULT(vkGetSwapchainImagesKHR(this->m_logicalDevice, swapChain, &imageCount, nullptr));
-
 	this->swapChainImages = new VkImage[imageCount];
 
-	//VK_CHECK_RESULT(vkGetSwapchainImagesKHR(this->m_logicalDevice, swapChain, &imageCount, this->swapChainImages));
+	VK_CHECK_RESULT(vkGetSwapchainImagesKHR(this->m_logicalDevice, swapChain, &this->imageCount, this->swapChainImages));
 
-	for (size_t i = 0; i < imageCount; ++i) 
-	{
-		VkImageCreateInfo imageCreateInfo = {};
-		imageCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-		imageCreateInfo.extent = { deviceCapabilities.currentExtent.width, deviceCapabilities.currentExtent.height, 0 };
-		imageCreateInfo.format = VK_FORMAT_B8G8R8A8_SRGB;
-
-
-		vkCreateImage(this->m_logicalDevice, );
-
-	}
 	//create imageview --> allow image to be seen in a different format.
 	this->imageViews = new VkImageView[imageCount];
 
-	for (unsigned i = 0; i < imageCount; ++i) {
+	for (unsigned i = 0; i < this->imageCount; ++i) {
 
 		//this is nothing fancy, we won't be editing the color interpretation.
 		VkComponentMapping componentMapping =
@@ -1918,16 +1980,27 @@ const std::vector<Texture>& Application::Textures()
 
 }
 
+
+void Application::DestroyObjects() 
+{
+	debugCube.DestroyResources();
+	debugCube2.DestroyResources();
+}
+
 void Application::exit()
 {
 
 	CleanUpGui();
+
+	DestroyObjects();
 
 	vkDestroySemaphore(this->m_logicalDevice, this->imageAvailableSemaphore, nullptr);
 
 	vkDestroySemaphore(this->m_logicalDevice, this->renderFinishedSemaphore, nullptr);
 
 	vkFreeCommandBuffers(this->m_logicalDevice, this->commandPool, 1, &this->commandBuffer);
+	
+	vkDestroyCommandPool(this->m_logicalDevice, this->commandPool, nullptr);
 
 	for (size_t i = 0; i < this->pipelineLayouts.size(); ++i) 
 	{
@@ -1974,20 +2047,10 @@ void Application::exit()
 	//this already destroys the images in it.
 	vkDestroySwapchainKHR(this->m_logicalDevice, this->swapChain, nullptr);
 
-	delete[] swapChainImages;
-
-	vkDestroyBuffer(this->m_logicalDevice, this->debugCube.vertexBuffer.handle, nullptr);
-	vkFreeMemory(this->m_logicalDevice, this->debugCube.vertexBuffer.memory, nullptr);
-	
-	vkDestroyBuffer(this->m_logicalDevice, this->debugCube.indexBuffer.handle, nullptr);
-	vkFreeMemory(this->m_logicalDevice, this->debugCube.indexBuffer.memory, nullptr);
-
 	vkDestroyFence(this->m_logicalDevice, this->inFlightFence, nullptr);
 
-	vkDestroyCommandPool(this->m_logicalDevice, this->commandPool, nullptr);
 
-	vkDestroyDevice(this->m_logicalDevice, nullptr);
-	
+	delete[] swapChainImages;
 	delete[] m_physicalDevices;
 	
 	auto func = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(this->m_instance, "vkDestroyDebugUtilsMessengerEXT");
@@ -1997,6 +2060,16 @@ void Application::exit()
 		func(this->m_instance, this->debugMessenger, nullptr);
 	}
 
+
+	this->mPhysicsCommon.destroyPhysicsWorld(this->mPhysicsWorld);
+
+}
+
+
+Application::~Application()
+{
+	vkDestroyDevice(this->m_logicalDevice, nullptr);
+
 	vkDestroySurfaceKHR(this->m_instance, this->m_windowSurface, nullptr);
 
 	vkDestroyInstance(this->m_instance, nullptr);
@@ -2004,11 +2077,8 @@ void Application::exit()
 	SDL_DestroyWindow(window);
 
 	SDL_Quit();
-
-
-	this->mPhysicsCommon.destroyPhysicsWorld(this->mPhysicsWorld);
-
 }
+
 
 void Application::CleanUpGui() 
 {

@@ -40,10 +40,10 @@ struct Buffer
 	//assume that build info is shared among all buffers.
 	Buffer(size_t size, VkBufferUsageFlags usage, VkMemoryPropertyFlags flags, void* data);
 	Buffer() : handle(VK_NULL_HANDLE), memory(VK_NULL_HANDLE), size(0), mappedMemory(NULL) {};
-	void FillData(const void* data, size_t dataCount, size_t stride);
+	/*void FillData(const void* data, size_t dataCount, size_t stride);
 	void RecordData();
 	void StopRecordData();
-	void CopyData(void* data);
+	void CopyData(void* data);*/
 	/*~Buffer();*/ //this gets called in std::vector and causes headache. we don't want that.
 };
 
@@ -55,9 +55,9 @@ struct Texture
 	VkImageView mTextureImageView;
 	VkSampler mTextureSampler;
 
-	VkDescriptorSet mDescriptor;
+	VkDescriptorSet mDescriptor = VK_NULL_HANDLE;
 
-	Texture() : mTextureImage(), mTextureMemory(), mTextureImageView(), mTextureSampler() {};
+	Texture() : mTextureImage(), mTextureMemory(), mTextureImageView(), mTextureSampler(), mDescriptor(VK_NULL_HANDLE) {};
 };
 
 
