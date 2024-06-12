@@ -56,6 +56,7 @@ struct Object
 	int numVertices = 0;
 	int textureIndex = -1;
 	glm::vec3 mCenter = glm::vec3(0.f);
+	reactphysics3d::Vector3 mHalfExtent = reactphysics3d::Vector3(0.f, 0.f, 0.f);
 	Buffer vertexBuffer;
 	Buffer indexBuffer;
 	VkPipelineLayout* mPipelineLayout = nullptr;

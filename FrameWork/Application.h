@@ -14,6 +14,8 @@ public:
 	int GetTexture(const char* fileName);
 	VkPipelineLayout* GetPipelineLayout();
 	const std::vector<Texture>& Textures();
+	const PhysicsWorld* GetPhysicsWorld();
+
 	void run();
 	~Application();
 private:
@@ -22,6 +24,10 @@ private:
 
 	double deltaTime;
 	const float timeStep = 1.f / 60.f;
+
+	reactphysics3d::RigidBody* debugCubeRb = nullptr;
+	reactphysics3d::Collider* debugCubeCollider = nullptr;
+	reactphysics3d::BoxShape* mDebugCubeShape = nullptr;
 
 	Object debugCube;
 	Object debugCube2;
@@ -71,7 +77,7 @@ private:
 	VkImage* swapChainImages = nullptr;
 
 	VkDescriptorPool descriptorPool = VK_NULL_HANDLE;
-	//VkDescriptorSet descriptorSets = VK_NULL_HANDLE;
+	
 	VkDescriptorSetLayout descriptorSetLayout = VK_NULL_HANDLE; //dunno if this should be here...
 
 	std::vector<Buffer> uniformBuffers;
@@ -106,7 +112,6 @@ private:
 	//functions
 	void CreateInstance();
 	void FillDebugMessenger(VkDebugUtilsMessengerCreateInfoEXT& createInfo);
-	/*void CreateDebugMessenger();*/
 	void CreateWindow();
 	void CreateWindowSurface();
 	void EnumeratePhysicalDevices();
@@ -160,6 +165,7 @@ private:
 	void exit();
 
 	void ComputeDeltaTime();
+	void UpdatePhysics(reactphysics3d::Transform& nextTransform, reactphysics3d::Transform& prevTransform, float& accumulator);
 	void Render();
 
 	void InitGui();
