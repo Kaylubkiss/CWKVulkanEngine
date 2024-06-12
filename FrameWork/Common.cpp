@@ -38,7 +38,6 @@ Buffer::Buffer(size_t size, VkBufferUsageFlags usage, VkMemoryPropertyFlags flag
 	VkResult result;
 
 	this->size = static_cast<VkDeviceSize>(size);
-	/*this->mData = data;*/
 
 	VkPhysicalDeviceMemoryProperties	vpdmp;
 	vkGetPhysicalDeviceMemoryProperties(_Application->PhysicalDevice(), &vpdmp);

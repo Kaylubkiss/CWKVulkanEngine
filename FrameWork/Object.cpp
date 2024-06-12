@@ -9,6 +9,8 @@
 
 Object::Object(const char* fileName, const char* textureName, VkPipelineLayout* pipelineLayout)
 {
+    assert(_Application != NULL);
+
     LoadMeshOBJ(fileName, *this);
 
     this->numVertices = static_cast<int>(this->vertexBufferData.size());
@@ -68,7 +70,7 @@ Object::Object(const char* fileName, const char* textureName, VkPipelineLayout* 
 
 void Object::InitPhysics(ColliderType cType) 
 {
-  
+    assert(_Application != NULL);
 
     const glm::vec4& dc2Position = this->mModelTransform[3];
     reactphysics3d::Vector3 position(dc2Position.x, dc2Position.y, dc2Position.z);

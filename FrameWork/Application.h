@@ -119,8 +119,10 @@ private:
 	void CreateSwapChain();
 	void CreateImageViews();
 	void CreateFrameBuffers();
+	void CreateDescriptorSetLayout();
 	void CreateDescriptorSets();
 	void WriteDescriptorSets();
+	void CreatePipelineLayout();
 	void CreatePipeline(VkPipelineShaderStageCreateInfo* pStages, int numStages);
 	void CreateCommandPools();
 	void CreateCommandBuffers();

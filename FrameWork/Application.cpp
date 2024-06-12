@@ -1259,6 +1259,31 @@ void Application::WriteDescriptorSets()
 
 }
 
+void Application::CreatePipelineLayout() 
+{
+	VkPushConstantRange pushConstants[1];
+
+	//this is for an object's model transformation.
+	pushConstants[0].offset = 0;
+	pushConstants[0].size = sizeof(glm::mat4);
+	pushConstants[0].stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+
+	VkPipelineLayoutCreateInfo				pipelineLayoutCreateInfo = {};
+	pipelineLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+	pipelineLayoutCreateInfo.pNext = nullptr;
+	pipelineLayoutCreateInfo.flags = 0;
+	pipelineLayoutCreateInfo.setLayoutCount = 1;
+	pipelineLayoutCreateInfo.pSetLayouts = &descriptorSetLayout;
+	pipelineLayoutCreateInfo.pushConstantRangeCount = 1;
+	pipelineLayoutCreateInfo.pPushConstantRanges = pushConstants;
+
+	this->pipelineLayouts.push_back(VkPipelineLayout());
+
+	VK_CHECK_RESULT(vkCreatePipelineLayout(this->m_logicalDevice, &pipelineLayoutCreateInfo, nullptr, &this->pipelineLayouts.back()));
+
+
+}
+
 void Application::CreatePipeline(VkPipelineShaderStageCreateInfo* pStages, int numStages) 
 {
 
@@ -1448,6 +1473,32 @@ void Application::CreateCommandPools()
 	commandPoolCreateInfo.queueFamilyIndex = 0; //only one physical device on initial development machine.
 
 	VK_CHECK_RESULT(vkCreateCommandPool(this->m_logicalDevice, &commandPoolCreateInfo, nullptr, &this->commandPool));
+}
+
+void Application::CreateDescriptorSetLayout() 
+{
+	VkDescriptorSetLayoutBinding uTransformBinding{};
+	uTransformBinding.binding = 0;
+	uTransformBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+	uTransformBinding.descriptorCount = 1; //one uniform struct.
+	uTransformBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT; //we are going to use the transforms in the vertex shader.
+
+	VkDescriptorSetLayoutBinding samplerBinding = {};
+	samplerBinding.binding = 1;
+	samplerBinding.descriptorCount = 1;
+	samplerBinding.pImmutableSamplers = nullptr;
+	samplerBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+	samplerBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT; //we are going to use the sampler in the fragment shader.
+
+
+	VkDescriptorSetLayoutBinding bindings[2] = { uTransformBinding, samplerBinding };
+
+	VkDescriptorSetLayoutCreateInfo layoutInfo = {};
+	layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+	layoutInfo.bindingCount = 2;
+	layoutInfo.pBindings = bindings;
+
+	VK_CHECK_RESULT(vkCreateDescriptorSetLayout(this->m_logicalDevice, &layoutInfo, nullptr, &descriptorSetLayout));
 }
 
 void Application::CreateCommandBuffers() 
@@ -1655,50 +1706,9 @@ bool Application::init()
 	
 	CreateDepthResources();
 
+	CreateDescriptorSetLayout();
 
-	VkDescriptorSetLayoutBinding uTransformBinding{};
-	uTransformBinding.binding = 0;
-	uTransformBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-	uTransformBinding.descriptorCount = 1; //one uniform struct.
-	uTransformBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT; //we are going to use the transforms in the vertex shader.
-
-	VkDescriptorSetLayoutBinding samplerBinding = {};
-	samplerBinding.binding = 1;
-	samplerBinding.descriptorCount = 1;
-	samplerBinding.pImmutableSamplers = nullptr;
-	samplerBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-	samplerBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT; //we are going to use the sampler in the fragment shader.
-
-
-	VkDescriptorSetLayoutBinding bindings[2] = { uTransformBinding, samplerBinding };
-
-
-	VkDescriptorSetLayoutCreateInfo layoutInfo = {};
-	layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-	layoutInfo.bindingCount = 2;
-	layoutInfo.pBindings = bindings;
-
-	VK_CHECK_RESULT(vkCreateDescriptorSetLayout(this->m_logicalDevice, &layoutInfo, nullptr, &descriptorSetLayout));
-
-	VkPushConstantRange pushConstants[1];
-
-	//this is for an object's model transformation.
-	pushConstants[0].offset = 0;
-	pushConstants[0].size = sizeof(glm::mat4);
-	pushConstants[0].stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-
-	VkPipelineLayoutCreateInfo				pipelineLayoutCreateInfo = {};
-	pipelineLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-	pipelineLayoutCreateInfo.pNext = nullptr;
-	pipelineLayoutCreateInfo.flags = 0;
-	pipelineLayoutCreateInfo.setLayoutCount = 1;
-	pipelineLayoutCreateInfo.pSetLayouts = &descriptorSetLayout;
-	pipelineLayoutCreateInfo.pushConstantRangeCount = 1;
-	pipelineLayoutCreateInfo.pPushConstantRanges = pushConstants;
-
-	this->pipelineLayouts.push_back(VkPipelineLayout());
-
-	VK_CHECK_RESULT(vkCreatePipelineLayout(this->m_logicalDevice, &pipelineLayoutCreateInfo, nullptr, &this->pipelineLayouts.back()));
+	CreatePipelineLayout();
 
 	this->debugCube = Object((PathToObjects() + "freddy.obj").c_str(), "texture.jpg", &this->pipelineLayouts.back());
 	debugCube.mModelTransform = glm::mat4(5.f);
@@ -1725,9 +1735,6 @@ bool Application::init()
 	InitGui();
 
 	InitPhysicsWorld();
-
-
-	
 
 	this->timeNow = SDL_GetPerformanceCounter();
 
