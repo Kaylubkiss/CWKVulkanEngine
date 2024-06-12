@@ -14,7 +14,8 @@ public:
 	int GetTexture(const char* fileName);
 	VkPipelineLayout* GetPipelineLayout();
 	const std::vector<Texture>& Textures();
-	const PhysicsWorld* GetPhysicsWorld();
+	PhysicsWorld* GetPhysicsWorld();
+	PhysicsCommon& GetPhysicsCommon();
 
 	void run();
 	~Application();
@@ -25,10 +26,7 @@ private:
 	double deltaTime;
 	const float timeStep = 1.f / 60.f;
 
-	reactphysics3d::RigidBody* debugCubeRb = nullptr;
-	reactphysics3d::Collider* debugCubeCollider = nullptr;
-	reactphysics3d::BoxShape* mDebugCubeShape = nullptr;
-
+	
 	Object debugCube;
 	Object debugCube2;
 
@@ -147,7 +145,7 @@ private:
 	void CreateTextureView(const VkImage& textureImage, VkImageView& textureImageView, uint32_t mipLevels);
 	void CreateTextureSampler(VkSampler& textureSampler, uint32_t mipLevels);
 
-	void InitPhysics();
+	void InitPhysicsWorld();
 
 	bool CheckValidationSupport();
 
@@ -165,7 +163,7 @@ private:
 	void exit();
 
 	void ComputeDeltaTime();
-	void UpdatePhysics(reactphysics3d::Transform& nextTransform, reactphysics3d::Transform& prevTransform, float& accumulator);
+	void UpdatePhysics(float& accumulator);
 	void Render();
 
 	void InitGui();

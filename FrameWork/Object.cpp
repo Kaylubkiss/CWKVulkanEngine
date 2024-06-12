@@ -66,6 +66,33 @@ Object::Object(const char* fileName, const char* textureName, VkPipelineLayout* 
     }
 }
 
+void Object::InitPhysics(ColliderType cType) 
+{
+  
+
+    const glm::vec4& dc2Position = this->mModelTransform[3];
+    reactphysics3d::Vector3 position(dc2Position.x, dc2Position.y, dc2Position.z);
+    reactphysics3d::Quaternion orientation = Quaternion::identity();
+    reactphysics3d::Transform transform(position, orientation);
+
+    this->mPhysics.rigidBody = _Application->GetPhysicsWorld()->createRigidBody(transform);
+
+    switch (cType) 
+    {
+        case ColliderType::CUBE:
+            this->mPhysics.shape = _Application->GetPhysicsCommon().createBoxShape(this->mHalfExtent);
+    }
+
+    //the collider transform is relative to the rigidbody origin.
+
+    if (this->mPhysics.collider != nullptr) 
+    {
+        this->mPhysics.collider = this->mPhysics.rigidBody->addCollider(this->mPhysics.shape, Transform::identity());
+    }
+    
+    this->mPhysics.prevTransform = this->mPhysics.rigidBody->getTransform();
+}
+
 void Object::DestroyResources()
 {
     vkFreeMemory(_Application->LogicalDevice(), this->vertexBuffer.memory, nullptr);
@@ -73,6 +100,24 @@ void Object::DestroyResources()
     
     vkFreeMemory(_Application->LogicalDevice(), this->indexBuffer.memory, nullptr);
     vkDestroyBuffer(_Application->LogicalDevice(), this->indexBuffer.handle, nullptr);
+}
+
+void Object::Update(const float& interpFactor)
+{
+    Transform uninterpolatedTransform = this->mPhysics.rigidBody->getTransform();
+
+    this->mPhysics.currTransform = Transform::interpolateTransforms(this->mPhysics.prevTransform, uninterpolatedTransform, interpFactor);
+
+
+    this->mPhysics.prevTransform = this->mPhysics.currTransform;
+
+
+    const reactphysics3d::Vector3& rpnPosition = this->mPhysics.currTransform.getPosition();
+    glm::vec3 nPosition = { rpnPosition.x, rpnPosition.y, rpnPosition.z };
+    /*const reactphysics3d::Quaternion& rnRotation = this->mPhysics.currTransform.getOrientation();*/
+
+    this->mModelTransform[3] = glm::vec4(nPosition, 1);
+
 }
 
 void Object::Draw(VkCommandBuffer cmdBuffer) 

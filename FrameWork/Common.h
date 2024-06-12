@@ -32,6 +32,7 @@ struct Buffer
 	{
 		this->handle = rhs.handle;
 		this->memory = rhs.memory;
+		this->size = rhs.size;
 		this->mappedMemory = rhs.mappedMemory;
 	}
 

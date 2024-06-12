@@ -1531,14 +1531,12 @@ void Application::ResizeViewport()
 
 }
 
-void Application::InitPhysics() 
+void Application::InitPhysicsWorld() 
 {
 	this->mPhysicsWorld = this->mPhysicsCommon.createPhysicsWorld();
 
-	Vector3 position(0, 20, 0);
-	Quaternion orientation = Quaternion::identity();
-	Transform transform(position, orientation);
-	RigidBody* body = mPhysicsWorld->createRigidBody(transform);
+	debugCube2.InitPhysics(ColliderType::CUBE);
+
 
 }
 void Application::InitGui() 
@@ -1590,9 +1588,14 @@ int Application::GetTexture(const char* fileName)
 	return this->mTextures.size() - 1;
 }
 
-const PhysicsWorld* Application::GetPhysicsWorld() 
+PhysicsWorld* Application::GetPhysicsWorld() 
 {
 	return this->mPhysicsWorld;
+}
+
+PhysicsCommon& Application::GetPhysicsCommon() 
+{
+	return this->mPhysicsCommon;
 }
 
 bool Application::init() 
@@ -1703,14 +1706,8 @@ bool Application::init()
 
 
 	this->debugCube2 = Object((PathToObjects() + "gcube.obj").c_str(), "puppy1.bmp", &this->pipelineLayouts.back());
-	debugCube2.mModelTransform = glm::mat4(1.f);
-	debugCube2.mModelTransform[3] = glm::vec4(-1.f, 0, 5.f, 1);
-	
-	const glm::vec4& dc2Position = debugCube2.mModelTransform[3];
-	reactphysics3d::Vector3 position(dc2Position.x, dc2Position.y, dc2Position.z);
-	reactphysics3d::Quaternion orientation = Quaternion::identity();
-	reactphysics3d::Transform transform(position, orientation);
-
+	this->debugCube2.mModelTransform = glm::mat4(1.f);
+	this->debugCube2.mModelTransform[3] = glm::vec4(-1.f, 0, 5.f, 1);
 	
 	CreateDescriptorSets();
 	WriteDescriptorSets();
@@ -1727,15 +1724,8 @@ bool Application::init()
 
 	InitGui();
 
-	InitPhysics();
+	InitPhysicsWorld();
 
-
-	this->debugCubeRb = this->mPhysicsWorld->createRigidBody(transform);
-
-	this->mDebugCubeShape = mPhysicsCommon.createBoxShape(debugCube2.mHalfExtent);
-
-	//the collider transform is relative to the rigidbody origin.
-	this->debugCubeCollider = this->debugCubeRb->addCollider(this->mDebugCubeShape, Transform::identity());
 
 	
 
@@ -1967,7 +1957,7 @@ void Application::ComputeDeltaTime()
 
 }
 
-void Application::UpdatePhysics(reactphysics3d::Transform& nextTransform, reactphysics3d::Transform& prevTransform, float& accumulator)
+void Application::UpdatePhysics(float& accumulator)
 {
 	const float timeStep = 1.f / 60;
 
@@ -1980,26 +1970,15 @@ void Application::UpdatePhysics(reactphysics3d::Transform& nextTransform, reactp
 		accumulator -= timeStep;
 	}
 
-	// Compute the time interpolation factor
 	reactphysics3d::decimal factor = accumulator / timeStep;
 
-	// Get the updated transform of the body
-	Transform currTransform = debugCubeRb->getTransform();
+	debugCube2.Update(factor);
 
-	// Compute the interpolated transform of the rigid body
-	nextTransform = Transform::interpolateTransforms(prevTransform, currTransform, factor);
-
-	// Now you can render your body using the interpolated transform here
-	
-	// Update the previous transform
-	prevTransform = currTransform;
 }
 
 void Application::loop()
 {
 	float accumulator = 0.f;
-	reactphysics3d::Transform prevTransform = this->debugCubeRb->getTransform();
-	reactphysics3d::Transform nextTransform = {};
 
 	//render graphics.
 	bool quit = false;
@@ -2012,12 +1991,7 @@ void Application::loop()
 			quit = true;
 		}
 
-		UpdatePhysics(nextTransform, prevTransform, accumulator);
-
-		reactphysics3d::Vector3 rpnPosition = nextTransform.getPosition();
-		glm::vec3 nPosition = { rpnPosition.x, rpnPosition.y, rpnPosition.z };
-
-		debugCube2.mModelTransform[3] = glm::vec4(nPosition, 1);
+		UpdatePhysics(accumulator);
 
 		Render();
 	}

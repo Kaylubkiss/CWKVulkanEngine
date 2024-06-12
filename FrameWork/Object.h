@@ -6,10 +6,10 @@
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/hash.hpp>
 
-enum MeshType
+enum ColliderType
 {
-	M_NONE = 0,
-	M_CUBE,
+	NONE = 0,
+	CUBE,
 };
 
 struct Vertex 
@@ -51,6 +51,22 @@ struct Mesh
 	~Mesh() = default;
 };
 
+struct PhysicsComponent 
+{
+	reactphysics3d::RigidBody* rigidBody = nullptr;
+	reactphysics3d::Collider* collider = nullptr;
+	reactphysics3d::CollisionShape* shape = nullptr;
+
+	reactphysics3d::Transform currTransform;
+	reactphysics3d::Transform prevTransform;
+
+	PhysicsComponent() : rigidBody(nullptr), collider(nullptr), shape(nullptr), 
+	currTransform(reactphysics3d::Vector3::zero(), reactphysics3d::Quaternion::identity()),
+	prevTransform(currTransform) {};
+
+	//void operator=(const PhysicsComponent& rhs);
+};
+
 struct Object 
 {
 	int numVertices = 0;
@@ -59,15 +75,19 @@ struct Object
 	reactphysics3d::Vector3 mHalfExtent = reactphysics3d::Vector3(0.f, 0.f, 0.f);
 	Buffer vertexBuffer;
 	Buffer indexBuffer;
+	PhysicsComponent mPhysics;
 	VkPipelineLayout* mPipelineLayout = nullptr;
 	std::vector<Vertex> vertexBufferData;
 	std::vector<uint16_t> indexBufferData;
 	glm::mat4 mModelTransform;
 
 	Object(const char* fileName, const char* textureName = nullptr, VkPipelineLayout* pipelineLayout = nullptr);
-	Object() : mCenter(0.f), mModelTransform(1.f), vertexBuffer(), indexBuffer() {};
+	Object() : mCenter(0.f), mModelTransform(1.f), vertexBuffer(), indexBuffer(), mPhysics() {};
+	void Update(const float& interpFactor);
 	void Draw(VkCommandBuffer cmdBuffer);
 	void DestroyResources();
+	void InitPhysics(ColliderType cType);
+	/*void operator=(const Object& rhs) = default;*/
 	~Object() = default;
 };
 
