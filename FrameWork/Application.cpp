@@ -1184,8 +1184,6 @@ VkPipelineLayout* Application::GetPipelineLayout()
 
 void Application::CreateDescriptorSets()
 {
-	
-	
 	//create descriptor pool
 	VkDescriptorPoolSize poolSize[2] = {};
 	poolSize[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -1310,9 +1308,6 @@ void Application::CreatePipeline(VkPipelineShaderStageCreateInfo* pStages, int n
 	vInputAttribute[2].location = 2;
 	vInputAttribute[2].binding = 0;
 	vInputAttribute[2].offset = offsetof(struct Vertex, uv);
-
-
-
 
 	//all vertex info is in the shaders for now...
 	VkPipelineVertexInputStateCreateInfo vertexInputCreateInfo =
