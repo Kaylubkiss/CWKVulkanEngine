@@ -29,6 +29,7 @@ private:
 	
 	Object debugCube;
 	Object debugCube2;
+	Object debugCube3;
 
 	PhysicsCommon mPhysicsCommon;
 	PhysicsWorld* mPhysicsWorld = nullptr;

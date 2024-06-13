@@ -1582,6 +1582,7 @@ void Application::InitPhysicsWorld()
 	this->mPhysicsWorld = this->mPhysicsCommon.createPhysicsWorld();
 
 	debugCube2.InitPhysics(ColliderType::CUBE);
+	debugCube3.InitPhysics(ColliderType::CUBE, BodyType::STATIC);
 
 
 }
@@ -1711,9 +1712,17 @@ bool Application::init()
 
 
 	this->debugCube2 = Object((PathToObjects() + "gcube.obj").c_str(), "puppy1.bmp", &this->pipelineLayouts.back());
-	this->debugCube2.mModelTransform = glm::mat4(1.f);
+	//this->debugCube2.mModelTransform = glm::mat4(1.f);
 	this->debugCube2.mModelTransform[3] = glm::vec4(-1.f, 0, 5.f, 1);
 	
+	this->debugCube3 = Object((PathToObjects() + "base.obj").c_str(), "puppy1.bmp", &this->pipelineLayouts.back());
+	const float dbScale = 30.f;
+	this->debugCube3.mModelTransform[0] = { dbScale, 0, 0, 0};
+	this->debugCube3.mModelTransform[1] = { 0.f, dbScale, 0, 0 };
+	this->debugCube3.mModelTransform[2] = { 0.f, 0, dbScale, 0 };
+	this->debugCube3.mModelTransform[3] = { 0.f, -5.f, 0.f, 1 };
+	
+
 	CreateDescriptorSets();
 	WriteDescriptorSets();
 	
@@ -1761,25 +1770,25 @@ bool Application::UpdateInput()
 
 		if (keystates[SDL_SCANCODE_W] && e.type == SDL_KEYDOWN)
 		{
-			uTransform.view = glm::mat4(X_BASIS, Y_BASIS, Z_BASIS, { 0,0, 10 * deltaTime, 1 }) * uTransform.view;
+			uTransform.view = glm::mat4(X_BASIS, Y_BASIS, Z_BASIS, { 0,0, 30 * deltaTime, 1 }) * uTransform.view;
 			memcpy(uniformBuffers[0].mappedMemory, (void*)&uTransform, (size_t)(sizeof(uTransformObject)));
 		}
 
 		if (keystates[SDL_SCANCODE_S] && e.type == SDL_KEYDOWN)
 		{
-			uTransform.view = glm::mat4(X_BASIS, Y_BASIS, Z_BASIS, { 0,0, -10 * deltaTime, 1 }) * uTransform.view;
+			uTransform.view = glm::mat4(X_BASIS, Y_BASIS, Z_BASIS, { 0,0, -30 * deltaTime, 1 }) * uTransform.view;
 			memcpy(uniformBuffers[0].mappedMemory, (void*)&uTransform, (size_t)(sizeof(uTransformObject)));
 		}
 
 		if (keystates[SDL_SCANCODE_A] && e.type == SDL_KEYDOWN)
 		{
-			uTransform.view = glm::mat4(X_BASIS, Y_BASIS, Z_BASIS, { -10 * deltaTime,0, 0, 1 }) * uTransform.view;
+			uTransform.view = glm::mat4(X_BASIS, Y_BASIS, Z_BASIS, { -30 * deltaTime,0, 0, 1 }) * uTransform.view;
 			memcpy(uniformBuffers[0].mappedMemory, (void*)&uTransform, (size_t)(sizeof(uTransformObject)));
 		}
 
 		if (keystates[SDL_SCANCODE_D] && e.type == SDL_KEYDOWN)
 		{
-			uTransform.view = glm::mat4(X_BASIS, Y_BASIS, Z_BASIS, { 10 * deltaTime,0, 0, 1 }) * uTransform.view;
+			uTransform.view = glm::mat4(X_BASIS, Y_BASIS, Z_BASIS, { 30 * deltaTime,0, 0, 1 }) * uTransform.view;
 			memcpy(uniformBuffers[0].mappedMemory, (void*)&uTransform, (size_t)(sizeof(uTransformObject)));
 		}
 
@@ -1901,6 +1910,7 @@ void Application::Render()
 
 	debugCube.Draw(this->commandBuffer);
 	debugCube2.Draw(this->commandBuffer);
+	debugCube3.Draw(this->commandBuffer);
 
 	DrawGui();
 

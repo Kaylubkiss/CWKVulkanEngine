@@ -79,14 +79,14 @@ struct Object
 	VkPipelineLayout* mPipelineLayout = nullptr;
 	std::vector<Vertex> vertexBufferData;
 	std::vector<uint16_t> indexBufferData;
-	glm::mat4 mModelTransform;
+	glm::mat4 mModelTransform = glm::mat4(1.f);
 
 	Object(const char* fileName, const char* textureName = nullptr, VkPipelineLayout* pipelineLayout = nullptr);
 	Object() : mCenter(0.f), mModelTransform(1.f), vertexBuffer(), indexBuffer(), mPhysics() {};
 	void Update(const float& interpFactor);
 	void Draw(VkCommandBuffer cmdBuffer);
 	void DestroyResources();
-	void InitPhysics(ColliderType cType);
+	void InitPhysics(ColliderType cType, BodyType bType = BodyType::DYNAMIC);
 	/*void operator=(const Object& rhs) = default;*/
 	~Object() = default;
 };

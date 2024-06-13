@@ -20,7 +20,7 @@ Object::Object(const char* fileName, const char* textureName, VkPipelineLayout* 
 
     for (unsigned i = 0; i < this->vertexBufferData.size(); ++i)
     {
-        
+
         min_points.x = std::min(min_points.x, vertexBufferData[i].pos.x);
         min_points.y = std::min(min_points.y, vertexBufferData[i].pos.y);
         min_points.z = std::min(min_points.z, vertexBufferData[i].pos.z);
@@ -42,6 +42,7 @@ Object::Object(const char* fileName, const char* textureName, VkPipelineLayout* 
     mHalfExtent = reactphysics3d::Vector3(halfExtent.x, halfExtent.y, halfExtent.z);
 
     mHalfExtent /= sqrtf(mHalfExtent.x * mHalfExtent.x + mHalfExtent.y * mHalfExtent.y + mHalfExtent.z * mHalfExtent.z);
+
 
     for (size_t i = 0; i < this->vertexBufferData.size(); ++i)
     {
@@ -68,7 +69,8 @@ Object::Object(const char* fileName, const char* textureName, VkPipelineLayout* 
     }
 }
 
-void Object::InitPhysics(ColliderType cType) 
+
+void Object::InitPhysics(ColliderType cType, BodyType bType)
 {
     assert(_Application != NULL);
 
@@ -77,17 +79,25 @@ void Object::InitPhysics(ColliderType cType)
     reactphysics3d::Quaternion orientation = Quaternion::identity();
     reactphysics3d::Transform transform(position, orientation);
 
+   
     this->mPhysics.rigidBody = _Application->GetPhysicsWorld()->createRigidBody(transform);
+
+    if (bType != BodyType::DYNAMIC)
+    {
+       this->mPhysics.rigidBody->setType(bType);
+    }
 
     switch (cType) 
     {
         case ColliderType::CUBE:
-            this->mPhysics.shape = _Application->GetPhysicsCommon().createBoxShape(this->mHalfExtent);
+            glm::vec3 worldHalfExtent = glm::vec3(this->mModelTransform * glm::vec4(glm::vec3(this->mHalfExtent.x, this->mHalfExtent.y, this->mHalfExtent.z), 0));
+            this->mPhysics.shape = _Application->GetPhysicsCommon().createBoxShape({ worldHalfExtent.x, worldHalfExtent.y, worldHalfExtent.z });
     }
+
 
     //the collider transform is relative to the rigidbody origin.
 
-    if (this->mPhysics.collider != nullptr) 
+    if (this->mPhysics.shape != nullptr)
     {
         this->mPhysics.collider = this->mPhysics.rigidBody->addCollider(this->mPhysics.shape, Transform::identity());
     }
@@ -116,7 +126,6 @@ void Object::Update(const float& interpFactor)
 
     const reactphysics3d::Vector3& rpnPosition = this->mPhysics.currTransform.getPosition();
     glm::vec3 nPosition = { rpnPosition.x, rpnPosition.y, rpnPosition.z };
-    /*const reactphysics3d::Quaternion& rnRotation = this->mPhysics.currTransform.getOrientation();*/
 
     this->mModelTransform[3] = glm::vec4(nPosition, 1);
 
