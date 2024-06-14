@@ -2025,6 +2025,7 @@ void Application::DestroyObjects()
 {
 	debugCube.DestroyResources();
 	debugCube2.DestroyResources();
+	debugCube3.DestroyResources();
 }
 
 void Application::exit()
