@@ -37,7 +37,7 @@ Object::Object(const char* fileName, const char* textureName, VkPipelineLayout* 
     mCenter /= this->vertexBufferData.size();
     float unitScale = std::max({ glm::length(max_points.x - min_points.x), glm::length(max_points.y - min_points.y), glm::length(max_points.z - min_points.z) });
 
-    glm::vec3 halfExtent = (max_points - min_points) * .5f;
+    glm::vec3 halfExtent = ((max_points - mCenter));
 
     mHalfExtent = reactphysics3d::Vector3(halfExtent.x, halfExtent.y, halfExtent.z);
 

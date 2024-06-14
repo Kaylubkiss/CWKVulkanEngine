@@ -31,6 +31,8 @@ private:
 	Object debugCube2;
 	Object debugCube3;
 
+	std::vector<Object> mObjects;
+
 	PhysicsCommon mPhysicsCommon;
 	PhysicsWorld* mPhysicsWorld = nullptr;
 
