@@ -90,7 +90,8 @@ private:
 	VkImageView depthImageView;
 	VkFormat depthFormat;
 
-	const char* enabledLayerNames[1] = {
+	const char* enabledLayerNames[1] = 
+	{
 		"VK_LAYER_KHRONOS_validation"
 	};
 
