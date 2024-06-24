@@ -16,7 +16,7 @@
 static unsigned long long width = 640;
 static unsigned long long height = 480;
 
-static bool windowisfocused = false;
+static bool guiWindowIsFocused = false;
 
 #define VK_CHECK_RESULT(function) {VkResult check = function; assert(check == VK_SUCCESS); if (check != VK_SUCCESS) {std::cout << check << std::endl;}}
 
@@ -1760,13 +1760,43 @@ bool Application::UpdateInput()
 			return true;
 		}
 
-		if (e.type == SDL_MOUSEMOTION && e.button.button == SDL_BUTTON(SDL_BUTTON_LEFT) && !windowisfocused)
+		if (e.type == SDL_MOUSEMOTION && keystates[SDL_SCANCODE_LSHIFT] && e.button.button == SDL_BUTTON(SDL_BUTTON_LEFT) && !guiWindowIsFocused)
 		{
 			int deltaX = e.motion.xrel;
 			int deltaY = e.motion.yrel;
 			uTransform.view = glm::mat4(X_BASIS, Y_BASIS, Z_BASIS, { deltaX * .008f, -deltaY * .008f, 0, 1 }) * uTransform.view;
 			memcpy(uniformBuffers[0].mappedMemory, (void*)&uTransform, (size_t)(sizeof(uTransformObject)));
 		}
+
+		//TODO:
+		//if collision is detected, what object did it collide with?
+		if (((e.type == SDL_MOUSEMOTION) || (e.type == SDL_KEYDOWN)) && e.button.button == SDL_BUTTON(SDL_BUTTON_LEFT))
+		{
+			//1. unproject the mouse position
+			//int mouseX = e.button.x;
+			//int mouseY = height - e.button.y;
+
+			//glm::vec4 cursorSreenPos(mouseX, mouseY, 1, 1);
+
+			//glm::vec4 cursorWorldPos = glm::inverse(uTransform.view) * glm::inverse(uTransform.proj) * cursorSreenPos;
+			//
+			////2. cast ray from the mouse position and in the direction forward from the mouse position
+			//reactphysics3d::Vector3 rayStart(uTransform.view[3].x, uTransform.view[3].y, uTransform.view[3].z);
+			//
+			//glm::vec3 rayDir = cursorWorldPos - uTransform.view[3];
+
+			//reactphysics3d::Vector3 rayEnd(rayDir.x, rayDir.y, rayDir.z);
+
+			//Ray ray(rayStart, rayEnd);
+
+			//RaycastInfo raycastInfo;
+
+			//bool isHit = debugCube.mPhysics.rigidBody->raycast(ray, raycastInfo);
+
+			//isHit = debugCube.mPhysics.rigidBody->raycast(ray, raycastInfo);
+
+		}
+
 
 		if (keystates[SDL_SCANCODE_W] && e.type == SDL_KEYDOWN)
 		{
@@ -1834,16 +1864,15 @@ void Application::DrawGui()
 	// Main body of the Demo window starts here.
 	if (!ImGui::Begin("Asset Log", nullptr, window_flags))
 	{
-		// Early out if the window is collapsed, as an optimization.
-
-		windowisfocused = ImGui::IsWindowFocused();
+		// Early out if the window is collapsed, as an optimization
+		guiWindowIsFocused = ImGui::IsWindowFocused();
 		ImGui::End();
 		ImGui::Render();
 		ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), this->commandBuffer);
 		return;
 	}
 
-	windowisfocused = ImGui::IsWindowFocused();
+	guiWindowIsFocused = ImGui::IsWindowFocused();
 	
 	ImGui::End();
 	ImGui::Render();
