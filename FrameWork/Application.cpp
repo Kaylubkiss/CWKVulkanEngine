@@ -1760,11 +1760,7 @@ bool Application::UpdateInput()
 			return true;
 		}
 
-<<<<<<< HEAD
-		if (e.type == SDL_MOUSEMOTION && e.button.button == SDL_BUTTON(SDL_BUTTON_MIDDLE) && !guiWindowIsFocused)
-=======
 		if (e.type == SDL_KEYDOWN) 
->>>>>>> aa0b368 (cleaned up getinput function)
 		{
 			switch (e.key.keysym.sym)
 			{
