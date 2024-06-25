@@ -1760,12 +1760,42 @@ bool Application::UpdateInput()
 			return true;
 		}
 
+<<<<<<< HEAD
 		if (e.type == SDL_MOUSEMOTION && e.button.button == SDL_BUTTON(SDL_BUTTON_MIDDLE) && !guiWindowIsFocused)
+=======
+		if (e.type == SDL_KEYDOWN) 
+>>>>>>> aa0b368 (cleaned up getinput function)
 		{
-			int deltaX = e.motion.xrel;
-			int deltaY = e.motion.yrel;
-			uTransform.view = glm::mat4(X_BASIS, Y_BASIS, Z_BASIS, { deltaX * .008f, -deltaY * .008f, 0, 1 }) * uTransform.view;
+			switch (e.key.keysym.sym)
+			{
+				case SDLK_w:
+					uTransform.view = glm::mat4(X_BASIS, Y_BASIS, Z_BASIS, { 0,0, 30 * deltaTime, 1 }) * uTransform.view;
+					break;
+				case SDLK_s:
+					uTransform.view = glm::mat4(X_BASIS, Y_BASIS, Z_BASIS, { 0,0, -30 * deltaTime, 1 }) * uTransform.view;
+					break;
+				case SDLK_a:
+					uTransform.view = glm::mat4(X_BASIS, Y_BASIS, Z_BASIS, { 30 * deltaTime,0, 0, 1 }) * uTransform.view;
+					break;
+				case SDLK_d:
+					uTransform.view = glm::mat4(X_BASIS, Y_BASIS, Z_BASIS, { -30 * deltaTime,0, 0, 1 }) * uTransform.view;
+					break;
+			}
+
 			memcpy(uniformBuffers[0].mappedMemory, (void*)&uTransform, (size_t)(sizeof(uTransformObject)));
+		}
+		else if (e.type == SDL_MOUSEMOTION) 
+		{
+			if (keystates[SDL_SCANCODE_LSHIFT] && 
+				e.button.button == SDL_BUTTON(SDL_BUTTON_LEFT) && 
+				guiWindowIsFocused == false) 
+			{
+				int deltaX = e.motion.xrel;
+				int deltaY = e.motion.yrel;
+				uTransform.view = glm::mat4(X_BASIS, Y_BASIS, Z_BASIS, { deltaX * .008f, -deltaY * .008f, 0, 1 }) * uTransform.view;
+				memcpy(uniformBuffers[0].mappedMemory, (void*)&uTransform, (size_t)(sizeof(uTransformObject)));
+			}
+
 		}
 
 		//TODO:
@@ -1797,30 +1827,6 @@ bool Application::UpdateInput()
 
 		}
 
-
-		if (keystates[SDL_SCANCODE_W] && e.type == SDL_KEYDOWN)
-		{
-			uTransform.view = glm::mat4(X_BASIS, Y_BASIS, Z_BASIS, { 0,0, 30 * deltaTime, 1 }) * uTransform.view;
-			memcpy(uniformBuffers[0].mappedMemory, (void*)&uTransform, (size_t)(sizeof(uTransformObject)));
-		}
-
-		if (keystates[SDL_SCANCODE_S] && e.type == SDL_KEYDOWN)
-		{
-			uTransform.view = glm::mat4(X_BASIS, Y_BASIS, Z_BASIS, { 0,0, -30 * deltaTime, 1 }) * uTransform.view;
-			memcpy(uniformBuffers[0].mappedMemory, (void*)&uTransform, (size_t)(sizeof(uTransformObject)));
-		}
-
-		if (keystates[SDL_SCANCODE_A] && e.type == SDL_KEYDOWN)
-		{
-			uTransform.view = glm::mat4(X_BASIS, Y_BASIS, Z_BASIS, { -30 * deltaTime,0, 0, 1 }) * uTransform.view;
-			memcpy(uniformBuffers[0].mappedMemory, (void*)&uTransform, (size_t)(sizeof(uTransformObject)));
-		}
-
-		if (keystates[SDL_SCANCODE_D] && e.type == SDL_KEYDOWN)
-		{
-			uTransform.view = glm::mat4(X_BASIS, Y_BASIS, Z_BASIS, { 30 * deltaTime,0, 0, 1 }) * uTransform.view;
-			memcpy(uniformBuffers[0].mappedMemory, (void*)&uTransform, (size_t)(sizeof(uTransformObject)));
-		}
 
 		int deltaX = e.motion.xrel;
 		int deltaY = e.motion.yrel;
