@@ -1793,34 +1793,41 @@ bool Application::UpdateInput()
 			}
 
 		}
+		else {
+			//TODO:
+			//if collision is detected, what object did it collide with?
+			if (!keystates[SDL_SCANCODE_LSHIFT] && e.button.button == SDL_BUTTON(SDL_BUTTON_LEFT))
+			{
+				//1. unproject the mouse position
+				int mouseX = e.button.x;
+				int mouseY = e.button.y;
 
-		//TODO:
-		//if collision is detected, what object did it collide with?
-		if (((e.type == SDL_MOUSEMOTION) || (e.type == SDL_KEYDOWN)) && e.button.button == SDL_BUTTON(SDL_BUTTON_LEFT))
-		{
-			//1. unproject the mouse position
-			//int mouseX = e.button.x;
-			//int mouseY = height - e.button.y;
+				glm::vec4 cursorSreenPos(mouseX, mouseY, 1, 1);
 
-			//glm::vec4 cursorSreenPos(mouseX, mouseY, 1, 1);
+				glm::vec4 cursorWorldPos = glm::inverse(uTransform.view) * glm::inverse(uTransform.proj) * cursorSreenPos;
 
-			//glm::vec4 cursorWorldPos = glm::inverse(uTransform.view) * glm::inverse(uTransform.proj) * cursorSreenPos;
-			//
-			////2. cast ray from the mouse position and in the direction forward from the mouse position
-			//reactphysics3d::Vector3 rayStart(uTransform.view[3].x, uTransform.view[3].y, uTransform.view[3].z);
-			//
-			//glm::vec3 rayDir = cursorWorldPos - uTransform.view[3];
+				//2. cast ray from the mouse position and in the direction forward from the mouse position
+				reactphysics3d::Vector3 rayStart(uTransform.view[3].x, uTransform.view[3].y, uTransform.view[3].z);
 
-			//reactphysics3d::Vector3 rayEnd(rayDir.x, rayDir.y, rayDir.z);
+				glm::vec3 rayDir = cursorWorldPos - uTransform.view[3];
 
-			//Ray ray(rayStart, rayEnd);
+				reactphysics3d::Vector3 rayEnd(rayDir.x, rayDir.y, rayDir.z);
 
-			//RaycastInfo raycastInfo;
+				Ray ray(rayStart, rayEnd);
 
-			//bool isHit = debugCube.mPhysics.rigidBody->raycast(ray, raycastInfo);
+				RaycastInfo raycastInfo;
 
-			//isHit = debugCube.mPhysics.rigidBody->raycast(ray, raycastInfo);
+				debugCube2.mPhysics.rigidBody->setIsAllowedToSleep(false);
 
+				bool isHit = debugCube2.mPhysics.rigidBody->raycast(ray, raycastInfo);
+
+				if (isHit) 
+				{
+					std::cout << "debug cube was hit by the rayy!!!\n";
+				}
+
+				debugCube2.mPhysics.rigidBody->setIsAllowedToSleep(true);
+			}
 		}
 
 

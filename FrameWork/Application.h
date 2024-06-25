@@ -177,8 +177,6 @@ private:
 	void CleanUpGui();
 
 	void DestroyObjects();
-
-	
 };
 
 
