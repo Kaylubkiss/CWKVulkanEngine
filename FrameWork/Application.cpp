@@ -1782,9 +1782,9 @@ bool Application::UpdateInput()
 		}
 		else if (e.type == SDL_MOUSEMOTION) 
 		{
-			if (keystates[SDL_SCANCODE_LSHIFT] && 
+			if ((keystates[SDL_SCANCODE_LSHIFT] && 
 				e.button.button == SDL_BUTTON(SDL_BUTTON_LEFT) && 
-				guiWindowIsFocused == false) 
+				guiWindowIsFocused == false) || (e.button.button == SDL_BUTTON(SDL_BUTTON_MIDDLE)))
 			{
 				int deltaX = e.motion.xrel;
 				int deltaY = e.motion.yrel;
