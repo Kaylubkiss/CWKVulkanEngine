@@ -47,7 +47,7 @@ struct uTransformObject
 static uTransformObject uTransform =
 {
 	glm::mat4(1.), //model
-	glm::lookAt(glm::vec3(0.f, 0.f ,10.f),glm::vec3(0.f, 0.f, 0.f), glm::vec3(0.f,1.f,0.f)), //view
+	glm::lookAt(glm::vec3(0.f, 0.f , 20.f), glm::vec3(0.f, 0.f, 0.f), glm::vec3(0.f,1.f,0.f)), //view
 	glm::perspective(glm::radians(45.f), (float)width/height,  0.1f, 1000.f) //proj
 };
 
@@ -1713,7 +1713,7 @@ bool Application::init()
 
 	this->debugCube2 = Object((PathToObjects() + "gcube.obj").c_str(), "puppy1.bmp", &this->pipelineLayouts.back());
 	//this->debugCube2.mModelTransform = glm::mat4(1.f);
-	this->debugCube2.mModelTransform[3] = glm::vec4(-1.f, 0, 5.f, 1);
+	this->debugCube2.mModelTransform[3] = glm::vec4(9.f, 10, 5.f, 1);
 	
 	this->debugCube3 = Object((PathToObjects() + "base.obj").c_str(), "puppy1.bmp", &this->pipelineLayouts.back());
 	const float dbScale = 30.f;
@@ -1762,21 +1762,24 @@ bool Application::UpdateInput()
 
 		if (e.type == SDL_KEYDOWN) 
 		{
+			glm::mat4 newTransform = uTransform.view;
 			switch (e.key.keysym.sym)
 			{
 				case SDLK_w:
-					uTransform.view = glm::mat4(X_BASIS, Y_BASIS, Z_BASIS, { 0,0, 30 * deltaTime, 1 }) * uTransform.view;
+					newTransform = glm::mat4(X_BASIS, Y_BASIS, Z_BASIS, { 0,0, 30 * deltaTime, 1 }) * uTransform.view;
 					break;
 				case SDLK_s:
-					uTransform.view = glm::mat4(X_BASIS, Y_BASIS, Z_BASIS, { 0,0, -30 * deltaTime, 1 }) * uTransform.view;
+					newTransform = glm::mat4(X_BASIS, Y_BASIS, Z_BASIS, { 0,0, -30 * deltaTime, 1 }) * uTransform.view;
 					break;
 				case SDLK_a:
-					uTransform.view = glm::mat4(X_BASIS, Y_BASIS, Z_BASIS, { 30 * deltaTime,0, 0, 1 }) * uTransform.view;
+					newTransform = glm::mat4(X_BASIS, Y_BASIS, Z_BASIS, { 30 * deltaTime,0, 0, 1 }) * uTransform.view;
 					break;
 				case SDLK_d:
-					uTransform.view = glm::mat4(X_BASIS, Y_BASIS, Z_BASIS, { -30 * deltaTime,0, 0, 1 }) * uTransform.view;
+					newTransform = glm::mat4(X_BASIS, Y_BASIS, Z_BASIS, { -30 * deltaTime, 0, 0, 1 }) * uTransform.view;
 					break;
 			}
+
+			uTransform.view = newTransform;
 
 			memcpy(uniformBuffers[0].mappedMemory, (void*)&uTransform, (size_t)(sizeof(uTransformObject)));
 		}
@@ -1788,7 +1791,8 @@ bool Application::UpdateInput()
 			{
 				int deltaX = e.motion.xrel;
 				int deltaY = e.motion.yrel;
-				uTransform.view = glm::mat4(X_BASIS, Y_BASIS, Z_BASIS, { deltaX * .008f, -deltaY * .008f, 0, 1 }) * uTransform.view;
+				glm::mat4 newTransform = glm::mat4(X_BASIS, Y_BASIS, Z_BASIS, { deltaX * .008f, -deltaY * .008f, 0, 1 }) * uTransform.view;
+				uTransform.view = newTransform;
 				memcpy(uniformBuffers[0].mappedMemory, (void*)&uTransform, (size_t)(sizeof(uTransformObject)));
 			}
 
@@ -1802,31 +1806,44 @@ bool Application::UpdateInput()
 				int mouseX = e.button.x;
 				int mouseY = e.button.y;
 
-				glm::vec4 cursorSreenPos(mouseX, mouseY, 1, 1);
+				glm::vec4 cursorWindowPos(mouseX, mouseY, 1, 1);
 
-				glm::vec4 cursorWorldPos = glm::inverse(uTransform.view) * glm::inverse(uTransform.proj) * cursorSreenPos;
+
+				glm::vec4 cursorWorldPos = {};
+
+				float cursorZ = 1.f;
+				cursorWorldPos.x = ((2 * cursorWindowPos.x) / width) - 1;
+				cursorWorldPos.y = (1 - (2 * cursorWindowPos.y) / height);
+				cursorWorldPos.z = 1;
+				cursorWorldPos.w = cursorWindowPos.w;
+
+				
+				cursorWorldPos = glm::inverse(uTransform.proj) * cursorWorldPos;
+
+				cursorWorldPos.z = 1;
+				cursorWorldPos.w = 0;
+
+				glm::vec3 ray_world = glm::vec3(glm::inverse(uTransform.view) * cursorWorldPos);
 
 				//2. cast ray from the mouse position and in the direction forward from the mouse position
 				reactphysics3d::Vector3 rayStart(uTransform.view[3].x, uTransform.view[3].y, uTransform.view[3].z);
 
-				glm::vec3 rayDir = cursorWorldPos - uTransform.view[3];
-
-				reactphysics3d::Vector3 rayEnd(rayDir.x, rayDir.y, rayDir.z);
+				reactphysics3d::Vector3 rayEnd(ray_world.x, ray_world.y, ray_world.z);
 
 				Ray ray(rayStart, rayEnd);
 
-				RaycastInfo raycastInfo;
+				RaycastInfo raycastInfo = {};
 
-				debugCube2.mPhysics.rigidBody->setIsAllowedToSleep(false);
+				bool isHit = debugCube3.mPhysics.collider->raycast(ray, raycastInfo);
 
-				bool isHit = debugCube2.mPhysics.rigidBody->raycast(ray, raycastInfo);
-
+				reactphysics3d::Transform transf = debugCube3.mPhysics.rigidBody->getTransform();
+				
 				if (isHit) 
 				{
 					std::cout << "debug cube was hit by the rayy!!!\n";
 				}
 
-				debugCube2.mPhysics.rigidBody->setIsAllowedToSleep(true);
+				
 			}
 		}
 

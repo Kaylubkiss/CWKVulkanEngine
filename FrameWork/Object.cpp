@@ -35,19 +35,33 @@ Object::Object(const char* fileName, const char* textureName, VkPipelineLayout* 
     }
 
     mCenter /= this->vertexBufferData.size();
+   /* mCenter = (max_points + min_points) * 0.5f;*/
+
     float unitScale = std::max({ glm::length(max_points.x - min_points.x), glm::length(max_points.y - min_points.y), glm::length(max_points.z - min_points.z) });
 
-    glm::vec3 halfExtent = ((max_points - mCenter));
-
-    mHalfExtent = reactphysics3d::Vector3(halfExtent.x, halfExtent.y, halfExtent.z);
-
-    mHalfExtent /= sqrtf(mHalfExtent.x * mHalfExtent.x + mHalfExtent.y * mHalfExtent.y + mHalfExtent.z * mHalfExtent.z);
-
+    max_points = { -std::numeric_limits<float>::min(),  -std::numeric_limits<float>::min() , -std::numeric_limits<float>::min() };
 
     for (size_t i = 0; i < this->vertexBufferData.size(); ++i)
     {
         this->vertexBufferData[i].pos = (this->vertexBufferData[i].pos - mCenter) / unitScale;
+        
+        max_points.x = std::max(max_points.x, vertexBufferData[i].pos.x);
+        max_points.y = std::max(max_points.y, vertexBufferData[i].pos.y);
+        max_points.z = std::max(max_points.z, vertexBufferData[i].pos.z);
     }
+
+    glm::vec3 halfExtent = ((max_points - mCenter));
+
+    halfExtent.x = std::abs(halfExtent.x);
+    halfExtent.y = std::abs(halfExtent.y);
+    halfExtent.z = std::abs(halfExtent.z);
+
+    mHalfExtent = reactphysics3d::Vector3(halfExtent.x, halfExtent.y, halfExtent.z);
+
+
+    mMaxLocalPoints = max_points;
+    //mHalfExtent.normalize();
+
 
     size_t sizeOfVertexBuffer = sizeof(std::vector<Vertex>) + (sizeof(Vertex) * this->vertexBufferData.size());
     this->vertexBuffer = Buffer(sizeOfVertexBuffer, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, this->vertexBufferData.data());
@@ -74,7 +88,7 @@ void Object::InitPhysics(ColliderType cType, BodyType bType)
 {
     assert(_Application != NULL);
 
-    const glm::vec4& dc2Position = this->mModelTransform[3];
+    const glm::vec4& dc2Position = this->mModelTransform[3] + glm::vec4(this->mCenter, 1);
     reactphysics3d::Vector3 position(dc2Position.x, dc2Position.y, dc2Position.z);
     reactphysics3d::Quaternion orientation = Quaternion::identity();
     reactphysics3d::Transform transform(position, orientation);
@@ -90,7 +104,7 @@ void Object::InitPhysics(ColliderType cType, BodyType bType)
     switch (cType) 
     {
         case ColliderType::CUBE:
-            glm::vec3 worldHalfExtent = glm::vec3(this->mModelTransform * glm::vec4(glm::vec3(this->mHalfExtent.x, this->mHalfExtent.y, this->mHalfExtent.z), 0));
+            glm::vec3 worldHalfExtent =  glm::vec3(mModelTransform * glm::vec4(mMaxLocalPoints, 1)) - glm::vec3(dc2Position);
             this->mPhysics.shape = _Application->GetPhysicsCommon().createBoxShape({ worldHalfExtent.x, worldHalfExtent.y, worldHalfExtent.z });
     }
 

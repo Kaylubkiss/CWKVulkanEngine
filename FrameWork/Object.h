@@ -80,6 +80,7 @@ struct Object
 	std::vector<Vertex> vertexBufferData;
 	std::vector<uint16_t> indexBufferData;
 	glm::mat4 mModelTransform = glm::mat4(1.f);
+	glm::vec3 mMaxLocalPoints = glm::vec3(0.f);
 
 	Object(const char* fileName, const char* textureName = nullptr, VkPipelineLayout* pipelineLayout = nullptr);
 	Object() : mCenter(0.f), mModelTransform(1.f), vertexBuffer(), indexBuffer(), mPhysics() {};
