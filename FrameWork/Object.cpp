@@ -105,7 +105,7 @@ void Object::InitPhysics(ColliderType cType, BodyType bType)
     {
         case ColliderType::CUBE:
             glm::vec3 worldHalfExtent =  glm::vec3(mModelTransform * glm::vec4(mMaxLocalPoints, 1)) - glm::vec3(dc2Position);
-            this->mPhysics.shape = _Application->GetPhysicsCommon().createBoxShape({ worldHalfExtent.x, worldHalfExtent.y, worldHalfExtent.z });
+            this->mPhysics.shape = _Application->GetPhysicsCommon().createBoxShape({ std::abs(worldHalfExtent.x), std::abs(worldHalfExtent.y), std::abs(worldHalfExtent.z) });
     }
 
 
