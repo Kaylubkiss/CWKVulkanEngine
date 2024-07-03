@@ -37,9 +37,12 @@ Object::Object(const char* fileName, const char* textureName, VkPipelineLayout* 
     mCenter /= this->vertexBufferData.size();
    /* mCenter = (max_points + min_points) * 0.5f;*/
 
+    glm::vec3 newCenter = { 0,0,0 };
+
     float unitScale = std::max({ glm::length(max_points.x - min_points.x), glm::length(max_points.y - min_points.y), glm::length(max_points.z - min_points.z) });
 
     max_points = { -std::numeric_limits<float>::min(),  -std::numeric_limits<float>::min() , -std::numeric_limits<float>::min() };
+    min_points = { std::numeric_limits<float>::max(), std::numeric_limits<float>::max(), std::numeric_limits<float>::max() };
 
     for (size_t i = 0; i < this->vertexBufferData.size(); ++i)
     {
@@ -48,9 +51,19 @@ Object::Object(const char* fileName, const char* textureName, VkPipelineLayout* 
         max_points.x = std::max(max_points.x, vertexBufferData[i].pos.x);
         max_points.y = std::max(max_points.y, vertexBufferData[i].pos.y);
         max_points.z = std::max(max_points.z, vertexBufferData[i].pos.z);
+
+        min_points.x = std::min(min_points.x, vertexBufferData[i].pos.x);
+        min_points.y = std::min(min_points.y, vertexBufferData[i].pos.y);
+        min_points.z = std::min(min_points.z, vertexBufferData[i].pos.z);
+
+        newCenter += this->vertexBufferData[i].pos;
     }
 
-    glm::vec3 halfExtent = ((max_points - mCenter));
+    newCenter /= this->vertexBufferData.size();
+
+    mCenter = newCenter;
+
+    glm::vec3 halfExtent = ((max_points - min_points) * .5f);
 
     halfExtent.x = std::abs(halfExtent.x);
     halfExtent.y = std::abs(halfExtent.y);
@@ -60,6 +73,7 @@ Object::Object(const char* fileName, const char* textureName, VkPipelineLayout* 
 
 
     mMaxLocalPoints = max_points;
+    mMinLocalPoints = min_points;
     //mHalfExtent.normalize();
 
 
@@ -88,7 +102,12 @@ void Object::InitPhysics(ColliderType cType, BodyType bType)
 {
     assert(_Application != NULL);
 
-    const glm::vec4& dc2Position = this->mModelTransform[3] + glm::vec4(this->mCenter, 1);
+    glm::vec3 worldMinPoints = mModelTransform * glm::vec4(mMinLocalPoints, 1);
+    glm::vec3 worldMaxPoints = mModelTransform * glm::vec4(mMaxLocalPoints, 1);
+
+   
+
+    const glm::vec4& dc2Position = glm::vec4(.5f * (worldMinPoints + worldMaxPoints), 1);
     reactphysics3d::Vector3 position(dc2Position.x, dc2Position.y, dc2Position.z);
     reactphysics3d::Quaternion orientation = Quaternion::identity();
     reactphysics3d::Transform transform(position, orientation);
@@ -104,13 +123,12 @@ void Object::InitPhysics(ColliderType cType, BodyType bType)
     switch (cType) 
     {
         case ColliderType::CUBE:
-            glm::vec3 worldHalfExtent =  glm::vec3(mModelTransform * glm::vec4(mMaxLocalPoints, 1)) - glm::vec3(dc2Position);
+            glm::vec3 worldHalfExtent = glm::vec3((worldMaxPoints - worldMinPoints) * .5f);
             this->mPhysics.shape = _Application->GetPhysicsCommon().createBoxShape({ std::abs(worldHalfExtent.x), std::abs(worldHalfExtent.y), std::abs(worldHalfExtent.z) });
     }
 
 
     //the collider transform is relative to the rigidbody origin.
-
     if (this->mPhysics.shape != nullptr)
     {
         this->mPhysics.collider = this->mPhysics.rigidBody->addCollider(this->mPhysics.shape, Transform::identity());
@@ -156,11 +174,10 @@ void Object::Draw(VkCommandBuffer cmdBuffer)
 
     vkCmdBindVertexBuffers(cmdBuffer, 0, 1, &vertexBuffer.handle, offsets);
     vkCmdBindIndexBuffer(cmdBuffer, indexBuffer.handle, 0, VK_INDEX_TYPE_UINT16);
-
+    
     vkCmdPushConstants(cmdBuffer, *this->mPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::mat4), (void*)(&mModelTransform));
 
     vkCmdDrawIndexed(cmdBuffer, static_cast<uint32_t>(indexBufferData.size()), 1, 0, 0, 0);
-
 
 }
 

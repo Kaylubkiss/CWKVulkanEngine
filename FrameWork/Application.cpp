@@ -47,8 +47,8 @@ struct uTransformObject
 static uTransformObject uTransform =
 {
 	glm::mat4(1.), //model
-	glm::lookAt(glm::vec3(0.f, 0.f , 20.f), glm::vec3(0.f, 0.f, 0.f), glm::vec3(0.f,1.f,0.f)), //view
-	glm::perspective(glm::radians(45.f), (float)width/height,  0.1f, 1000.f) //proj
+	glm::lookAt(glm::vec3(0.f, 0.f , 50.f), glm::vec3(0.f, 0.f, 0.f), glm::vec3(0.f,1.f,0.f)), //view
+	glm::perspective(glm::radians(90.f), (float)width/height,  0.1f, 1000.f) //proj
 };
 
 
@@ -1176,6 +1176,16 @@ void Application::CreateTextureSampler(VkSampler& textureSampler, uint32_t mipLe
 }
 
 
+const VkPipeline& Application::GetTrianglePipeline()
+{
+	return this->pipeline;
+}
+
+const VkPipeline& Application::GetLinePipeline()
+{
+	return this->linePipeline;
+}
+
 VkPipelineLayout* Application::GetPipelineLayout() 
 {
 	return &(this->pipelineLayouts.back());
@@ -1282,7 +1292,7 @@ void Application::CreatePipelineLayout()
 
 }
 
-void Application::CreatePipeline(VkPipelineShaderStageCreateInfo* pStages, int numStages) 
+void Application::CreatePipeline(VkPipelineShaderStageCreateInfo* pStages, int numStages, VkPrimitiveTopology primitiveTopology, VkPipeline& pipelineHandle)
 {
 
 	VkVertexInputBindingDescription vBindingDescription = {};
@@ -1326,7 +1336,7 @@ void Application::CreatePipeline(VkPipelineShaderStageCreateInfo* pStages, int n
 		VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
 		nullptr, //pNext
 		0, //flags
-		VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,//topology
+		primitiveTopology,//topology
 		VK_FALSE //primitiveRestartEnable
 	};
 
@@ -1456,7 +1466,7 @@ void Application::CreatePipeline(VkPipelineShaderStageCreateInfo* pStages, int n
 		0
 	};
 
-	VK_CHECK_RESULT(vkCreateGraphicsPipelines(this->m_logicalDevice, VK_NULL_HANDLE, 1, &gfxPipelineCreateInfo, nullptr, &this->pipeline));
+	VK_CHECK_RESULT(vkCreateGraphicsPipelines(this->m_logicalDevice, VK_NULL_HANDLE, 1, &gfxPipelineCreateInfo, nullptr, &pipelineHandle));
 
 }
 
@@ -1584,7 +1594,13 @@ void Application::InitPhysicsWorld()
 	debugCube2.InitPhysics(ColliderType::CUBE);
 	debugCube3.InitPhysics(ColliderType::CUBE, BodyType::STATIC);
 
+	//TODO: temporary debug renderer
+	this->mPhysicsWorld->setIsDebugRenderingEnabled(true);
+	debugCube3.mPhysics.rigidBody->setIsDebugEnabled(true);
 
+	reactphysics3d::DebugRenderer& debugRenderer = this->mPhysicsWorld->getDebugRenderer();
+	debugRenderer.setIsDebugItemDisplayed(reactphysics3d::DebugRenderer::DebugItem::COLLIDER_AABB, true);
+	
 }
 void Application::InitGui() 
 {
@@ -1713,15 +1729,13 @@ bool Application::init()
 
 	this->debugCube2 = Object((PathToObjects() + "gcube.obj").c_str(), "puppy1.bmp", &this->pipelineLayouts.back());
 	//this->debugCube2.mModelTransform = glm::mat4(1.f);
-	this->debugCube2.mModelTransform[3] = glm::vec4(-9.f, 10, 5.f, 1);
+	this->debugCube2.mModelTransform[3] = glm::vec4(-16.f, 20, -5.f, 1);
 	
 	this->debugCube3 = Object((PathToObjects() + "base.obj").c_str(), "puppy1.bmp", &this->pipelineLayouts.back());
 	const float dbScale = 30.f;
-	this->debugCube3.mModelTransform[0] = { dbScale, 0, 0, 0};
-	this->debugCube3.mModelTransform[1] = { 0.f, dbScale, 0, 0 };
-	this->debugCube3.mModelTransform[2] = { 0.f, 0, dbScale, 0 };
+	this->debugCube3.mModelTransform = glm::mat4(dbScale);
 	this->debugCube3.mModelTransform[3] = { 0.f, -5.f, 0.f, 1 };
-	
+	this->isDebugEnabled = true;
 
 	CreateDescriptorSets();
 	WriteDescriptorSets();
@@ -1729,7 +1743,8 @@ bool Application::init()
 	CreateRenderPass();
 	CreateFrameBuffers();
 	
-	CreatePipeline(shaderStages, 2);
+	CreatePipeline(shaderStages, 2, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, this->pipeline);
+	CreatePipeline(shaderStages, 2, VK_PRIMITIVE_TOPOLOGY_LINE_LIST, this->linePipeline);
 
 	//commands
 	CreateSemaphores();
@@ -1970,6 +1985,17 @@ void Application::Render()
 	debugCube2.Draw(this->commandBuffer);
 	debugCube3.Draw(this->commandBuffer);
 
+	if (this->isDebugEnabled && this->debugBufferAllocated)
+	{
+		VkDeviceSize offsets[1] = { 0 };
+		vkCmdBindPipeline(this->commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->linePipeline);
+
+		vkCmdBindVertexBuffers(this->commandBuffer, 0, 1, &this->debugVertexBuffer.handle, offsets);
+		vkCmdDraw(this->commandBuffer, static_cast<uint32_t>(debugVertexData.size()), 1, 0, 0);
+
+		vkCmdBindPipeline(this->commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->pipeline);
+	}
+
 	DrawGui();
 
 	vkCmdEndRenderPass(this->commandBuffer);
@@ -2043,6 +2069,30 @@ void Application::UpdatePhysics(float& accumulator)
 	reactphysics3d::decimal factor = accumulator / timeStep;
 
 	debugCube2.Update(factor);
+
+	reactphysics3d::DebugRenderer& debugRenderer = this->mPhysicsWorld->getDebugRenderer();
+	
+	uint32_t sizeOfLinesArray = debugRenderer.getNbLines();
+
+	if (!debugBufferAllocated && sizeOfLinesArray > 0)
+	{
+		debugBufferAllocated = true;
+		for (size_t i = 0; i < sizeOfLinesArray; ++i)
+		{
+			const reactphysics3d::DebugRenderer::DebugLine& tri = debugRenderer.getLinesArray()[i];
+			
+			Vertex vert;
+			vert.pos = glm::inverse(debugCube3.mModelTransform) * glm::vec4(tri.point1.x, tri.point1.y, tri.point1.z, 1);
+			
+			debugVertexData.push_back(vert);
+
+			vert.pos = glm::inverse(debugCube3.mModelTransform) * glm::vec4(tri.point2.x, tri.point2.y, tri.point2.z, 1);
+
+			debugVertexData.push_back(vert);
+		}
+
+		this->debugVertexBuffer = Buffer(sizeof(std::vector<Vertex>) + (sizeof(Vertex) * this->debugVertexData.size()), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, this->debugVertexData.data());
+	}
 
 }
 

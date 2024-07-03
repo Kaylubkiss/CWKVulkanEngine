@@ -11,6 +11,8 @@ public:
 	const VkDevice& LogicalDevice();
 	const VkQueue& GraphicsQueue();
 	const VkCommandPool& CommandPool();
+	const VkPipeline& GetTrianglePipeline();
+	const VkPipeline& GetLinePipeline();
 	int GetTexture(const char* fileName);
 	VkPipelineLayout* GetPipelineLayout();
 	const std::vector<Texture>& Textures();
@@ -63,6 +65,7 @@ private:
 	std::vector<VkPipelineLayout> pipelineLayouts;
 
 	VkPipeline pipeline = VK_NULL_HANDLE;
+	VkPipeline linePipeline = VK_NULL_HANDLE;
 
 	VkCommandPool commandPool = VK_NULL_HANDLE;
 	VkCommandBuffer commandBuffer = VK_NULL_HANDLE;
@@ -82,6 +85,11 @@ private:
 	VkDescriptorSetLayout descriptorSetLayout = VK_NULL_HANDLE; //dunno if this should be here...
 
 	std::vector<Buffer> uniformBuffers;
+
+	std::vector<Vertex> debugVertexData;
+	bool isDebugEnabled = false;
+	bool debugBufferAllocated = false;
+	Buffer debugVertexBuffer;
 
 	std::vector<Texture> mTextures;
 
@@ -128,7 +136,7 @@ private:
 	void CreateDescriptorSets();
 	void WriteDescriptorSets();
 	void CreatePipelineLayout();
-	void CreatePipeline(VkPipelineShaderStageCreateInfo* pStages, int numStages);
+	void CreatePipeline(VkPipelineShaderStageCreateInfo* pStages, int numStages, VkPrimitiveTopology primitiveTopology, VkPipeline& pipelineHandle);
 	void CreateCommandPools();
 	void CreateCommandBuffers();
 	void CreateSemaphores();
