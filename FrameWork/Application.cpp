@@ -1763,7 +1763,7 @@ bool Application::init()
 
 }
 
-class MyCallbackClass : public RaycastCallback {
+class RayCastObject : public RaycastCallback {
 public:
 	virtual decimal notifyRaycastHit(const RaycastInfo& info)
 	{
@@ -1867,19 +1867,9 @@ bool Application::UpdateInput()
 
 			RaycastInfo raycastInfo = {};
 
-			MyCallbackClass callbackObject;
+			RayCastObject callbackObject;
 
 			this->mPhysicsWorld->raycast(ray, &callbackObject);
-
-			
-			/*bool isHit = debugCube3.mPhysics.rigidBody->raycast(ray, raycastInfo);*/
-
-			/*if (isHit)
-			{
-				std::cout << "debug cube was hit by the rayy!!!\n";
-			}*/
-
-
 
 		}
 		else 
