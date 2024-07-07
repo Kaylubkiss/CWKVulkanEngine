@@ -1,6 +1,7 @@
 #pragma once
 #include "Common.h"
 #include "Object.h"
+#include "Debug.h"
 #include <SDL2/SDL.h>
 
 

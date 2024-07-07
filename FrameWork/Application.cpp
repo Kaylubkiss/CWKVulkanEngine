@@ -937,7 +937,7 @@ void Application::CreateDepthResources()
 	viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
 	viewInfo.image = this->depthImage;
 	viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-	viewInfo.format = depthFormat;
+	viewInfo.format = this->depthFormat;
 	viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
 	viewInfo.subresourceRange.baseMipLevel = 0;
 	viewInfo.subresourceRange.levelCount = 1;
@@ -1495,6 +1495,7 @@ void Application::CreateDescriptorSetLayout()
 	samplerBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 	samplerBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT; //we are going to use the sampler in the fragment shader.
 
+	//VkDescriptorSetLayoutBinding 
 
 	VkDescriptorSetLayoutBinding bindings[2] = { uTransformBinding, samplerBinding };
 
@@ -1593,10 +1594,15 @@ void Application::InitPhysicsWorld()
 
 	debugCube2.InitPhysics(ColliderType::CUBE);
 	debugCube3.InitPhysics(ColliderType::CUBE, BodyType::STATIC);
+	this->debugCube3.SetLinesArrayOffset(12); 
 
 	//TODO: temporary debug renderer
 	this->mPhysicsWorld->setIsDebugRenderingEnabled(true);
+
 	debugCube3.mPhysics.rigidBody->setIsDebugEnabled(true);
+	debugCube2.mPhysics.rigidBody->setIsDebugEnabled(true);
+	
+	//the order they were added to the physics world
 
 	reactphysics3d::DebugRenderer& debugRenderer = this->mPhysicsWorld->getDebugRenderer();
 	debugRenderer.setIsDebugItemDisplayed(reactphysics3d::DebugRenderer::DebugItem::COLLIDER_AABB, true);
@@ -1728,15 +1734,18 @@ bool Application::init()
 
 
 	this->debugCube2 = Object((PathToObjects() + "gcube.obj").c_str(), "puppy1.bmp", &this->pipelineLayouts.back());
-	//this->debugCube2.mModelTransform = glm::mat4(1.f);
 	this->debugCube2.mModelTransform[3] = glm::vec4(-10.f, 20, -5.f, 1);
+	this->debugCube2.willDebugDraw(true);
 	
 	this->debugCube3 = Object((PathToObjects() + "base.obj").c_str(), "puppy1.bmp", &this->pipelineLayouts.back());
 	const float dbScale = 30.f;
 	this->debugCube3.mModelTransform = glm::mat4(dbScale);
 	this->debugCube3.mModelTransform[3] = { 0.f, -5.f, 0.f, 1 };
+	this->debugCube3.willDebugDraw(true);
 
-	this->isDebugEnabled = true;
+	//this->isDebugEnabled = true;
+
+	/*debugDrawObject.WillDraw(true);*/
 
 	CreateDescriptorSets();
 	WriteDescriptorSets();
@@ -1874,64 +1883,6 @@ bool Application::UpdateInput()
 		}
 		else 
 		{
-			//TODO:
-			//if collision is detected, what object did it collide with?
-		//	if ((!keystates[SDL_SCANCODE_LSHIFT] && e.button.button == SDL_BUTTON(SDL_BUTTON_LEFT)) || (e.type == SDL_MOUSEMOTION))
-		//	{
-		//		//1. unproject the mouse position
-		//		int mouseX = e.button.x;
-		//		int mouseY = e.button.y;
-
-		//		glm::vec4 cursorWindowPos(mouseX, mouseY, 1, 1);
-
-		//		std::cout << "( " << cursorWindowPos.x << ", " << cursorWindowPos.y << " )\n";
-
-		//		glm::vec4 cursorWorldPos = {};
-
-		//		//ndc
-		//		float cursorZ = 1.f;
-		//		cursorWorldPos.x = (2 * cursorWindowPos.x) / width - 1;
-		//		cursorWorldPos.y = (2 * cursorWindowPos.y) / height - 1;
-		//		cursorWorldPos.z = -1;
-		//		cursorWorldPos.w = cursorWindowPos.w;
-
-		//		cursorWorldPos.y *= -1;
-
-		//		//eye
-		//		cursorWorldPos = glm::inverse(uTransform.proj) * cursorWorldPos;
-
-		///*		cursorWorldPos /= cursorWorldPos.w;*/
-		//		cursorWorldPos.z = -1;
-
-		//		cursorWorldPos.w = 0;
-
-		//		//world 
-		//		glm::vec3 ray_world = glm::vec3(glm::inverse(uTransform.view) * cursorWorldPos);
-
-		//		
-
-		//		//2. cast ray from the mouse position and in the direction forward from the mouse position
-		//		reactphysics3d::Vector3 rayStart(Vector3::zero());
-
-		//		reactphysics3d::Vector3 rayEnd(ray_world.x, ray_world.y, ray_world.z);
-
-		//		rayEnd.normalize();
-
-		//		std::cout << "( " << rayEnd.x << ", " << rayEnd.y << ", " << rayEnd.z << " )\n";
-
-		//		Ray ray(rayStart, rayEnd);
-
-		//		RaycastInfo raycastInfo = {};
-
-		//		bool isHit = debugCube3.mPhysics.collider->raycast(ray, raycastInfo);
-		//		
-		//		if (isHit) 
-		//		{
-		//			std::cout << "debug cube was hit by the rayy!!!\n";
-		//		}
-
-		//		
-		//	}
 		}
 
 
@@ -2054,17 +2005,6 @@ void Application::Render()
 	debugCube2.Draw(this->commandBuffer);
 	debugCube3.Draw(this->commandBuffer);
 
-	if (this->isDebugEnabled && this->debugBufferAllocated)
-	{
-		VkDeviceSize offsets[1] = { 0 };
-		vkCmdBindPipeline(this->commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->linePipeline);
-
-		vkCmdBindVertexBuffers(this->commandBuffer, 0, 1, &this->debugVertexBuffer.handle, offsets);
-		vkCmdDraw(this->commandBuffer, static_cast<uint32_t>(debugVertexData.size()), 1, 0, 0);
-
-		vkCmdBindPipeline(this->commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->pipeline);
-	}
-
 	DrawGui();
 
 	vkCmdEndRenderPass(this->commandBuffer);
@@ -2138,30 +2078,7 @@ void Application::UpdatePhysics(float& accumulator)
 	reactphysics3d::decimal factor = accumulator / timeStep;
 
 	debugCube2.Update(factor);
-
-	reactphysics3d::DebugRenderer& debugRenderer = this->mPhysicsWorld->getDebugRenderer();
-	
-	uint32_t sizeOfLinesArray = debugRenderer.getNbLines();
-
-	if (!debugBufferAllocated && sizeOfLinesArray > 0)
-	{
-		debugBufferAllocated = true;
-		for (size_t i = 0; i < sizeOfLinesArray; ++i)
-		{
-			const reactphysics3d::DebugRenderer::DebugLine& tri = debugRenderer.getLinesArray()[i];
-			
-			Vertex vert;
-			vert.pos = glm::inverse(debugCube3.mModelTransform) * glm::vec4(tri.point1.x, tri.point1.y, tri.point1.z, 1);
-			
-			debugVertexData.push_back(vert);
-
-			vert.pos = glm::inverse(debugCube3.mModelTransform) * glm::vec4(tri.point2.x, tri.point2.y, tri.point2.z, 1);
-
-			debugVertexData.push_back(vert);
-		}
-
-		this->debugVertexBuffer = Buffer(sizeof(std::vector<Vertex>) + (sizeof(Vertex) * this->debugVertexData.size()), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, this->debugVertexData.data());
-	}
+	debugCube3.Update(factor);
 
 }
 
@@ -2225,7 +2142,10 @@ void Application::exit()
 		vkDestroyPipelineLayout(this->m_logicalDevice, this->pipelineLayouts[i], nullptr);
 	}
 
+	
 	vkDestroyPipeline(this->m_logicalDevice, this->pipeline, nullptr);
+
+	vkDestroyPipeline(this->m_logicalDevice, this->linePipeline, nullptr);
 
 	vkDestroyDescriptorPool(this->m_logicalDevice, this->descriptorPool, nullptr);
 

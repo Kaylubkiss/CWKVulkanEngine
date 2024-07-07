@@ -37,8 +37,6 @@ Object::Object(const char* fileName, const char* textureName, VkPipelineLayout* 
     mCenter /= this->vertexBufferData.size();
    /* mCenter = (max_points + min_points) * 0.5f;*/
 
-    glm::vec3 newCenter = { 0,0,0 };
-
     float unitScale = std::max({ glm::length(max_points.x - min_points.x), glm::length(max_points.y - min_points.y), glm::length(max_points.z - min_points.z) });
 
     max_points = { -std::numeric_limits<float>::min(),  -std::numeric_limits<float>::min() , -std::numeric_limits<float>::min() };
@@ -47,7 +45,7 @@ Object::Object(const char* fileName, const char* textureName, VkPipelineLayout* 
     for (size_t i = 0; i < this->vertexBufferData.size(); ++i)
     {
         this->vertexBufferData[i].pos = (this->vertexBufferData[i].pos - mCenter) / unitScale;
-        
+
         max_points.x = std::max(max_points.x, vertexBufferData[i].pos.x);
         max_points.y = std::max(max_points.y, vertexBufferData[i].pos.y);
         max_points.z = std::max(max_points.z, vertexBufferData[i].pos.z);
@@ -55,22 +53,7 @@ Object::Object(const char* fileName, const char* textureName, VkPipelineLayout* 
         min_points.x = std::min(min_points.x, vertexBufferData[i].pos.x);
         min_points.y = std::min(min_points.y, vertexBufferData[i].pos.y);
         min_points.z = std::min(min_points.z, vertexBufferData[i].pos.z);
-
-        newCenter += this->vertexBufferData[i].pos;
     }
-
-    newCenter /= this->vertexBufferData.size();
-
-    mCenter = newCenter;
-
-    glm::vec3 halfExtent = ((max_points - min_points) * .5f);
-
-    halfExtent.x = std::abs(halfExtent.x);
-    halfExtent.y = std::abs(halfExtent.y);
-    halfExtent.z = std::abs(halfExtent.z);
-
-    mHalfExtent = reactphysics3d::Vector3(halfExtent.x, halfExtent.y, halfExtent.z);
-
 
     mMaxLocalPoints = max_points;
     mMinLocalPoints = min_points;
@@ -118,6 +101,7 @@ void Object::InitPhysics(ColliderType cType, BodyType bType)
     if (bType != BodyType::DYNAMIC)
     {
        this->mPhysics.rigidBody->setType(bType);
+       this->mPhysics.bodyType = bType;
     }
 
     switch (cType) 
@@ -144,23 +128,43 @@ void Object::DestroyResources()
     
     vkFreeMemory(_Application->LogicalDevice(), this->indexBuffer.memory, nullptr);
     vkDestroyBuffer(_Application->LogicalDevice(), this->indexBuffer.handle, nullptr);
+
+    this->debugDrawObject.DestroyResources();
+}
+
+void Object::willDebugDraw(bool option) 
+{
+    this->debugDrawObject.WillDraw(option);
+    //not memory efficient.
+    this->debugDrawObject.AddModelTransform(this->mModelTransform);
 }
 
 void Object::Update(const float& interpFactor)
 {
-    Transform uninterpolatedTransform = this->mPhysics.rigidBody->getTransform();
 
-    this->mPhysics.currTransform = Transform::interpolateTransforms(this->mPhysics.prevTransform, uninterpolatedTransform, interpFactor);
+    if (this->mPhysics.bodyType != BodyType::STATIC) 
+    {
+        Transform uninterpolatedTransform = this->mPhysics.rigidBody->getTransform();
+
+        this->mPhysics.currTransform = Transform::interpolateTransforms(this->mPhysics.prevTransform, uninterpolatedTransform, interpFactor);
 
 
-    this->mPhysics.prevTransform = this->mPhysics.currTransform;
+        this->mPhysics.prevTransform = this->mPhysics.currTransform;
 
 
-    const reactphysics3d::Vector3& rpnPosition = this->mPhysics.currTransform.getPosition();
-    glm::vec3 nPosition = { rpnPosition.x, rpnPosition.y, rpnPosition.z };
+        const reactphysics3d::Vector3& rpnPosition = this->mPhysics.currTransform.getPosition();
+        glm::vec3 nPosition = { rpnPosition.x, rpnPosition.y, rpnPosition.z };
 
-    this->mModelTransform[3] = glm::vec4(nPosition, 1);
+        this->mModelTransform[3] = glm::vec4(nPosition, 1);
+    }
 
+    this->debugDrawObject.Update();
+
+}
+
+void Object::SetLinesArrayOffset(uint32_t index) 
+{
+    this->debugDrawObject.SetArrayOffset(index);
 }
 
 void Object::Draw(VkCommandBuffer cmdBuffer) 
@@ -178,6 +182,8 @@ void Object::Draw(VkCommandBuffer cmdBuffer)
     vkCmdPushConstants(cmdBuffer, *this->mPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::mat4), (void*)(&mModelTransform));
 
     vkCmdDrawIndexed(cmdBuffer, static_cast<uint32_t>(indexBufferData.size()), 1, 0, 0, 0);
+
+    this->debugDrawObject.Draw(cmdBuffer);
 
 }
 

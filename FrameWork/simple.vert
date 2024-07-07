@@ -8,9 +8,22 @@ layout(set = 0, binding = 0) uniform uTransformObject {
     mat4 proj;
 } uTransform;
 
+
+layout(set = 0, binding = 1) uniform light
+{
+	
+
+} light;
+
 layout( location = 0 ) in vec3 aPos;
 layout( location = 1 ) in vec3 aNorm;
 layout( location = 2 ) in vec2 aUv;
+
+layout( location = 4 ) uniform bool lightOn;
+layout(	location = 5 ) uniform int numLights;
+layout( location = 6 ) uniform vec3 lightPosVF[10];
+
+
 
 layout (push_constant) uniform Matrix
 {
@@ -34,6 +47,8 @@ vec3 colors[3] = vec3[3]
 	vec3(0.0, 1.0, 0.0),
 	vec3(0.0, 0.0, 1.0)
 );
+
+
 
 
 void main ()
