@@ -3,6 +3,7 @@
 
 void DebugDrawObject::Draw(VkCommandBuffer cmdBuffer) 
 {
+	//WARNING: EXPENSIVE!!!!!
 	if (_Application == NULL) 
 	{
 		return;
@@ -10,45 +11,62 @@ void DebugDrawObject::Draw(VkCommandBuffer cmdBuffer)
 
 	if (this->isDebugEnabled && this->debugBufferAllocated)
 	{
-		
 		VkDeviceSize offsets[1] = { 0 };
 		vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, _Application->GetLinePipeline());
 
 		vkCmdBindVertexBuffers(cmdBuffer, 0, 1, &this->debugVertexBuffer.handle, offsets);
 		vkCmdDraw(cmdBuffer, static_cast<uint32_t>(debugVertexData.size()), 1, 0, 0);
 
-
 		vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, _Application->GetTrianglePipeline());
-
-		
 	}
 
 }
 
 void DebugDrawObject::Update() 
 {
-	reactphysics3d::DebugRenderer& debugRenderer = _Application->GetPhysicsWorld()->getDebugRenderer();
-
-	uint32_t sizeOfLinesArray = debugRenderer.getNbLines();
-
-	if (!this->debugBufferAllocated && sizeOfLinesArray > 0)
+	if (_Application == NULL) 
 	{
-		debugBufferAllocated = true;
-		for (size_t i = 0; i < 12; ++i)
+		return;
+	}
+
+	if (this->isDebugEnabled) 
+	{
+
+		reactphysics3d::DebugRenderer& debugRenderer = _Application->GetPhysicsWorld()->getDebugRenderer();
+
+		uint32_t sizeOfLinesArray = debugRenderer.getNbLines();
+
+		if (!this->debugBufferAllocated && sizeOfLinesArray > 0)
 		{
-			const reactphysics3d::DebugRenderer::DebugLine& tri = debugRenderer.getLinesArray()[i + offsetInLinesArrary];
+			debugBufferAllocated = true;
 
-			Vertex vert;
-			vert.pos = glm::inverse(this->modelTransforms) * glm::vec4(tri.point1.x, tri.point1.y, tri.point1.z, 1);
+			for (size_t i = 0; i < 12; ++i)
+			{
+				const reactphysics3d::DebugRenderer::DebugLine& tri = debugRenderer.getLinesArray()[i + offsetInLinesArrary];
 
-			debugVertexData.push_back(vert);
+				Vertex vert;
+				vert.pos = glm::inverse(this->modelTransforms) * glm::vec4(tri.point1.x, tri.point1.y, tri.point1.z, 1);
 
-			vert.pos = glm::inverse(this->modelTransforms) * glm::vec4(tri.point2.x, tri.point2.y, tri.point2.z, 1);
+				debugVertexData.push_back(vert);
 
-			debugVertexData.push_back(vert);
+				vert.pos = glm::inverse(this->modelTransforms) * glm::vec4(tri.point2.x, tri.point2.y, tri.point2.z, 1);
+
+				debugVertexData.push_back(vert);
+			}
+
+			this->debugVertexBuffer = Buffer(sizeof(std::vector<Vertex>) + (sizeof(Vertex) * this->debugVertexData.size()), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, this->debugVertexData.data());
 		}
+		else if (sizeOfLinesArray > 0)
+		{
+			for (size_t i = 0; i < 12; ++i)
+			{
+				const reactphysics3d::DebugRenderer::DebugLine& tri = debugRenderer.getLinesArray()[i + offsetInLinesArrary];
 
-		this->debugVertexBuffer = Buffer(sizeof(std::vector<Vertex>) + (sizeof(Vertex) * this->debugVertexData.size()), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, this->debugVertexData.data());
+				debugVertexData[i].pos = glm::inverse(this->modelTransforms) * glm::vec4(tri.point1.x, tri.point1.y, tri.point1.z, 1);
+
+				debugVertexData[i + 1].pos = glm::inverse(this->modelTransforms) * glm::vec4(tri.point2.x, tri.point2.y, tri.point2.z, 1);
+			}
+		}
 	}
 
 }

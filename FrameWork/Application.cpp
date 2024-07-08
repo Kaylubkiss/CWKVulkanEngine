@@ -1596,14 +1596,12 @@ void Application::InitPhysicsWorld()
 	debugCube3.InitPhysics(ColliderType::CUBE, BodyType::STATIC);
 	this->debugCube3.SetLinesArrayOffset(12); 
 
-	//TODO: temporary debug renderer
 	this->mPhysicsWorld->setIsDebugRenderingEnabled(true);
 
 	debugCube3.mPhysics.rigidBody->setIsDebugEnabled(true);
 	debugCube2.mPhysics.rigidBody->setIsDebugEnabled(true);
 	
 	//the order they were added to the physics world
-
 	reactphysics3d::DebugRenderer& debugRenderer = this->mPhysicsWorld->getDebugRenderer();
 	debugRenderer.setIsDebugItemDisplayed(reactphysics3d::DebugRenderer::DebugItem::COLLIDER_AABB, true);
 	

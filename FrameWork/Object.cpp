@@ -88,8 +88,6 @@ void Object::InitPhysics(ColliderType cType, BodyType bType)
     glm::vec3 worldMinPoints = mModelTransform * glm::vec4(mMinLocalPoints, 1);
     glm::vec3 worldMaxPoints = mModelTransform * glm::vec4(mMaxLocalPoints, 1);
 
-   
-
     const glm::vec4& dc2Position = glm::vec4(.5f * (worldMinPoints + worldMaxPoints), 1);
     reactphysics3d::Vector3 position(dc2Position.x, dc2Position.y, dc2Position.z);
     reactphysics3d::Quaternion orientation = Quaternion::identity();
@@ -148,14 +146,20 @@ void Object::Update(const float& interpFactor)
 
         this->mPhysics.currTransform = Transform::interpolateTransforms(this->mPhysics.prevTransform, uninterpolatedTransform, interpFactor);
 
-
         this->mPhysics.prevTransform = this->mPhysics.currTransform;
 
+        float matrix[16];
 
-        const reactphysics3d::Vector3& rpnPosition = this->mPhysics.currTransform.getPosition();
-        glm::vec3 nPosition = { rpnPosition.x, rpnPosition.y, rpnPosition.z };
+        this->mPhysics.currTransform.getOpenGLMatrix(matrix);
 
-        this->mModelTransform[3] = glm::vec4(nPosition, 1);
+       
+        //this makes this stuff too dang easy.
+        glm::mat4 nModel = glm::mat4(matrix[0], matrix[1], matrix[2], matrix[3], 
+                                            matrix[4], matrix[5], matrix[6], matrix[7],
+                                            matrix[8], matrix[9], matrix[10], matrix[11],
+                                            matrix[12], matrix[13], matrix[14], matrix[15]);
+
+        this->mModelTransform = nModel;
     }
 
     this->debugDrawObject.Update();
