@@ -173,21 +173,31 @@ void Object::SetLinesArrayOffset(uint32_t index)
 
 void Object::Draw(VkCommandBuffer cmdBuffer) 
 {
-    const Texture& texture = _Application->Textures()[this->textureIndex];
+    if (!this->debugDrawObject.onlyVisible()) 
+    {
+        const Texture& texture = _Application->Textures()[this->textureIndex];
 
-    vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, *this->mPipelineLayout, 0, 1, &texture.mDescriptor, 0, nullptr);
+        vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, *this->mPipelineLayout, 0, 1, &texture.mDescriptor, 0, nullptr);
 
-    VkDeviceSize offsets[1] = { 0 };
-    VkBuffer  vBuffers[] = { this->vertexBuffer.handle };
+        VkDeviceSize offsets[1] = { 0 };
+        VkBuffer  vBuffers[] = { this->vertexBuffer.handle };
 
-    vkCmdBindVertexBuffers(cmdBuffer, 0, 1, &vertexBuffer.handle, offsets);
-    vkCmdBindIndexBuffer(cmdBuffer, indexBuffer.handle, 0, VK_INDEX_TYPE_UINT16);
-    
-    vkCmdPushConstants(cmdBuffer, *this->mPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::mat4), (void*)(&mModelTransform));
+        vkCmdBindVertexBuffers(cmdBuffer, 0, 1, &vertexBuffer.handle, offsets);
+        vkCmdBindIndexBuffer(cmdBuffer, indexBuffer.handle, 0, VK_INDEX_TYPE_UINT16);
 
-    vkCmdDrawIndexed(cmdBuffer, static_cast<uint32_t>(indexBufferData.size()), 1, 0, 0, 0);
+        vkCmdPushConstants(cmdBuffer, *this->mPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::mat4), (void*)(&mModelTransform));
 
-    this->debugDrawObject.Draw(cmdBuffer);
+        vkCmdDrawIndexed(cmdBuffer, static_cast<uint32_t>(indexBufferData.size()), 1, 0, 0, 0);
+    }
+    else 
+    {
+        vkCmdPushConstants(cmdBuffer, *this->mPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::mat4), (void*)(&mModelTransform));
+    }
+
+    if (this->debugDrawObject.isVisible() || this->debugDrawObject.onlyVisible())
+    {
+        this->debugDrawObject.Draw(cmdBuffer);
+    }
 
 }
 

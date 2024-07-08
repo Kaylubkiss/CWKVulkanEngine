@@ -47,7 +47,7 @@ struct uTransformObject
 static uTransformObject uTransform =
 {
 	glm::mat4(1.), //model
-	glm::lookAt(glm::vec3(0.f, 0.f , 50.f), glm::vec3(0.f, 0.f, 0.f), glm::vec3(0.f,1.f,0.f)), //view
+	glm::lookAt(glm::vec3(0.f, 0.f , 10.f), glm::vec3(0.f, 0.f, 0.f), glm::vec3(0.f,1.f,0.f)), //view
 	glm::perspective(glm::radians(45.f), (float)width/height,  0.1f, 1000.f) //proj
 };
 
@@ -566,7 +566,7 @@ void Application::CreateSwapChain()
 
 	VK_CHECK_RESULT(vkCreateSwapchainKHR(this->m_logicalDevice, &swapChainInfo, nullptr, &this->swapChain));
 
-	delete[] surfaceFormats;
+	delete [] surfaceFormats;
 
 }
 
@@ -1816,6 +1816,12 @@ bool Application::UpdateInput()
 				case SDLK_d:
 					newTransform = glm::mat4(X_BASIS, Y_BASIS, Z_BASIS, { -30 * deltaTime, 0, 0, 1 }) * uTransform.view;
 					break;
+				case (SDLK_t):
+					debugCube3.debugDrawObject.ToggleVisibility(e.key.keysym.sym, keystates[SDL_SCANCODE_LSHIFT]);
+					debugCube2.debugDrawObject.ToggleVisibility(e.key.keysym.sym, keystates[SDL_SCANCODE_LSHIFT]);
+					break;
+				
+
 			}
 
 			uTransform.view = newTransform;

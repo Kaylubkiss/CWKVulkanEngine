@@ -92,3 +92,32 @@ void DebugDrawObject::SetArrayOffset(uint32_t offsetIntoLinesArray)
 {
 	this->offsetInLinesArrary = offsetIntoLinesArray;
 }
+
+void DebugDrawObject::ToggleVisibility(SDL_Keycode symbol, Uint8 lshift)
+{
+	if (symbol == SDLK_t) 
+	{
+		if (!lshift)
+		{
+			isDrawing ^= true;
+			isOnlyDrawing ^= isOnlyDrawing;
+		}
+		else 
+		{
+			isOnlyDrawing ^= true;
+			isDrawing ^= isDrawing;
+		}
+	}
+
+	
+}
+
+bool DebugDrawObject::onlyVisible() 
+{
+	return isOnlyDrawing;
+}
+
+bool DebugDrawObject::isVisible()
+{
+	return isDrawing;
+}
