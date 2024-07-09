@@ -1,5 +1,6 @@
 #pragma once
 #include "Common.h"
+#include "Camera.h"
 #include "Object.h"
 #include "Debug.h"
 #include <SDL2/SDL.h>
@@ -33,8 +34,7 @@ private:
 	Object debugCube;
 	Object debugCube2;
 	Object debugCube3;
-
-	/*std::vector<Object> mObjects;*/
+	Camera mCamera;
 
 	PhysicsCommon mPhysicsCommon;
 	PhysicsWorld* mPhysicsWorld = nullptr;

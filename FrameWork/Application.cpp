@@ -47,7 +47,8 @@ struct uTransformObject
 static uTransformObject uTransform =
 {
 	glm::mat4(1.), //model
-	glm::lookAt(glm::vec3(0.f, 0.f , 10.f), glm::vec3(0.f, 0.f, 0.f), glm::vec3(0.f,1.f,0.f)), //view
+	//glm::lookAt(glm::vec3(0.f, 0.f , 10.f), glm::vec3(0.f, 0.f, 0.f), glm::vec3(0.f,1.f,0.f)), //view
+	glm::mat4(1.f),
 	glm::perspective(glm::radians(45.f), (float)width/height,  0.1f, 1000.f) //proj
 };
 
@@ -1667,6 +1668,7 @@ PhysicsCommon& Application::GetPhysicsCommon()
 
 bool Application::init() 
 {
+	mCamera = Camera({ 0.f, 0.f, -10.f }, { 0,0,0 }, { 0,1,0 });
 
 	//uniform stuffs;
 	uTransform.proj[1][1] *= -1.f;

@@ -79,6 +79,26 @@ struct Buffer
 	/*~Buffer();*/ //this gets called in std::vector and causes headache. we don't want that.
 };
 
+
+struct PhysicsComponent
+{
+	reactphysics3d::RigidBody* rigidBody = nullptr;
+	reactphysics3d::Collider* collider = nullptr;
+	reactphysics3d::CollisionShape* shape = nullptr;
+
+	reactphysics3d::Transform currTransform;
+	reactphysics3d::Transform prevTransform;
+
+	reactphysics3d::BodyType bodyType;
+
+	PhysicsComponent() : rigidBody(nullptr), collider(nullptr), shape(nullptr),
+		currTransform(reactphysics3d::Vector3::zero(), reactphysics3d::Quaternion::identity()),
+		prevTransform(currTransform) {};
+
+	//void operator=(const PhysicsComponent& rhs);
+};
+
+
 struct Texture 
 {
 	std::string mName;
