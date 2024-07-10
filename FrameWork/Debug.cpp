@@ -99,13 +99,12 @@ void DebugDrawObject::ToggleVisibility(SDL_Keycode symbol, Uint8 lshift)
 	{
 		if (!lshift)
 		{
+			isDrawing ^= isOnlyDrawing;
 			isDrawing ^= true;
-			isOnlyDrawing ^= isOnlyDrawing;
 		}
 		else 
 		{
 			isOnlyDrawing ^= true;
-			isDrawing ^= isDrawing;
 		}
 	}
 
