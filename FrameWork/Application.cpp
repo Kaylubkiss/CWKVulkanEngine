@@ -274,6 +274,20 @@ void Application::CreateWindow()
 	{
 		printf("Window could not be created! SDL_Error: %s\n", SDL_GetError());
 	}
+	
+}
+
+bool Application::WindowisFocused() 
+{
+	if (this->window == NULL) 
+	{
+		return false;
+	}
+
+	uint32_t flags = SDL_GetWindowFlags(this->window);
+
+	return ((flags & SDL_WINDOW_INPUT_FOCUS) != 0);
+
 }
 
 void Application::CreateWindowSurface() 
@@ -1613,7 +1627,7 @@ void Application::InitGui()
 	ImGui::CreateContext();
 
 	ImGuiIO& io = ImGui::GetIO(); (void)io;
-	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard | ImGuiConfigFlags_NoMouseCursorChange;
 
 	// Setup Platform/Renderer backends
 	if (!ImGui_ImplSDL2_InitForVulkan(this->window)) {
@@ -1666,12 +1680,16 @@ PhysicsCommon& Application::GetPhysicsCommon()
 	return this->mPhysicsCommon;
 }
 
+static glm::vec3 globalCenter(0.f);
+
 bool Application::init() 
 {
-	mCamera = Camera({ 0.f, 0.f, -10.f }, { 0,0,0 }, { 0,1,0 });
+	
+	mCamera = Camera({ 0.f, 0.f, 10.f }, { 0.f, 0.f, -9.f } , { 0,1,0 });
 
 	//uniform stuffs;
 	uTransform.proj[1][1] *= -1.f;
+	uTransform.view = mCamera.LookAt();
 
 	this->m_viewPort.width = (float)width;
 	this->m_viewPort.height = (float)height;
@@ -1772,6 +1790,12 @@ bool Application::init()
 
 }
 
+
+const float& Application::GetDeltaTime() 
+{
+	return this->deltaTime;
+}
+
 class RayCastObject : public RaycastCallback {
 public:
 	virtual decimal notifyRaycastHit(const RaycastInfo& info)
@@ -1788,52 +1812,138 @@ public:
 	}
 };
 
+
+void Application::SelectWorldObjects(const int& mouseX, const int& mouseY)
+{
+	
+
+	glm::vec4 cursorWindowPos(mouseX, mouseY, 1, 1);
+
+	/*std::cout << "( " << cursorWindowPos.x << ", " << cursorWindowPos.y << " )\n";*/
+
+	glm::vec4 cursorScreenPos = {};
+
+	//ndc
+	float cursorZ = 1.f;
+	cursorScreenPos.x = (2 * cursorWindowPos.x) / width - 1;
+	cursorScreenPos.y = (2 * cursorWindowPos.y) / height - 1; //vulkan is upside down.
+	cursorScreenPos.z = 1;
+	cursorScreenPos.w = cursorWindowPos.w;
+
+	////eye
+
+	////world 
+	glm::vec4 ray_world = glm::inverse(uTransform.proj * uTransform.view) * cursorScreenPos;
+
+	ray_world /= ray_world.w;
+
+	//glm::vec3 ray_world = glm::vec3(cursorWorldPos);
+
+	//2. cast ray from the mouse position and in the direction forward from the mouse position
+	reactphysics3d::Vector3 rayStart(-uTransform.view[3].x, -uTransform.view[3].y, -uTransform.view[3].z);
+
+	reactphysics3d::Vector3 rayEnd(ray_world.x, ray_world.y, ray_world.z);
+
+	Ray ray(rayStart, rayEnd);
+
+	RaycastInfo raycastInfo = {};
+
+	RayCastObject callbackObject;
+
+	this->mPhysicsWorld->raycast(ray, &callbackObject);
+
+}
+
+static bool w_down = false;
+static bool s_down = false;
+static bool d_down = false;
+static bool a_down = false;
+
 bool Application::UpdateInput()
 {
+
 	SDL_Event e;
 	while (SDL_PollEvent(&e))
 	{
 		const Uint8* keystates = SDL_GetKeyboardState(nullptr);
-
+		
 		ImGui_ImplSDL2_ProcessEvent(&e);
-		if (e.type == SDL_QUIT || (e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_ESCAPE))
+
+		Sint32 deltaX = e.motion.xrel;
+		Sint32 deltaY = e.motion.yrel;
+
+		static glm::vec2 mousePos(width / 2, height / 2);
+
+
+		if (e.type == SDL_QUIT)
 		{
+			//it should exit.
 			return true;
 		}
 
 		if (e.type == SDL_KEYDOWN) 
 		{
-			glm::mat4 newTransform = uTransform.view;
 			switch (e.key.keysym.sym)
 			{
 				case SDLK_w:
-					newTransform = glm::mat4(X_BASIS, Y_BASIS, Z_BASIS, { 0,0, 30 * deltaTime, 1 }) * uTransform.view;
+					/*std::cout << "pressed!!\n";*/
+					
+					w_down = true;
 					break;
 				case SDLK_s:
-					newTransform = glm::mat4(X_BASIS, Y_BASIS, Z_BASIS, { 0,0, -30 * deltaTime, 1 }) * uTransform.view;
+					s_down = true;
 					break;
 				case SDLK_a:
-					newTransform = glm::mat4(X_BASIS, Y_BASIS, Z_BASIS, { 30 * deltaTime,0, 0, 1 }) * uTransform.view;
+					a_down = true;
 					break;
 				case SDLK_d:
-					newTransform = glm::mat4(X_BASIS, Y_BASIS, Z_BASIS, { -30 * deltaTime, 0, 0, 1 }) * uTransform.view;
+					d_down = true;
 					break;
 				case (SDLK_t):
 					debugCube3.debugDrawObject.ToggleVisibility(e.key.keysym.sym, keystates[SDL_SCANCODE_LSHIFT]);
 					debugCube2.debugDrawObject.ToggleVisibility(e.key.keysym.sym, keystates[SDL_SCANCODE_LSHIFT]);
 					break;
+				case (SDLK_ESCAPE):
+					if (SDL_GetGrabbedWindow())
+					{
+						SDL_SetWindowGrab(this->window, SDL_FALSE);
+						SDL_SetRelativeMouseMode(SDL_FALSE);
+						SDL_ShowCursor(SDL_ENABLE);
+					}
+					else 
+					{
+						//it should exit.
+						return true;
+					}
 				
 
 			}
 
-			uTransform.view = newTransform;
+		
+		}
+		else if (e.type == SDL_KEYUP) 
+		{
+			switch (e.key.keysym.sym)
+			{
+				case SDLK_w:
+					w_down = false;
+					break;
+				case SDLK_s:
+					s_down = false;
+					break;
+				case SDLK_a:
+					a_down = false;
+					break;
+				case SDLK_d:
+					d_down = false;
+					break;
+			}
 
-			memcpy(uniformBuffers[0].mappedMemory, (void*)&uTransform, (size_t)(sizeof(uTransformObject)));
 		}
 		else if (e.type == SDL_MOUSEMOTION) 
 		{
-			if ((keystates[SDL_SCANCODE_LSHIFT] && 
-				e.button.button == SDL_BUTTON(SDL_BUTTON_LEFT) && 
+			if ((keystates[SDL_SCANCODE_LSHIFT] &&
+				e.button.button == SDL_BUTTON(SDL_BUTTON_LEFT) &&
 				guiWindowIsFocused == false) || (e.button.button == SDL_BUTTON(SDL_BUTTON_MIDDLE)))
 			{
 				int deltaX = e.motion.xrel;
@@ -1842,77 +1952,102 @@ bool Application::UpdateInput()
 				uTransform.view = newTransform;
 				memcpy(uniformBuffers[0].mappedMemory, (void*)&uTransform, (size_t)(sizeof(uTransformObject)));
 			}
-
-
-			int mouseX = e.button.x;
-			int mouseY = e.button.y;
-
-			glm::vec4 cursorWindowPos(mouseX, mouseY, 1, 1);
-
-			/*std::cout << "( " << cursorWindowPos.x << ", " << cursorWindowPos.y << " )\n";*/
-
-			glm::vec4 cursorScreenPos = {};
-
-			//ndc
-			float cursorZ = 1.f;
-			cursorScreenPos.x = (2 * cursorWindowPos.x) / width - 1;
-			cursorScreenPos.y = (2 * cursorWindowPos.y) / height - 1; //vulkan is upside down.
-			cursorScreenPos.z = 1;
-			cursorScreenPos.w = cursorWindowPos.w;
-
-			////eye
-
-			////world 
-			glm::vec4 ray_world = glm::inverse(uTransform.proj * uTransform.view) * cursorScreenPos;
-
-			ray_world /= ray_world.w;
-
-			//glm::vec3 ray_world = glm::vec3(cursorWorldPos);
-
-			//2. cast ray from the mouse position and in the direction forward from the mouse position
-			reactphysics3d::Vector3 rayStart(-uTransform.view[3].x, -uTransform.view[3].y, -uTransform.view[3].z);
-
-			reactphysics3d::Vector3 rayEnd(ray_world.x, ray_world.y, ray_world.z);
-
-			/*rayEnd.normalize();*/
-
-			/*std::cout << "( " << rayEnd.x << ", " << rayEnd.y << ", " << rayEnd.z << " )\n";*/
-
-			Ray ray(rayStart, rayEnd);
-
-			RaycastInfo raycastInfo = {};
-
-			RayCastObject callbackObject;
-
-			this->mPhysicsWorld->raycast(ray, &callbackObject);
-
 		}
-		else 
+
+		if (e.button.button == SDL_BUTTON(SDL_BUTTON_LEFT) && e.button.state == SDL_PRESSED) 
 		{
+			if (WindowisFocused())
+			{
+				if (!SDL_GetGrabbedWindow())
+				{
+					//relativemousemode might be better
+					SDL_SetWindowGrab(this->window, SDL_TRUE);
+					SDL_SetRelativeMouseMode(SDL_TRUE);
+					if (!guiWindowIsFocused) 
+					{
+						SDL_ShowCursor(0);
+					}
+					
+				}
+				else
+				{
+					if (!guiWindowIsFocused) 
+					{
+						SDL_WarpMouseInWindow(this->window, width / 2, height / 2);
+						SDL_ShowCursor(0);
+					}
+					else 
+					{
+						if (SDL_ShowCursor(SDL_QUERY) != 1) 
+						{
+							SDL_ShowCursor(1);
+						}
+					}
+
+
+					int mouseX = e.button.x;
+					int mouseY = e.button.y;
+
+					SelectWorldObjects(mouseX, mouseY);
+
+				}
+			}
 		}
 
-
-		int deltaX = e.motion.xrel;
-		int deltaY = e.motion.yrel;
-
-		if (deltaX && deltaX != std::numeric_limits<int>::max())
+		if ((deltaX  || deltaY) && deltaX != std::numeric_limits<int>::max() && deltaY != std::numeric_limits<int>::max())
 		{
 			if (e.type == SDL_MOUSEMOTION && e.button.button == SDL_BUTTON(SDL_BUTTON_RIGHT))
 			{
-				uTransform.view = glm::rotate(glm::mat4(1.f), (float)deltaX * .008f, glm::vec3(0, 1, 0)) * uTransform.view;
-				memcpy(uniformBuffers[0].mappedMemory, (void*)&uTransform, (size_t)(sizeof(uTransformObject)));
-			}
-		}
-		else if (deltaY && deltaY != std::numeric_limits<int>::max())
-		{
-			if (e.type == SDL_MOUSEMOTION && e.button.button == SDL_BUTTON(SDL_BUTTON_RIGHT))
-			{
-				uTransform.view = glm::rotate(glm::mat4(1.f), (float)deltaY * .008f, glm::vec3(1, 0, 0)) * uTransform.view;
-				memcpy(uniformBuffers[0].mappedMemory, (void*)&uTransform, (size_t)(sizeof(uTransformObject)));
-			}
 
+			
+
+				mousePos.x += deltaX;
+				mousePos.y += deltaY;
+
+
+				//this should be the center.
+				mCamera.Rotate(mousePos.x, mousePos.y);
+
+				uTransform.view = mCamera.LookAt();
+
+				memcpy(uniformBuffers[0].mappedMemory, (void*)&uTransform, (size_t)(sizeof(uTransformObject)));
+			}
 		}
 	}
+
+	if (w_down || s_down || a_down || d_down)
+	{
+		glm::mat4 newTransform = uTransform.view;
+
+		if (w_down)
+		{
+			/*		std::cout << "here\n";*/
+			mCamera.MoveForward();
+			newTransform = mCamera.LookAt();
+		}
+		else if (s_down)
+		{
+			mCamera.MoveBack();
+			newTransform = mCamera.LookAt();
+		}
+		else if (a_down)
+		{
+			mCamera.MoveLeft();
+			newTransform = mCamera.LookAt();
+		}
+		else if (d_down)
+		{
+			mCamera.MoveRight();
+			newTransform = mCamera.LookAt();
+		}
+
+
+		uTransform.view = newTransform;
+
+		memcpy(uniformBuffers[0].mappedMemory, (void*)&uTransform, (size_t)(sizeof(uTransformObject)));
+
+	}
+
 
 	return false;
 }

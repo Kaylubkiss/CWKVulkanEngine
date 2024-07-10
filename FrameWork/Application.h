@@ -20,6 +20,7 @@ public:
 	const std::vector<Texture>& Textures();
 	PhysicsWorld* GetPhysicsWorld();
 	PhysicsCommon& GetPhysicsCommon();
+	const float& GetDeltaTime();
 
 	void run();
 	~Application();
@@ -61,7 +62,6 @@ private:
 
 	VkShaderModule shaderVertModule = VK_NULL_HANDLE;
 	VkShaderModule shaderFragModule = VK_NULL_HANDLE;
-	VkShaderModule* ShaderStages[2] = { &shaderVertModule, &shaderFragModule };
 
 	std::vector<VkPipelineLayout> pipelineLayouts;
 
@@ -118,12 +118,12 @@ private:
 	VkQueue graphicsQueue = {};
 	VkQueue presentQueue = {};
 
-	
-
 	//functions
 	void CreateInstance();
 	void FillDebugMessenger(VkDebugUtilsMessengerCreateInfoEXT& createInfo);
 	void CreateWindow();
+	bool WindowisFocused();
+	void SelectWorldObjects(const int& mouseX, const int& mouseY);
 	void CreateWindowSurface();
 	void EnumeratePhysicalDevices();
 	void FindQueueFamilies();
