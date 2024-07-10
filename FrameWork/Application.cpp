@@ -1685,7 +1685,7 @@ static glm::vec3 globalCenter(0.f);
 bool Application::init() 
 {
 	
-	mCamera = Camera({ 0.f, 0.f, 10.f }, { 0.f, 0.f, -9.f } , { 0,1,0 });
+	mCamera = Camera({ 0.f, 0.f, 10.f }, { 0.f, 0.f, -1.f } , { 0,1,0 });
 
 	//uniform stuffs;
 	uTransform.proj[1][1] *= -1.f;
@@ -1963,8 +1963,10 @@ bool Application::UpdateInput()
 					//relativemousemode might be better
 					SDL_SetWindowGrab(this->window, SDL_TRUE);
 					SDL_SetRelativeMouseMode(SDL_TRUE);
+
 					if (!guiWindowIsFocused) 
 					{
+						SDL_WarpMouseInWindow(this->window, width / 2, height / 2);
 						SDL_ShowCursor(0);
 					}
 					
