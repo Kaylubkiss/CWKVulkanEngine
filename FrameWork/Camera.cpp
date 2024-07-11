@@ -23,28 +23,28 @@ const glm::vec3& Camera::Position()
 void Camera::MoveLeft() 
 {
 	//TODO
-	float dT = _Application->GetDeltaTime();
+	float dT = _Application->GetTime().DeltaTime();
 	mEye -= glm::cross(mLookDir, mUpVector) * temp_cameraSpeed * dT;
 }
 
 void Camera::MoveRight() 
 {
 	//TODO
-	float dT = _Application->GetDeltaTime();
+	float dT = _Application->GetTime().DeltaTime();
 	mEye += glm::cross(mLookDir, mUpVector) * temp_cameraSpeed * dT;
 }
 
 void Camera::MoveForward() 
 {
 	//TODO
-	float dT = _Application->GetDeltaTime();
+	float dT = _Application->GetTime().DeltaTime();
 	mEye += mLookDir * temp_cameraSpeed * dT;
 }
 
 void Camera::MoveBack() 
 {
 	//TODO
-	float dT = _Application->GetDeltaTime();
+	float dT = _Application->GetTime().DeltaTime();
 	mEye -= mLookDir * temp_cameraSpeed * dT;
 }
 

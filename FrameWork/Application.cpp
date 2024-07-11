@@ -1783,7 +1783,7 @@ bool Application::init()
 
 	InitPhysicsWorld();
 
-	this->timeNow = SDL_GetPerformanceCounter();
+	mTime = Time(SDL_GetPerformanceCounter());
 
 	return true;
 
@@ -1791,9 +1791,9 @@ bool Application::init()
 }
 
 
-const float& Application::GetDeltaTime() 
+const Time& Application::GetTime()
 {
-	return this->deltaTime;
+	return this->mTime;
 }
 
 class RayCastObject : public RaycastCallback {
@@ -2197,19 +2197,12 @@ void Application::Render()
 
 }
 
-void Application::ComputeDeltaTime()
-{
-	this->timeBefore = this->timeNow;
-	this->timeNow = SDL_GetPerformanceCounter();
-	this->deltaTime = ((this->timeNow - this->timeBefore)) / (double)SDL_GetPerformanceFrequency();
-
-}
 
 void Application::UpdatePhysics(float& accumulator)
 {
 	const float timeStep = 1.f / 60;
 
-	accumulator += this->deltaTime;
+	accumulator += this->mTime.DeltaTime();
 
 	while (accumulator >= timeStep)
 	{
@@ -2233,7 +2226,7 @@ void Application::loop()
 	bool quit = false;
 	while (quit == false)
 	{	
-		ComputeDeltaTime();
+		mTime.Update();
 
 		if (UpdateInput())
 		{

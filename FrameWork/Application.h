@@ -1,5 +1,6 @@
 #pragma once
 #include "Common.h"
+#include "Time.h"
 #include "Camera.h"
 #include "Object.h"
 #include "Debug.h"
@@ -20,15 +21,14 @@ public:
 	const std::vector<Texture>& Textures();
 	PhysicsWorld* GetPhysicsWorld();
 	PhysicsCommon& GetPhysicsCommon();
-	const float& GetDeltaTime();
+	const Time& GetTime();
 
 	void run();
 	~Application();
 private:
-	uint64_t timeNow;
-	uint64_t timeBefore;
 
-	double deltaTime;
+
+	Time mTime;
 	const float timeStep = 1.f / 60.f;
 
 	
@@ -86,11 +86,6 @@ private:
 	VkDescriptorSetLayout descriptorSetLayout = VK_NULL_HANDLE; //dunno if this should be here...
 
 	std::vector<Buffer> uniformBuffers;
-
-	std::vector<Vertex> debugVertexData;
-	bool isDebugEnabled = false;
-	bool debugBufferAllocated = false;
-	Buffer debugVertexBuffer;
 
 	std::vector<Texture> mTextures;
 

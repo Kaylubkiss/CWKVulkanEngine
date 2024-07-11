@@ -121,6 +121,8 @@ void Object::InitPhysics(ColliderType cType, BodyType bType)
 
 void Object::DestroyResources()
 {
+    assert(_Application != NULL);
+
     vkFreeMemory(_Application->LogicalDevice(), this->vertexBuffer.memory, nullptr);
     vkDestroyBuffer(_Application->LogicalDevice(), this->vertexBuffer.handle, nullptr);
     
@@ -173,6 +175,8 @@ void Object::SetLinesArrayOffset(uint32_t index)
 
 void Object::Draw(VkCommandBuffer cmdBuffer) 
 {
+    assert(_Application != NULL);
+
     if (!this->debugDrawObject.onlyVisible()) 
     {
         const Texture& texture = _Application->Textures()[this->textureIndex];
