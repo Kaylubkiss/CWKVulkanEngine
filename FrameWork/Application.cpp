@@ -13,14 +13,17 @@
 //I've used the syntax: *(array + i) to access the array instead of array[i].
 //the static analyzer of visual studio is bad.
 
-static unsigned long long width = 640;
-static unsigned long long height = 480;
+//static unsigned long long width = 640;
+//static unsigned long long height = 480;
 
 static bool guiWindowIsFocused = false;
 
-#define VK_CHECK_RESULT(function) {VkResult check = function; assert(check == VK_SUCCESS); if (check != VK_SUCCESS) {std::cout << check << std::endl;}}
+const static glm::vec4 X_BASIS = { 1,0,0,0 };
+const static glm::vec4 Y_BASIS = { 0,1,0,0 };
+const static glm::vec4 Z_BASIS = { 0,0,1,0 };
+const static glm::vec4 W_BASIS = { 0,0,0,1 };
 
-static const int const_textureCount = 3;
+#define VK_CHECK_RESULT(function) {VkResult check = function; assert(check == VK_SUCCESS); if (check != VK_SUCCESS) {std::cout << check << std::endl;}}
 
 static void check_vk_result(VkResult err)
 {
@@ -31,26 +34,15 @@ static void check_vk_result(VkResult err)
 		abort();
 }
 
-static glm::vec4 X_BASIS = { 1,0,0,0 };
-static glm::vec4 Y_BASIS = { 0,1,0,0 };
-static glm::vec4 Z_BASIS = { 0,0,1,0 };
-static glm::vec4 W_BASIS = { 0,0,0,1 };
-
-struct uTransformObject 
-{
-	glm::mat4 model;
-	glm::mat4 view;
-	glm::mat4 proj;
-};
 
 
-static uTransformObject uTransform =
-{
-	glm::mat4(1.), //model
-	//glm::lookAt(glm::vec3(0.f, 0.f , 10.f), glm::vec3(0.f, 0.f, 0.f), glm::vec3(0.f,1.f,0.f)), //view
-	glm::mat4(1.f),
-	glm::perspective(glm::radians(45.f), (float)width/height,  0.1f, 1000.f) //proj
-};
+//static uTransformObject uTransform =
+//{
+//	glm::mat4(1.), //model
+//	//glm::lookAt(glm::vec3(0.f, 0.f , 10.f), glm::vec3(0.f, 0.f, 0.f), glm::vec3(0.f,1.f,0.f)), //view
+//	glm::mat4(1.f),
+//	glm::perspective(glm::radians(45.f), (float)width/ height,  0.1f, 1000.f) //proj
+//};
 
 
 static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
@@ -1786,6 +1778,10 @@ bool Application::init()
 
 }
 
+SDL_Window* Application::GetWindow() const
+{
+	return this->window;
+}
 
 const Time& Application::GetTime()
 {
@@ -2194,21 +2190,31 @@ void Application::Render()
 }
 
 
+void Application::RequestExit() 
+{
+	this->exitApplication = true;
+}
+
 
 void Application::loop()
 {
 	float accumulator = 0.f;
 
 	//render graphics.
-	bool quit = false;
-	while (quit == false)
+	//bool quit = false;
+	while (exitApplication == false)
 	{	
 		mTime.Update();
 
 		if (UpdateInput())
 		{
-			quit = true;
+			exitApplication = true;
 		}
+
+		/*if (exitApplication) 
+		{
+			quit = true;
+		}*/
 
 		/*UpdatePhysics(accumulator);*/
 		mPhysics.Update(mTime.DeltaTime());
