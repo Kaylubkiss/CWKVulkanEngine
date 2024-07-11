@@ -45,8 +45,8 @@ void Controller::Update()
 				keys[D] = true;
 				break;
 			case (SDLK_t):
-				debugCube3.debugDrawObject.ToggleVisibility(e.key.keysym.sym, keystates[SDL_SCANCODE_LSHIFT]);
-				debugCube2.debugDrawObject.ToggleVisibility(e.key.keysym.sym, keystates[SDL_SCANCODE_LSHIFT]);
+				_Application->ToggleObjectVisibility(e.key.keysym.sym, keystates[SDL_SCANCODE_LSHIFT]);
+				_Application->ToggleObjectVisibility(e.key.keysym.sym, keystates[SDL_SCANCODE_LSHIFT]);
 				break;
 			case (SDLK_ESCAPE):
 				if (SDL_GetGrabbedWindow())
@@ -72,16 +72,16 @@ void Controller::Update()
 			switch (e.key.keysym.sym)
 			{
 			case SDLK_w:
-				w_down = false;
+				keys[W] = false;
 				break;
 			case SDLK_s:
-				s_down = false;
+				keys[S] = false;
 				break;
 			case SDLK_a:
-				a_down = false;
+				keys[A] = false;
 				break;
 			case SDLK_d:
-				d_down = false;
+				keys[D] = false;
 				break;
 			}
 
@@ -110,7 +110,7 @@ void Controller::Update()
 					SDL_SetWindowGrab(_Application->GetWindow(), SDL_TRUE);
 					SDL_SetRelativeMouseMode(SDL_TRUE);
 
-					if (!guiWindowIsFocused)
+					if (!_Application->guiWindowIsFocused)
 					{
 						SDL_WarpMouseInWindow(_Application->GetWindow(), _Application->width / 2, _Application->height / 2);
 						SDL_ShowCursor(0);
@@ -119,7 +119,7 @@ void Controller::Update()
 				}
 				else
 				{
-					if (!guiWindowIsFocused)
+					if (!_Application->guiWindowIsFocused)
 					{
 						SDL_WarpMouseInWindow(_Application->GetWindow(), _Application->width / 2, _Application->height / 2);
 						SDL_ShowCursor(0);
@@ -136,7 +136,7 @@ void Controller::Update()
 					int mouseX = e.button.x;
 					int mouseY = e.button.y;
 
-					SelectWorldObjects(mouseX, mouseY);
+					_Application->SelectWorldObjects(mouseX, mouseY);
 
 				}
 			}
@@ -146,54 +146,34 @@ void Controller::Update()
 		{
 			if (e.type == SDL_MOUSEMOTION && e.button.button == SDL_BUTTON(SDL_BUTTON_RIGHT))
 			{
-
-
-
 				mousePos.x += deltaX;
 				mousePos.y += deltaY;
 
 
 				//this should be the center.
-				mCamera.Rotate(mousePos.x, mousePos.y);
+				_Application->GetCamera().Rotate(mousePos.x, mousePos.y);
 
-				uTransform.view = mCamera.LookAt();
-
-				memcpy(uniformBuffers[0].mappedMemory, (void*)&uTransform, (size_t)(sizeof(uTransformObject)));
+			/*	_Application->UpdateUniformViewMatrix();*/
 			}
 		}
 	}
 
-	if (w_down || s_down || a_down || d_down)
+	if (keys[W])
 	{
-		glm::mat4 newTransform = uTransform.view;
-
-		if (w_down)
-		{
-			/*		std::cout << "here\n";*/
-			mCamera.MoveForward();
-			newTransform = mCamera.LookAt();
-		}
-		else if (s_down)
-		{
-			mCamera.MoveBack();
-			newTransform = mCamera.LookAt();
-		}
-		else if (a_down)
-		{
-			mCamera.MoveLeft();
-			newTransform = mCamera.LookAt();
-		}
-		else if (d_down)
-		{
-			mCamera.MoveRight();
-			newTransform = mCamera.LookAt();
-		}
-
-
-		uTransform.view = newTransform;
-
-		memcpy(uniformBuffers[0].mappedMemory, (void*)&uTransform, (size_t)(sizeof(uTransformObject)));
-
+		_Application->GetCamera().MoveForward();
+	}
+	else if (keys[S])
+	{
+		_Application->GetCamera().MoveBack();
+	}
+	else if (keys[A])
+	{
+		_Application->GetCamera().MoveLeft();
+	}
+	else if (keys[D])
+	{
+		_Application->GetCamera().MoveRight();
 	}
 
+	_Application->UpdateUniformViewMatrix();
 }

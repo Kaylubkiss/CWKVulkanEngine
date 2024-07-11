@@ -23,6 +23,7 @@ const glm::vec3& Camera::Position()
 void Camera::MoveLeft() 
 {
 	//TODO
+	isUpdate = true;
 	float dT = _Application->GetTime().DeltaTime();
 	mEye -= glm::cross(mLookDir, mUpVector) * temp_cameraSpeed * dT;
 }
@@ -30,6 +31,7 @@ void Camera::MoveLeft()
 void Camera::MoveRight() 
 {
 	//TODO
+	isUpdate = true;
 	float dT = _Application->GetTime().DeltaTime();
 	mEye += glm::cross(mLookDir, mUpVector) * temp_cameraSpeed * dT;
 }
@@ -37,6 +39,7 @@ void Camera::MoveRight()
 void Camera::MoveForward() 
 {
 	//TODO
+	isUpdate = true;
 	float dT = _Application->GetTime().DeltaTime();
 	mEye += mLookDir * temp_cameraSpeed * dT;
 }
@@ -44,12 +47,20 @@ void Camera::MoveForward()
 void Camera::MoveBack() 
 {
 	//TODO
+	isUpdate = true;
 	float dT = _Application->GetTime().DeltaTime();
 	mEye -= mLookDir * temp_cameraSpeed * dT;
 }
 
+bool Camera::isUpdated() 
+{
+	return this->isUpdate;
+}
+
 void Camera::Rotate(const int& mouseX, const int& mouseY)
 {
+	isUpdate = true;
+
 	glm::vec2 currentMousePos(mouseX, mouseY);
 
 

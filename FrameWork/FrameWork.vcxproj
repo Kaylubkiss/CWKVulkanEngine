@@ -146,6 +146,7 @@
     <ClCompile Include="Application.cpp" />
     <ClCompile Include="Camera.cpp" />
     <ClCompile Include="Common.cpp" />
+    <ClCompile Include="Controller.cpp" />
     <ClCompile Include="Debug.cpp" />
     <ClCompile Include="External\libraries\imgui\backends\imgui_impl_sdl2.cpp" />
     <ClCompile Include="External\libraries\imgui\backends\imgui_impl_vulkan.cpp" />

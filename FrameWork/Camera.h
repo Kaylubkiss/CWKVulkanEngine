@@ -10,6 +10,7 @@ class Camera
 	glm::vec2 mOldMousePos;
 	float mPitch = 0.f;
 	float mYaw = 0.f;
+	bool isUpdate = false;
 	//PhysicsComponent mPhysics;
 
 public:
@@ -28,5 +29,7 @@ public:
 	const glm::mat4& LookAt(); 
 	//returns world position.
 	const glm::vec3& Position();
+
+	bool isUpdated();
 
 };

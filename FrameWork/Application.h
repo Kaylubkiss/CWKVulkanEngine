@@ -5,6 +5,7 @@
 #include "Camera.h"
 #include "Object.h"
 #include "Debug.h"
+#include "Controller.h"
 #include <SDL2/SDL.h>
 
 struct uTransformObject
@@ -20,6 +21,7 @@ class Application
 public:
 	unsigned long long width = 640;
 	unsigned long long height = 480;
+	bool guiWindowIsFocused = false;
 
 	
 
@@ -37,6 +39,10 @@ public:
 	void RequestExit();
 	SDL_Window* GetWindow() const;
 	bool WindowisFocused();
+	void ToggleObjectVisibility(SDL_Keycode keysym,uint8_t lshift);
+	void SelectWorldObjects(const int& mouseX, const int& mouseY);
+	Camera& GetCamera();
+	void UpdateUniformViewMatrix();
 
 	void run();
 	~Application();
@@ -59,6 +65,8 @@ private:
 	Camera mCamera;
 
 	Physics mPhysics;
+
+	Controller mController;
 
 	bool exitApplication = false;
 
@@ -139,7 +147,7 @@ private:
 	void CreateInstance();
 	void FillDebugMessenger(VkDebugUtilsMessengerCreateInfoEXT& createInfo);
 	void CreateWindow();
-	void SelectWorldObjects(const int& mouseX, const int& mouseY);
+
 	void CreateWindowSurface();
 	void EnumeratePhysicalDevices();
 	void FindQueueFamilies();

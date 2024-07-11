@@ -16,7 +16,6 @@
 //static unsigned long long width = 640;
 //static unsigned long long height = 480;
 
-static bool guiWindowIsFocused = false;
 
 const static glm::vec4 X_BASIS = { 1,0,0,0 };
 const static glm::vec4 Y_BASIS = { 0,1,0,0 };
@@ -59,6 +58,20 @@ void* pUserData)
 	return VK_FALSE;
 }
 
+void Application::UpdateUniformViewMatrix() 
+{
+	if (mCamera.isUpdated()) 
+	{
+		uTransform.view = mCamera.LookAt();
+		memcpy(uniformBuffers[0].mappedMemory, (void*)&uTransform, (size_t)(sizeof(uTransformObject)));
+	}
+}
+
+Camera& Application::GetCamera()
+{
+	return this->mCamera;
+}
+
 void Application::run() 
 {
 	//initialize all resources.
@@ -69,6 +82,13 @@ void Application::run()
 
 	//cleanup resources
 	exit();
+}
+
+void Application::ToggleObjectVisibility(SDL_Keycode keysym, uint8_t lshift) 
+{
+	debugCube3.debugDrawObject.ToggleVisibility(keysym, lshift);
+	debugCube2.debugDrawObject.ToggleVisibility(keysym, lshift);
+
 }
 
 void Application::FillDebugMessenger(VkDebugUtilsMessengerCreateInfoEXT& createInfo)
@@ -2206,17 +2226,8 @@ void Application::loop()
 	{	
 		mTime.Update();
 
-		if (UpdateInput())
-		{
-			exitApplication = true;
-		}
+		mController.Update();
 
-		/*if (exitApplication) 
-		{
-			quit = true;
-		}*/
-
-		/*UpdatePhysics(accumulator);*/
 		mPhysics.Update(mTime.DeltaTime());
 
 		debugCube2.Update(mPhysics.InterpFactor());
