@@ -2216,7 +2216,6 @@ void Application::loop()
 		debugCube2.Update(mPhysics.InterpFactor());
 		debugCube3.Update(mPhysics.InterpFactor());
 
-
 		Render();
 	}
 
