@@ -94,29 +94,29 @@ void Object::InitPhysics(ColliderType cType, BodyType bType)
     reactphysics3d::Transform transform(position, orientation);
 
    
-    this->mPhysics.rigidBody = _Application->GetPhysicsWorld()->createRigidBody(transform);
+    this->mPhysicsComponent.rigidBody = _Application->PhysicsSystem().AddRigidBody(transform);
 
     if (bType != BodyType::DYNAMIC)
     {
-       this->mPhysics.rigidBody->setType(bType);
-       this->mPhysics.bodyType = bType;
+       this->mPhysicsComponent.rigidBody->setType(bType);
+       this->mPhysicsComponent.bodyType = bType;
     }
 
     switch (cType) 
     {
         case ColliderType::CUBE:
             glm::vec3 worldHalfExtent = glm::vec3((worldMaxPoints - worldMinPoints) * .5f);
-            this->mPhysics.shape = _Application->GetPhysicsCommon().createBoxShape({ std::abs(worldHalfExtent.x), std::abs(worldHalfExtent.y), std::abs(worldHalfExtent.z) });
+            this->mPhysicsComponent.shape = _Application->PhysicsSystem().CreateBoxShape({ std::abs(worldHalfExtent.x), std::abs(worldHalfExtent.y), std::abs(worldHalfExtent.z) });
     }
 
 
     //the collider transform is relative to the rigidbody origin.
-    if (this->mPhysics.shape != nullptr)
+    if (this->mPhysicsComponent.shape != nullptr)
     {
-        this->mPhysics.collider = this->mPhysics.rigidBody->addCollider(this->mPhysics.shape, Transform::identity());
+        this->mPhysicsComponent.collider = this->mPhysicsComponent.rigidBody->addCollider(this->mPhysicsComponent.shape, Transform::identity());
     }
     
-    this->mPhysics.prevTransform = this->mPhysics.rigidBody->getTransform();
+    this->mPhysicsComponent.prevTransform = this->mPhysicsComponent.rigidBody->getTransform();
 }
 
 void Object::DestroyResources()
@@ -142,17 +142,17 @@ void Object::willDebugDraw(bool option)
 void Object::Update(const float& interpFactor)
 {
 
-    if (this->mPhysics.bodyType != BodyType::STATIC) 
+    if (this->mPhysicsComponent.bodyType != BodyType::STATIC)
     {
-        Transform uninterpolatedTransform = this->mPhysics.rigidBody->getTransform();
+        Transform uninterpolatedTransform = this->mPhysicsComponent.rigidBody->getTransform();
 
-        this->mPhysics.currTransform = Transform::interpolateTransforms(this->mPhysics.prevTransform, uninterpolatedTransform, interpFactor);
+        this->mPhysicsComponent.currTransform = Transform::interpolateTransforms(this->mPhysicsComponent.prevTransform, uninterpolatedTransform, interpFactor);
 
-        this->mPhysics.prevTransform = this->mPhysics.currTransform;
+        this->mPhysicsComponent.prevTransform = this->mPhysicsComponent.currTransform;
 
         float matrix[16];
 
-        this->mPhysics.currTransform.getOpenGLMatrix(matrix);
+        this->mPhysicsComponent.currTransform.getOpenGLMatrix(matrix);
 
        
         //this makes this stuff too dang easy.

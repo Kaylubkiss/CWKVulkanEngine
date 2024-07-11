@@ -1589,6 +1589,11 @@ void Application::RecreateSwapChain()
 	CreateFrameBuffers();
 }
 
+
+Physics& Application::PhysicsSystem() 
+{
+	return this->mPhysics;
+}
 void Application::ResizeViewport()
 {
 	int width, height;
@@ -1605,19 +1610,20 @@ void Application::ResizeViewport()
 
 void Application::InitPhysicsWorld() 
 {
-	this->mPhysicsWorld = this->mPhysicsCommon.createPhysicsWorld();
-
+	/*this->mPhysicsWorld = this->mPhysicsCommon.createPhysicsWorld();*/
 	debugCube2.InitPhysics(ColliderType::CUBE);
 	debugCube3.InitPhysics(ColliderType::CUBE, BodyType::STATIC);
+
 	this->debugCube3.SetLinesArrayOffset(12); 
 
-	this->mPhysicsWorld->setIsDebugRenderingEnabled(true);
+	//this->mPhysicsWorld->setIsDebugRenderingEnabled(true);
+	this->mPhysics.GetPhysicsWorld()->setIsDebugRenderingEnabled(true);
 
-	debugCube3.mPhysics.rigidBody->setIsDebugEnabled(true);
-	debugCube2.mPhysics.rigidBody->setIsDebugEnabled(true);
+	debugCube3.mPhysicsComponent.rigidBody->setIsDebugEnabled(true);
+	debugCube2.mPhysicsComponent.rigidBody->setIsDebugEnabled(true);
 	
 	//the order they were added to the physics world
-	reactphysics3d::DebugRenderer& debugRenderer = this->mPhysicsWorld->getDebugRenderer();
+	reactphysics3d::DebugRenderer& debugRenderer = this->mPhysics.GetPhysicsWorld()->getDebugRenderer();
 	debugRenderer.setIsDebugItemDisplayed(reactphysics3d::DebugRenderer::DebugItem::COLLIDER_AABB, true);
 	
 }
@@ -1668,16 +1674,6 @@ int Application::GetTexture(const char* fileName)
 
 	this->CreateTexture(std::string(fileName));
 	return this->mTextures.size() - 1;
-}
-
-PhysicsWorld* Application::GetPhysicsWorld() 
-{
-	return this->mPhysicsWorld;
-}
-
-PhysicsCommon& Application::GetPhysicsCommon() 
-{
-	return this->mPhysicsCommon;
 }
 
 static glm::vec3 globalCenter(0.f);
@@ -1850,7 +1846,7 @@ void Application::SelectWorldObjects(const int& mouseX, const int& mouseY)
 
 	RayCastObject callbackObject;
 
-	this->mPhysicsWorld->raycast(ray, &callbackObject);
+	this->mPhysics.GetPhysicsWorld()->raycast(ray, &callbackObject);
 
 }
 
@@ -2198,25 +2194,6 @@ void Application::Render()
 }
 
 
-void Application::UpdatePhysics(float& accumulator)
-{
-	const float timeStep = 1.f / 60;
-
-	accumulator += this->mTime.DeltaTime();
-
-	while (accumulator >= timeStep)
-	{
-		this->mPhysicsWorld->update(timeStep);
-
-		accumulator -= timeStep;
-	}
-
-	reactphysics3d::decimal factor = accumulator / timeStep;
-
-	debugCube2.Update(factor);
-	debugCube3.Update(factor);
-
-}
 
 void Application::loop()
 {
@@ -2233,7 +2210,12 @@ void Application::loop()
 			quit = true;
 		}
 
-		UpdatePhysics(accumulator);
+		/*UpdatePhysics(accumulator);*/
+		mPhysics.Update(mTime.DeltaTime());
+
+		debugCube2.Update(mPhysics.InterpFactor());
+		debugCube3.Update(mPhysics.InterpFactor());
+
 
 		Render();
 	}
@@ -2333,9 +2315,6 @@ void Application::exit()
 	{
 		func(this->m_instance, this->debugMessenger, nullptr);
 	}
-
-
-	this->mPhysicsCommon.destroyPhysicsWorld(this->mPhysicsWorld);
 
 }
 

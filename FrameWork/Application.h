@@ -1,6 +1,7 @@
 #pragma once
 #include "Common.h"
 #include "Time.h"
+#include "Physics.h"
 #include "Camera.h"
 #include "Object.h"
 #include "Debug.h"
@@ -19,9 +20,8 @@ public:
 	int GetTexture(const char* fileName);
 	VkPipelineLayout* GetPipelineLayout();
 	const std::vector<Texture>& Textures();
-	PhysicsWorld* GetPhysicsWorld();
-	PhysicsCommon& GetPhysicsCommon();
 	const Time& GetTime();
+	Physics& PhysicsSystem();
 
 	void run();
 	~Application();
@@ -29,7 +29,6 @@ private:
 
 
 	Time mTime;
-	const float timeStep = 1.f / 60.f;
 
 	
 	Object debugCube;
@@ -37,8 +36,7 @@ private:
 	Object debugCube3;
 	Camera mCamera;
 
-	PhysicsCommon mPhysicsCommon;
-	PhysicsWorld* mPhysicsWorld = nullptr;
+	Physics mPhysics;
 
 	VkDebugUtilsMessengerEXT debugMessenger;
 
@@ -174,7 +172,6 @@ private:
 	void exit();
 
 	void ComputeDeltaTime();
-	void UpdatePhysics(float& accumulator);
 	void Render();
 
 	void InitGui();

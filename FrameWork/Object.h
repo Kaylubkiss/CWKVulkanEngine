@@ -1,6 +1,7 @@
 #pragma once
 #include "Common.h"
 #include "Debug.h"
+#include "Physics.h"
 #include <iostream>
 #include <string>
 
@@ -10,6 +11,7 @@ enum ColliderType
 	NONE = 0,
 	CUBE,
 };
+
 
 
 
@@ -33,7 +35,7 @@ struct Object
 	Buffer vertexBuffer;
 	Buffer indexBuffer;
 	DebugDrawObject debugDrawObject;
-	PhysicsComponent mPhysics;
+	PhysicsComponent mPhysicsComponent;
 	VkPipelineLayout* mPipelineLayout = nullptr;
 	std::vector<Vertex> vertexBufferData;
 	std::vector<uint16_t> indexBufferData;
@@ -43,7 +45,7 @@ struct Object
 	glm::vec3 mMinLocalPoints = glm::vec3(0.f);
 
 	Object(const char* fileName, const char* textureName = nullptr, VkPipelineLayout* pipelineLayout = nullptr);
-	Object() : mCenter(0.f), mModelTransform(1.f), vertexBuffer(), indexBuffer(), mPhysics() {};
+	Object() : mCenter(0.f), mModelTransform(1.f), vertexBuffer(), indexBuffer(), mPhysicsComponent() {};
 	void Update(const float& interpFactor);
 	void Draw(VkCommandBuffer cmdBuffer);
 	void DestroyResources();

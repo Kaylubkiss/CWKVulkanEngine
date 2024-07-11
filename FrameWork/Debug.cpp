@@ -32,7 +32,7 @@ void DebugDrawObject::Update()
 	if (this->isDebugEnabled) 
 	{
 
-		reactphysics3d::DebugRenderer& debugRenderer = _Application->GetPhysicsWorld()->getDebugRenderer();
+		reactphysics3d::DebugRenderer& debugRenderer = _Application->PhysicsSystem().GetPhysicsWorld()->getDebugRenderer();
 
 		uint32_t sizeOfLinesArray = debugRenderer.getNbLines();
 

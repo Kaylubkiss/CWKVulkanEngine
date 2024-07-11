@@ -9,17 +9,16 @@
 #define GLM_FORCE_DEFAULT_ALIGNED_GENTYPES
 #include <glm/glm.hpp>
 #include <vector>
+#include <string>
 
 #include "imgui/imgui.h"
 #include "imgui/backends/imgui_impl_sdl2.h"
 #include "imgui/backends/imgui_impl_vulkan.h"
 
-#include <reactphysics3d/reactphysics3d.h>
+
 
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/hash.hpp>
-
-using namespace reactphysics3d;
 
 
 class Application; //forward declare class.
@@ -80,23 +79,7 @@ struct Buffer
 };
 
 
-struct PhysicsComponent
-{
-	reactphysics3d::RigidBody* rigidBody = nullptr;
-	reactphysics3d::Collider* collider = nullptr;
-	reactphysics3d::CollisionShape* shape = nullptr;
 
-	reactphysics3d::Transform currTransform;
-	reactphysics3d::Transform prevTransform;
-
-	reactphysics3d::BodyType bodyType;
-
-	PhysicsComponent() : rigidBody(nullptr), collider(nullptr), shape(nullptr),
-		currTransform(reactphysics3d::Vector3::zero(), reactphysics3d::Quaternion::identity()),
-		prevTransform(currTransform) {};
-
-	//void operator=(const PhysicsComponent& rhs);
-};
 
 
 struct Texture 
