@@ -23,8 +23,6 @@ public:
 	unsigned long long height = 480;
 	bool guiWindowIsFocused = false;
 
-	
-
 	const VkPhysicalDevice& PhysicalDevice();
 	const VkDevice& LogicalDevice();
 	const VkQueue& GraphicsQueue();
@@ -58,7 +56,6 @@ private:
 
 	Time mTime;
 
-	
 	Object debugCube;
 	Object debugCube2;
 	Object debugCube3;
@@ -202,7 +199,6 @@ private:
 	void loop();
 	void exit();
 
-	void ComputeDeltaTime();
 	void Render();
 
 	void InitGui();

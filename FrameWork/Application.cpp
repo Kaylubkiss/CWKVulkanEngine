@@ -1625,6 +1625,8 @@ void Application::InitPhysicsWorld()
 	/*this->mPhysicsWorld = this->mPhysicsCommon.createPhysicsWorld();*/
 	debugCube2.InitPhysics(ColliderType::CUBE);
 	debugCube3.InitPhysics(ColliderType::CUBE, BodyType::STATIC);
+	mCamera.InitPhysics(/*BodyType::KINEMATIC*/);
+
 
 	this->debugCube3.SetLinesArrayOffset(12); 
 
@@ -1693,7 +1695,7 @@ static glm::vec3 globalCenter(0.f);
 bool Application::init() 
 {
 	
-	mCamera = Camera({ 0.f, 0.f, 10.f }, { 0.f, 0.f, -1.f } , { 0,1,0 });
+	mCamera = Camera({ 0.f, 10.f, 10.f }, { 0.f, 0.f, -1.f } , { 0,1,0 });
 
 	//uniform stuffs;
 	uTransform.proj[1][1] *= -1.f;
@@ -2218,10 +2220,7 @@ void Application::RequestExit()
 
 void Application::loop()
 {
-	float accumulator = 0.f;
-
 	//render graphics.
-	//bool quit = false;
 	while (exitApplication == false)
 	{	
 		mTime.Update();
@@ -2232,6 +2231,7 @@ void Application::loop()
 
 		debugCube2.Update(mPhysics.InterpFactor());
 		debugCube3.Update(mPhysics.InterpFactor());
+		mCamera.Update(mPhysics.InterpFactor());
 
 		Render();
 	}

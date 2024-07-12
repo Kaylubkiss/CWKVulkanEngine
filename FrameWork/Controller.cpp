@@ -32,40 +32,36 @@ void Controller::Update()
 		{
 			switch (e.key.keysym.sym)
 			{
-			case SDLK_w:
-				keys[W] = true;
-				break;
-			case SDLK_s:
-				keys[S] = true;
-				break;
-			case SDLK_a:
-				keys[A] = true;
-				break;
-			case SDLK_d:
-				keys[D] = true;
-				break;
-			case (SDLK_t):
-				_Application->ToggleObjectVisibility(e.key.keysym.sym, keystates[SDL_SCANCODE_LSHIFT]);
-				_Application->ToggleObjectVisibility(e.key.keysym.sym, keystates[SDL_SCANCODE_LSHIFT]);
-				break;
-			case (SDLK_ESCAPE):
-				if (SDL_GetGrabbedWindow())
-				{
-					SDL_SetWindowGrab(_Application->GetWindow(), SDL_FALSE);
-					SDL_SetRelativeMouseMode(SDL_FALSE);
-					SDL_ShowCursor(SDL_ENABLE);
-				}
-				else
-				{
-					//it should exit.
-					_Application->RequestExit();
-					return;
-				}
-
-
+				case SDLK_w:
+					keys[W] = true;
+					break;
+				case SDLK_s:
+					keys[S] = true;
+					break;
+				case SDLK_a:
+					keys[A] = true;
+					break;
+				case SDLK_d:
+					keys[D] = true;
+					break;
+				case (SDLK_t):
+					_Application->ToggleObjectVisibility(e.key.keysym.sym, keystates[SDL_SCANCODE_LSHIFT]);
+					_Application->ToggleObjectVisibility(e.key.keysym.sym, keystates[SDL_SCANCODE_LSHIFT]);
+					break;
+				case (SDLK_ESCAPE):
+					if (SDL_GetGrabbedWindow())
+					{
+						SDL_SetWindowGrab(_Application->GetWindow(), SDL_FALSE);
+						SDL_SetRelativeMouseMode(SDL_FALSE);
+						SDL_ShowCursor(1);
+					}
+					else
+					{
+						//it should exit.
+						_Application->RequestExit();
+						return;
+					}
 			}
-
-
 		}
 		else if (e.type == SDL_KEYUP)
 		{
@@ -115,7 +111,6 @@ void Controller::Update()
 						SDL_WarpMouseInWindow(_Application->GetWindow(), _Application->width / 2, _Application->height / 2);
 						SDL_ShowCursor(0);
 					}
-
 				}
 				else
 				{
