@@ -1,18 +1,54 @@
 #pragma once
 //IF ENABLED: this means older versions of code compiled with mvsc from before 2017 will probably not be compatible.
 //IF DISABLED: alignment may not be correct. For now, I'm willing to let this happen until something goes bad.
+
+
 #define _DISABLE_EXTENDED_ALIGNED_STORAGE 
 #include <vulkan/vulkan.h>
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEFAULT_ALIGNED_GENTYPES
 #include <glm/glm.hpp>
+#include <vector>
+#include <string>
 
 #include "imgui/imgui.h"
 #include "imgui/backends/imgui_impl_sdl2.h"
 #include "imgui/backends/imgui_impl_vulkan.h"
 
 
+
+#define GLM_ENABLE_EXPERIMENTAL
+#include <glm/gtx/hash.hpp>
+
+
 class Application; //forward declare class.
+
+struct Vertex
+{
+	glm::vec3 pos = { 0,0,0 };
+	glm::vec3 nrm = { .2f,.5f,0 };
+	glm::vec2 uv = { -1.f,-1.f };
+
+	bool operator==(const Vertex& other) const {
+		return pos == other.pos && nrm == other.nrm && uv == other.uv;
+	}
+};
+
+namespace std {
+	template<>
+	struct hash<Vertex> {
+
+
+		size_t operator()(Vertex const& vertex) const
+		{
+			size_t h1 = hash<glm::vec3>{}(vertex.pos);
+			size_t h2 = hash<glm::vec3>{}(vertex.nrm);
+			size_t h3 = hash<glm::vec2>{}(vertex.uv);
+
+			return ((h1 ^ (h2 << 1)) >> 1) ^ (h3 << 1);
+		}
+	};
+}
 
 struct Buffer
 {
@@ -26,6 +62,7 @@ struct Buffer
 	{
 		this->handle = rhs.handle;
 		this->memory = rhs.memory;
+		this->size = rhs.size;
 		this->mappedMemory = rhs.mappedMemory;
 	}
 
@@ -34,11 +71,28 @@ struct Buffer
 	//assume that build info is shared among all buffers.
 	Buffer(size_t size, VkBufferUsageFlags usage, VkMemoryPropertyFlags flags, void* data);
 	Buffer() : handle(VK_NULL_HANDLE), memory(VK_NULL_HANDLE), size(0), mappedMemory(NULL) {};
-	void FillData(const void* data, size_t dataCount, size_t stride);
+	/*void FillData(const void* data, size_t dataCount, size_t stride);
 	void RecordData();
 	void StopRecordData();
-	void CopyData(void* data);
+	void CopyData(void* data);*/
 	/*~Buffer();*/ //this gets called in std::vector and causes headache. we don't want that.
+};
+
+
+
+
+
+struct Texture 
+{
+	std::string mName;
+	VkImage mTextureImage;
+	VkDeviceMemory mTextureMemory;
+	VkImageView mTextureImageView;
+	VkSampler mTextureSampler;
+
+	VkDescriptorSet mDescriptor = VK_NULL_HANDLE;
+
+	Texture() : mTextureImage(), mTextureMemory(), mTextureImageView(), mTextureSampler(), mDescriptor(VK_NULL_HANDLE) {};
 };
 
 

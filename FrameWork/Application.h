@@ -1,26 +1,71 @@
 #pragma once
 #include "Common.h"
-#include "Mesh.h"
+#include "Time.h"
+#include "Physics.h"
+#include "Camera.h"
+#include "Object.h"
+#include "Debug.h"
+#include "Controller.h"
 #include <SDL2/SDL.h>
-#include <vector>
+
+struct uTransformObject
+{
+	glm::mat4 model;
+	glm::mat4 view;
+	glm::mat4 proj;
+};
+
 
 class Application
 {
 public:
+	unsigned long long width = 640;
+	unsigned long long height = 480;
+	bool guiWindowIsFocused = false;
+
 	const VkPhysicalDevice& PhysicalDevice();
 	const VkDevice& LogicalDevice();
 	const VkQueue& GraphicsQueue();
 	const VkCommandPool& CommandPool();
+	const VkPipeline& GetTrianglePipeline();
+	const VkPipeline& GetLinePipeline();
+	int GetTexture(const char* fileName);
+	VkPipelineLayout* GetPipelineLayout();
+	const std::vector<Texture>& Textures();
+	const Time& GetTime();
+	Physics& PhysicsSystem();
+	void RequestExit();
+	SDL_Window* GetWindow() const;
+	bool WindowisFocused();
+	void ToggleObjectVisibility(SDL_Keycode keysym,uint8_t lshift);
+	void SelectWorldObjects(const int& mouseX, const int& mouseY);
+	Camera& GetCamera();
+	void UpdateUniformViewMatrix();
 
 	void run();
+	~Application();
 private:
-	uint64_t timeNow;
-	uint64_t timeBefore;
 
-	double deltaTime;
+	uTransformObject uTransform =
+	{
+		glm::mat4(1.), //model
+		//glm::lookAt(glm::vec3(0.f, 0.f , 10.f), glm::vec3(0.f, 0.f, 0.f), glm::vec3(0.f,1.f,0.f)), //view
+		glm::mat4(1.f),
+		glm::perspective(glm::radians(45.f), (float)width / height,  0.1f, 1000.f) //proj
+	};
+
+	Time mTime;
 
 	Object debugCube;
 	Object debugCube2;
+	Object debugCube3;
+	Camera mCamera;
+
+	Physics mPhysics;
+
+	Controller mController;
+
+	bool exitApplication = false;
 
 	VkDebugUtilsMessengerEXT debugMessenger;
 
@@ -44,10 +89,11 @@ private:
 
 	VkShaderModule shaderVertModule = VK_NULL_HANDLE;
 	VkShaderModule shaderFragModule = VK_NULL_HANDLE;
-	VkShaderModule* ShaderStages[2] = { &shaderVertModule, &shaderFragModule };
 
-	VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
+	std::vector<VkPipelineLayout> pipelineLayouts;
+
 	VkPipeline pipeline = VK_NULL_HANDLE;
+	VkPipeline linePipeline = VK_NULL_HANDLE;
 
 	VkCommandPool commandPool = VK_NULL_HANDLE;
 	VkCommandBuffer commandBuffer = VK_NULL_HANDLE;
@@ -63,22 +109,20 @@ private:
 	VkImage* swapChainImages = nullptr;
 
 	VkDescriptorPool descriptorPool = VK_NULL_HANDLE;
-	VkDescriptorSet descriptorSets = VK_NULL_HANDLE;
+	
 	VkDescriptorSetLayout descriptorSetLayout = VK_NULL_HANDLE; //dunno if this should be here...
 
 	std::vector<Buffer> uniformBuffers;
 
-	VkImage textureImage;
-	VkDeviceMemory textureMemory;
-	VkImageView textureImageView;
-	VkSampler textureSampler;
+	std::vector<Texture> mTextures;
 
 	VkImage depthImage;
 	VkDeviceMemory depthImageMemory;
 	VkImageView depthImageView;
 	VkFormat depthFormat;
 
-	const char* enabledLayerNames[1] = {
+	const char* enabledLayerNames[1] = 
+	{
 		"VK_LAYER_KHRONOS_validation"
 	};
 
@@ -96,13 +140,11 @@ private:
 	VkQueue graphicsQueue = {};
 	VkQueue presentQueue = {};
 
-	
-
 	//functions
 	void CreateInstance();
 	void FillDebugMessenger(VkDebugUtilsMessengerCreateInfoEXT& createInfo);
-	/*void CreateDebugMessenger();*/
 	void CreateWindow();
+
 	void CreateWindowSurface();
 	void EnumeratePhysicalDevices();
 	void FindQueueFamilies();
@@ -111,9 +153,12 @@ private:
 	void CreateSwapChain();
 	void CreateImageViews();
 	void CreateFrameBuffers();
+	//void CreateDescriptorPool();
+	void CreateDescriptorSetLayout();
 	void CreateDescriptorSets();
 	void WriteDescriptorSets();
-	void CreatePipeline(VkPipelineShaderStageCreateInfo* pStages, int numStages);
+	void CreatePipelineLayout();
+	void CreatePipeline(VkPipelineShaderStageCreateInfo* pStages, int numStages, VkPrimitiveTopology primitiveTopology, VkPipeline& pipelineHandle);
 	void CreateCommandPools();
 	void CreateCommandBuffers();
 	void CreateSemaphores();
@@ -134,8 +179,12 @@ private:
 	void GenerateMipMaps(VkImage image, VkFormat imgFormat, uint32_t textureWidth, uint32_t textureHeight, uint32_t mipLevels);
 
 	void CreateTexture(const std::string& fileName);
-	void CreateTextureView(const VkImage& textureImage, uint32_t mipLevels);
-	void CreateTextureSampler(uint32_t mipLevels);
+	void CreateTextureView(const VkImage& textureImage, VkImageView& textureImageView, uint32_t mipLevels);
+	void CreateTextureSampler(VkSampler& textureSampler, uint32_t mipLevels);
+
+	void InitPhysicsWorld();
+
+	bool CheckValidationSupport();
 
 	bool UpdateInput();
 
@@ -150,11 +199,12 @@ private:
 	void loop();
 	void exit();
 
-	void ComputeDeltaTime();
 	void Render();
 
 	void InitGui();
 	void CleanUpGui();
+
+	void DestroyObjects();
 };
 
 
