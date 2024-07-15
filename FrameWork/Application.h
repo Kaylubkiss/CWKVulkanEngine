@@ -5,12 +5,24 @@
 #include "Camera.h"
 #include "Object.h"
 #include "Debug.h"
+#include "Controller.h"
 #include <SDL2/SDL.h>
+
+struct uTransformObject
+{
+	glm::mat4 model;
+	glm::mat4 view;
+	glm::mat4 proj;
+};
 
 
 class Application
 {
 public:
+	unsigned long long width = 640;
+	unsigned long long height = 480;
+	bool guiWindowIsFocused = false;
+
 	const VkPhysicalDevice& PhysicalDevice();
 	const VkDevice& LogicalDevice();
 	const VkQueue& GraphicsQueue();
@@ -22,21 +34,38 @@ public:
 	const std::vector<Texture>& Textures();
 	const Time& GetTime();
 	Physics& PhysicsSystem();
+	void RequestExit();
+	SDL_Window* GetWindow() const;
+	bool WindowisFocused();
+	void ToggleObjectVisibility(SDL_Keycode keysym,uint8_t lshift);
+	void SelectWorldObjects(const int& mouseX, const int& mouseY);
+	Camera& GetCamera();
+	void UpdateUniformViewMatrix();
 
 	void run();
 	~Application();
 private:
 
+	uTransformObject uTransform =
+	{
+		glm::mat4(1.), //model
+		//glm::lookAt(glm::vec3(0.f, 0.f , 10.f), glm::vec3(0.f, 0.f, 0.f), glm::vec3(0.f,1.f,0.f)), //view
+		glm::mat4(1.f),
+		glm::perspective(glm::radians(45.f), (float)width / height,  0.1f, 1000.f) //proj
+	};
 
 	Time mTime;
 
-	
 	Object debugCube;
 	Object debugCube2;
 	Object debugCube3;
 	Camera mCamera;
 
 	Physics mPhysics;
+
+	Controller mController;
+
+	bool exitApplication = false;
 
 	VkDebugUtilsMessengerEXT debugMessenger;
 
@@ -115,8 +144,7 @@ private:
 	void CreateInstance();
 	void FillDebugMessenger(VkDebugUtilsMessengerCreateInfoEXT& createInfo);
 	void CreateWindow();
-	bool WindowisFocused();
-	void SelectWorldObjects(const int& mouseX, const int& mouseY);
+
 	void CreateWindowSurface();
 	void EnumeratePhysicalDevices();
 	void FindQueueFamilies();
@@ -171,7 +199,6 @@ private:
 	void loop();
 	void exit();
 
-	void ComputeDeltaTime();
 	void Render();
 
 	void InitGui();

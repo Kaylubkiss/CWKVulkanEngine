@@ -43,5 +43,9 @@ reactphysics3d::RigidBody* Physics::AddRigidBody(const reactphysics3d::Transform
 reactphysics3d::BoxShape* Physics::CreateBoxShape(const reactphysics3d::Vector3& extent) 
 {
 	return mPhysicsCommon.createBoxShape({extent.x, extent.y, extent.z});
+}
 
+reactphysics3d::CapsuleShape* Physics::CreateCapsuleShape(float radius, float height) 
+{
+	return mPhysicsCommon.createCapsuleShape(radius, height);
 }

@@ -13,14 +13,16 @@
 //I've used the syntax: *(array + i) to access the array instead of array[i].
 //the static analyzer of visual studio is bad.
 
-static unsigned long long width = 640;
-static unsigned long long height = 480;
+//static unsigned long long width = 640;
+//static unsigned long long height = 480;
 
-static bool guiWindowIsFocused = false;
+
+const static glm::vec4 X_BASIS = { 1,0,0,0 };
+const static glm::vec4 Y_BASIS = { 0,1,0,0 };
+const static glm::vec4 Z_BASIS = { 0,0,1,0 };
+const static glm::vec4 W_BASIS = { 0,0,0,1 };
 
 #define VK_CHECK_RESULT(function) {VkResult check = function; assert(check == VK_SUCCESS); if (check != VK_SUCCESS) {std::cout << check << std::endl;}}
-
-static const int const_textureCount = 3;
 
 static void check_vk_result(VkResult err)
 {
@@ -31,26 +33,15 @@ static void check_vk_result(VkResult err)
 		abort();
 }
 
-static glm::vec4 X_BASIS = { 1,0,0,0 };
-static glm::vec4 Y_BASIS = { 0,1,0,0 };
-static glm::vec4 Z_BASIS = { 0,0,1,0 };
-static glm::vec4 W_BASIS = { 0,0,0,1 };
-
-struct uTransformObject 
-{
-	glm::mat4 model;
-	glm::mat4 view;
-	glm::mat4 proj;
-};
 
 
-static uTransformObject uTransform =
-{
-	glm::mat4(1.), //model
-	//glm::lookAt(glm::vec3(0.f, 0.f , 10.f), glm::vec3(0.f, 0.f, 0.f), glm::vec3(0.f,1.f,0.f)), //view
-	glm::mat4(1.f),
-	glm::perspective(glm::radians(45.f), (float)width/height,  0.1f, 1000.f) //proj
-};
+//static uTransformObject uTransform =
+//{
+//	glm::mat4(1.), //model
+//	//glm::lookAt(glm::vec3(0.f, 0.f , 10.f), glm::vec3(0.f, 0.f, 0.f), glm::vec3(0.f,1.f,0.f)), //view
+//	glm::mat4(1.f),
+//	glm::perspective(glm::radians(45.f), (float)width/ height,  0.1f, 1000.f) //proj
+//};
 
 
 static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
@@ -67,6 +58,20 @@ void* pUserData)
 	return VK_FALSE;
 }
 
+void Application::UpdateUniformViewMatrix() 
+{
+	if (mCamera.isUpdated()) 
+	{
+		uTransform.view = mCamera.LookAt();
+		memcpy(uniformBuffers[0].mappedMemory, (void*)&uTransform, (size_t)(sizeof(uTransformObject)));
+	}
+}
+
+Camera& Application::GetCamera()
+{
+	return this->mCamera;
+}
+
 void Application::run() 
 {
 	//initialize all resources.
@@ -77,6 +82,13 @@ void Application::run()
 
 	//cleanup resources
 	exit();
+}
+
+void Application::ToggleObjectVisibility(SDL_Keycode keysym, uint8_t lshift) 
+{
+	debugCube3.debugDrawObject.ToggleVisibility(keysym, lshift);
+	debugCube2.debugDrawObject.ToggleVisibility(keysym, lshift);
+
 }
 
 void Application::FillDebugMessenger(VkDebugUtilsMessengerCreateInfoEXT& createInfo)
@@ -1613,6 +1625,8 @@ void Application::InitPhysicsWorld()
 	/*this->mPhysicsWorld = this->mPhysicsCommon.createPhysicsWorld();*/
 	debugCube2.InitPhysics(ColliderType::CUBE);
 	debugCube3.InitPhysics(ColliderType::CUBE, BodyType::STATIC);
+	mCamera.InitPhysics(/*BodyType::KINEMATIC*/);
+
 
 	this->debugCube3.SetLinesArrayOffset(12); 
 
@@ -1681,7 +1695,7 @@ static glm::vec3 globalCenter(0.f);
 bool Application::init() 
 {
 	
-	mCamera = Camera({ 0.f, 0.f, 10.f }, { 0.f, 0.f, -1.f } , { 0,1,0 });
+	mCamera = Camera({ 0.f, 10.f, 10.f }, { 0.f, 0.f, -1.f } , { 0,1,0 });
 
 	//uniform stuffs;
 	uTransform.proj[1][1] *= -1.f;
@@ -1786,6 +1800,10 @@ bool Application::init()
 
 }
 
+SDL_Window* Application::GetWindow() const
+{
+	return this->window;
+}
 
 const Time& Application::GetTime()
 {
@@ -2194,27 +2212,26 @@ void Application::Render()
 }
 
 
+void Application::RequestExit() 
+{
+	this->exitApplication = true;
+}
+
 
 void Application::loop()
 {
-	float accumulator = 0.f;
-
 	//render graphics.
-	bool quit = false;
-	while (quit == false)
+	while (exitApplication == false)
 	{	
 		mTime.Update();
 
-		if (UpdateInput())
-		{
-			quit = true;
-		}
+		mController.Update();
 
-		/*UpdatePhysics(accumulator);*/
 		mPhysics.Update(mTime.DeltaTime());
 
 		debugCube2.Update(mPhysics.InterpFactor());
 		debugCube3.Update(mPhysics.InterpFactor());
+		mCamera.Update(mPhysics.InterpFactor());
 
 		Render();
 	}
