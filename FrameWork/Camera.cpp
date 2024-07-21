@@ -2,7 +2,7 @@
 #include "Application.h"
 #include <glm/gtx/rotate_vector.hpp>
 
-static float temp_cameraSpeed = 400.0f;
+static float temp_cameraSpeed = 20.0f;
 
 Camera::Camera(const glm::vec3& eye, const glm::vec3& lookDirection, const glm::vec3& up) : mEye(eye), mLookDir(lookDirection), mUpVector(up) 
 {
@@ -32,6 +32,8 @@ void Camera::InitPhysics(BodyType bType)
 	this->mPhysicsComponent.rigidBody = _Application->PhysicsSystem().AddRigidBody(transform);
 
 	mPhysicsComponent.rigidBody->setAngularLockAxisFactor(reactphysics3d::Vector3(0,0,0));
+	mPhysicsComponent.rigidBody->setLinearDamping(1.f);
+	mPhysicsComponent.rigidBody->setMass(100.f);
 
 	if (bType != BodyType::DYNAMIC)
 	{
@@ -45,6 +47,12 @@ void Camera::InitPhysics(BodyType bType)
 		this->mPhysicsComponent.collider = this->mPhysicsComponent.rigidBody->addCollider(this->mPhysicsComponent.shape, Transform::identity());
 	}
 
+	reactphysics3d::Material& colliderMat = this->mPhysicsComponent.collider->getMaterial();
+
+	colliderMat.setBounciness(0.f);
+	colliderMat.setFrictionCoefficient(0.f);
+
+	/*_Application->PhysicsSystem().GetPhysicsWorld()->getGravity*/
 	this->mPhysicsComponent.prevTransform = this->mPhysicsComponent.rigidBody->getTransform();
 }
 
@@ -55,11 +63,12 @@ void Camera::MoveLeft()
 	float dT = _Application->GetTime().DeltaTime();
 	reactphysics3d::Vector3 velocity = -reactphysics3d::Vector3(mLookDir.x, 0, mLookDir.z).cross({ mUpVector.x, mUpVector.y, mUpVector.z }) * temp_cameraSpeed * dT;
 
-	mPhysicsComponent.rigidBody->applyWorldForceAtLocalPosition(velocity, reactphysics3d::Vector3(mEye.x, 0, mEye.z) * .5f);
+	mPhysicsComponent.rigidBody->setLinearVelocity(velocity + this->mPhysicsComponent.rigidBody->getLinearVelocity());
 }
 
 void Camera::Update(float interpFactor) 
 {
+	//only update the y if we aren't colliding with something below us. raycast from feet to check for ground.
 	isUpdate = true;
 	if (this->mPhysicsComponent.bodyType != BodyType::STATIC)
 	{
@@ -75,6 +84,7 @@ void Camera::Update(float interpFactor)
 		this->mEye = glm::vec3(nTransform.x, nTransform.y, nTransform.z);
 	}
 
+	/*this->mPhysicsComponent.rigidBody->get*/
 }
 
 void Camera::MoveRight() 
@@ -85,7 +95,7 @@ void Camera::MoveRight()
 	//mEye += glm::cross(mLookDir, mUpVector) * temp_cameraSpeed * dT;
 	reactphysics3d::Vector3 velocity = reactphysics3d::Vector3(mLookDir.x, 0, mLookDir.z).cross({mUpVector.x, mUpVector.y, mUpVector.z}) * temp_cameraSpeed * dT;
 
-	mPhysicsComponent.rigidBody->applyWorldForceAtLocalPosition(velocity, reactphysics3d::Vector3(mEye.x, 0, mEye.z) * .5f);
+	mPhysicsComponent.rigidBody->setLinearVelocity(velocity + this->mPhysicsComponent.rigidBody->getLinearVelocity());
 }
 
 void Camera::MoveForward() 
@@ -96,7 +106,7 @@ void Camera::MoveForward()
 	/*mEye += mLookDir * temp_cameraSpeed * dT;*/
 	reactphysics3d::Vector3 velocity = reactphysics3d::Vector3(mLookDir.x, 0, mLookDir.z) * temp_cameraSpeed * dT;
 	
-	mPhysicsComponent.rigidBody->applyWorldForceAtLocalPosition(velocity, reactphysics3d::Vector3(mEye.x, 0, mEye.z) * .5f);
+	mPhysicsComponent.rigidBody->setLinearVelocity(velocity + this->mPhysicsComponent.rigidBody->getLinearVelocity());
 }
 
 void Camera::MoveBack() 
@@ -112,7 +122,7 @@ void Camera::MoveBack()
 	/*mPhysicsComponent.rigidBody->setLinearVelocity(velocity);
 	mPhysicsComponent.rigidBody->setLinearDamping(velocity.length() * 2.f);*/
 
-	mPhysicsComponent.rigidBody->applyWorldForceAtLocalPosition(velocity, reactphysics3d::Vector3(mEye.x, 0, mEye.z) * .5f);
+	mPhysicsComponent.rigidBody->setLinearVelocity(velocity + this->mPhysicsComponent.rigidBody->getLinearVelocity());
 }
 
 bool Camera::isUpdated() 
