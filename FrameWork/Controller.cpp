@@ -114,7 +114,6 @@ void Controller::Update()
 						}
 					}
 
-
 					int mouseX = e.button.x;
 					int mouseY = e.button.y;
 

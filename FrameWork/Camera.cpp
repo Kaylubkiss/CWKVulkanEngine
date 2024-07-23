@@ -123,7 +123,7 @@ void Camera::Update(float interpFactor)
 
 	//only update the y if we aren't colliding with something below us. raycast from feet to check for ground.
 
-	reactphysics3d::Ray ray(Vector3(-mEye.x, -mEye.y, -mEye.z), reactphysics3d::Vector3(0, -1, 0));
+	/*reactphysics3d::Ray ray(Vector3(-mEye.x, -mEye.y, -mEye.z), reactphysics3d::Vector3(0, -1, 0));
 
 	_Application->PhysicsSystem().GetPhysicsWorld()->raycast(ray, &mCamRayCast);
 
@@ -134,7 +134,7 @@ void Camera::Update(float interpFactor)
 	else if (this->mPhysicsComponent.rayCastHit)
 	{
 		this->isGrounded = true;
-	}
+	}*/
 
 	/*if (!isGrounded) 
 	{
