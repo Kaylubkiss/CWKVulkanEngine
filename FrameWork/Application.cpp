@@ -1622,10 +1622,16 @@ void Application::ResizeViewport()
 
 void Application::InitPhysicsWorld() 
 {
-	/*this->mPhysicsWorld = this->mPhysicsCommon.createPhysicsWorld();*/
 	debugCube2.InitPhysics(ColliderType::CUBE);
+	
+	reactphysics3d::Material& db2Material = this->debugCube2.mPhysicsComponent.collider->getMaterial();
+	db2Material.setBounciness(0.f);
+	db2Material.setMassDensity(10.f);
+	debugCube2.mPhysicsComponent.rigidBody->updateMassPropertiesFromColliders();
+	
 	debugCube3.InitPhysics(ColliderType::CUBE, BodyType::STATIC);
-	mCamera.InitPhysics(/*BodyType::KINEMATIC*/);
+	
+	mCamera.InitPhysics(BodyType::STATIC);
 
 
 	this->debugCube3.SetLinesArrayOffset(12); 
@@ -1695,7 +1701,7 @@ static glm::vec3 globalCenter(0.f);
 bool Application::init() 
 {
 	
-	mCamera = Camera({ 0.f, 10.f, 10.f }, { 0.f, 0.f, -1.f } , { 0,1,0 });
+	mCamera = Camera({ 0.f, 0.f, 10.f }, { 0.f, 0.f, -1.f } , { 0,1,0 });
 
 	//uniform stuffs;
 	uTransform.proj[1][1] *= -1.f;
@@ -1765,6 +1771,8 @@ bool Application::init()
 	this->debugCube2.mModelTransform[3] = glm::vec4(-10.f, 20, -5.f, 1);
 	this->debugCube2.willDebugDraw(true);
 	
+	
+
 	this->debugCube3 = Object((PathToObjects() + "base.obj").c_str(), "puppy1.bmp", &this->pipelineLayouts.back());
 	const float dbScale = 30.f;
 	this->debugCube3.mModelTransform = glm::mat4(dbScale);
@@ -2232,6 +2240,7 @@ void Application::loop()
 		debugCube2.Update(mPhysics.InterpFactor());
 		debugCube3.Update(mPhysics.InterpFactor());
 		mCamera.Update(mPhysics.InterpFactor());
+
 
 		Render();
 	}

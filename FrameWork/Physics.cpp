@@ -2,9 +2,12 @@
 
 Physics::Physics() 
 {
+	/*PhysicsWorld::WorldSettings settings;
+
+	settings.restitutionVelocityThreshold = 10.f;*/
+
 	this->mPhysicsWorld = this->mPhysicsCommon.createPhysicsWorld();
 }
-
 
 Physics::~Physics() 
 {
@@ -48,4 +51,9 @@ reactphysics3d::BoxShape* Physics::CreateBoxShape(const reactphysics3d::Vector3&
 reactphysics3d::CapsuleShape* Physics::CreateCapsuleShape(float radius, float height) 
 {
 	return mPhysicsCommon.createCapsuleShape(radius, height);
+}
+
+void PhysicsComponent::SetRayCastHit(bool set) 
+{
+	this->rayCastHit = set;	
 }

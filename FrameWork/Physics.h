@@ -14,9 +14,14 @@ struct PhysicsComponent
 
 	reactphysics3d::BodyType bodyType;
 
+	bool rayCastHit = false;
+
 	PhysicsComponent() : rigidBody(nullptr), collider(nullptr), shape(nullptr),
 		currTransform(reactphysics3d::Vector3::zero(), reactphysics3d::Quaternion::identity()),
 		prevTransform(currTransform) {};
+
+	void SetRayCastHit(bool set);
+
 
 	//void operator=(const PhysicsComponent& rhs);
 };

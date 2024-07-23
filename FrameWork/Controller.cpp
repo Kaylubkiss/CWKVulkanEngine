@@ -82,19 +82,6 @@ void Controller::Update()
 			}
 
 		}
-		/*else if (e.type == SDL_MOUSEMOTION)
-		{
-			if ((keystates[SDL_SCANCODE_LSHIFT] &&
-				e.button.button == SDL_BUTTON(SDL_BUTTON_LEFT) &&
-				guiWindowIsFocused == false) || (e.button.button == SDL_BUTTON(SDL_BUTTON_MIDDLE)))
-			{
-				int deltaX = e.motion.xrel;
-				int deltaY = e.motion.yrel;
-				glm::mat4 newTransform = glm::mat4(X_BASIS, Y_BASIS, Z_BASIS, { deltaX * .1f, -deltaY * .1f, 0, 1 }) * uTransform.view;
-				uTransform.view = newTransform;
-				memcpy(uniformBuffers[0].mappedMemory, (void*)&uTransform, (size_t)(sizeof(uTransformObject)));
-			}
-		}*/
 
 		if (e.button.button == SDL_BUTTON(SDL_BUTTON_LEFT) && e.button.state == SDL_PRESSED)
 		{
@@ -157,18 +144,21 @@ void Controller::Update()
 	{
 		_Application->GetCamera().MoveForward();
 	}
-	else if (keys[S])
+	
+	if (keys[S])
 	{
 		_Application->GetCamera().MoveBack();
 	}
-	else if (keys[A])
+	
+	if (keys[A])
 	{
 		_Application->GetCamera().MoveLeft();
 	}
-	else if (keys[D])
+	
+	if (keys[D])
 	{
 		_Application->GetCamera().MoveRight();
 	}
 
-	_Application->UpdateUniformViewMatrix();
+	
 }

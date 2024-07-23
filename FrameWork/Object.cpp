@@ -115,7 +115,8 @@ void Object::InitPhysics(ColliderType cType, BodyType bType)
     {
         this->mPhysicsComponent.collider = this->mPhysicsComponent.rigidBody->addCollider(this->mPhysicsComponent.shape, Transform::identity());
     }
-    
+
+
     this->mPhysicsComponent.prevTransform = this->mPhysicsComponent.rigidBody->getTransform();
 }
 
