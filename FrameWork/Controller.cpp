@@ -126,7 +126,7 @@ void Controller::Update()
 
 		if ((deltaX || deltaY) && deltaX != std::numeric_limits<int>::max() && deltaY != std::numeric_limits<int>::max())
 		{
-			if (e.type == SDL_MOUSEMOTION && e.button.button == SDL_BUTTON(SDL_BUTTON_RIGHT))
+			if (e.type == SDL_MOUSEMOTION && SDL_GetWindowGrab(_Application->GetWindow()) == SDL_TRUE/*&& e.button.button == SDL_BUTTON(SDL_BUTTON_RIGHT)*/)
 			{
 				mousePos.x += deltaX;
 				mousePos.y += deltaY;
