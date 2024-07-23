@@ -22,6 +22,9 @@ const static glm::vec4 Y_BASIS = { 0,1,0,0 };
 const static glm::vec4 Z_BASIS = { 0,0,1,0 };
 const static glm::vec4 W_BASIS = { 0,0,0,1 };
 
+glm::vec3 lightPos = { 0, 5, 10 };
+glm::vec3 lightDir = { 0, -1 , 0 }; //light just points straight down.
+
 #define VK_CHECK_RESULT(function) {VkResult check = function; assert(check == VK_SUCCESS); if (check != VK_SUCCESS) {std::cout << check << std::endl;}}
 
 static void check_vk_result(VkResult err)
@@ -1744,9 +1747,11 @@ bool Application::init()
 
 	CreateImageViews();
 	
+	//VkPipelineShaderStageCreateInfo shaderVertStageInfo = CreateShaderModule("vert.spv", this->shaderVertModule, VK_SHADER_STAGE_VERTEX_BIT);
+	//VkPipelineShaderStageCreateInfo shaderFragModuleInfo = CreateShaderModule("frag.spv", this->shaderFragModule, VK_SHADER_STAGE_FRAGMENT_BIT);
 
-	VkPipelineShaderStageCreateInfo shaderVertStageInfo = CreateShaderModule("vert.spv", this->shaderVertModule, VK_SHADER_STAGE_VERTEX_BIT);
-	VkPipelineShaderStageCreateInfo shaderFragModuleInfo = CreateShaderModule("frag.spv", this->shaderFragModule, VK_SHADER_STAGE_FRAGMENT_BIT);
+	VkPipelineShaderStageCreateInfo shaderVertStageInfo = CreateShaderModule("blinnvert.spv", this->shaderVertModule, VK_SHADER_STAGE_VERTEX_BIT);
+	VkPipelineShaderStageCreateInfo shaderFragModuleInfo = CreateShaderModule("blinnfrag.spv", this->shaderFragModule, VK_SHADER_STAGE_FRAGMENT_BIT);
 
 	VkPipelineShaderStageCreateInfo shaderStages[] = { shaderVertStageInfo, shaderFragModuleInfo };
 
@@ -1874,206 +1879,6 @@ void Application::SelectWorldObjects(const int& mouseX, const int& mouseY)
 
 	this->mPhysics.GetPhysicsWorld()->raycast(ray, &callbackObject);
 
-}
-
-static bool w_down = false;
-static bool s_down = false;
-static bool d_down = false;
-static bool a_down = false;
-
-bool Application::UpdateInput()
-{
-
-	SDL_Event e;
-	while (SDL_PollEvent(&e))
-	{
-		const Uint8* keystates = SDL_GetKeyboardState(nullptr);
-		
-		ImGui_ImplSDL2_ProcessEvent(&e);
-
-		Sint32 deltaX = e.motion.xrel;
-		Sint32 deltaY = e.motion.yrel;
-
-		static glm::vec2 mousePos(width / 2, height / 2);
-
-
-		if (e.type == SDL_QUIT)
-		{
-			//it should exit.
-			return true;
-		}
-
-		if (e.type == SDL_KEYDOWN) 
-		{
-			switch (e.key.keysym.sym)
-			{
-				case SDLK_w:
-					/*std::cout << "pressed!!\n";*/
-					
-					w_down = true;
-					break;
-				case SDLK_s:
-					s_down = true;
-					break;
-				case SDLK_a:
-					a_down = true;
-					break;
-				case SDLK_d:
-					d_down = true;
-					break;
-				case (SDLK_t):
-					debugCube3.debugDrawObject.ToggleVisibility(e.key.keysym.sym, keystates[SDL_SCANCODE_LSHIFT]);
-					debugCube2.debugDrawObject.ToggleVisibility(e.key.keysym.sym, keystates[SDL_SCANCODE_LSHIFT]);
-					break;
-				case (SDLK_ESCAPE):
-					if (SDL_GetGrabbedWindow())
-					{
-						SDL_SetWindowGrab(this->window, SDL_FALSE);
-						SDL_SetRelativeMouseMode(SDL_FALSE);
-						SDL_ShowCursor(SDL_ENABLE);
-					}
-					else 
-					{
-						//it should exit.
-						return true;
-					}
-				
-
-			}
-
-		
-		}
-		else if (e.type == SDL_KEYUP) 
-		{
-			switch (e.key.keysym.sym)
-			{
-				case SDLK_w:
-					w_down = false;
-					break;
-				case SDLK_s:
-					s_down = false;
-					break;
-				case SDLK_a:
-					a_down = false;
-					break;
-				case SDLK_d:
-					d_down = false;
-					break;
-			}
-
-		}
-		else if (e.type == SDL_MOUSEMOTION) 
-		{
-			if ((keystates[SDL_SCANCODE_LSHIFT] &&
-				e.button.button == SDL_BUTTON(SDL_BUTTON_LEFT) &&
-				guiWindowIsFocused == false) || (e.button.button == SDL_BUTTON(SDL_BUTTON_MIDDLE)))
-			{
-				int deltaX = e.motion.xrel;
-				int deltaY = e.motion.yrel;
-				glm::mat4 newTransform = glm::mat4(X_BASIS, Y_BASIS, Z_BASIS, { deltaX * .1f, -deltaY * .1f, 0, 1 }) * uTransform.view;
-				uTransform.view = newTransform;
-				memcpy(uniformBuffers[0].mappedMemory, (void*)&uTransform, (size_t)(sizeof(uTransformObject)));
-			}
-		}
-
-		if (e.button.button == SDL_BUTTON(SDL_BUTTON_LEFT) && e.button.state == SDL_PRESSED) 
-		{
-			if (WindowisFocused())
-			{
-				if (!SDL_GetGrabbedWindow())
-				{
-					//relativemousemode might be better
-					SDL_SetWindowGrab(this->window, SDL_TRUE);
-					SDL_SetRelativeMouseMode(SDL_TRUE);
-
-					if (!guiWindowIsFocused) 
-					{
-						SDL_WarpMouseInWindow(this->window, width / 2, height / 2);
-						SDL_ShowCursor(0);
-					}
-					
-				}
-				else
-				{
-					if (!guiWindowIsFocused) 
-					{
-						SDL_WarpMouseInWindow(this->window, width / 2, height / 2);
-						SDL_ShowCursor(0);
-					}
-					else 
-					{
-						if (SDL_ShowCursor(SDL_QUERY) != 1) 
-						{
-							SDL_ShowCursor(1);
-						}
-					}
-
-
-					int mouseX = e.button.x;
-					int mouseY = e.button.y;
-
-					SelectWorldObjects(mouseX, mouseY);
-
-				}
-			}
-		}
-
-		if ((deltaX  || deltaY) && deltaX != std::numeric_limits<int>::max() && deltaY != std::numeric_limits<int>::max())
-		{
-			if (e.type == SDL_MOUSEMOTION && e.button.button == SDL_BUTTON(SDL_BUTTON_RIGHT))
-			{
-
-			
-
-				mousePos.x += deltaX;
-				mousePos.y += deltaY;
-
-
-				//this should be the center.
-				mCamera.Rotate(mousePos.x, mousePos.y);
-
-				uTransform.view = mCamera.LookAt();
-
-				memcpy(uniformBuffers[0].mappedMemory, (void*)&uTransform, (size_t)(sizeof(uTransformObject)));
-			}
-		}
-	}
-
-	if (w_down || s_down || a_down || d_down)
-	{
-		glm::mat4 newTransform = uTransform.view;
-
-		if (w_down)
-		{
-			/*		std::cout << "here\n";*/
-			mCamera.MoveForward();
-			newTransform = mCamera.LookAt();
-		}
-		else if (s_down)
-		{
-			mCamera.MoveBack();
-			newTransform = mCamera.LookAt();
-		}
-		else if (a_down)
-		{
-			mCamera.MoveLeft();
-			newTransform = mCamera.LookAt();
-		}
-		else if (d_down)
-		{
-			mCamera.MoveRight();
-			newTransform = mCamera.LookAt();
-		}
-
-
-		uTransform.view = newTransform;
-
-		memcpy(uniformBuffers[0].mappedMemory, (void*)&uTransform, (size_t)(sizeof(uTransformObject)));
-
-	}
-
-
-	return false;
 }
 
 void Application::DrawGui() 

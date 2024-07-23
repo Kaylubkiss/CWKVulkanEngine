@@ -162,6 +162,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Application.h" />
+    <ClInclude Include="Blinn Phong.h" />
     <ClInclude Include="Camera.h" />
     <ClInclude Include="Common.h" />
     <ClInclude Include="Controller.h" />
@@ -171,6 +172,8 @@
     <ClInclude Include="Time.h" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="blinn.frag" />
+    <None Include="blinn.vert" />
     <None Include="simple.frag" />
     <None Include="simple.vert" />
   </ItemGroup>

@@ -134,7 +134,6 @@ void Controller::Update()
 				//this should be the center.
 				_Application->GetCamera().Rotate(mousePos.x, mousePos.y);
 
-			/*	_Application->UpdateUniformViewMatrix();*/
 			}
 		}
 	}

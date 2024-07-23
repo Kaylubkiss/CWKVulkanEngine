@@ -31,6 +31,9 @@
     <Filter Include="Source Files\ImGui">
       <UniqueIdentifier>{19ddb215-53d6-4588-9483-00f4efcda56a}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Shaders\Blinn Phong">
+      <UniqueIdentifier>{7a7e1d1b-5a8e-48b0-8d74-6b099a8007b0}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Main.cpp">
@@ -107,6 +110,9 @@
     <ClInclude Include="Time.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Blinn Phong.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="simple.vert">
@@ -114,6 +120,12 @@
     </None>
     <None Include="simple.frag">
       <Filter>Shaders</Filter>
+    </None>
+    <None Include="blinn.vert">
+      <Filter>Shaders\Blinn Phong</Filter>
+    </None>
+    <None Include="blinn.frag">
+      <Filter>Shaders\Blinn Phong</Filter>
     </None>
   </ItemGroup>
 </Project>

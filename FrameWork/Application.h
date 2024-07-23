@@ -186,8 +186,6 @@ private:
 
 	bool CheckValidationSupport();
 
-	bool UpdateInput();
-
 	void DrawGui();
 
 	void CreateCubeMap();

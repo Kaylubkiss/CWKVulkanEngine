@@ -79,9 +79,6 @@ struct Buffer
 };
 
 
-
-
-
 struct Texture 
 {
 	std::string mName;
