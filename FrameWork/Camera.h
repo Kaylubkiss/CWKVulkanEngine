@@ -104,6 +104,8 @@ public:
 	//returns world position.
 	const glm::vec3& Position();
 
+	const glm::vec3& ViewDirection();
+
 	bool isUpdated();
 
 	void setIsGrounded(bool set);

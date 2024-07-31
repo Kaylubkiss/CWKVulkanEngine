@@ -78,6 +78,9 @@ Object::Object(const char* fileName, const char* textureName, VkPipelineLayout* 
     {
         this->mPipelineLayout = _Application->GetPipelineLayout();
     }
+
+    this->ComputeVertexNormals();
+    
 }
 
 
@@ -261,3 +264,63 @@ void LoadMeshOBJ(const std::string& path, Object& obj)
 }
 
 
+void Object::ComputeVertexNormals() 
+{
+    
+        for (int i = 0; i < this->vertexBufferData.size(); ++i)
+        {
+            glm::vec3 total_vec(0.0f);
+
+            for (int j = 0; j < this->indexBufferData.size(); ++j)
+            {
+                //total_vec
+                if (indexBufferData[j] == i)
+                {
+                    //angle = glm::angle(q -p, r - p)
+                    //total_vec += angle * cross(q - r, r - p)
+                    float angle;
+                    glm::vec3 normal;
+                    glm::vec3 orientation_QP;
+                    glm::vec3 orientation_RP;
+                    glm::vec3 edge_1;
+                    glm::vec3 edge_2;
+
+                    if (j % 3 == 0) //beginning of the face index
+                    {
+                        orientation_QP = vertexBufferData[indexBufferData[j + 1]].pos - vertexBufferData[indexBufferData[j]].pos;
+                        orientation_RP = vertexBufferData[indexBufferData[j + 2]].pos - vertexBufferData[indexBufferData[j]].pos;
+
+                        edge_1 = orientation_QP;
+                        edge_2 = orientation_RP;
+                    }
+                    else if (j % 3 == 1) //middle of the face index
+                    {
+                        orientation_QP = vertexBufferData[indexBufferData[j]].pos - vertexBufferData[indexBufferData[j - 1]].pos;
+                        orientation_RP = vertexBufferData[indexBufferData[j + 1]].pos - vertexBufferData[indexBufferData[j - 1]].pos;
+
+                        edge_1 = vertexBufferData[indexBufferData[j - 1]].pos - vertexBufferData[indexBufferData[j]].pos;
+                        edge_2 = vertexBufferData[indexBufferData[j + 1]].pos - vertexBufferData[indexBufferData[j]].pos;
+
+                    }
+                    else if (j % 3 == 2) //end of face index sequence
+                    {
+                        orientation_QP = vertexBufferData[indexBufferData[j - 1]].pos - vertexBufferData[indexBufferData[j - 2]].pos;
+                        orientation_RP = vertexBufferData[indexBufferData[j]].pos - vertexBufferData[indexBufferData[j - 2]].pos;
+
+                        edge_1 = vertexBufferData[indexBufferData[j - 2]].pos - vertexBufferData[indexBufferData[j]].pos;
+                        edge_2 = vertexBufferData[indexBufferData[j - 1]].pos - vertexBufferData[indexBufferData[j]].pos;
+                    }
+
+
+                    angle = glm::degrees(acos((abs(glm::dot(edge_1, edge_2)) /
+                        (glm::length(edge_1) * glm::length(edge_2)))));
+                    normal = glm::cross(orientation_QP, orientation_RP);
+                    //The angle needs to be between the edges that *SHARE* the vertex.
+                    total_vec += (angle * normal);
+                }
+            }
+
+            vertexBufferData[i].nrm = glm::normalize(total_vec); //point + vector equals another point
+
+        } //calculate the normals
+}

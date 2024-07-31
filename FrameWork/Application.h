@@ -6,6 +6,7 @@
 #include "Object.h"
 #include "Debug.h"
 #include "Controller.h"
+#include "BlinnPhong.h"
 #include <SDL2/SDL.h>
 
 struct uTransformObject
@@ -14,7 +15,6 @@ struct uTransformObject
 	glm::mat4 view;
 	glm::mat4 proj;
 };
-
 
 class Application
 {
@@ -120,6 +120,8 @@ private:
 	VkDeviceMemory depthImageMemory;
 	VkImageView depthImageView;
 	VkFormat depthFormat;
+
+	LightInfoObject mLights;
 
 	const char* enabledLayerNames[1] = 
 	{

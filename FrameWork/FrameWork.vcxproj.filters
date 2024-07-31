@@ -84,6 +84,9 @@
     <ClCompile Include="Controller.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="BlinnPhong.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Application.h">
@@ -110,7 +113,7 @@
     <ClInclude Include="Time.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Blinn Phong.h">
+    <ClInclude Include="BlinnPhong.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

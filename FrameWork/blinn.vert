@@ -2,11 +2,24 @@
 #extension GL_KHR_vulkan_glsl : enable
 
 
-layout(set = 0, binding = 0) uniform uTransformObject {
+layout(binding = 0) uniform uTransformObject {
     mat4 model;
     mat4 view;
     mat4 proj;
 } uTransform;
+
+
+
+const int maxLights = 1024;
+
+layout(binding = 1) uniform lightInfoObject
+{
+	int num_lights;
+	vec3 lookDir;
+	vec3 direction[maxLights];
+	vec3 lightPos[maxLights];
+	
+} lightInfo;
 
 
 layout( location = 0 ) in vec3 aPos;

@@ -116,6 +116,10 @@ void Camera::UpdatePosition(reactphysics3d::Vector3& velocity)
 
 }
 
+const glm::vec3& Camera::ViewDirection() 
+{
+	return this->mLookDir;
+}
 
 void Camera::Update(float interpFactor) 
 {

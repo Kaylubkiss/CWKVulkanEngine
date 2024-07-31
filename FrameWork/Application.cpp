@@ -36,17 +36,6 @@ static void check_vk_result(VkResult err)
 		abort();
 }
 
-
-
-//static uTransformObject uTransform =
-//{
-//	glm::mat4(1.), //model
-//	//glm::lookAt(glm::vec3(0.f, 0.f , 10.f), glm::vec3(0.f, 0.f, 0.f), glm::vec3(0.f,1.f,0.f)), //view
-//	glm::mat4(1.f),
-//	glm::perspective(glm::radians(45.f), (float)width/ height,  0.1f, 1000.f) //proj
-//};
-
-
 static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
 VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
 VkDebugUtilsMessageTypeFlagsEXT messageType,
@@ -744,6 +733,7 @@ void Application::CreateBuffers()
 void Application::CreateUniformBuffers()
 {
 	this->uniformBuffers.push_back(Buffer(sizeof(uTransformObject), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, (void*)&uTransform));
+	this->uniformBuffers.push_back(Buffer(sizeof(LightInfoObject), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, (void*)&this->mLights)); 
 }
 
 void Application::CreateImage
@@ -1227,8 +1217,9 @@ void Application::CreateDescriptorSets()
 	//create descriptor pool
 	VkDescriptorPoolSize poolSize[2] = {};
 	poolSize[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-	poolSize[0].descriptorCount = 1; //max numbers of frames in flight.
+	poolSize[0].descriptorCount = 2; //max numbers of frames in flight.
 
+	//we are concerned about the fragment stage, so we double the descriptor count here.
 	poolSize[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 	poolSize[1].descriptorCount = 1 * 2; //max numbers of frames in flight times two to accomodate the gui.
 
@@ -1252,18 +1243,22 @@ void Application::CreateDescriptorSets()
 		VK_CHECK_RESULT(vkAllocateDescriptorSets(this->m_logicalDevice, &descriptorAllocInfo, &this->mTextures[i].mDescriptor));
 
 	}
-
-
 }
 
 
 void Application::WriteDescriptorSets() 
 {
-	VkDescriptorBufferInfo bufferInfo = {};
-	bufferInfo.buffer = uniformBuffers[0].handle;
-	bufferInfo.offset = 0;
-	bufferInfo.range = sizeof(uTransformObject);
+	VkDescriptorBufferInfo uTransformbufferInfo = {};
+	uTransformbufferInfo.buffer = uniformBuffers[0].handle;
+	uTransformbufferInfo.offset = 0;
+	uTransformbufferInfo.range = sizeof(uTransformObject);
 
+	VkDescriptorBufferInfo uLightInfoBufferInfo = {};
+	uLightInfoBufferInfo.buffer = uniformBuffers[1].handle;
+	uLightInfoBufferInfo.offset = 0;
+	uLightInfoBufferInfo.range = sizeof(LightInfoObject) - sizeof(int) * LightCountIndex::MAX_IND_COUNT;
+
+	VkDescriptorBufferInfo bufferInfo[2] = { uTransformbufferInfo, uLightInfoBufferInfo };
 	VkDescriptorImageInfo imageInfo = {};
 
 	for (size_t i = 0; i < this->mTextures.size(); ++i) 
@@ -1272,14 +1267,14 @@ void Application::WriteDescriptorSets()
 		imageInfo.imageView = this->mTextures[i].mTextureImageView;
 		imageInfo.sampler = this->mTextures[i].mTextureSampler;
 
-		VkWriteDescriptorSet descriptorWrite[2] = {};
+		VkWriteDescriptorSet descriptorWrite[3] = {};
 		descriptorWrite[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 		descriptorWrite[0].dstSet = this->mTextures[i].mDescriptor;
 		descriptorWrite[0].dstBinding = 0;
 		descriptorWrite[0].dstArrayElement = 0;
 		descriptorWrite[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 		descriptorWrite[0].descriptorCount = 1; //how many buffers
-		descriptorWrite[0].pBufferInfo = &bufferInfo;
+		descriptorWrite[0].pBufferInfo = &uTransformbufferInfo;
 		descriptorWrite[0].pImageInfo = nullptr; // Optional
 		descriptorWrite[0].pTexelBufferView = nullptr; // Optional
 
@@ -1287,12 +1282,22 @@ void Application::WriteDescriptorSets()
 		descriptorWrite[1].dstSet = this->mTextures[i].mDescriptor;
 		descriptorWrite[1].dstBinding = 1;
 		descriptorWrite[1].dstArrayElement = 0;
-		descriptorWrite[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		descriptorWrite[1].descriptorCount = 1; //how many images
-		descriptorWrite[1].pImageInfo = &imageInfo;
+		descriptorWrite[1].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		descriptorWrite[1].descriptorCount = 1; //how many buffers
+		descriptorWrite[1].pBufferInfo = &uLightInfoBufferInfo;
+		descriptorWrite[1].pImageInfo = nullptr; // Optional
 		descriptorWrite[1].pTexelBufferView = nullptr; // Optional
 
-		vkUpdateDescriptorSets(this->m_logicalDevice, 2, descriptorWrite, 0, nullptr);
+		descriptorWrite[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		descriptorWrite[2].dstSet = this->mTextures[i].mDescriptor;
+		descriptorWrite[2].dstBinding = 2;
+		descriptorWrite[2].dstArrayElement = 0;
+		descriptorWrite[2].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		descriptorWrite[2].descriptorCount = 1; //how many images
+		descriptorWrite[2].pImageInfo = &imageInfo;
+		descriptorWrite[2].pTexelBufferView = nullptr; // Optional
+
+		vkUpdateDescriptorSets(this->m_logicalDevice, 3, descriptorWrite, 0, nullptr);
 	}
 
 }
@@ -1348,6 +1353,7 @@ void Application::CreatePipeline(VkPipelineShaderStageCreateInfo* pStages, int n
 	vInputAttribute[2].location = 2;
 	vInputAttribute[2].binding = 0;
 	vInputAttribute[2].offset = offsetof(struct Vertex, uv);
+
 
 	//all vertex info is in the shaders for now...
 	VkPipelineVertexInputStateCreateInfo vertexInputCreateInfo =
@@ -1512,6 +1518,7 @@ void Application::CreateCommandPools()
 
 void Application::CreateDescriptorSetLayout() 
 {
+	//TODO:automate the set layout creation.
 	VkDescriptorSetLayoutBinding uTransformBinding{};
 	uTransformBinding.binding = 0;
 	uTransformBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -1519,19 +1526,25 @@ void Application::CreateDescriptorSetLayout()
 	uTransformBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT; //we are going to use the transforms in the vertex shader.
 
 	VkDescriptorSetLayoutBinding samplerBinding = {};
-	samplerBinding.binding = 1;
+	samplerBinding.binding = 2;
 	samplerBinding.descriptorCount = 1;
 	samplerBinding.pImmutableSamplers = nullptr;
 	samplerBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 	samplerBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT; //we are going to use the sampler in the fragment shader.
 
+	VkDescriptorSetLayoutBinding uLightInfoBinding{};
+	uLightInfoBinding.binding = 1;
+	uLightInfoBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+	uLightInfoBinding.descriptorCount = 1;
+	uLightInfoBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+
 	//VkDescriptorSetLayoutBinding 
 
-	VkDescriptorSetLayoutBinding bindings[2] = { uTransformBinding, samplerBinding };
+	VkDescriptorSetLayoutBinding bindings[3] = { uTransformBinding, samplerBinding, uLightInfoBinding };
 
 	VkDescriptorSetLayoutCreateInfo layoutInfo = {};
 	layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-	layoutInfo.bindingCount = 2;
+	layoutInfo.bindingCount = 3;
 	layoutInfo.pBindings = bindings;
 
 	VK_CHECK_RESULT(vkCreateDescriptorSetLayout(this->m_logicalDevice, &layoutInfo, nullptr, &descriptorSetLayout));
@@ -1703,7 +1716,7 @@ static glm::vec3 globalCenter(0.f);
 
 bool Application::init() 
 {
-	
+	mLights.Create({ 0, 10, 0 }, { 0, -1, 0 });
 	mCamera = Camera({ 0.f, 0.f, 10.f }, { 0.f, 0.f, -1.f } , { 0,1,0 });
 
 	//uniform stuffs;
