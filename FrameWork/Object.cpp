@@ -29,7 +29,7 @@ Object::Object(const char* fileName, const char* textureName, VkPipelineLayout* 
         max_points.y = std::max(max_points.y, vertexBufferData[i].pos.y);
         max_points.z = std::max(max_points.z, vertexBufferData[i].pos.z);
 
-        this->vertexBufferData[i].nrm = glm::vec3(2.f, .5f, 0.f);
+        this->vertexBufferData[i].nrm = glm::vec3(0, 0, 0.f);
 
         mCenter += vertexBufferData[i].pos;
     }
@@ -59,6 +59,7 @@ Object::Object(const char* fileName, const char* textureName, VkPipelineLayout* 
     mMinLocalPoints = min_points;
     //mHalfExtent.normalize();
 
+    this->ComputeVertexNormals();
 
     size_t sizeOfVertexBuffer = sizeof(std::vector<Vertex>) + (sizeof(Vertex) * this->vertexBufferData.size());
     this->vertexBuffer = Buffer(sizeOfVertexBuffer, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, this->vertexBufferData.data());
@@ -79,7 +80,6 @@ Object::Object(const char* fileName, const char* textureName, VkPipelineLayout* 
         this->mPipelineLayout = _Application->GetPipelineLayout();
     }
 
-    this->ComputeVertexNormals();
     
 }
 

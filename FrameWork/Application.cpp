@@ -1785,7 +1785,7 @@ bool Application::init()
 	debugCube.mModelTransform[3] = glm::vec4(1.f, 0, -20.f, 1);
 
 
-	this->debugCube2 = Object((PathToObjects() + "gcube.obj").c_str(), "puppy1.bmp", &this->pipelineLayouts.back());
+	this->debugCube2 = Object((PathToObjects() + "cube.obj").c_str(), "puppy1.bmp", &this->pipelineLayouts.back());
 	this->debugCube2.mModelTransform[3] = glm::vec4(-10.f, 20, -5.f, 1);
 	this->debugCube2.willDebugDraw(true);
 	

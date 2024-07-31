@@ -55,8 +55,11 @@ vec3 colors[3] = vec3[3]
 
 void main ()
 {
-	
+	/*this is to transform normals and 
+	prevent scaling from ruining the orthogonality of the normal*/
+
+	mat4 nMV = transpose(inverse(uTransform.view * matrix.modelMatrix));
 	gl_Position = uTransform.proj * uTransform.view * matrix.modelMatrix * vec4(aPos, 1.f); 
-	fragColor = aNorm;
-	fragTexCoord = aUv;
+	fragColor = normalize((nMV * vec4(aNorm, 0))).xyz;
+	fragTexCoord =  aUv;
 }
