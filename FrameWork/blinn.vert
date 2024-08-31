@@ -10,14 +10,12 @@ layout(binding = 0) uniform uTransformObject {
 
 
 
-const int maxLights = 1024;
+const int maxLights = 1;
 
 layout(binding = 1) uniform lightInfoObject
 {
 	int num_lights;
-	vec3 lookDir;
-	vec3 direction[maxLights];
-	vec3 lightPos[maxLights];
+	vec3 position[maxLights];
 	
 } lightInfo;
 
@@ -32,8 +30,10 @@ layout (push_constant) uniform Matrix
 	mat4 modelMatrix;
 } matrix;
 
-layout(location = 0) out vec3 fragColor;
 layout(location = 1) out vec2 fragTexCoord;
+layout(location = 2) out vec3 viewDir;
+layout(location = 3) out vec3 normal;
+layout(location = 4) out vec3 lightDir[maxLights];
 
 //centered around unit square --> make sure to orientate ccw
 vec2 positions[3] = vec2[3]
@@ -52,14 +52,24 @@ vec3 colors[3] = vec3[3]
 
 
 
-
 void main ()
 {
+
+	vec4 posVF = uTransform.view * matrix.modelMatrix * vec4(aPos, 1);
+
 	/*this is to transform normals and 
 	prevent scaling from ruining the orthogonality of the normal*/
 
+	//very expensive 
 	mat4 nMV = transpose(inverse(uTransform.view * matrix.modelMatrix));
-	gl_Position = uTransform.proj * uTransform.view * matrix.modelMatrix * vec4(aPos, 1.f); 
-	fragColor = normalize((nMV * vec4(aNorm, 0))).xyz;
+	
+	normal = vec3(nMV * vec4(aNorm,0));
+
+	gl_Position = uTransform.proj * posVF; 
+
+	viewDir = -posVF.xyz;
+
+	lightDir[0] =  (uTransform.view * vec4(lightInfo.position[0],1) - posVF).xyz;
+
 	fragTexCoord =  aUv;
 }

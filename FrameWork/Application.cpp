@@ -733,7 +733,7 @@ void Application::CreateBuffers()
 void Application::CreateUniformBuffers()
 {
 	this->uniformBuffers.push_back(Buffer(sizeof(uTransformObject), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, (void*)&uTransform));
-	this->uniformBuffers.push_back(Buffer(sizeof(LightInfoObject), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, (void*)&this->mLights)); 
+	
 }
 
 void Application::CreateImage
@@ -1254,7 +1254,7 @@ void Application::WriteDescriptorSets()
 	uTransformbufferInfo.range = sizeof(uTransformObject);
 
 	VkDescriptorBufferInfo uLightInfoBufferInfo = {};
-	uLightInfoBufferInfo.buffer = uniformBuffers[1].handle;
+	uLightInfoBufferInfo.buffer = mLights.mBuffer.handle;
 	uLightInfoBufferInfo.offset = 0;
 	uLightInfoBufferInfo.range = sizeof(LightInfoObject) - sizeof(int) * LightCountIndex::MAX_IND_COUNT;
 
@@ -1716,7 +1716,6 @@ static glm::vec3 globalCenter(0.f);
 
 bool Application::init() 
 {
-	mLights.Create({ 0, 10, 0 }, { 0, -1, 0 });
 	mCamera = Camera({ 0.f, 0.f, 10.f }, { 0.f, 0.f, -1.f } , { 0,1,0 });
 
 	//uniform stuffs;
@@ -1773,6 +1772,7 @@ bool Application::init()
 	CreateCommandBuffers();
 	
 	CreateUniformBuffers();
+	mLights.Create({ 0, 10, 0 }, { 0, -1, 0 });
 	
 	CreateDepthResources();
 
@@ -1796,10 +1796,6 @@ bool Application::init()
 	this->debugCube3.mModelTransform = glm::mat4(dbScale);
 	this->debugCube3.mModelTransform[3] = { 0.f, -5.f, 0.f, 1 };
 	this->debugCube3.willDebugDraw(true);
-
-	//this->isDebugEnabled = true;
-
-	/*debugDrawObject.WillDraw(true);*/
 
 	CreateDescriptorSets();
 	WriteDescriptorSets();
@@ -1880,7 +1876,10 @@ void Application::SelectWorldObjects(const int& mouseX, const int& mouseY)
 	//glm::vec3 ray_world = glm::vec3(cursorWorldPos);
 
 	//2. cast ray from the mouse position and in the direction forward from the mouse position
-	reactphysics3d::Vector3 rayStart(-uTransform.view[3].x, -uTransform.view[3].y, -uTransform.view[3].z);
+
+	glm::vec3 CameraPos = mCamera.Position();
+
+	reactphysics3d::Vector3 rayStart(CameraPos.x, CameraPos.y, CameraPos.z);
 
 	reactphysics3d::Vector3 rayEnd(ray_world.x, ray_world.y, ray_world.z);
 
@@ -2059,6 +2058,8 @@ void Application::loop()
 		debugCube3.Update(mPhysics.InterpFactor());
 		mCamera.Update(mPhysics.InterpFactor());
 
+		mLights.Update();
+		
 
 		Render();
 	}
@@ -2158,6 +2159,8 @@ void Application::exit()
 	{
 		func(this->m_instance, this->debugMessenger, nullptr);
 	}
+
+	mLights.Deallocate();
 
 }
 

@@ -13,17 +13,17 @@ static const int MaxLights = 1024;
 struct LightInfoObject
 {
 	int num_lights = 0;
-	glm::vec3 lookDir;
-	glm::vec3 direction[MaxLights] = { { 0,0,0 } };
 	glm::vec3 lightPos[MaxLights] = { {0,0,0} };
 	int curr_index[MAX_IND_COUNT] = { 0 };
-
+	bool isUpdated = false;
+	Buffer mBuffer;
 
 private:
-	void AddDirection(const glm::vec3& dir);
-
+	/*void AddDirection(const glm::vec3& dir);*/
 	void AddPosition(const glm::vec3& pos);
 
 public:
+	void Deallocate();
 	void Create(const glm::vec3& pos, const glm::vec3& dir);
+	void Update();
 };

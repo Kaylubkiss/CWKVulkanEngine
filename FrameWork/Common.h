@@ -58,6 +58,8 @@ struct Buffer
 
 	void* mappedMemory = NULL;
 
+	bool isAllocated = false;
+
 	void operator=(const Buffer& rhs)
 	{
 		this->handle = rhs.handle;
@@ -67,7 +69,6 @@ struct Buffer
 	}
 
 	/*Buffer(const Buffer& rhs);*/
-
 	//assume that build info is shared among all buffers.
 	Buffer(size_t size, VkBufferUsageFlags usage, VkMemoryPropertyFlags flags, void* data);
 	Buffer() : handle(VK_NULL_HANDLE), memory(VK_NULL_HANDLE), size(0), mappedMemory(NULL) {};

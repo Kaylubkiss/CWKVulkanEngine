@@ -155,7 +155,6 @@ private:
 	void CreateSwapChain();
 	void CreateImageViews();
 	void CreateFrameBuffers();
-	//void CreateDescriptorPool();
 	void CreateDescriptorSetLayout();
 	void CreateDescriptorSets();
 	void WriteDescriptorSets();

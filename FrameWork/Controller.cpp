@@ -114,10 +114,12 @@ void Controller::Update()
 						}
 					}
 
-					int mouseX = e.button.x;
-					int mouseY = e.button.y;
+					/*int mouseX = e.button.x;
+					int mouseY = e.button.y;*/
 
-					_Application->SelectWorldObjects(mouseX, mouseY);
+					glm::vec2 selectMouse(_Application->width / 2, _Application->height / 2);
+
+					_Application->SelectWorldObjects(selectMouse.x, selectMouse.y);
 
 				}
 			}
