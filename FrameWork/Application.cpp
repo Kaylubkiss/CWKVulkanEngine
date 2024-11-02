@@ -1873,8 +1873,6 @@ void Application::SelectWorldObjects(const int& mouseX, const int& mouseY)
 
 	ray_world /= ray_world.w;
 
-	//glm::vec3 ray_world = glm::vec3(cursorWorldPos);
-
 	//2. cast ray from the mouse position and in the direction forward from the mouse position
 
 	glm::vec3 CameraPos = mCamera.Position();

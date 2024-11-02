@@ -91,12 +91,12 @@ void Controller::Update()
 				{
 					//relativemousemode might be better
 					SDL_SetWindowGrab(_Application->GetWindow(), SDL_TRUE);
-					SDL_SetRelativeMouseMode(SDL_TRUE);
+					/*SDL_SetRelativeMouseMode(SDL_TRUE);*/
 
 					if (!_Application->guiWindowIsFocused)
 					{
 						SDL_WarpMouseInWindow(_Application->GetWindow(), _Application->width / 2, _Application->height / 2);
-						SDL_ShowCursor(0);
+						/*SDL_ShowCursor(0);*/
 					}
 				}
 				else
@@ -104,7 +104,7 @@ void Controller::Update()
 					if (!_Application->guiWindowIsFocused)
 					{
 						SDL_WarpMouseInWindow(_Application->GetWindow(), _Application->width / 2, _Application->height / 2);
-						SDL_ShowCursor(0);
+						/*SDL_ShowCursor(0);*/
 					}
 					else
 					{
@@ -116,6 +116,7 @@ void Controller::Update()
 
 					/*int mouseX = e.button.x;
 					int mouseY = e.button.y;*/
+					
 
 					glm::vec2 selectMouse(_Application->width / 2, _Application->height / 2);
 
