@@ -1,7 +1,6 @@
 #include "Controller.h"
 #include <SDL2/SDL.h>
 #include <glm/common.hpp>
-#include "Common.h"
 #include "Application.h"
 
 void Controller::Update() 
@@ -63,7 +62,9 @@ void Controller::Update()
 					}
 			}
 		}
-		else if (e.type == SDL_KEYUP)
+		
+		
+		if (e.type == SDL_KEYUP)
 		{
 			switch (e.key.keysym.sym)
 			{

@@ -22,7 +22,6 @@ void LightInfoObject::Create(const glm::vec3& pos, const glm::vec3& dir)
 		mBuffer.isAllocated = true;
 	}
 
-
 	this->AddPosition(pos);
 	isUpdated = true;
 }

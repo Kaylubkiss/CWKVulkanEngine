@@ -6,7 +6,6 @@
 #include <glm/gtc/matrix_transform.hpp>
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
-#include <imgui/imgui_demo.cpp>
 
 
 //NOTE: to remove pesky warnings from visual studio, on dynamically allocated arrays,

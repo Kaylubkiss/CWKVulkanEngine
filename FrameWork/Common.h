@@ -11,14 +11,19 @@
 #include <vector>
 #include <string>
 
+#define IMGUI_DEFINE_MATH_OPERATORS
 #include "imgui/imgui.h"
 #include "imgui/backends/imgui_impl_sdl2.h"
 #include "imgui/backends/imgui_impl_vulkan.h"
+
+#include "Physics.h"
 
 
 
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/hash.hpp>
+
+#include <SDL2/SDL.h>
 
 
 class Application; //forward declare class.

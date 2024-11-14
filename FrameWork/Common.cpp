@@ -1,4 +1,3 @@
-#include "Common.h"
 #include "Application.h"
 
 static int s_count = 0;

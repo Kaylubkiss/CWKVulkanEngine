@@ -1,13 +1,12 @@
 #pragma once
 #include "Common.h"
-#include "Time.h"
-#include "Physics.h"
+#include "Timer.h"
 #include "Camera.h"
 #include "Object.h"
 #include "Debug.h"
 #include "Controller.h"
 #include "BlinnPhong.h"
-#include <SDL2/SDL.h>
+
 
 struct uTransformObject
 {

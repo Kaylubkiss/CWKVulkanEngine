@@ -4,11 +4,7 @@
 
 static float temp_cameraSpeed = 15.0f;
 
-Camera::Camera(const glm::vec3& eye, const glm::vec3& lookDirection, const glm::vec3& up) : mEye(eye), mLookDir(lookDirection), mUpVector(up) 
-{
-
-
-}
+Camera::Camera(const glm::vec3& eye, const glm::vec3& lookDirection, const glm::vec3& up) : mEye(eye), mLookDir(lookDirection), mUpVector(up) {}
 
 const glm::mat4& Camera::LookAt() 
 {
