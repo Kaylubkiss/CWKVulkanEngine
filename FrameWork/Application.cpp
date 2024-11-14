@@ -6,7 +6,6 @@
 #include <glm/gtc/matrix_transform.hpp>
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
-#include <imgui/imgui_demo.cpp>
 
 
 //NOTE: to remove pesky warnings from visual studio, on dynamically allocated arrays,
@@ -22,6 +21,9 @@ const static glm::vec4 Y_BASIS = { 0,1,0,0 };
 const static glm::vec4 Z_BASIS = { 0,0,1,0 };
 const static glm::vec4 W_BASIS = { 0,0,0,1 };
 
+glm::vec3 lightPos = { 0, 5, 10 };
+glm::vec3 lightDir = { 0, -1 , 0 }; //light just points straight down.
+
 #define VK_CHECK_RESULT(function) {VkResult check = function; assert(check == VK_SUCCESS); if (check != VK_SUCCESS) {std::cout << check << std::endl;}}
 
 static void check_vk_result(VkResult err)
@@ -32,17 +34,6 @@ static void check_vk_result(VkResult err)
 	if (err < 0)
 		abort();
 }
-
-
-
-//static uTransformObject uTransform =
-//{
-//	glm::mat4(1.), //model
-//	//glm::lookAt(glm::vec3(0.f, 0.f , 10.f), glm::vec3(0.f, 0.f, 0.f), glm::vec3(0.f,1.f,0.f)), //view
-//	glm::mat4(1.f),
-//	glm::perspective(glm::radians(45.f), (float)width/ height,  0.1f, 1000.f) //proj
-//};
-
 
 static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
 VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
@@ -741,6 +732,7 @@ void Application::CreateBuffers()
 void Application::CreateUniformBuffers()
 {
 	this->uniformBuffers.push_back(Buffer(sizeof(uTransformObject), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, (void*)&uTransform));
+	
 }
 
 void Application::CreateImage
@@ -1224,8 +1216,9 @@ void Application::CreateDescriptorSets()
 	//create descriptor pool
 	VkDescriptorPoolSize poolSize[2] = {};
 	poolSize[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-	poolSize[0].descriptorCount = 1; //max numbers of frames in flight.
+	poolSize[0].descriptorCount = 2; //max numbers of frames in flight.
 
+	//we are concerned about the fragment stage, so we double the descriptor count here.
 	poolSize[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 	poolSize[1].descriptorCount = 1 * 2; //max numbers of frames in flight times two to accomodate the gui.
 
@@ -1249,18 +1242,22 @@ void Application::CreateDescriptorSets()
 		VK_CHECK_RESULT(vkAllocateDescriptorSets(this->m_logicalDevice, &descriptorAllocInfo, &this->mTextures[i].mDescriptor));
 
 	}
-
-
 }
 
 
 void Application::WriteDescriptorSets() 
 {
-	VkDescriptorBufferInfo bufferInfo = {};
-	bufferInfo.buffer = uniformBuffers[0].handle;
-	bufferInfo.offset = 0;
-	bufferInfo.range = sizeof(uTransformObject);
+	VkDescriptorBufferInfo uTransformbufferInfo = {};
+	uTransformbufferInfo.buffer = uniformBuffers[0].handle;
+	uTransformbufferInfo.offset = 0;
+	uTransformbufferInfo.range = sizeof(uTransformObject);
 
+	VkDescriptorBufferInfo uLightInfoBufferInfo = {};
+	uLightInfoBufferInfo.buffer = mLights.mBuffer.handle;
+	uLightInfoBufferInfo.offset = 0;
+	uLightInfoBufferInfo.range = sizeof(LightInfoObject) - sizeof(int) * LightCountIndex::MAX_IND_COUNT;
+
+	VkDescriptorBufferInfo bufferInfo[2] = { uTransformbufferInfo, uLightInfoBufferInfo };
 	VkDescriptorImageInfo imageInfo = {};
 
 	for (size_t i = 0; i < this->mTextures.size(); ++i) 
@@ -1269,14 +1266,14 @@ void Application::WriteDescriptorSets()
 		imageInfo.imageView = this->mTextures[i].mTextureImageView;
 		imageInfo.sampler = this->mTextures[i].mTextureSampler;
 
-		VkWriteDescriptorSet descriptorWrite[2] = {};
+		VkWriteDescriptorSet descriptorWrite[3] = {};
 		descriptorWrite[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 		descriptorWrite[0].dstSet = this->mTextures[i].mDescriptor;
 		descriptorWrite[0].dstBinding = 0;
 		descriptorWrite[0].dstArrayElement = 0;
 		descriptorWrite[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 		descriptorWrite[0].descriptorCount = 1; //how many buffers
-		descriptorWrite[0].pBufferInfo = &bufferInfo;
+		descriptorWrite[0].pBufferInfo = &uTransformbufferInfo;
 		descriptorWrite[0].pImageInfo = nullptr; // Optional
 		descriptorWrite[0].pTexelBufferView = nullptr; // Optional
 
@@ -1284,12 +1281,22 @@ void Application::WriteDescriptorSets()
 		descriptorWrite[1].dstSet = this->mTextures[i].mDescriptor;
 		descriptorWrite[1].dstBinding = 1;
 		descriptorWrite[1].dstArrayElement = 0;
-		descriptorWrite[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		descriptorWrite[1].descriptorCount = 1; //how many images
-		descriptorWrite[1].pImageInfo = &imageInfo;
+		descriptorWrite[1].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		descriptorWrite[1].descriptorCount = 1; //how many buffers
+		descriptorWrite[1].pBufferInfo = &uLightInfoBufferInfo;
+		descriptorWrite[1].pImageInfo = nullptr; // Optional
 		descriptorWrite[1].pTexelBufferView = nullptr; // Optional
 
-		vkUpdateDescriptorSets(this->m_logicalDevice, 2, descriptorWrite, 0, nullptr);
+		descriptorWrite[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		descriptorWrite[2].dstSet = this->mTextures[i].mDescriptor;
+		descriptorWrite[2].dstBinding = 2;
+		descriptorWrite[2].dstArrayElement = 0;
+		descriptorWrite[2].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		descriptorWrite[2].descriptorCount = 1; //how many images
+		descriptorWrite[2].pImageInfo = &imageInfo;
+		descriptorWrite[2].pTexelBufferView = nullptr; // Optional
+
+		vkUpdateDescriptorSets(this->m_logicalDevice, 3, descriptorWrite, 0, nullptr);
 	}
 
 }
@@ -1345,6 +1352,7 @@ void Application::CreatePipeline(VkPipelineShaderStageCreateInfo* pStages, int n
 	vInputAttribute[2].location = 2;
 	vInputAttribute[2].binding = 0;
 	vInputAttribute[2].offset = offsetof(struct Vertex, uv);
+
 
 	//all vertex info is in the shaders for now...
 	VkPipelineVertexInputStateCreateInfo vertexInputCreateInfo =
@@ -1509,6 +1517,7 @@ void Application::CreateCommandPools()
 
 void Application::CreateDescriptorSetLayout() 
 {
+	//TODO:automate the set layout creation.
 	VkDescriptorSetLayoutBinding uTransformBinding{};
 	uTransformBinding.binding = 0;
 	uTransformBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -1516,19 +1525,25 @@ void Application::CreateDescriptorSetLayout()
 	uTransformBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT; //we are going to use the transforms in the vertex shader.
 
 	VkDescriptorSetLayoutBinding samplerBinding = {};
-	samplerBinding.binding = 1;
+	samplerBinding.binding = 2;
 	samplerBinding.descriptorCount = 1;
 	samplerBinding.pImmutableSamplers = nullptr;
 	samplerBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 	samplerBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT; //we are going to use the sampler in the fragment shader.
 
+	VkDescriptorSetLayoutBinding uLightInfoBinding{};
+	uLightInfoBinding.binding = 1;
+	uLightInfoBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+	uLightInfoBinding.descriptorCount = 1;
+	uLightInfoBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+
 	//VkDescriptorSetLayoutBinding 
 
-	VkDescriptorSetLayoutBinding bindings[2] = { uTransformBinding, samplerBinding };
+	VkDescriptorSetLayoutBinding bindings[3] = { uTransformBinding, samplerBinding, uLightInfoBinding };
 
 	VkDescriptorSetLayoutCreateInfo layoutInfo = {};
 	layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-	layoutInfo.bindingCount = 2;
+	layoutInfo.bindingCount = 3;
 	layoutInfo.pBindings = bindings;
 
 	VK_CHECK_RESULT(vkCreateDescriptorSetLayout(this->m_logicalDevice, &layoutInfo, nullptr, &descriptorSetLayout));
@@ -1622,10 +1637,16 @@ void Application::ResizeViewport()
 
 void Application::InitPhysicsWorld() 
 {
-	/*this->mPhysicsWorld = this->mPhysicsCommon.createPhysicsWorld();*/
 	debugCube2.InitPhysics(ColliderType::CUBE);
+	
+	reactphysics3d::Material& db2Material = this->debugCube2.mPhysicsComponent.collider->getMaterial();
+	db2Material.setBounciness(0.f);
+	db2Material.setMassDensity(10.f);
+	debugCube2.mPhysicsComponent.rigidBody->updateMassPropertiesFromColliders();
+	
 	debugCube3.InitPhysics(ColliderType::CUBE, BodyType::STATIC);
-	mCamera.InitPhysics(/*BodyType::KINEMATIC*/);
+	
+	mCamera.InitPhysics(BodyType::STATIC);
 
 
 	this->debugCube3.SetLinesArrayOffset(12); 
@@ -1694,8 +1715,7 @@ static glm::vec3 globalCenter(0.f);
 
 bool Application::init() 
 {
-	
-	mCamera = Camera({ 0.f, 10.f, 10.f }, { 0.f, 0.f, -1.f } , { 0,1,0 });
+	mCamera = Camera({ 0.f, 0.f, 10.f }, { 0.f, 0.f, -1.f } , { 0,1,0 });
 
 	//uniform stuffs;
 	uTransform.proj[1][1] *= -1.f;
@@ -1738,9 +1758,11 @@ bool Application::init()
 
 	CreateImageViews();
 	
+	//VkPipelineShaderStageCreateInfo shaderVertStageInfo = CreateShaderModule("vert.spv", this->shaderVertModule, VK_SHADER_STAGE_VERTEX_BIT);
+	//VkPipelineShaderStageCreateInfo shaderFragModuleInfo = CreateShaderModule("frag.spv", this->shaderFragModule, VK_SHADER_STAGE_FRAGMENT_BIT);
 
-	VkPipelineShaderStageCreateInfo shaderVertStageInfo = CreateShaderModule("vert.spv", this->shaderVertModule, VK_SHADER_STAGE_VERTEX_BIT);
-	VkPipelineShaderStageCreateInfo shaderFragModuleInfo = CreateShaderModule("frag.spv", this->shaderFragModule, VK_SHADER_STAGE_FRAGMENT_BIT);
+	VkPipelineShaderStageCreateInfo shaderVertStageInfo = CreateShaderModule("blinnvert.spv", this->shaderVertModule, VK_SHADER_STAGE_VERTEX_BIT);
+	VkPipelineShaderStageCreateInfo shaderFragModuleInfo = CreateShaderModule("blinnfrag.spv", this->shaderFragModule, VK_SHADER_STAGE_FRAGMENT_BIT);
 
 	VkPipelineShaderStageCreateInfo shaderStages[] = { shaderVertStageInfo, shaderFragModuleInfo };
 
@@ -1749,6 +1771,7 @@ bool Application::init()
 	CreateCommandBuffers();
 	
 	CreateUniformBuffers();
+	mLights.Create({ 0, 10, 0 }, { 0, -1, 0 });
 	
 	CreateDepthResources();
 
@@ -1761,19 +1784,17 @@ bool Application::init()
 	debugCube.mModelTransform[3] = glm::vec4(1.f, 0, -20.f, 1);
 
 
-	this->debugCube2 = Object((PathToObjects() + "gcube.obj").c_str(), "puppy1.bmp", &this->pipelineLayouts.back());
+	this->debugCube2 = Object((PathToObjects() + "cube.obj").c_str(), "puppy1.bmp", &this->pipelineLayouts.back());
 	this->debugCube2.mModelTransform[3] = glm::vec4(-10.f, 20, -5.f, 1);
 	this->debugCube2.willDebugDraw(true);
 	
+	
+
 	this->debugCube3 = Object((PathToObjects() + "base.obj").c_str(), "puppy1.bmp", &this->pipelineLayouts.back());
 	const float dbScale = 30.f;
 	this->debugCube3.mModelTransform = glm::mat4(dbScale);
 	this->debugCube3.mModelTransform[3] = { 0.f, -5.f, 0.f, 1 };
 	this->debugCube3.willDebugDraw(true);
-
-	//this->isDebugEnabled = true;
-
-	/*debugDrawObject.WillDraw(true);*/
 
 	CreateDescriptorSets();
 	WriteDescriptorSets();
@@ -1851,10 +1872,11 @@ void Application::SelectWorldObjects(const int& mouseX, const int& mouseY)
 
 	ray_world /= ray_world.w;
 
-	//glm::vec3 ray_world = glm::vec3(cursorWorldPos);
-
 	//2. cast ray from the mouse position and in the direction forward from the mouse position
-	reactphysics3d::Vector3 rayStart(-uTransform.view[3].x, -uTransform.view[3].y, -uTransform.view[3].z);
+
+	glm::vec3 CameraPos = mCamera.Position();
+
+	reactphysics3d::Vector3 rayStart(CameraPos.x, CameraPos.y, CameraPos.z);
 
 	reactphysics3d::Vector3 rayEnd(ray_world.x, ray_world.y, ray_world.z);
 
@@ -1866,206 +1888,6 @@ void Application::SelectWorldObjects(const int& mouseX, const int& mouseY)
 
 	this->mPhysics.GetPhysicsWorld()->raycast(ray, &callbackObject);
 
-}
-
-static bool w_down = false;
-static bool s_down = false;
-static bool d_down = false;
-static bool a_down = false;
-
-bool Application::UpdateInput()
-{
-
-	SDL_Event e;
-	while (SDL_PollEvent(&e))
-	{
-		const Uint8* keystates = SDL_GetKeyboardState(nullptr);
-		
-		ImGui_ImplSDL2_ProcessEvent(&e);
-
-		Sint32 deltaX = e.motion.xrel;
-		Sint32 deltaY = e.motion.yrel;
-
-		static glm::vec2 mousePos(width / 2, height / 2);
-
-
-		if (e.type == SDL_QUIT)
-		{
-			//it should exit.
-			return true;
-		}
-
-		if (e.type == SDL_KEYDOWN) 
-		{
-			switch (e.key.keysym.sym)
-			{
-				case SDLK_w:
-					/*std::cout << "pressed!!\n";*/
-					
-					w_down = true;
-					break;
-				case SDLK_s:
-					s_down = true;
-					break;
-				case SDLK_a:
-					a_down = true;
-					break;
-				case SDLK_d:
-					d_down = true;
-					break;
-				case (SDLK_t):
-					debugCube3.debugDrawObject.ToggleVisibility(e.key.keysym.sym, keystates[SDL_SCANCODE_LSHIFT]);
-					debugCube2.debugDrawObject.ToggleVisibility(e.key.keysym.sym, keystates[SDL_SCANCODE_LSHIFT]);
-					break;
-				case (SDLK_ESCAPE):
-					if (SDL_GetGrabbedWindow())
-					{
-						SDL_SetWindowGrab(this->window, SDL_FALSE);
-						SDL_SetRelativeMouseMode(SDL_FALSE);
-						SDL_ShowCursor(SDL_ENABLE);
-					}
-					else 
-					{
-						//it should exit.
-						return true;
-					}
-				
-
-			}
-
-		
-		}
-		else if (e.type == SDL_KEYUP) 
-		{
-			switch (e.key.keysym.sym)
-			{
-				case SDLK_w:
-					w_down = false;
-					break;
-				case SDLK_s:
-					s_down = false;
-					break;
-				case SDLK_a:
-					a_down = false;
-					break;
-				case SDLK_d:
-					d_down = false;
-					break;
-			}
-
-		}
-		else if (e.type == SDL_MOUSEMOTION) 
-		{
-			if ((keystates[SDL_SCANCODE_LSHIFT] &&
-				e.button.button == SDL_BUTTON(SDL_BUTTON_LEFT) &&
-				guiWindowIsFocused == false) || (e.button.button == SDL_BUTTON(SDL_BUTTON_MIDDLE)))
-			{
-				int deltaX = e.motion.xrel;
-				int deltaY = e.motion.yrel;
-				glm::mat4 newTransform = glm::mat4(X_BASIS, Y_BASIS, Z_BASIS, { deltaX * .1f, -deltaY * .1f, 0, 1 }) * uTransform.view;
-				uTransform.view = newTransform;
-				memcpy(uniformBuffers[0].mappedMemory, (void*)&uTransform, (size_t)(sizeof(uTransformObject)));
-			}
-		}
-
-		if (e.button.button == SDL_BUTTON(SDL_BUTTON_LEFT) && e.button.state == SDL_PRESSED) 
-		{
-			if (WindowisFocused())
-			{
-				if (!SDL_GetGrabbedWindow())
-				{
-					//relativemousemode might be better
-					SDL_SetWindowGrab(this->window, SDL_TRUE);
-					SDL_SetRelativeMouseMode(SDL_TRUE);
-
-					if (!guiWindowIsFocused) 
-					{
-						SDL_WarpMouseInWindow(this->window, width / 2, height / 2);
-						SDL_ShowCursor(0);
-					}
-					
-				}
-				else
-				{
-					if (!guiWindowIsFocused) 
-					{
-						SDL_WarpMouseInWindow(this->window, width / 2, height / 2);
-						SDL_ShowCursor(0);
-					}
-					else 
-					{
-						if (SDL_ShowCursor(SDL_QUERY) != 1) 
-						{
-							SDL_ShowCursor(1);
-						}
-					}
-
-
-					int mouseX = e.button.x;
-					int mouseY = e.button.y;
-
-					SelectWorldObjects(mouseX, mouseY);
-
-				}
-			}
-		}
-
-		if ((deltaX  || deltaY) && deltaX != std::numeric_limits<int>::max() && deltaY != std::numeric_limits<int>::max())
-		{
-			if (e.type == SDL_MOUSEMOTION && e.button.button == SDL_BUTTON(SDL_BUTTON_RIGHT))
-			{
-
-			
-
-				mousePos.x += deltaX;
-				mousePos.y += deltaY;
-
-
-				//this should be the center.
-				mCamera.Rotate(mousePos.x, mousePos.y);
-
-				uTransform.view = mCamera.LookAt();
-
-				memcpy(uniformBuffers[0].mappedMemory, (void*)&uTransform, (size_t)(sizeof(uTransformObject)));
-			}
-		}
-	}
-
-	if (w_down || s_down || a_down || d_down)
-	{
-		glm::mat4 newTransform = uTransform.view;
-
-		if (w_down)
-		{
-			/*		std::cout << "here\n";*/
-			mCamera.MoveForward();
-			newTransform = mCamera.LookAt();
-		}
-		else if (s_down)
-		{
-			mCamera.MoveBack();
-			newTransform = mCamera.LookAt();
-		}
-		else if (a_down)
-		{
-			mCamera.MoveLeft();
-			newTransform = mCamera.LookAt();
-		}
-		else if (d_down)
-		{
-			mCamera.MoveRight();
-			newTransform = mCamera.LookAt();
-		}
-
-
-		uTransform.view = newTransform;
-
-		memcpy(uniformBuffers[0].mappedMemory, (void*)&uTransform, (size_t)(sizeof(uTransformObject)));
-
-	}
-
-
-	return false;
 }
 
 void Application::DrawGui() 
@@ -2233,6 +2055,9 @@ void Application::loop()
 		debugCube3.Update(mPhysics.InterpFactor());
 		mCamera.Update(mPhysics.InterpFactor());
 
+		mLights.Update();
+		
+
 		Render();
 	}
 
@@ -2331,6 +2156,8 @@ void Application::exit()
 	{
 		func(this->m_instance, this->debugMessenger, nullptr);
 	}
+
+	mLights.Deallocate();
 
 }
 

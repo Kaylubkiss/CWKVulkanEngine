@@ -15,6 +15,7 @@ enum ColliderType
 
 
 
+
 struct Mesh
 {
 	int numVertices = 0;
@@ -52,6 +53,7 @@ struct Object
 	void InitPhysics(ColliderType cType, BodyType bType = BodyType::DYNAMIC);
 	void willDebugDraw(bool option);
 	void SetLinesArrayOffset(uint32_t index);
+	void ComputeVertexNormals();
 	/*void operator=(const Object& rhs) = default;*/
 	~Object() = default;
 };

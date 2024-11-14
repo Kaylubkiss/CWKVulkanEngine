@@ -2,13 +2,9 @@
 #include "Application.h"
 #include <glm/gtx/rotate_vector.hpp>
 
-static float temp_cameraSpeed = 400.0f;
+static float temp_cameraSpeed = 15.0f;
 
-Camera::Camera(const glm::vec3& eye, const glm::vec3& lookDirection, const glm::vec3& up) : mEye(eye), mLookDir(lookDirection), mUpVector(up) 
-{
-
-
-}
+Camera::Camera(const glm::vec3& eye, const glm::vec3& lookDirection, const glm::vec3& up) : mEye(eye), mLookDir(lookDirection), mUpVector(up) {}
 
 const glm::mat4& Camera::LookAt() 
 {
@@ -20,11 +16,38 @@ const glm::vec3& Camera::Position()
 	return -mEye;
 }
 
+void Camera::setIsGrounded(bool set) 
+{
+	isGrounded = set;
+}
+
+void Camera::MoveDown() 
+{
+	assert(_Application != NULL);
+
+	float dT = _Application->GetTime().DeltaTime();
+	reactphysics3d::Vector3 gravity = _Application->PhysicsSystem().GetPhysicsWorld()->getGravity();
+	
+	reactphysics3d::Transform nTransform = mPhysicsComponent.rigidBody->getTransform();
+
+	reactphysics3d::Vector3 position = nTransform.getPosition();
+
+	position.y -= gravity.length() * dT;
+
+	nTransform.setPosition(position);
+
+	mPhysicsComponent.rigidBody->setTransform(nTransform);
+}
+
 void Camera::InitPhysics(BodyType bType)
 {
 	assert(_Application != NULL);
 
-	const glm::vec4& dc2Position = glm::vec4(mEye, 1);
+	this->mCamRayCast.SetParent(this);
+
+	glm::vec3 colliderPosition = -mEye;
+	colliderPosition.y -= mCapsule.mHeight * .5f;
+	const glm::vec4& dc2Position = glm::vec4(colliderPosition, 1);
 	reactphysics3d::Vector3 position(dc2Position.x, dc2Position.y, dc2Position.z);
 	reactphysics3d::Quaternion orientation = Quaternion::identity();
 	reactphysics3d::Transform transform(position, orientation);
@@ -32,87 +55,158 @@ void Camera::InitPhysics(BodyType bType)
 	this->mPhysicsComponent.rigidBody = _Application->PhysicsSystem().AddRigidBody(transform);
 
 	mPhysicsComponent.rigidBody->setAngularLockAxisFactor(reactphysics3d::Vector3(0,0,0));
+	
+	mPhysicsComponent.rigidBody->enableGravity(false);
 
 	if (bType != BodyType::DYNAMIC)
 	{
 		this->mPhysicsComponent.rigidBody->setType(bType);
 		this->mPhysicsComponent.bodyType = bType;
 	}
-	this->mPhysicsComponent.shape = _Application->PhysicsSystem().CreateCapsuleShape(1.f, mEye.length());
+
+	this->mPhysicsComponent.shape = _Application->PhysicsSystem().CreateCapsuleShape(mCapsule.mRadius, mCapsule.mHeight);
 
 	if (this->mPhysicsComponent.shape != nullptr)
 	{
 		this->mPhysicsComponent.collider = this->mPhysicsComponent.rigidBody->addCollider(this->mPhysicsComponent.shape, Transform::identity());
 	}
 
+	reactphysics3d::Material& colliderMat = this->mPhysicsComponent.collider->getMaterial();
+
+	colliderMat.setBounciness(0.f);
+	colliderMat.setFrictionCoefficient(0.f);
+
+	this->mPhysicsComponent.rigidBody->updateMassFromColliders();
+
 	this->mPhysicsComponent.prevTransform = this->mPhysicsComponent.rigidBody->getTransform();
+}
+
+void Camera::UpdatePosition(reactphysics3d::Vector3& velocity) 
+{
+
+	float dT = _Application->GetTime().DeltaTime();
+
+	velocity.normalize();
+
+	velocity *= temp_cameraSpeed * dT;
+
+	reactphysics3d::Transform nTransform;
+
+	if (this->mMovementTransform == reactphysics3d::Transform::identity())
+	{
+		nTransform = mPhysicsComponent.rigidBody->getTransform();
+	}
+	else
+	{
+		nTransform = this->mMovementTransform;
+	}
+
+	reactphysics3d::Vector3 nPosition = nTransform.getPosition() + velocity;
+
+	nTransform.setPosition(nPosition);
+
+	if (this->mMovementTransform == reactphysics3d::Transform::identity())
+	{
+		this->mMovementTransform = nTransform;
+	}
+
+}
+
+const glm::vec3& Camera::ViewDirection() 
+{
+	return this->mLookDir;
+}
+
+void Camera::Update(float interpFactor) 
+{
+	assert(_Application != NULL);
+
+	//only update the y if we aren't colliding with something below us. raycast from feet to check for ground.
+
+	/*reactphysics3d::Ray ray(Vector3(-mEye.x, -mEye.y, -mEye.z), reactphysics3d::Vector3(0, -1, 0));
+
+	_Application->PhysicsSystem().GetPhysicsWorld()->raycast(ray, &mCamRayCast);
+
+	if (!this->mPhysicsComponent.rayCastHit) 
+	{
+		this->isGrounded = false;
+	}
+	else if (this->mPhysicsComponent.rayCastHit)
+	{
+		this->isGrounded = true;
+	}*/
+
+	/*if (!isGrounded) 
+	{
+		MoveDown();
+	}*/
+
+	if (isUpdate)
+	{
+
+		this->UpdatePosition(this->accumulatedVelocity);
+
+		Transform uninterpolatedTransform = this->mMovementTransform;
+		reactphysics3d::Vector3 currTransform = uninterpolatedTransform.getPosition();
+		this->mEye = glm::vec3(-currTransform.x, -(currTransform.y + .5f * mCapsule.mHeight), -currTransform.z);
+
+		this->mPhysicsComponent.rayCastHit = false;
+
+		this->mPhysicsComponent.rigidBody->setTransform(this->mMovementTransform);
+		
+		this->mMovementTransform = reactphysics3d::Transform::identity();
+		this->accumulatedVelocity = reactphysics3d::Vector3::zero();
+
+		_Application->UpdateUniformViewMatrix();
+
+		this->isUpdate = false;
+	}
+
+	
 }
 
 void Camera::MoveLeft() 
 {
 	//TODO
 	isUpdate = true;
-	float dT = _Application->GetTime().DeltaTime();
-	reactphysics3d::Vector3 velocity = -reactphysics3d::Vector3(mLookDir.x, 0, mLookDir.z).cross({ mUpVector.x, mUpVector.y, mUpVector.z }) * temp_cameraSpeed * dT;
-
-	mPhysicsComponent.rigidBody->applyWorldForceAtLocalPosition(velocity, reactphysics3d::Vector3(mEye.x, 0, mEye.z) * .5f);
-}
-
-void Camera::Update(float interpFactor) 
-{
-	isUpdate = true;
-	if (this->mPhysicsComponent.bodyType != BodyType::STATIC)
-	{
-		Transform uninterpolatedTransform = this->mPhysicsComponent.rigidBody->getTransform();
-
-		this->mPhysicsComponent.currTransform = Transform::interpolateTransforms(this->mPhysicsComponent.prevTransform, uninterpolatedTransform, interpFactor);
-
-		this->mPhysicsComponent.prevTransform = this->mPhysicsComponent.currTransform;
-
-		reactphysics3d::Vector3 nTransform = this->mPhysicsComponent.currTransform.getPosition();
-
-		
-		this->mEye = glm::vec3(nTransform.x, nTransform.y, nTransform.z);
-	}
-
+	
+	reactphysics3d::Vector3 velocity = reactphysics3d::Vector3(mLookDir.x, 0, mLookDir.z).cross({ mUpVector.x, mUpVector.y, mUpVector.z });
+	
+	this->accumulatedVelocity += velocity;
 }
 
 void Camera::MoveRight() 
 {
 	//TODO
 	isUpdate = true;
-	float dT = _Application->GetTime().DeltaTime();
+	
 	//mEye += glm::cross(mLookDir, mUpVector) * temp_cameraSpeed * dT;
-	reactphysics3d::Vector3 velocity = reactphysics3d::Vector3(mLookDir.x, 0, mLookDir.z).cross({mUpVector.x, mUpVector.y, mUpVector.z}) * temp_cameraSpeed * dT;
+	reactphysics3d::Vector3 velocity = -reactphysics3d::Vector3(mLookDir.x, 0, mLookDir.z).cross({mUpVector.x, mUpVector.y, mUpVector.z});
 
-	mPhysicsComponent.rigidBody->applyWorldForceAtLocalPosition(velocity, reactphysics3d::Vector3(mEye.x, 0, mEye.z) * .5f);
+	this->accumulatedVelocity += velocity;
 }
 
 void Camera::MoveForward() 
 {
 	//
 	isUpdate = true;
-	float dT = _Application->GetTime().DeltaTime();
-	/*mEye += mLookDir * temp_cameraSpeed * dT;*/
-	reactphysics3d::Vector3 velocity = reactphysics3d::Vector3(mLookDir.x, 0, mLookDir.z) * temp_cameraSpeed * dT;
 	
-	mPhysicsComponent.rigidBody->applyWorldForceAtLocalPosition(velocity, reactphysics3d::Vector3(mEye.x, 0, mEye.z) * .5f);
+	/*mEye += mLookDir * temp_cameraSpeed * dT;*/
+	reactphysics3d::Vector3 velocity = -reactphysics3d::Vector3(mLookDir.x, mLookDir.y, mLookDir.z);
+	
+	this->accumulatedVelocity += velocity;
 }
 
 void Camera::MoveBack() 
 {
 	//TODO
 	isUpdate = true;
-	float dT = _Application->GetTime().DeltaTime();
 	//mEye -= mLookDir * temp_cameraSpeed * dT;
 
-	reactphysics3d::Vector3 velocity = -reactphysics3d::Vector3(mLookDir.x, 0, mLookDir.z) * temp_cameraSpeed * dT;
-	/*mEye += glm::vec3(0, 0, 1) * temp_cameraSpeed * dT;*/
-	/*mPhysicsComponent.rigidBody->applyLocalForceAtWorldPosition(reactphysics3d::Vector3(0, 0, 1),reactphysics3d::Vector3(-mEye.x, -mEye.y, -mEye.z));*/
-	/*mPhysicsComponent.rigidBody->setLinearVelocity(velocity);
-	mPhysicsComponent.rigidBody->setLinearDamping(velocity.length() * 2.f);*/
+	reactphysics3d::Vector3 velocity = reactphysics3d::Vector3(mLookDir.x, mLookDir.y, mLookDir.z);
 
-	mPhysicsComponent.rigidBody->applyWorldForceAtLocalPosition(velocity, reactphysics3d::Vector3(mEye.x, 0, mEye.z) * .5f);
+	this->accumulatedVelocity += velocity;
+
 }
 
 bool Camera::isUpdated() 
@@ -141,23 +235,12 @@ void Camera::Rotate(const int& mouseX, const int& mouseY)
 	
 	if (mPitch > 89)
 	{
-
 		mPitch = 89.f;
 	}
 	else if (mPitch < -89.f) 
 	{
 		mPitch = -89.f;
 	}
-
-
-	//std::cout << "angular displacement (Y): " << mBeta << std::endl;
-	//std::cout << "angular displacement (X): " << mAlpha << std::endl;
-	//std::cout << delta.x << std::endl;
-	//std::cout << delta.y << std::endl;
-
-	//TODO
-	/*mLookDir = glm::rotate(mLookDir, delta.y, glm::vec3(1, 0, 0));
-	mLookDir = glm::rotate(mLookDir, delta.x, mUpVector);*/
 
 	mLookDir.x = glm::cos(glm::radians(mYaw)) * glm::cos(glm::radians(mPitch));
 	mLookDir.y = glm::sin(glm::radians(mPitch));

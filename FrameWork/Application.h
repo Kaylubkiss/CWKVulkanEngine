@@ -1,12 +1,12 @@
 #pragma once
 #include "Common.h"
-#include "Time.h"
-#include "Physics.h"
+#include "Timer.h"
 #include "Camera.h"
 #include "Object.h"
 #include "Debug.h"
 #include "Controller.h"
-#include <SDL2/SDL.h>
+#include "BlinnPhong.h"
+
 
 struct uTransformObject
 {
@@ -14,7 +14,6 @@ struct uTransformObject
 	glm::mat4 view;
 	glm::mat4 proj;
 };
-
 
 class Application
 {
@@ -121,6 +120,8 @@ private:
 	VkImageView depthImageView;
 	VkFormat depthFormat;
 
+	LightInfoObject mLights;
+
 	const char* enabledLayerNames[1] = 
 	{
 		"VK_LAYER_KHRONOS_validation"
@@ -153,7 +154,6 @@ private:
 	void CreateSwapChain();
 	void CreateImageViews();
 	void CreateFrameBuffers();
-	//void CreateDescriptorPool();
 	void CreateDescriptorSetLayout();
 	void CreateDescriptorSets();
 	void WriteDescriptorSets();
@@ -185,8 +185,6 @@ private:
 	void InitPhysicsWorld();
 
 	bool CheckValidationSupport();
-
-	bool UpdateInput();
 
 	void DrawGui();
 

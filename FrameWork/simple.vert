@@ -9,20 +9,9 @@ layout(set = 0, binding = 0) uniform uTransformObject {
 } uTransform;
 
 
-//layout(set = 0, binding = 1) uniform light
-//{
-//	
-//
-//} light;
-
 layout( location = 0 ) in vec3 aPos;
 layout( location = 1 ) in vec3 aNorm;
 layout( location = 2 ) in vec2 aUv;
-
-layout( location = 4 ) uniform bool lightOn;
-layout(	location = 5 ) uniform int numLights;
-layout( location = 6 ) uniform vec3 lightPosVF[10];
-
 
 
 layout (push_constant) uniform Matrix

@@ -11,14 +11,19 @@
 #include <vector>
 #include <string>
 
+#define IMGUI_DEFINE_MATH_OPERATORS
 #include "imgui/imgui.h"
 #include "imgui/backends/imgui_impl_sdl2.h"
 #include "imgui/backends/imgui_impl_vulkan.h"
+
+#include "Physics.h"
 
 
 
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/hash.hpp>
+
+#include <SDL2/SDL.h>
 
 
 class Application; //forward declare class.
@@ -58,6 +63,8 @@ struct Buffer
 
 	void* mappedMemory = NULL;
 
+	bool isAllocated = false;
+
 	void operator=(const Buffer& rhs)
 	{
 		this->handle = rhs.handle;
@@ -67,7 +74,6 @@ struct Buffer
 	}
 
 	/*Buffer(const Buffer& rhs);*/
-
 	//assume that build info is shared among all buffers.
 	Buffer(size_t size, VkBufferUsageFlags usage, VkMemoryPropertyFlags flags, void* data);
 	Buffer() : handle(VK_NULL_HANDLE), memory(VK_NULL_HANDLE), size(0), mappedMemory(NULL) {};
@@ -77,9 +83,6 @@ struct Buffer
 	void CopyData(void* data);*/
 	/*~Buffer();*/ //this gets called in std::vector and causes headache. we don't want that.
 };
-
-
-
 
 
 struct Texture 
