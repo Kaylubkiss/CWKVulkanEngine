@@ -2,3 +2,5 @@
 x64*
 KTX-Software-main*
 build/
+VulkanSDK/
+VulkanInstaller.exe
