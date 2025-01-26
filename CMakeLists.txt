@@ -4,8 +4,24 @@ set(PROJECT_NAME "CKVulkan")
 
 project("${PROJECT_NAME}" LANGUAGES CXX C)
 
-file(GLOB_RECURSE CPP_FILES "${CMAKE_CURRENT_SOURCE_DIR}/src" *.cpp)
-add_executable("${PROJECT_NAME}" ${CPP_FILES})
+add_executable("${PROJECT_NAME}"  src/Application.cpp 
+                   src/BlinnPhong.cpp 
+                   src/Camera.cpp 
+                   src/Common.cpp
+                   src/Controller.cpp
+                   src/Debug.cpp
+                   src/Main.cpp
+                   src/Object.cpp
+                   src/Physics.cpp
+                   src/Timer.cpp
+                   src/External/libraries/imgui/imgui_demo.cpp
+                   src/External/libraries/imgui/imgui_draw.cpp
+                   src/External/libraries/imgui/imgui_tables.cpp
+                   src/External/libraries/imgui/imgui_widgets.cpp
+                   src/External/libraries/imgui/imgui.cpp
+                   src/External/libraries/imgui/backends/imgui_impl_sdl2.cpp
+                   src/External/libraries/imgui/backends/imgui_impl_vulkan.cpp
+                   src/External/libraries/imgui/backends/imgui_impl_win32.cpp)
 
 target_precompile_headers("${PROJECT_NAME}" PUBLIC "src/Include/pch.h")
 
@@ -40,5 +56,3 @@ target_link_libraries("${PROJECT_NAME}" SDL2.lib
 
 
 target_link_directories("${PROJECT_NAME}" PRIVATE $ENV{VULKAN_SDK}/Lib src/External/libraries/ReactPhysics3D/lib)
-
-

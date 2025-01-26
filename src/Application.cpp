@@ -14,7 +14,7 @@
 
 //static unsigned long long width = 640;
 //static unsigned long long height = 480;
-
+static const std::string shaderPath{ "Shaders/" };
 
 const static glm::vec4 X_BASIS = { 1,0,0,0 };
 const static glm::vec4 Y_BASIS = { 0,1,0,0 };
@@ -1761,8 +1761,11 @@ bool Application::init()
 	//VkPipelineShaderStageCreateInfo shaderVertStageInfo = CreateShaderModule("vert.spv", this->shaderVertModule, VK_SHADER_STAGE_VERTEX_BIT);
 	//VkPipelineShaderStageCreateInfo shaderFragModuleInfo = CreateShaderModule("frag.spv", this->shaderFragModule, VK_SHADER_STAGE_FRAGMENT_BIT);
 
-	VkPipelineShaderStageCreateInfo shaderVertStageInfo = CreateShaderModule("blinnvert.spv", this->shaderVertModule, VK_SHADER_STAGE_VERTEX_BIT);
-	VkPipelineShaderStageCreateInfo shaderFragModuleInfo = CreateShaderModule("blinnfrag.spv", this->shaderFragModule, VK_SHADER_STAGE_FRAGMENT_BIT);
+	std::string vertexShaderPath = shaderPath + "blinnvert.spv";
+	VkPipelineShaderStageCreateInfo shaderVertStageInfo = CreateShaderModule(vertexShaderPath.data(), this->shaderVertModule, VK_SHADER_STAGE_VERTEX_BIT);
+
+	std::string fragShaderPath = shaderPath + "blinnfrag.spv";
+	VkPipelineShaderStageCreateInfo shaderFragModuleInfo = CreateShaderModule(fragShaderPath.data(), this->shaderFragModule, VK_SHADER_STAGE_FRAGMENT_BIT);
 
 	VkPipelineShaderStageCreateInfo shaderStages[] = { shaderVertStageInfo, shaderFragModuleInfo };
 
