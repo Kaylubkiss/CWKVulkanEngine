@@ -4,7 +4,7 @@ set(PROJECT_NAME "CKVulkan")
 
 project("${PROJECT_NAME}" LANGUAGES CXX C)
 
-add_executable("${PROJECT_NAME}"  src/Application.cpp 
+set(SOURCE_FILES src/Application.cpp 
                    src/BlinnPhong.cpp 
                    src/Camera.cpp 
                    src/Common.cpp
@@ -22,6 +22,37 @@ add_executable("${PROJECT_NAME}"  src/Application.cpp
                    src/External/libraries/imgui/backends/imgui_impl_sdl2.cpp
                    src/External/libraries/imgui/backends/imgui_impl_vulkan.cpp
                    src/External/libraries/imgui/backends/imgui_impl_win32.cpp)
+									 
+									 
+set(SRC_INC src/Include)
+file(GLOB HEADER_FILES ${SRC_INC}/Application.h
+												${SRC_INC}/BlinnPhong.h
+												${SRC_INC}/Camera.h
+												${SRC_INC}/Common.h
+												${SRC_INC}/Controller.h
+												${SRC_INC}/Debug.h
+												${SRC_INC}/Object.h
+												${SRC_INC}/Physics.h
+												${SRC_INC}/Timer.h)												
+																				
+add_executable("${PROJECT_NAME}"  src/Application.cpp 
+                   src/BlinnPhong.cpp 
+                   src/Camera.cpp 
+                   src/Common.cpp
+                   src/Controller.cpp
+                   src/Debug.cpp
+                   src/Main.cpp
+                   src/Object.cpp
+                   src/Physics.cpp
+                   src/Timer.cpp
+                   src/External/libraries/imgui/imgui_demo.cpp
+                   src/External/libraries/imgui/imgui_draw.cpp
+                   src/External/libraries/imgui/imgui_tables.cpp
+                   src/External/libraries/imgui/imgui_widgets.cpp
+                   src/External/libraries/imgui/imgui.cpp
+                   src/External/libraries/imgui/backends/imgui_impl_sdl2.cpp
+                   src/External/libraries/imgui/backends/imgui_impl_vulkan.cpp
+                   src/External/libraries/imgui/backends/imgui_impl_win32.cpp ${HEADER_FILES})
 
 target_precompile_headers("${PROJECT_NAME}" PUBLIC "src/Include/pch.h")
 
