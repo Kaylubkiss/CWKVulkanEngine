@@ -33,9 +33,12 @@ file(GLOB HEADER_FILES ${SRC_INC}/Application.h
 												${SRC_INC}/Debug.h
 												${SRC_INC}/Object.h
 												${SRC_INC}/Physics.h
-												${SRC_INC}/Timer.h)												
-																				
-add_executable("${PROJECT_NAME}"  src/Application.cpp 
+												${SRC_INC}/Timer.h
+												${SRC_INC}/ThreadPool.h
+												${SRC_INC}/ObjectManager.h
+												${SRC_INC}/AppWindow.h)												
+												
+file(GLOB SRC_FILES src/Application.cpp 
                    src/BlinnPhong.cpp 
                    src/Camera.cpp 
                    src/Common.cpp
@@ -45,6 +48,11 @@ add_executable("${PROJECT_NAME}"  src/Application.cpp
                    src/Object.cpp
                    src/Physics.cpp
                    src/Timer.cpp
+									 src/ThreadPool.cpp
+									 src/ObjectManager.cpp)
+									 
+									 
+add_executable("${PROJECT_NAME}"  ${SRC_FILES}
                    src/External/libraries/imgui/imgui_demo.cpp
                    src/External/libraries/imgui/imgui_draw.cpp
                    src/External/libraries/imgui/imgui_tables.cpp

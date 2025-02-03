@@ -7,6 +7,9 @@ void Controller::Update()
 {
 	assert(_Application != NULL);
 
+
+	const VkViewport& window_info = _Window;
+
 	SDL_Event e;
 	while (SDL_PollEvent(&e))
 	{
@@ -14,10 +17,9 @@ void Controller::Update()
 
 		ImGui_ImplSDL2_ProcessEvent(&e);
 
-		Sint32 deltaX = e.motion.xrel;
-		Sint32 deltaY = e.motion.yrel;
+		
 
-		static glm::vec2 mousePos(_Application->width / 2, _Application->height / 2);
+		static glm::vec2 mousePos(window_info.width / 2, window_info.height / 2);
 
 
 		if (e.type == SDL_QUIT)
@@ -45,14 +47,13 @@ void Controller::Update()
 					break;
 				case (SDLK_t):
 					_Application->ToggleObjectVisibility(e.key.keysym.sym, keystates[SDL_SCANCODE_LSHIFT]);
-					_Application->ToggleObjectVisibility(e.key.keysym.sym, keystates[SDL_SCANCODE_LSHIFT]);
 					break;
 				case (SDLK_ESCAPE):
 					if (SDL_GetGrabbedWindow())
 					{
 						SDL_SetWindowGrab(_Application->GetWindow(), SDL_FALSE);
-						SDL_SetRelativeMouseMode(SDL_FALSE);
 						SDL_ShowCursor(1);
+						break;
 					}
 					else
 					{
@@ -60,6 +61,7 @@ void Controller::Update()
 						_Application->RequestExit();
 						return;
 					}
+					
 			}
 		}
 		
@@ -88,57 +90,42 @@ void Controller::Update()
 		{
 			if (_Application->WindowisFocused())
 			{
-				if (!SDL_GetGrabbedWindow())
+				if (!_Application->guiWindowIsFocused)
 				{
-					//relativemousemode might be better
-					SDL_SetWindowGrab(_Application->GetWindow(), SDL_TRUE);
 					/*SDL_SetRelativeMouseMode(SDL_TRUE);*/
-
-					if (!_Application->guiWindowIsFocused)
-					{
-						SDL_WarpMouseInWindow(_Application->GetWindow(), _Application->width / 2, _Application->height / 2);
-						/*SDL_ShowCursor(0);*/
-					}
 				}
-				else
+
+				glm::vec2 selectMouse(e.motion.x, e.motion.y);
+
+			/*	std::cout << "vp: " << _Application->GetViewport().width << " " << _Application->GetViewport().height << '\n';
+
+				std::cout << "mouse: " << e.motion.x << " " << e.motion.y << " " << '\n';*/
+
+				_Application->SelectWorldObjects(selectMouse.x, selectMouse.y);
+			}
+		}
+
+		Sint32 deltaX = e.motion.xrel;
+		Sint32 deltaY = e.motion.yrel;
+
+		if (!_Application->guiWindowIsFocused) 
+		{
+			if ((deltaX || deltaY))
+			{
+				if (e.type == SDL_MOUSEMOTION && SDL_GetRelativeMouseMode() == SDL_TRUE)
 				{
-					if (!_Application->guiWindowIsFocused)
-					{
-						SDL_WarpMouseInWindow(_Application->GetWindow(), _Application->width / 2, _Application->height / 2);
-						/*SDL_ShowCursor(0);*/
-					}
-					else
-					{
-						if (SDL_ShowCursor(SDL_QUERY) != 1)
-						{
-							SDL_ShowCursor(1);
-						}
-					}
+					//this should be the center.
+					_Application->GetCamera().Rotate(mousePos.x, mousePos.y);
 
-					/*int mouseX = e.button.x;
-					int mouseY = e.button.y;*/
-					
-
-					glm::vec2 selectMouse(_Application->width / 2, _Application->height / 2);
-
-					_Application->SelectWorldObjects(selectMouse.x, selectMouse.y);
+					mousePos.x += deltaX;
+					mousePos.y += deltaY;
 
 				}
 			}
 		}
-
-		if ((deltaX || deltaY) && deltaX != std::numeric_limits<int>::max() && deltaY != std::numeric_limits<int>::max())
+		else 
 		{
-			if (e.type == SDL_MOUSEMOTION && SDL_GetWindowGrab(_Application->GetWindow()) == SDL_TRUE/*&& e.button.button == SDL_BUTTON(SDL_BUTTON_RIGHT)*/)
-			{
-				mousePos.x += deltaX;
-				mousePos.y += deltaY;
-
-
-				//this should be the center.
-				_Application->GetCamera().Rotate(mousePos.x, mousePos.y);
-
-			}
+			SDL_ShowCursor(1);
 		}
 	}
 

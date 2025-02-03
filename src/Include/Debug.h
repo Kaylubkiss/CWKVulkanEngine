@@ -19,6 +19,7 @@ private:
 public:
 	void SetArrayOffset(uint32_t offsetIntoLinesArray);
 	void ToggleVisibility(SDL_Keycode symbol, Uint8 lshift);
+	void ToggleVisibility(bool showWireframe);
 	bool onlyVisible();
 	bool isVisible();
 	void Draw(VkCommandBuffer cmdBuffer);

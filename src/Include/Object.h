@@ -13,9 +13,6 @@ enum ColliderType
 };
 
 
-
-
-
 struct Mesh
 {
 	int numVertices = 0;
@@ -45,7 +42,11 @@ struct Object
 	glm::vec3 mMaxLocalPoints = glm::vec3(0.f);
 	glm::vec3 mMinLocalPoints = glm::vec3(0.f);
 
-	Object(const char* fileName, const char* textureName = nullptr, VkPipelineLayout* pipelineLayout = nullptr);
+	Object(const char* fileName, bool willDebugDraw = false, const glm::mat4& modelTransform = glm::mat4(1.f), const char* textureName = nullptr, VkPipelineLayout* pipelineLayout = nullptr);
+
+	void UpdateTexture(const char* textureName = nullptr);
+	void UpdatePipelineLayout(VkPipelineLayout* pipelineLayout = nullptr);
+
 	Object() : mCenter(0.f), mModelTransform(1.f), vertexBuffer(), indexBuffer(), mPhysicsComponent() {};
 	void Update(const float& interpFactor);
 	void Draw(VkCommandBuffer cmdBuffer);
@@ -55,7 +56,10 @@ struct Object
 	void SetLinesArrayOffset(uint32_t index);
 	void ComputeVertexNormals();
 	/*void operator=(const Object& rhs) = default;*/
-	~Object() = default;
+	~Object() 
+	{
+		Object::DestroyResources();
+	}
 };
 
 void LoadMeshOBJ(const std::string& path, Object& obj);

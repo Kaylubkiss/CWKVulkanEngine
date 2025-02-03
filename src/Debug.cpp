@@ -31,7 +31,6 @@ void DebugDrawObject::Update()
 
 	if (this->isDebugEnabled) 
 	{
-
 		reactphysics3d::DebugRenderer& debugRenderer = _Application->PhysicsSystem().GetPhysicsWorld()->getDebugRenderer();
 
 		uint32_t sizeOfLinesArray = debugRenderer.getNbLines();
@@ -109,6 +108,20 @@ void DebugDrawObject::ToggleVisibility(SDL_Keycode symbol, Uint8 lshift)
 	}
 
 	
+}
+
+void DebugDrawObject::ToggleVisibility(bool showWireframe) 
+{
+	if (showWireframe) 
+	{
+		isOnlyDrawing ^= true;
+	}
+	else 
+	{
+		isDrawing ^= isOnlyDrawing;
+		isDrawing ^= true;
+	}
+
 }
 
 bool DebugDrawObject::onlyVisible() 

@@ -5,11 +5,6 @@
 
 
 
-struct AABB 
-{
-	glm::vec3 mMin = glm::vec3(0.f);
-	glm::vec3 mMax = glm::vec3(0.f);
-};
 
 struct Capsule 
 {
@@ -71,7 +66,7 @@ class Camera
 	bool isGrounded = false;
 
 
-	Capsule mCapsule = { .5f, 5.f };
+	Capsule mCapsule;
 	PhysicsComponent mPhysicsComponent; 
 	CamRayCastCallback mCamRayCast;
 	reactphysics3d::Transform mMovementTransform;

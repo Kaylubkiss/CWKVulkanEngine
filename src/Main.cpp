@@ -4,7 +4,7 @@
 
 static void Locatecwd()
 {
-    auto cwd = std::filesystem::current_path();
+    std::filesystem::path cwd = std::filesystem::current_path();
     while (cwd.has_parent_path() && cwd.parent_path() != cwd)
     {
         if (std::filesystem::exists(cwd.string() + "/src/"))

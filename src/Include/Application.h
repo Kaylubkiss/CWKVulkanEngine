@@ -2,10 +2,11 @@
 #include "Common.h"
 #include "Timer.h"
 #include "Camera.h"
-#include "Object.h"
 #include "Debug.h"
 #include "Controller.h"
 #include "BlinnPhong.h"
+#include "ObjectManager.h"
+#include "ThreadPool.h"
 
 
 struct uTransformObject
@@ -18,8 +19,8 @@ struct uTransformObject
 class Application
 {
 public:
-	unsigned long long width = 640;
-	unsigned long long height = 480;
+	/*unsigned long long width = 640;
+	unsigned long long height = 480;*/
 	bool guiWindowIsFocused = false;
 
 	const VkPhysicalDevice& PhysicalDevice();
@@ -29,6 +30,7 @@ public:
 	const VkPipeline& GetTrianglePipeline();
 	const VkPipeline& GetLinePipeline();
 	int GetTexture(const char* fileName);
+	const VkViewport& GetViewport() const;
 	VkPipelineLayout* GetPipelineLayout();
 	const std::vector<Texture>& Textures();
 	const Time& GetTime();
@@ -45,30 +47,23 @@ public:
 	~Application();
 private:
 
-	uTransformObject uTransform =
-	{
-		glm::mat4(1.), //model
-		//glm::lookAt(glm::vec3(0.f, 0.f , 10.f), glm::vec3(0.f, 0.f, 0.f), glm::vec3(0.f,1.f,0.f)), //view
-		glm::mat4(1.f),
-		glm::perspective(glm::radians(45.f), (float)width / height,  0.1f, 1000.f) //proj
-	};
+	uTransformObject uTransform = {};
 
 	Time mTime;
 
-	Object debugCube;
+	/*Object debugCube;
 	Object debugCube2;
-	Object debugCube3;
+	Object debugCube3;*/
+	ObjectManager mObjectManager;
 	Camera mCamera;
 
-	Physics mPhysics;
-
+	Physics mPhysics = Physics();
+	  
 	Controller mController;
 
 	bool exitApplication = false;
 
 	VkDebugUtilsMessengerEXT debugMessenger;
-
-	ImGui_ImplVulkanH_Window guiWindowData;
 
 	//variabless
 	SDL_Window* window = nullptr;

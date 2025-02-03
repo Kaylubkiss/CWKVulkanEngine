@@ -31,7 +31,6 @@ Application* ApplicationManager::GetApplication()
 
 Buffer::Buffer(size_t size, VkBufferUsageFlags usage, VkMemoryPropertyFlags flags, void* data)
 {
-
 	assert(_Application != NULL);
 
 	VkResult result;

@@ -2,10 +2,6 @@
 
 Physics::Physics() 
 {
-	/*PhysicsWorld::WorldSettings settings;
-
-	settings.restitutionVelocityThreshold = 10.f;*/
-
 	this->mPhysicsWorld = this->mPhysicsCommon.createPhysicsWorld();
 }
 

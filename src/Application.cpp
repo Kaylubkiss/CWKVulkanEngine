@@ -30,7 +30,10 @@ static void check_vk_result(VkResult err)
 {
 	if (err == 0)
 		return;
-	fprintf(stderr, "[vulkan] Error: VkResult = %d\n", err);
+	//fun fact: fprintf will return the length of the string it outputted..
+	//https://stackoverflow.com/questions/29931016/return-value-of-fprintf
+	int result = fprintf(stderr, "[vulkan] Error: VkResult = %d\n", err);
+	
 	if (err < 0)
 		abort();
 }
@@ -43,7 +46,8 @@ void* pUserData)
 {
 	if (messageSeverity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT) 
 	{
-		std::cerr << pCallbackData->pMessage << std::endl << std::endl;
+		//suggested to put '\n' here because std::endl is slower: it writes newline and flushes stream.
+		std::cerr << pCallbackData->pMessage << '\n' << '\n';
 	}
 
 	return VK_FALSE;
@@ -77,8 +81,8 @@ void Application::run()
 
 void Application::ToggleObjectVisibility(SDL_Keycode keysym, uint8_t lshift) 
 {
-	debugCube3.debugDrawObject.ToggleVisibility(keysym, lshift);
-	debugCube2.debugDrawObject.ToggleVisibility(keysym, lshift);
+	/*debugCube3.debugDrawObject.ToggleVisibility(keysym, lshift);
+	debugCube2.debugDrawObject.ToggleVisibility(keysym, lshift);*/
 
 }
 
@@ -122,7 +126,7 @@ void Application::CreateInstance()
 	//we won't be doing any extension for now --> look into it at a later time.
 	//need to get sdl extensionss
 	unsigned int extensionCount = 0;
-	const char** extensionNames;
+	const char** extensionNames = nullptr;
 
 	VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo = {};
 	FillDebugMessenger(debugCreateInfo);
@@ -132,7 +136,7 @@ void Application::CreateInstance()
 		throw std::runtime_error("could not grab extensions from SDL!");
 	}
 
-	extensionNames = new const char* [extensionCount + 1];
+	extensionNames = new const char*[extensionCount + 1];
 
 	if (SDL_Vulkan_GetInstanceExtensions(window, &extensionCount, (extensionNames)) != SDL_TRUE)
 	{
@@ -165,8 +169,8 @@ void Application::CreateInstance()
 	//also, setting the pAllocator to null will make vulkan do its
 	//own memory management, whereas we can create our own allocator
 	//for vulkan to use
-	VK_CHECK_RESULT(vkCreateInstance(&createInfo, nullptr, &this->m_instance));
-
+	VK_CHECK_RESULT(vkCreateInstance(&createInfo, nullptr, &this->m_instance))
+	
 	delete [] extensionNames;
 
 
@@ -224,7 +228,7 @@ void Application::EnumeratePhysicalDevices()
 	uint32_t max_devices = 0;
 
 	//vulkan will ignor whatever was set in physicalDeviceCount and overwrite max_devices 
-	VK_CHECK_RESULT(vkEnumeratePhysicalDevices(this->m_instance, &max_devices, nullptr));
+	VK_CHECK_RESULT(vkEnumeratePhysicalDevices(this->m_instance, &max_devices, nullptr))
 
 	if (max_devices <= 0)
 	{
@@ -240,7 +244,7 @@ void Application::EnumeratePhysicalDevices()
 		throw std::runtime_error("could not allocate array of physical devices\n");
 	}
 
-	VK_CHECK_RESULT(vkEnumeratePhysicalDevices(this->m_instance, &max_devices, this->m_physicalDevices));
+	VK_CHECK_RESULT(vkEnumeratePhysicalDevices(this->m_instance, &max_devices, this->m_physicalDevices))
 
 	for (size_t i = 0; i < max_devices; ++i)
 	{
@@ -271,7 +275,7 @@ void Application::CreateWindow()
 		printf("SDL could not initialize! SDL_Error: %s\n", SDL_GetError());
 	}
 
-	this->window = SDL_CreateWindow("Caleb's Vulkan Engine", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, static_cast<int>(width), static_cast<int>(height), SDL_WINDOW_VULKAN | SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
+	this->window = SDL_CreateWindow("Caleb's Vulkan Engine", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, static_cast<int>(this->m_viewPort.width), static_cast<int>(this->m_viewPort.height), SDL_WINDOW_VULKAN | SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
 
 	if (this->window == NULL)
 	{
@@ -310,10 +314,10 @@ void Application::FindQueueFamilies()
 	//no use for memory properties right now.
 	VkPhysicalDeviceMemoryProperties physicalDeviceMemoryProperties;
 
-	vkGetPhysicalDeviceMemoryProperties(this->m_physicalDevices[0], &physicalDeviceMemoryProperties);
+	vkGetPhysicalDeviceMemoryProperties(this->m_physicalDevices[device_index], &physicalDeviceMemoryProperties);
 
 	//similar maneuver to vkEnumeratePhysicalDevices
-	vkGetPhysicalDeviceQueueFamilyProperties(this->m_physicalDevices[0], &queueFamilyPropertyCount, nullptr);
+	vkGetPhysicalDeviceQueueFamilyProperties(this->m_physicalDevices[device_index], &queueFamilyPropertyCount, nullptr);
 
 	if (queueFamilyPropertyCount == 0)
 	{
@@ -325,7 +329,6 @@ void Application::FindQueueFamilies()
 	if (queueFamilies == nullptr) 
 	{
 		throw std::runtime_error("couldn't allocate queueFamilies array\n");
-		return;
 	}
 
 	vkGetPhysicalDeviceQueueFamilyProperties(this->m_physicalDevices[device_index], &queueFamilyPropertyCount, queueFamilies);
@@ -654,11 +657,14 @@ VkPipelineShaderStageCreateInfo Application::CreateShaderModule(const char* name
 	}
 
 	char* buffer = nullptr;
+	
 
+	//reads the offset from the beginning of the file
 	size_t fileSize = (size_t)file.tellg();
 
 	buffer = new char[fileSize];
 
+	//set the stream to the beginning of the file after being positioned at the end.
 	file.seekg(0);
 
 	file.read(buffer, fileSize);
@@ -712,8 +718,8 @@ void Application::CreateFrameBuffers()
 			this->m_renderPass,
 			2,// attachmentCount
 			attachments, //attachments
-			(uint32_t)width, //width
-			(uint32_t)height, //height
+			(uint32_t)this->m_viewPort.width, //width
+			(uint32_t)this->m_viewPort.height, //height
 			1 //1 layer
 		};
 
@@ -947,7 +953,7 @@ void Application::CreateDepthResources()
 		VK_IMAGE_TILING_OPTIMAL, VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
 
 	//create depth image
-	CreateImage((uint32_t)width, (uint32_t)height, 1, depthFormat, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
+	CreateImage((uint32_t)this->m_viewPort.width, (uint32_t)this->m_viewPort.height, 1, this->depthFormat, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
 	VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, this->depthImage,
 	this->depthImageMemory, 1);
 	//create depth image view 
@@ -1006,11 +1012,6 @@ void Application::CreateCubeMap()
 
 	/*ktxResult result;
 	ktxTexture* ktxTexture;*/
-
-
-
-
-
 }
 
 
@@ -1227,7 +1228,7 @@ void Application::CreateDescriptorSets()
 	poolInfo.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
 	poolInfo.poolSizeCount = (uint32_t)2;
 	poolInfo.pPoolSizes = poolSize;
-	poolInfo.maxSets = mTextures.size() * 2; //max numbers of frames in flight.
+	poolInfo.maxSets = mTextures.size() > 0? mTextures.size() * 2 : 1; //max numbers of frames in flight.
 
 	VK_CHECK_RESULT(vkCreateDescriptorPool(this->m_logicalDevice, &poolInfo, nullptr, &this->descriptorPool));
 
@@ -1586,9 +1587,12 @@ void Application::RecreateSwapChain()
 {
 	VK_CHECK_RESULT(vkDeviceWaitIdle(this->m_logicalDevice));
 
-	VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(this->m_physicalDevices[device_index], m_windowSurface, &this->deviceCapabilities));
+	VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(this->m_physicalDevices[device_index], this->m_windowSurface, &this->deviceCapabilities));
 
-	for (unsigned i = 0; i < imageCount; ++i)
+	this->m_viewPort.width = deviceCapabilities.currentExtent.width;
+	this->m_viewPort.height = deviceCapabilities.currentExtent.height;
+
+	for (unsigned i = 0; i < this->imageCount; ++i)
 	{
 		vkDestroyImageView(this->m_logicalDevice, this->imageViews[i], nullptr);
 		vkDestroyFramebuffer(this->m_logicalDevice, this->frameBuffer[i], nullptr);
@@ -1598,12 +1602,8 @@ void Application::RecreateSwapChain()
 	vkDestroyImageView(this->m_logicalDevice, this->depthImageView, nullptr);
 	vkDestroyImage(this->m_logicalDevice, this->depthImage, nullptr);
 	
-
-	width = deviceCapabilities.currentExtent.width;
-	height = deviceCapabilities.currentExtent.height;
-
-	delete[] frameBuffer;
-	delete[] swapChainImages;
+	delete[] this->frameBuffer;
+	delete[] this->swapChainImages;
 
 	vkDestroySwapchainKHR(this->m_logicalDevice, this->swapChain, nullptr);
 
@@ -1623,12 +1623,12 @@ Physics& Application::PhysicsSystem()
 }
 void Application::ResizeViewport()
 {
-	int width, height;
-	SDL_GetWindowSizeInPixels(this->window, &width, &height);
-	this->m_viewPort.width = (float)width;
-	this->m_viewPort.height = (float)height;
-	this->m_scissor.extent.width = width;
-	this->m_scissor.extent.height = height;
+	int nWidth, nHeight;
+	SDL_GetWindowSizeInPixels(this->window, &nWidth, &nWidth);
+	this->m_viewPort.width = (float)nWidth;
+	this->m_viewPort.height = (float)nWidth;
+	this->m_scissor.extent.width = nWidth;
+	this->m_scissor.extent.height = nWidth;
 	uTransform.proj = glm::perspective(glm::radians(45.f), this->m_viewPort.width / this->m_viewPort.height, 0.1f, 1000.f); //proj
 	uTransform.proj[1][1] *= -1.f;
 	memcpy(uniformBuffers[0].mappedMemory, (void*)&uTransform, (size_t)(sizeof(uTransformObject)));
@@ -1637,25 +1637,25 @@ void Application::ResizeViewport()
 
 void Application::InitPhysicsWorld() 
 {
-	debugCube2.InitPhysics(ColliderType::CUBE);
+	this->mObjectManager["cube"].InitPhysics(ColliderType::CUBE);
 	
-	reactphysics3d::Material& db2Material = this->debugCube2.mPhysicsComponent.collider->getMaterial();
+	reactphysics3d::Material& db2Material = this->mObjectManager["cube"].mPhysicsComponent.collider->getMaterial();
 	db2Material.setBounciness(0.f);
 	db2Material.setMassDensity(10.f);
-	debugCube2.mPhysicsComponent.rigidBody->updateMassPropertiesFromColliders();
+	this->mObjectManager["cube"].mPhysicsComponent.rigidBody->updateMassPropertiesFromColliders();
 	
-	debugCube3.InitPhysics(ColliderType::CUBE, BodyType::STATIC);
+	this->mObjectManager["base"].InitPhysics(ColliderType::CUBE, BodyType::STATIC);
 	
 	mCamera.InitPhysics(BodyType::STATIC);
 
 
-	this->debugCube3.SetLinesArrayOffset(12); 
+	this->mObjectManager["cube"].SetLinesArrayOffset(12);
 
 	//this->mPhysicsWorld->setIsDebugRenderingEnabled(true);
 	this->mPhysics.GetPhysicsWorld()->setIsDebugRenderingEnabled(true);
 
-	debugCube3.mPhysicsComponent.rigidBody->setIsDebugEnabled(true);
-	debugCube2.mPhysicsComponent.rigidBody->setIsDebugEnabled(true);
+	this->mObjectManager["cube"].mPhysicsComponent.rigidBody->setIsDebugEnabled(true);
+	this->mObjectManager["cube"].mPhysicsComponent.rigidBody->setIsDebugEnabled(true);
 	
 	//the order they were added to the physics world
 	reactphysics3d::DebugRenderer& debugRenderer = this->mPhysics.GetPhysicsWorld()->getDebugRenderer();
@@ -1711,23 +1711,26 @@ int Application::GetTexture(const char* fileName)
 	return this->mTextures.size() - 1;
 }
 
-static glm::vec3 globalCenter(0.f);
-
 bool Application::init() 
 {
-	mCamera = Camera({ 0.f, 0.f, 10.f }, { 0.f, 0.f, -1.f } , { 0,1,0 });
+	this->mCamera = Camera({ 0.f, 0.f, 10.f }, { 0.f, 0.f, -1.f } , { 0,1,0 });
 
-	//uniform stuffs;
-	uTransform.proj[1][1] *= -1.f;
-	uTransform.view = mCamera.LookAt();
-
-	this->m_viewPort.width = (float)width;
-	this->m_viewPort.height = (float)height;
+	this->m_viewPort.width = 640;
+	this->m_viewPort.height = 480;
 	this->m_viewPort.minDepth = 0;
 	this->m_viewPort.maxDepth = 1;
 
-	this->m_scissor.extent.width = (uint32_t)width;
-	this->m_scissor.extent.height = (uint32_t)height;
+	this->m_scissor.extent.width = (uint32_t)this->m_viewPort.width;
+	this->m_scissor.extent.height = (uint32_t)this->m_viewPort.height;
+
+	this->uTransform = {
+		glm::mat4(1.f), //model
+		this->mCamera.LookAt(), //view
+		glm::perspective(glm::radians(45.f), (float)this->m_viewPort.width / this->m_viewPort.height, 0.1f, 1000.f) //proj
+	};
+	this->uTransform.proj[1][1] *= -1.f;
+
+	
 	
 	CreateWindow();
 
@@ -1747,6 +1750,34 @@ bool Application::init()
 	FindQueueFamilies();
 
 	CreateLogicalDevice();
+
+
+	ThreadPool threadWorkers(1);
+
+	glm::mat4 modelTransform = glm::mat4(5.f);
+	modelTransform[3] = glm::vec4(1.f, 0, -20.f, 1);
+
+
+	std::function<void()> func = [this, modelTransform] { mObjectManager.LoadObject("freddy", (PathToObjects() + "freddy.obj").c_str(), false, modelTransform); };
+
+	threadWorkers.EnqueueTask(func);
+
+	//object 2
+	modelTransform = glm::mat4(1.f);
+	modelTransform[3] = glm::vec4(0, 20, -5.f, 1);
+
+	func = [this, modelTransform] {mObjectManager.LoadObject("cube", (PathToObjects() + "cube.obj").c_str(), true, modelTransform); };
+
+	threadWorkers.EnqueueTask(func);
+
+	//object 3
+	const float dbScale = 30.f;
+	modelTransform = glm::mat4(dbScale);
+	modelTransform[3] = { 0.f, -5.f, 0.f, 1 };
+
+	func = [this, modelTransform] {mObjectManager.LoadObject("base", (PathToObjects() + "base.obj").c_str(), true, modelTransform); };
+
+	threadWorkers.EnqueueTask(func);
 
 	vkGetDeviceQueue(this->m_logicalDevice, graphicsFamily, 0, &graphicsQueue);
 	vkGetDeviceQueue(this->m_logicalDevice, presentFamily, 0, &presentQueue);
@@ -1782,25 +1813,11 @@ bool Application::init()
 
 	CreatePipelineLayout();
 
-	this->debugCube = Object((PathToObjects() + "freddy.obj").c_str(), "texture.jpg", &this->pipelineLayouts.back());
-	debugCube.mModelTransform = glm::mat4(5.f);
-	debugCube.mModelTransform[3] = glm::vec4(1.f, 0, -20.f, 1);
 
-
-	this->debugCube2 = Object((PathToObjects() + "cube.obj").c_str(), "puppy1.bmp", &this->pipelineLayouts.back());
-	this->debugCube2.mModelTransform[3] = glm::vec4(-10.f, 20, -5.f, 1);
-	this->debugCube2.willDebugDraw(true);
-	
-	
-
-	this->debugCube3 = Object((PathToObjects() + "base.obj").c_str(), "puppy1.bmp", &this->pipelineLayouts.back());
-	const float dbScale = 30.f;
-	this->debugCube3.mModelTransform = glm::mat4(dbScale);
-	this->debugCube3.mModelTransform[3] = { 0.f, -5.f, 0.f, 1 };
-	this->debugCube3.willDebugDraw(true);
-
-	CreateDescriptorSets();
-	WriteDescriptorSets();
+	//only thing this is dependent on is the logical device...
+	/*CreateDescriptorSets();
+	WriteDescriptorSets();*/
+	////
 	
 	CreateRenderPass();
 	CreateFrameBuffers();
@@ -1813,15 +1830,39 @@ bool Application::init()
 
 	CreateFences();
 
+	
+	mTime = Time(SDL_GetPerformanceCounter());
+
+	while (threadWorkers.isBusy()) { //wait until the jobs are done... 
+	}
+
+	this->mObjectManager["freddy"].UpdateTexture("texture.jpg");
+	this->mObjectManager["freddy"].UpdatePipelineLayout(&this->pipelineLayouts.back());
+
+	this->mObjectManager["cube"].UpdateTexture("puppy1.bmp");
+	this->mObjectManager["cube"].UpdatePipelineLayout(&this->pipelineLayouts.back());
+
+	this->mObjectManager["base"].UpdateTexture("puppy1.bmp");
+	this->mObjectManager["base"].UpdatePipelineLayout(&this->pipelineLayouts.back());
+
+
+	CreateDescriptorSets();
+	WriteDescriptorSets();
+
+
 	InitGui();
 
 	InitPhysicsWorld();
 
-	mTime = Time(SDL_GetPerformanceCounter());
 
 	return true;
 
 
+}
+
+const VkViewport& Application::GetViewport() const
+{
+	return this->m_viewPort;
 }
 
 SDL_Window* Application::GetWindow() const
@@ -1857,15 +1898,13 @@ void Application::SelectWorldObjects(const int& mouseX, const int& mouseY)
 
 	glm::vec4 cursorWindowPos(mouseX, mouseY, 1, 1);
 
-	/*std::cout << "( " << cursorWindowPos.x << ", " << cursorWindowPos.y << " )\n";*/
-
 	glm::vec4 cursorScreenPos = {};
 
 	//ndc
 	float cursorZ = 1.f;
-	cursorScreenPos.x = (2 * cursorWindowPos.x) / width - 1;
-	cursorScreenPos.y = (2 * cursorWindowPos.y) / height - 1; //vulkan is upside down.
-	cursorScreenPos.z = 1;
+	cursorScreenPos.x = 2 * cursorWindowPos.x / this->m_viewPort.width - 1;
+	cursorScreenPos.y = 1 - 2 * cursorWindowPos.y / this->m_viewPort.height; //vulkan is upside down.
+	cursorScreenPos.z = -1;
 	cursorScreenPos.w = cursorWindowPos.w;
 
 	////eye
@@ -1930,12 +1969,11 @@ void Application::DrawGui()
 void Application::Render() 
 {
 	
-	//vulkan shit
-	VK_CHECK_RESULT(vkWaitForFences(this->m_logicalDevice, 1, &this->inFlightFence, VK_TRUE, UINT64_MAX));
-	VK_CHECK_RESULT(vkResetFences(this->m_logicalDevice, 1, &this->inFlightFence));
+	VK_CHECK_RESULT(vkWaitForFences(this->m_logicalDevice, 1, &this->inFlightFence, VK_TRUE, UINT64_MAX))
+	VK_CHECK_RESULT(vkResetFences(this->m_logicalDevice, 1, &this->inFlightFence))
 
 	uint32_t imageIndex;
-	VkResult result = vkAcquireNextImageKHR(this->m_logicalDevice, swapChain, UINT64_MAX, this->imageAvailableSemaphore, VK_NULL_HANDLE, &imageIndex);
+	VkResult result = vkAcquireNextImageKHR(this->m_logicalDevice, this->swapChain, UINT64_MAX, this->imageAvailableSemaphore, VK_NULL_HANDLE, &imageIndex);
 
 
 	if (result == VK_ERROR_OUT_OF_DATE_KHR)
@@ -1947,7 +1985,7 @@ void Application::Render()
 
 	assert(result == VK_SUCCESS);
 
-	VK_CHECK_RESULT(vkResetCommandBuffer(this->commandBuffer, 0));
+	VK_CHECK_RESULT(vkResetCommandBuffer(this->commandBuffer, 0))
 
 
 	////always begin recording command buffers by calling vkBeginCommandBuffer --> just tells vulkan about the usage of a particular command buffer.
@@ -1957,12 +1995,12 @@ void Application::Render()
 	cmdBufferBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
 	//everything else is default...
 
-	VK_CHECK_RESULT(vkBeginCommandBuffer(this->commandBuffer, &cmdBufferBeginInfo));
+	VK_CHECK_RESULT(vkBeginCommandBuffer(this->commandBuffer, &cmdBufferBeginInfo))
 
 	VkRenderPassBeginInfo renderPassInfo = {};
 	renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
 	renderPassInfo.renderPass = this->m_renderPass;
-	renderPassInfo.framebuffer = frameBuffer[imageIndex];
+	renderPassInfo.framebuffer = this->frameBuffer[imageIndex];
 	renderPassInfo.renderArea.offset = { 0,0 };
 	renderPassInfo.renderArea.extent = deviceCapabilities.currentExtent;
 
@@ -1978,14 +2016,15 @@ void Application::Render()
 
 	//bind the graphics pipeline
 	vkCmdBindPipeline(this->commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->pipeline);
-	/*vkCmdBindDescriptorSets(this->commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->pipelineLayouts.back(), 0, 1, &descriptorSets, 0, nullptr);*/
 
 	vkCmdSetViewport(this->commandBuffer, 0, 1, &this->m_viewPort);
 	vkCmdSetScissor(this->commandBuffer, 0, 1, &this->m_scissor);
 
-	debugCube.Draw(this->commandBuffer);
-	debugCube2.Draw(this->commandBuffer);
-	debugCube3.Draw(this->commandBuffer);
+	
+	this->mObjectManager["freddy"].Draw(this->commandBuffer);
+	this->mObjectManager["base"].Draw(this->commandBuffer);
+	this->mObjectManager["cube"].Draw(this->commandBuffer);
+
 
 	DrawGui();
 
@@ -2054,8 +2093,9 @@ void Application::loop()
 
 		mPhysics.Update(mTime.DeltaTime());
 
-		debugCube2.Update(mPhysics.InterpFactor());
-		debugCube3.Update(mPhysics.InterpFactor());
+		this->mObjectManager["cube"].Update(mPhysics.InterpFactor());
+		this->mObjectManager["base"].Update(mPhysics.InterpFactor());
+		
 		mCamera.Update(mPhysics.InterpFactor());
 
 		mLights.Update();
@@ -2079,9 +2119,9 @@ const std::vector<Texture>& Application::Textures()
 
 void Application::DestroyObjects() 
 {
-	debugCube.DestroyResources();
+	/*debugCube.DestroyResources();
 	debugCube2.DestroyResources();
-	debugCube3.DestroyResources();
+	debugCube3.DestroyResources();*/
 }
 
 void Application::exit()
@@ -2162,6 +2202,8 @@ void Application::exit()
 
 	mLights.Deallocate();
 
+	mObjectManager.Deallocate();
+
 }
 
 
@@ -2173,9 +2215,7 @@ Application::~Application()
 
 	vkDestroyInstance(this->m_instance, nullptr);
 
-	SDL_DestroyWindow(window);
-
-	SDL_Quit();
+	
 }
 
 

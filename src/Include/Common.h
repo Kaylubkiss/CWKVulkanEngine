@@ -65,23 +65,21 @@ struct Buffer
 
 	bool isAllocated = false;
 
+	//shallow copy
 	void operator=(const Buffer& rhs)
 	{
+		//note: these are pointers!!!
 		this->handle = rhs.handle;
 		this->memory = rhs.memory;
+
+
 		this->size = rhs.size;
 		this->mappedMemory = rhs.mappedMemory;
 	}
 
-	/*Buffer(const Buffer& rhs);*/
 	//assume that build info is shared among all buffers.
 	Buffer(size_t size, VkBufferUsageFlags usage, VkMemoryPropertyFlags flags, void* data);
 	Buffer() : handle(VK_NULL_HANDLE), memory(VK_NULL_HANDLE), size(0), mappedMemory(NULL) {};
-	/*void FillData(const void* data, size_t dataCount, size_t stride);
-	void RecordData();
-	void StopRecordData();
-	void CopyData(void* data);*/
-	/*~Buffer();*/ //this gets called in std::vector and causes headache. we don't want that.
 };
 
 
@@ -109,6 +107,6 @@ static struct ApplicationManager
 
 
 #define _Application appManager.GetApplication()
-
+#define _Window appManager.GetApplication()->GetViewport();
 
 

@@ -7,11 +7,13 @@
 #define TINYOBJLOADER_IMPLEMENTATION
 #include "tiny_obj_loader.h"
 
-Object::Object(const char* fileName, const char* textureName, VkPipelineLayout* pipelineLayout)
+Object::Object(const char* fileName, bool willDebugDraw, const glm::mat4& modelTransform, const char* textureName, VkPipelineLayout* pipelineLayout)
 {
-    assert(_Application != NULL);
 
     LoadMeshOBJ(fileName, *this);
+
+
+    this->mModelTransform = modelTransform;
 
     this->numVertices = static_cast<int>(this->vertexBufferData.size());
 
@@ -70,28 +72,51 @@ Object::Object(const char* fileName, const char* textureName, VkPipelineLayout* 
     std::cout << "loaded in " + std::string(fileName) << std::endl;
     std::cout << this->numVertices << " vertices loaded in." << std::endl << std::endl;
 
+
+    this->debugDrawObject.WillDraw(willDebugDraw);
+
     if (textureName != nullptr) 
     {
+        assert(_Application != NULL);
+
         this->textureIndex = _Application->GetTexture(textureName);
     }
 
     if (pipelineLayout != nullptr) 
     {
+        assert(_Application != NULL);
+
         this->mPipelineLayout = _Application->GetPipelineLayout();
     }
 
     
 }
 
+void Object::UpdateTexture(const char* textureName) 
+{
+    if (textureName != nullptr)
+    {
+        this->textureIndex = _Application->GetTexture(textureName);
+    }
+}
+
+void Object::UpdatePipelineLayout(VkPipelineLayout* pipelineLayout) 
+{
+    if (pipelineLayout != nullptr)
+    {
+        this->mPipelineLayout = _Application->GetPipelineLayout();
+    }
+}
 
 void Object::InitPhysics(ColliderType cType, BodyType bType)
 {
     assert(_Application != NULL);
 
-    glm::vec3 worldMinPoints = mModelTransform * glm::vec4(mMinLocalPoints, 1);
-    glm::vec3 worldMaxPoints = mModelTransform * glm::vec4(mMaxLocalPoints, 1);
 
-    const glm::vec4& dc2Position = glm::vec4(.5f * (worldMinPoints + worldMaxPoints), 1);
+    glm::vec4 worldMinPoints = mModelTransform * glm::vec4(mMinLocalPoints, 1);
+    glm::vec4 worldMaxPoints = mModelTransform * glm::vec4(mMaxLocalPoints, 1);
+
+    const glm::vec4& dc2Position = .5f * (worldMinPoints + worldMaxPoints);
     reactphysics3d::Vector3 position(dc2Position.x, dc2Position.y, dc2Position.z);
     reactphysics3d::Quaternion orientation = Quaternion::identity();
     reactphysics3d::Transform transform(position, orientation);
@@ -109,7 +134,9 @@ void Object::InitPhysics(ColliderType cType, BodyType bType)
     {
         case ColliderType::CUBE:
             glm::vec3 worldHalfExtent = glm::vec3((worldMaxPoints - worldMinPoints) * .5f);
+
             this->mPhysicsComponent.shape = _Application->PhysicsSystem().CreateBoxShape({ std::abs(worldHalfExtent.x), std::abs(worldHalfExtent.y), std::abs(worldHalfExtent.z) });
+
     }
 
 
