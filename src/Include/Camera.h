@@ -75,10 +75,8 @@ class Camera
 	void UpdatePosition(reactphysics3d::Vector3& velocity);
 
 public:
-	Camera() : mEye(0.f), mUpVector(0.f) 
+	Camera() : mEye(0.f), mUpVector(0.f), mCapsule()
 	{
-		/*mCapsule.mRadius = .5f;
-		mCapsule.mHeight = 1.f;	*/
 	}
 
 	Camera(const glm::vec3& eye, const glm::vec3& lookDirection, const glm::vec3& up);
@@ -95,11 +93,11 @@ public:
 
 	//void SetOldMousePos(const glm::vec2& pos);
 	//used for function parameters, this computes the lookat matrix.
-	const glm::mat4& LookAt(); 
+	glm::mat4 LookAt(); 
 	//returns world position.
-	const glm::vec3& Position();
+	glm::vec3 Position();
 
-	const glm::vec3& ViewDirection();
+	glm::vec3 ViewDirection();
 
 	bool isUpdated();
 

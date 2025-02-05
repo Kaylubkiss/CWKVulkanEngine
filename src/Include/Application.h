@@ -51,9 +51,6 @@ private:
 
 	Time mTime;
 
-	/*Object debugCube;
-	Object debugCube2;
-	Object debugCube3;*/
 	ObjectManager mObjectManager;
 	Camera mCamera;
 

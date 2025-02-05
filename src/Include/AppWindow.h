@@ -2,7 +2,7 @@
 #include <SDL2/SDL.h>
 #include <cstdio>
 
-namespace AppWindow {
+namespace AppWindow  {
 	static SDL_Window* Create(int win_width, int win_height)
 	{
 		if (SDL_Init(SDL_INIT_VIDEO) < 0)

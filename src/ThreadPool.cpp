@@ -9,6 +9,15 @@ ThreadPool::ThreadPool(size_t num_threads)
 
 }
 
+void ThreadPool::Init(size_t num_threads = std::thread::hardware_concurrency() * .5f) 
+{
+	for (size_t i = 0; i < num_threads; ++i)
+	{
+		threads.emplace_back(std::thread(&ThreadPool::ThreadLoop, this));
+	}
+
+}
+
 bool ThreadPool::isBusy() 
 {
 	bool isBusy = false;
@@ -31,7 +40,6 @@ void ThreadPool::EnqueueTask(const std::function<void()>& task)
 	condition_variable.notify_one();
 
 }
-
 
 void ThreadPool::ThreadLoop() 
 {

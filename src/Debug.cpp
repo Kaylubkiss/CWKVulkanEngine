@@ -24,10 +24,7 @@ void DebugDrawObject::Draw(VkCommandBuffer cmdBuffer)
 
 void DebugDrawObject::Update() 
 {
-	if (_Application == NULL) 
-	{
-		return;
-	}
+	assert(_Application != NULL);
 
 	if (this->isDebugEnabled) 
 	{

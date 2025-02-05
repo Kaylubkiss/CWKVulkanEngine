@@ -978,12 +978,6 @@ static std::string PathToTextures()
 	return "External/textures/";
 }
 
-static std::string PathToObjects() {
-
-	return "External/objects/";
-}
-
-
 //TODO
 void Application::CreateCubeMap() 
 {
@@ -1751,33 +1745,28 @@ bool Application::init()
 
 	CreateLogicalDevice();
 
-
-	ThreadPool threadWorkers(1);
-
 	glm::mat4 modelTransform = glm::mat4(5.f);
 	modelTransform[3] = glm::vec4(1.f, 0, -20.f, 1);
 
 
-	std::function<void()> func = [this, modelTransform] { mObjectManager.LoadObject("freddy", (PathToObjects() + "freddy.obj").c_str(), false, modelTransform); };
+	mObjectManager.LoadObject("freddy", "freddy.obj", false, modelTransform);
 
-	threadWorkers.EnqueueTask(func);
+
+	//std::function<void()> func = [this, modelTransform] { mObjectManager.LoadObject("freddy", (PathToObjects() + "freddy.obj").c_str(), false, modelTransform); };
+
 
 	//object 2
 	modelTransform = glm::mat4(1.f);
 	modelTransform[3] = glm::vec4(0, 20, -5.f, 1);
 
-	func = [this, modelTransform] {mObjectManager.LoadObject("cube", (PathToObjects() + "cube.obj").c_str(), true, modelTransform); };
-
-	threadWorkers.EnqueueTask(func);
+	mObjectManager.LoadObject("cube", "cube.obj", true, modelTransform);
 
 	//object 3
 	const float dbScale = 30.f;
 	modelTransform = glm::mat4(dbScale);
 	modelTransform[3] = { 0.f, -5.f, 0.f, 1 };
 
-	func = [this, modelTransform] {mObjectManager.LoadObject("base", (PathToObjects() + "base.obj").c_str(), true, modelTransform); };
-
-	threadWorkers.EnqueueTask(func);
+	mObjectManager.LoadObject("base", "base.obj", true, modelTransform);
 
 	vkGetDeviceQueue(this->m_logicalDevice, graphicsFamily, 0, &graphicsQueue);
 	vkGetDeviceQueue(this->m_logicalDevice, presentFamily, 0, &presentQueue);
@@ -1833,7 +1822,7 @@ bool Application::init()
 	
 	mTime = Time(SDL_GetPerformanceCounter());
 
-	while (threadWorkers.isBusy()) { //wait until the jobs are done... 
+	while (mObjectManager.mThreadWorkers.isBusy()) { //wait until the jobs are done... 
 	}
 
 	this->mObjectManager["freddy"].UpdateTexture("texture.jpg");
@@ -1887,7 +1876,7 @@ public:
 			std::endl;
 
 		// Return a fraction of 1.0 to gather all hits
-		return decimal(1.0);
+		return decimal(-1.0);
 	}
 };
 
@@ -1901,16 +1890,15 @@ void Application::SelectWorldObjects(const int& mouseX, const int& mouseY)
 	glm::vec4 cursorScreenPos = {};
 
 	//ndc
-	float cursorZ = 1.f;
-	cursorScreenPos.x = 2 * cursorWindowPos.x / this->m_viewPort.width - 1;
-	cursorScreenPos.y = 1 - 2 * cursorWindowPos.y / this->m_viewPort.height; //vulkan is upside down.
+	cursorScreenPos.x = (2 * cursorWindowPos.x) / this->m_viewPort.width - 1;
+	cursorScreenPos.y = 1 - (2 * cursorWindowPos.y) / this->m_viewPort.height; //vulkan is upside down.
 	cursorScreenPos.z = -1;
-	cursorScreenPos.w = cursorWindowPos.w;
+	cursorScreenPos.w = 1;
 
 	////eye
 
 	////world 
-	glm::vec4 ray_world = glm::inverse(uTransform.proj * uTransform.view) * cursorScreenPos;
+	glm::vec4 ray_world = glm::inverse(uTransform.view * uTransform.proj) * cursorScreenPos;
 
 	ray_world /= ray_world.w;
 
@@ -2022,7 +2010,7 @@ void Application::Render()
 
 	
 	this->mObjectManager["freddy"].Draw(this->commandBuffer);
-	this->mObjectManager["base"].Draw(this->commandBuffer);
+	this->mObjectManager["base"].Draw(this->commandBuffer);  
 	this->mObjectManager["cube"].Draw(this->commandBuffer);
 
 

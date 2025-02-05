@@ -23,12 +23,12 @@ Camera::Camera(const glm::vec3& eye, const glm::vec3& lookDirection, const glm::
 
 }
 
-const glm::mat4& Camera::LookAt() 
+glm::mat4 Camera::LookAt() 
 {
 	return glm::lookAt(mEye, mEye + mLookDir, mUpVector);
 }
 
-const glm::vec3& Camera::Position() 
+glm::vec3 Camera::Position() 
 {
 	return -mEye;
 }
@@ -113,7 +113,7 @@ void Camera::UpdatePosition(reactphysics3d::Vector3& velocity)
 
 }
 
-const glm::vec3& Camera::ViewDirection() 
+glm::vec3 Camera::ViewDirection() 
 {
 	return this->mLookDir;
 }

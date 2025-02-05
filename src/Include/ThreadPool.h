@@ -7,12 +7,13 @@
 class ThreadPool 
 {
 public:
-	ThreadPool(size_t num_threads = std::thread::hardware_concurrency() * .5f);
+	ThreadPool() = default;
+	ThreadPool(size_t num_threads);
+	void Init(size_t num_threads);
 	void EnqueueTask(const std::function<void()>& task);
 	void Terminate();
 	bool isBusy();
 	~ThreadPool();
-
 
 private:
 	void ThreadLoop();
