@@ -1615,14 +1615,16 @@ Physics& Application::PhysicsSystem()
 {
 	return this->mPhysics;
 }
+
+
 void Application::ResizeViewport()
 {
 	int nWidth, nHeight;
-	SDL_GetWindowSizeInPixels(this->window, &nWidth, &nWidth);
+	SDL_GetWindowSizeInPixels(this->window, &nWidth, &nHeight);
 	this->m_viewPort.width = (float)nWidth;
-	this->m_viewPort.height = (float)nWidth;
+	this->m_viewPort.height = (float)nHeight;
 	this->m_scissor.extent.width = nWidth;
-	this->m_scissor.extent.height = nWidth;
+	this->m_scissor.extent.height = nHeight;
 	uTransform.proj = glm::perspective(glm::radians(45.f), this->m_viewPort.width / this->m_viewPort.height, 0.1f, 1000.f); //proj
 	uTransform.proj[1][1] *= -1.f;
 	memcpy(uniformBuffers[0].mappedMemory, (void*)&uTransform, (size_t)(sizeof(uTransformObject)));

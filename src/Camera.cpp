@@ -128,9 +128,6 @@ void Camera::Update(float interpFactor)
 		reactphysics3d::Vector3 currTransform = this->mMovementTransform.getPosition();
 		this->mEye = glm::vec3(-currTransform.x, -(currTransform.y + .5f * mCapsule.mHeight), -currTransform.z);
 
-	/*	this->mPhysicsComponent.rigidBody->setTransform(this->mMovementTransform);*/
-		
-	/*	this->mMovementTransform = reactphysics3d::Transform::identity();*/
 		this->accumulatedVelocity = reactphysics3d::Vector3::zero();
 
 		_Application->UpdateUniformViewMatrix();
