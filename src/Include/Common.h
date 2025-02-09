@@ -4,12 +4,12 @@
 
 
 #define _DISABLE_EXTENDED_ALIGNED_STORAGE 
-#include <vulkan/vulkan.h>
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEFAULT_ALIGNED_GENTYPES
 #include <glm/glm.hpp>
 #include <vector>
 #include <string>
+#include "vkGlobal.h"
 
 #define IMGUI_DEFINE_MATH_OPERATORS
 #include "imgui/imgui.h"
@@ -55,32 +55,7 @@ namespace std {
 	};
 }
 
-struct Buffer
-{
-	VkBuffer handle;
-	VkDeviceMemory memory;
-	VkDeviceSize size;
 
-	void* mappedMemory = NULL;
-
-	bool isAllocated = false;
-
-	//shallow copy
-	void operator=(const Buffer& rhs)
-	{
-		//note: these are pointers!!!
-		this->handle = rhs.handle;
-		this->memory = rhs.memory;
-
-
-		this->size = rhs.size;
-		this->mappedMemory = rhs.mappedMemory;
-	}
-
-	//assume that build info is shared among all buffers.
-	Buffer(size_t size, VkBufferUsageFlags usage, VkMemoryPropertyFlags flags, void* data);
-	Buffer() : handle(VK_NULL_HANDLE), memory(VK_NULL_HANDLE), size(0), mappedMemory(NULL) {};
-};
 
 
 struct Texture 
@@ -107,6 +82,5 @@ static struct ApplicationManager
 
 
 #define _Application appManager.GetApplication()
-#define _Window appManager.GetApplication()->GetViewport();
-
+#define _Window appManager.GetApplication()->GetWindowInfo()
 

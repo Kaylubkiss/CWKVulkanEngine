@@ -4,6 +4,14 @@ set(PROJECT_NAME "CKVulkan")
 
 project("${PROJECT_NAME}" LANGUAGES CXX C)
 
+
+set(VULKAN_ENGINE_SRC src/vkDebug.cpp
+				      src/vkUtility.cpp
+				      src/vkInit.cpp
+                      src/vkGlobal.cpp
+                      src/vkGraphicsSystem.cpp)
+
+
 set(SOURCE_FILES src/Application.cpp 
                    src/BlinnPhong.cpp 
                    src/Camera.cpp 
@@ -14,6 +22,7 @@ set(SOURCE_FILES src/Application.cpp
                    src/Object.cpp
                    src/Physics.cpp
                    src/Timer.cpp
+                   src/ThreadPool.cpp
                    src/External/libraries/imgui/imgui_demo.cpp
                    src/External/libraries/imgui/imgui_draw.cpp
                    src/External/libraries/imgui/imgui_tables.cpp
@@ -21,46 +30,38 @@ set(SOURCE_FILES src/Application.cpp
                    src/External/libraries/imgui/imgui.cpp
                    src/External/libraries/imgui/backends/imgui_impl_sdl2.cpp
                    src/External/libraries/imgui/backends/imgui_impl_vulkan.cpp
-                   src/External/libraries/imgui/backends/imgui_impl_win32.cpp)
+                   src/External/libraries/imgui/backends/imgui_impl_win32.cpp
+                   ${VULKAN_ENGINE_SRC})
 									 
 									 
 set(SRC_INC src/Include)
-file(GLOB HEADER_FILES ${SRC_INC}/Application.h
-												${SRC_INC}/BlinnPhong.h
-												${SRC_INC}/Camera.h
-												${SRC_INC}/Common.h
-												${SRC_INC}/Controller.h
-												${SRC_INC}/Debug.h
-												${SRC_INC}/Object.h
-												${SRC_INC}/Physics.h
-												${SRC_INC}/Timer.h
-												${SRC_INC}/ThreadPool.h
-												${SRC_INC}/ObjectManager.h
-												${SRC_INC}/AppWindow.h)												
+set(HEADER_FILES ${SRC_INC}/Application.h
+				 ${SRC_INC}/BlinnPhong.h
+				 ${SRC_INC}/Camera.h
+				 ${SRC_INC}/Common.h
+				 ${SRC_INC}/Controller.h
+				 ${SRC_INC}/Debug.h
+				 ${SRC_INC}/Object.h
+				 ${SRC_INC}/Physics.h
+				 ${SRC_INC}/Timer.h
+				 ${SRC_INC}/ThreadPool.h
+				 ${SRC_INC}/ObjectManager.h
+				 ${SRC_INC}/vkUtility.h
+				 ${SRC_INC}/vkDebug.h
+				 ${SRC_INC}/vkGlobal.h
+				 ${SRC_INC}/vkInit.h
+                 ${SRC_INC}/vkWindow.h
+                 ${SRC_INC}/vkGraphicsSystem.h
+				 ${SRC_INC}/Buffer.h)												
 												
-file(GLOB SRC_FILES src/Application.cpp 
-                   src/BlinnPhong.cpp 
-                   src/Camera.cpp 
-                   src/Common.cpp
-                   src/Controller.cpp
-                   src/Debug.cpp
-                   src/Main.cpp
-                   src/Object.cpp
-                   src/Physics.cpp
-                   src/Timer.cpp
-									 src/ThreadPool.cpp
-									 src/ObjectManager.cpp)
 									 
-									 
-add_executable("${PROJECT_NAME}"  ${SRC_FILES}
-                   src/External/libraries/imgui/imgui_demo.cpp
-                   src/External/libraries/imgui/imgui_draw.cpp
-                   src/External/libraries/imgui/imgui_tables.cpp
-                   src/External/libraries/imgui/imgui_widgets.cpp
-                   src/External/libraries/imgui/imgui.cpp
-                   src/External/libraries/imgui/backends/imgui_impl_sdl2.cpp
-                   src/External/libraries/imgui/backends/imgui_impl_vulkan.cpp
-                   src/External/libraries/imgui/backends/imgui_impl_win32.cpp ${HEADER_FILES})
+set(SHADER_DIR src/Shaders)
+set(SHADER_FILES ${SHADER_DIR}/blinn.frag
+				 ${SHADER_DIR}/blinn.vert)	 
+
+add_executable("${PROJECT_NAME}"  ${SOURCE_FILES}  ${SHADER_FILES} ${HEADER_FILES})
+	
+
 
 target_precompile_headers("${PROJECT_NAME}" PUBLIC "src/Include/pch.h")
 

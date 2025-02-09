@@ -14,8 +14,6 @@ void LightInfoObject::AddPosition(const glm::vec3& pos)
 
 void LightInfoObject::Create(const glm::vec3& pos, const glm::vec3& dir)
 {
-	assert(_Application != NULL);
-
 	if (!mBuffer.isAllocated) 
 	{
 		this->mBuffer = Buffer(sizeof(LightInfoObject), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, (void*)this);
@@ -38,8 +36,6 @@ void LightInfoObject::Update()
 
 void LightInfoObject::Deallocate() 
 {
-	assert(_Application != NULL);
-
 	vkFreeMemory(_Application->LogicalDevice(), this->mBuffer.memory, nullptr);
 	vkDestroyBuffer(_Application->LogicalDevice(), this->mBuffer.handle, nullptr);
 }

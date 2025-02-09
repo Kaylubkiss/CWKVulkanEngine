@@ -8,7 +8,7 @@ void Controller::Update()
 	assert(_Application != NULL);
 
 
-	const VkViewport& window_info = _Window;
+	const WindowInfo& window_info = _Window;
 
 	SDL_Event e;
 	while (SDL_PollEvent(&e))

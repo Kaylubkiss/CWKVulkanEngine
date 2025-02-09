@@ -136,7 +136,11 @@ void Object::InitPhysics(ColliderType cType, BodyType bType)
             glm::vec3 worldHalfExtent = glm::vec3((worldMaxPoints - worldMinPoints) * .5f);
 
             this->mPhysicsComponent.shape = _Application->PhysicsSystem().CreateBoxShape({ std::abs(worldHalfExtent.x), std::abs(worldHalfExtent.y), std::abs(worldHalfExtent.z) });
-
+            break;
+        case ColliderType::NONE:
+            break;
+        default:
+            break;
     }
 
 

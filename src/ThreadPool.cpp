@@ -33,7 +33,7 @@ void ThreadPool::EnqueueTask(const std::function<void()>& task)
 	{
 		std::unique_lock<std::mutex> lock(queue_mutex);
 
-		tasks.push(std::move(task));
+		tasks.push(task);
 	}
 
 

@@ -55,7 +55,6 @@ struct Object
 	void willDebugDraw(bool option);
 	void SetLinesArrayOffset(uint32_t index);
 	void ComputeVertexNormals();
-	/*void operator=(const Object& rhs) = default;*/
 	~Object() 
 	{
 		Object::DestroyResources();

@@ -1,57 +1,25 @@
 #include "Application.h"
 #include <iostream>
-#include <cassert>
-#include <fstream>
 #include <SDL2/SDL_vulkan.h>
 #include <glm/gtc/matrix_transform.hpp>
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
+#include "vkUtility.h"
+#include "vkDebug.h"
+#include "vkInit.h"
 
 
 //NOTE: to remove pesky warnings from visual studio, on dynamically allocated arrays,
 //I've used the syntax: *(array + i) to access the array instead of array[i].
 //the static analyzer of visual studio is bad.
 
-//static unsigned long long width = 640;
-//static unsigned long long height = 480;
+
 static const std::string shaderPath{ "Shaders/" };
 
 const static glm::vec4 X_BASIS = { 1,0,0,0 };
 const static glm::vec4 Y_BASIS = { 0,1,0,0 };
 const static glm::vec4 Z_BASIS = { 0,0,1,0 };
 const static glm::vec4 W_BASIS = { 0,0,0,1 };
-
-glm::vec3 lightPos = { 0, 5, 10 };
-glm::vec3 lightDir = { 0, -1 , 0 }; //light just points straight down.
-
-#define VK_CHECK_RESULT(function) {VkResult check = function; assert(check == VK_SUCCESS); if (check != VK_SUCCESS) {std::cout << check << std::endl;}}
-
-static void check_vk_result(VkResult err)
-{
-	if (err == 0)
-		return;
-	//fun fact: fprintf will return the length of the string it outputted..
-	//https://stackoverflow.com/questions/29931016/return-value-of-fprintf
-	int result = fprintf(stderr, "[vulkan] Error: VkResult = %d\n", err);
-	
-	if (err < 0)
-		abort();
-}
-
-static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
-VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
-VkDebugUtilsMessageTypeFlagsEXT messageType,
-const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
-void* pUserData) 
-{
-	if (messageSeverity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT) 
-	{
-		//suggested to put '\n' here because std::endl is slower: it writes newline and flushes stream.
-		std::cerr << pCallbackData->pMessage << '\n' << '\n';
-	}
-
-	return VK_FALSE;
-}
 
 void Application::UpdateUniformViewMatrix() 
 {
@@ -86,412 +54,44 @@ void Application::ToggleObjectVisibility(SDL_Keycode keysym, uint8_t lshift)
 
 }
 
-void Application::FillDebugMessenger(VkDebugUtilsMessengerCreateInfoEXT& createInfo)
-{
-	createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
-	createInfo.messageSeverity = 
-		VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |
-		VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
-		VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
-	createInfo.messageType =
-		VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
-		VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
-		VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
-
-	createInfo.pfnUserCallback = debugCallback;
-
-}
-
-
-void Application::CreateInstance() 
-{
-
-	//create instance info.
-	VkInstanceCreateInfo createInfo = {};
-	VkApplicationInfo appInfo = {};
-	appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-	appInfo.apiVersion = VK_API_VERSION_1_3;
-	appInfo.pApplicationName = "Caleb Vulkan Engine";
-	appInfo.engineVersion = 1;
-
-	createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
-	createInfo.pApplicationInfo = nullptr; //best practice is to fill out this info, but we won't for now.
-	createInfo.flags = 0;
-
-	//linked list of structures to pass to the create instance func.
-	//--> look into it later.
-	createInfo.pNext = nullptr;
-
-
-	//we won't be doing any extension for now --> look into it at a later time.
-	//need to get sdl extensionss
-	unsigned int extensionCount = 0;
-	const char** extensionNames = nullptr;
-
-	VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo = {};
-	FillDebugMessenger(debugCreateInfo);
-
-	if (SDL_Vulkan_GetInstanceExtensions(window, &extensionCount, nullptr) != SDL_TRUE)
-	{
-		throw std::runtime_error("could not grab extensions from SDL!");
-	}
-
-	extensionNames = new const char*[extensionCount + 1];
-
-	if (SDL_Vulkan_GetInstanceExtensions(window, &extensionCount, (extensionNames)) != SDL_TRUE)
-	{
-		throw std::runtime_error("could not grab extensions from SDL!");
-	}
-
-
-	extensionNames[extensionCount] = VK_EXT_DEBUG_UTILS_EXTENSION_NAME;
-	
-	createInfo.enabledExtensionCount = extensionCount + 1;
-	createInfo.ppEnabledExtensionNames = (extensionNames);
-
-
-	//this could be useful for logging, profiling, debugging, whatever.
-	//it intercepts the API
-
-	if (CheckValidationSupport())
-	{
-		createInfo.ppEnabledLayerNames = enabledLayerNames;
-		createInfo.enabledLayerCount = 1;
-	}
-
-	createInfo.pNext = (VkDebugUtilsMessengerCreateInfoEXT*)&debugCreateInfo;
-	createInfo.pApplicationInfo = &appInfo;
-
-	//create instance.
-	//this function, if successful, will create a "handle object"
-	//and make pInstance the handle. A handle is always 64-bits wide.  
-
-	//also, setting the pAllocator to null will make vulkan do its
-	//own memory management, whereas we can create our own allocator
-	//for vulkan to use
-	VK_CHECK_RESULT(vkCreateInstance(&createInfo, nullptr, &this->m_instance))
-	
-	delete [] extensionNames;
-
-
-	auto func = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(this->m_instance, "vkCreateDebugUtilsMessengerEXT");
-
-	if (func != nullptr) {
-
-		func(this->m_instance, &debugCreateInfo, nullptr, &this->debugMessenger);
-	}
-	else 
-	{
-		throw std::runtime_error("could not set up debug messenger");
-
-	}
-
-}
-
-bool Application::CheckValidationSupport() 
-{
-	uint32_t layerCount = 0;
-	vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
-
-	std::vector<VkLayerProperties> availableLayers(layerCount);
-
-	vkEnumerateInstanceLayerProperties(&layerCount, availableLayers.data());
-
-	
-	for (const char* layerName : enabledLayerNames) 
-	{
-		bool layerFound = false;
-		for (const VkLayerProperties& layerProperties : availableLayers) 
-		{
-			if (strcmp(layerName, layerProperties.layerName) == 0) 
-			{
-				layerFound = true;
-				break;
-			}
-		}
-
-		if (layerFound == false) 
-		{
-			return false;
-		}
-
-	}
-
-
-	return true;
-
-}
-
-void Application::EnumeratePhysicalDevices() 
-{
-	//list the physical devices
-	uint32_t max_devices = 0;
-
-	//vulkan will ignor whatever was set in physicalDeviceCount and overwrite max_devices 
-	VK_CHECK_RESULT(vkEnumeratePhysicalDevices(this->m_instance, &max_devices, nullptr))
-
-	if (max_devices <= 0)
-	{
-		throw std::runtime_error("could not find any GPUs to use!\n");
-		return;
-	}
-
-
-	this->m_physicalDevices = new VkPhysicalDevice[max_devices];
-
-	if (this->m_physicalDevices == NULL) 
-	{
-		throw std::runtime_error("could not allocate array of physical devices\n");
-	}
-
-	VK_CHECK_RESULT(vkEnumeratePhysicalDevices(this->m_instance, &max_devices, this->m_physicalDevices))
-
-	for (size_t i = 0; i < max_devices; ++i)
-	{
-		VkPhysicalDeviceProperties properties;
-		VkPhysicalDeviceFeatures features;
-
-		vkGetPhysicalDeviceProperties(*(this->m_physicalDevices + i), &properties);
-		vkGetPhysicalDeviceFeatures(*(this->m_physicalDevices + i), &features);
-
-		if (properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU && features.geometryShader && features.samplerAnisotropy)
-		{
-			device_index = i;
-		}
-	}
-
-	if (device_index < 0)
-	{
-		throw std::runtime_error("could not find suitable physical device!");
-	}
-
-
-}
-
-void Application::CreateWindow() 
+void Application::CreateWindow(vk::Window& appWindow)
 {
 	if (SDL_Init(SDL_INIT_VIDEO) < 0)
 	{
 		printf("SDL could not initialize! SDL_Error: %s\n", SDL_GetError());
 	}
 
-	this->window = SDL_CreateWindow("Caleb's Vulkan Engine", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, static_cast<int>(this->m_viewPort.width), static_cast<int>(this->m_viewPort.height), SDL_WINDOW_VULKAN | SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
+	appWindow.sdl_ptr = SDL_CreateWindow("Caleb's Vulkan Engine", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 
+	int(appWindow.viewport.width), int(appWindow.viewport.height), SDL_WINDOW_VULKAN | SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
 
-	if (this->window == NULL)
+	if (appWindow.sdl_ptr == NULL)
 	{
 		printf("Window could not be created! SDL_Error: %s\n", SDL_GetError());
 	}
+
+
 	
 }
 
 bool Application::WindowisFocused() 
 {
-	if (this->window == NULL) 
+	if (this->mWindow.sdl_ptr == NULL) 
 	{
 		return false;
 	}
 
-	uint32_t flags = SDL_GetWindowFlags(this->window);
+	uint32_t flags = SDL_GetWindowFlags(this->mWindow.sdl_ptr);
 
 	return ((flags & SDL_WINDOW_INPUT_FOCUS) != 0);
 
 }
 
-void Application::CreateWindowSurface() 
+void Application::CreateWindowSurface(const VkInstance& vkInstance, vk::Window& appWindow) 
 {
-	if (SDL_Vulkan_CreateSurface(window, this->m_instance, &this->m_windowSurface) != SDL_TRUE)
+	if (SDL_Vulkan_CreateSurface(appWindow.sdl_ptr, vkInstance, &appWindow.surface) != SDL_TRUE)
 	{
 		throw std::runtime_error("could not create window surface!");
 	}
-}
-
-void Application::FindQueueFamilies() 
-{
-
-	uint32_t queueFamilyPropertyCount;
-	VkQueueFamilyProperties* queueFamilies = nullptr;
-
-	//no use for memory properties right now.
-	VkPhysicalDeviceMemoryProperties physicalDeviceMemoryProperties;
-
-	vkGetPhysicalDeviceMemoryProperties(this->m_physicalDevices[device_index], &physicalDeviceMemoryProperties);
-
-	//similar maneuver to vkEnumeratePhysicalDevices
-	vkGetPhysicalDeviceQueueFamilyProperties(this->m_physicalDevices[device_index], &queueFamilyPropertyCount, nullptr);
-
-	if (queueFamilyPropertyCount == 0)
-	{
-		throw std::runtime_error("couldn't find any queue families...");
-	}
-
-	queueFamilies = new VkQueueFamilyProperties[queueFamilyPropertyCount];
-
-	if (queueFamilies == nullptr) 
-	{
-		throw std::runtime_error("couldn't allocate queueFamilies array\n");
-	}
-
-	vkGetPhysicalDeviceQueueFamilyProperties(this->m_physicalDevices[device_index], &queueFamilyPropertyCount, queueFamilies);
-
-	bool setGraphicsQueue = false;
-	bool setPresentQueue = false;
-
-	for (unsigned i = 0; i < queueFamilyPropertyCount; ++i)
-	{
-		if (((*(queueFamilies + i)).queueFlags & VK_QUEUE_GRAPHICS_BIT) != 0)
-		{
-			graphicsFamily = i;
-			setGraphicsQueue = true;
-
-		}
-
-
-		VkBool32 presentSupport = false;
-		VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceSupportKHR(this->m_physicalDevices[device_index], i, this->m_windowSurface, &presentSupport));
-
-		if (presentSupport)
-		{
-			presentFamily = i;
-			setPresentQueue = true;
-		}
-
-		if (setGraphicsQueue && setPresentQueue)
-		{
-			break;
-		}
-
-	}
-
-	delete[] queueFamilies;
-}
-
-void Application::CreateLogicalDevice() 
-{
-	VkDeviceQueueCreateInfo* deviceQueueCreateInfos = new VkDeviceQueueCreateInfo[2]; //presentation and graphics.
-
-	uint32_t uniqueQueueFamilies[2] = { graphicsFamily, presentFamily };
-
-	for (unsigned i = 0; i < 2; ++i)
-	{
-		VkDeviceQueueCreateInfo deviceQueueInfo = {}; //to be passed into deviceCreateInfo's struct members.
-		deviceQueueInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-		deviceQueueInfo.flags = 0;
-		deviceQueueInfo.pNext = nullptr;
-		deviceQueueInfo.queueFamilyIndex = uniqueQueueFamilies[i];
-		deviceQueueInfo.queueCount = 1;
-		float queuePriority = 1.f;
-		//THIS IS APPARENTLY REQUIRED --> REFERENCE BOOK DID NOT SHOW THIS...
-		deviceQueueInfo.pQueuePriorities = &queuePriority; //normalized values between 0.f to 1.f that ranks the priority of the queue in the array.
-
-		deviceQueueCreateInfos[i] = deviceQueueInfo;
-	}
-
-	//won't do many other optional features for now.
-	VkPhysicalDeviceFeatures deviceFeatures = {};
-	deviceFeatures.geometryShader = VK_TRUE;
-	deviceFeatures.tessellationShader = VK_TRUE;
-	deviceFeatures.samplerAnisotropy = VK_TRUE;
-
-	VkDeviceCreateInfo deviceCreateInfo = {};
-	deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-	deviceCreateInfo.flags = 0;
-	deviceCreateInfo.pNext = nullptr;
-
-	//layers are no right now.
-
-	deviceCreateInfo.enabledLayerCount = 1;
-	deviceCreateInfo.ppEnabledLayerNames = enabledLayerNames;
-
-	deviceCreateInfo.enabledExtensionCount = 1;
-	deviceCreateInfo.ppEnabledExtensionNames = deviceExtensions;
-
-	deviceCreateInfo.pEnabledFeatures = &deviceFeatures; //call vkGetPhysicalDeviceFeatures to set additional features.
-
-	deviceCreateInfo.pQueueCreateInfos = deviceQueueCreateInfos;
-	deviceCreateInfo.queueCreateInfoCount = 1;
-
-	VK_CHECK_RESULT(vkCreateDevice(this->m_physicalDevices[device_index], &deviceCreateInfo, nullptr, &this->m_logicalDevice));
-
-	delete[] deviceQueueCreateInfos;
-
-
-}
-
-void Application::CreateRenderPass() 
-{
-	VkAttachmentDescription depthAttachment = {};
-	depthAttachment.format = this->depthFormat;
-	depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-	depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-	depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-	depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-	depthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-	depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-	depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-
-	VkAttachmentReference depthAttachmentReference = 
-	{
-		1,
-		VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL
-	};
-
-
-	VkAttachmentDescription colorAttachment =
-	{
-		//in memory tight scenarios, 
-		// we can tell vulkan not to do anything 
-		// that may make the data in this attachment inconsistent
-		0,
-		VK_FORMAT_B8G8R8A8_SRGB, //normalized format --> 0-1 unsigned float.
-		VK_SAMPLE_COUNT_1_BIT, //samples -> no multisampling, so make it 1_bit.
-		VK_ATTACHMENT_LOAD_OP_CLEAR, //load operation --> clear everything when the renderpass begins.
-		VK_ATTACHMENT_STORE_OP_STORE, //store operation --> store resources to memory for later use.
-		VK_ATTACHMENT_LOAD_OP_DONT_CARE, //stencil load operation
-		VK_ATTACHMENT_STORE_OP_DONT_CARE, //stencil store operation
-
-		//these two parameters can be expounded on with ***MULTIPASS RENDERING****.
-		VK_IMAGE_LAYOUT_UNDEFINED, //really don't have an image to specify.
-		VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, //final layout.
-	};
-
-	VkAttachmentReference colorAttachmentReference =
-	{
-		0,
-		VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
-	};
-
-	VkSubpassDescription subpass =
-	{
-		0,
-		VK_PIPELINE_BIND_POINT_GRAPHICS,
-		0, //input attachment count
-		nullptr, //pointer to input attachments
-		1, //color attachment count
-		&colorAttachmentReference,
-		nullptr, //resolve attachments
-		&depthAttachmentReference, //depth stencil attachment
-		0, //preserve attachment count
-		nullptr //pointer to reserved attachments.
-	};
-
-	VkAttachmentDescription attachments[2] = { colorAttachment, depthAttachment };
-
-	VkRenderPassCreateInfo renderPassCreateInfo =
-	{
-		VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
-		nullptr, //pNext
-		0, //flags are for future use...
-		2, //attachment count
-		attachments,
-		1, //subpass count
-		&subpass, //pointer to subpasses
-		0, //dependency count
-		nullptr //pointer to dependencies.
-	};
-
-	//two render passes are compatible if their attachment references are the same
-	VK_CHECK_RESULT(vkCreateRenderPass(this->m_logicalDevice, &renderPassCreateInfo, nullptr, &this->m_renderPass));
-
 }
 
 void Application::CreateSwapChain() 
@@ -501,7 +101,7 @@ void Application::CreateSwapChain()
 	swapChainInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
 	swapChainInfo.surface = this->m_windowSurface;
 
-	VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(this->m_physicalDevices[device_index], m_windowSurface, &deviceCapabilities));
+	VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(this->m_physicalDevices[device_index], m_windowSurface, &this->deviceCapabilities));
 
 
 	uint32_t surfaceFormatCount = 0;
@@ -548,7 +148,7 @@ void Application::CreateSwapChain()
 	}
 
 
-	this->imageCount = deviceCapabilities.minImageCount + 1;
+	this->imageCount = this->deviceCapabilities.minImageCount + 1;
 
 	if (deviceCapabilities.maxImageCount > 0 && imageCount > deviceCapabilities.maxImageCount) 
 	{
@@ -570,7 +170,7 @@ void Application::CreateSwapChain()
 	}
 	else 
 	{
-		uint32_t queueFamilyIndices[] = { graphicsFamily, presentFamily };
+		uint32_t queueFamilyIndices[2] = { graphicsFamily, presentFamily };
 
 		swapChainInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
 		swapChainInfo.queueFamilyIndexCount = 2;
@@ -596,7 +196,7 @@ void Application::CreateImageViews()
 
 	this->swapChainImages = new VkImage[imageCount];
 
-	VK_CHECK_RESULT(vkGetSwapchainImagesKHR(this->m_logicalDevice, swapChain, &this->imageCount, this->swapChainImages));
+	VK_CHECK_RESULT(vkGetSwapchainImagesKHR(this->m_logicalDevice, this->swapChain, &this->imageCount, this->swapChainImages));
 
 	//create imageview --> allow image to be seen in a different format.
 	this->imageViews = new VkImageView[imageCount];
@@ -647,59 +247,6 @@ void Application::CreateImageViews()
 
 }
 
-VkPipelineShaderStageCreateInfo Application::CreateShaderModule(const char* name, VkShaderModule& shaderModule, VkShaderStageFlagBits stage) 
-{
-	std::ifstream file(name, std::ios::ate | std::ios::binary); //when we initialize, we std::ios::ate points to the end.
-
-	if (!file.is_open())
-	{
-		throw std::runtime_error("failed to open shader file!");
-	}
-
-	char* buffer = nullptr;
-	
-
-	//reads the offset from the beginning of the file
-	size_t fileSize = (size_t)file.tellg();
-
-	buffer = new char[fileSize];
-
-	//set the stream to the beginning of the file after being positioned at the end.
-	file.seekg(0);
-
-	file.read(buffer, fileSize);
-
-	file.close();
-
-
-	VkShaderModuleCreateInfo shaderVertModuleInfo =
-	{
-		VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
-		nullptr,
-		0,
-		fileSize,
-		reinterpret_cast<const uint32_t*>(buffer)
-	};
-
-	VK_CHECK_RESULT(vkCreateShaderModule(this->m_logicalDevice, &shaderVertModuleInfo, nullptr, &shaderModule));
-
-	VkPipelineShaderStageCreateInfo shaderStageInfo =
-	{
-		VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
-		nullptr,
-		0,
-		stage,
-		shaderModule,
-		"main", //entry point -->pName
-		nullptr //no specialization constants
-	};
-
-	delete[] buffer;
-
-	return shaderStageInfo;
-
-}
-
 void Application::CreateFrameBuffers() 
 {
 
@@ -707,7 +254,7 @@ void Application::CreateFrameBuffers()
 
 	for (unsigned i = 0; i < imageCount; ++i) {
 
-		VkImageView attachments[2] = {imageViews[i], this->depthImageView};
+		VkImageView attachments[2] = {this->imageViews[i], this->depthImageView};
 
 		//create framebuffer info
 		VkFramebufferCreateInfo framebufferCreateInfo =
@@ -718,8 +265,8 @@ void Application::CreateFrameBuffers()
 			this->m_renderPass,
 			2,// attachmentCount
 			attachments, //attachments
-			(uint32_t)this->m_viewPort.width, //width
-			(uint32_t)this->m_viewPort.height, //height
+			(uint32_t)this->mWindowExtents.width, //width
+			(uint32_t)this->mWindowExtents.height, //height
 			1 //1 layer
 		};
 
@@ -728,12 +275,6 @@ void Application::CreateFrameBuffers()
 
 }
 
-void Application::CreateBuffers() 
-{
-	
-	//does nothing, because all the buffers I use are uniform buffers
-
-}
 
 void Application::CreateUniformBuffers()
 {
@@ -741,87 +282,19 @@ void Application::CreateUniformBuffers()
 	
 }
 
-void Application::CreateImage
-(
-	uint32_t width, uint32_t height, uint32_t mipLevels,
-	VkFormat format, VkImageTiling tiling,
-	VkImageUsageFlags usage, VkMemoryPropertyFlags flags,
-	VkImage& image, VkDeviceMemory& imageMemory, uint32_t arrayLayerCount
-) 
+
+
+static VkCommandBuffer beginCmd(const VkDevice& l_device, const VkCommandPool& cmdPool) 
 {
-
-	VkPhysicalDeviceMemoryProperties	vpdmp;
-	vkGetPhysicalDeviceMemoryProperties(this->m_physicalDevices[device_index], &vpdmp);
-
-	VkImageCreateInfo imageCreateInfo = { };
-	imageCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-	imageCreateInfo.imageType = VK_IMAGE_TYPE_2D;
-	imageCreateInfo.extent.width = width;
-	imageCreateInfo.extent.height = height;
-	imageCreateInfo.extent.depth = 1;
-	imageCreateInfo.mipLevels = mipLevels;
-	imageCreateInfo.arrayLayers = arrayLayerCount;
-	imageCreateInfo.format = format;
-	imageCreateInfo.tiling = tiling;
-	imageCreateInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-	imageCreateInfo.usage = usage;
-	imageCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-	imageCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;
-
-
-	VK_CHECK_RESULT(vkCreateImage(this->m_logicalDevice, &imageCreateInfo, nullptr, &image));
-
-	VkMemoryRequirements memRequirements;
-
-	vkGetImageMemoryRequirements(this->m_logicalDevice, image, &memRequirements);
-
-	VkMemoryAllocateInfo memAllocInfo = {};
-	memAllocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-	memAllocInfo.allocationSize = memRequirements.size;
-
-	for (unsigned int i = 0; i < vpdmp.memoryTypeCount; i++)
-	{
-		VkMemoryType vmt = vpdmp.memoryTypes[i];
-		VkMemoryPropertyFlags vmpf = vmt.propertyFlags;
-		if ((memRequirements.memoryTypeBits & (1 << i)) != 0)
-		{
-			if ((vmpf & flags) != 0)
-			{
-				memAllocInfo.memoryTypeIndex = i;
-				break;
-			}
-		}
-	}
-
-	VK_CHECK_RESULT(vkAllocateMemory(this->m_logicalDevice, &memAllocInfo, nullptr, &imageMemory));
-
-
-	VK_CHECK_RESULT(vkBindImageMemory(this->m_logicalDevice, image, imageMemory, 0));
-
-}
-
-const VkQueue& Application::GraphicsQueue() 
-{
-	return this->graphicsQueue;
-}
-
-const VkCommandPool& Application::CommandPool() 
-{
-	return this->commandPool;
-}
-
-static VkCommandBuffer beginCmd() 
-{
-	assert(_Application != NULL);
 
 	VkCommandBufferAllocateInfo allocInfo = {};
 	allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
 	allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-	allocInfo.commandPool = _Application->CommandPool();
+	allocInfo.commandPool = cmdPool;
 	allocInfo.commandBufferCount = 1;
 
 	VkCommandBuffer cmdBuffer;
-	VK_CHECK_RESULT(vkAllocateCommandBuffers(_Application->LogicalDevice(), &allocInfo, &cmdBuffer));
+	VK_CHECK_RESULT(vkAllocateCommandBuffers(l_device, &allocInfo, &cmdBuffer));
 
 	VkCommandBufferBeginInfo beginInfo = {};
 	beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -833,10 +306,8 @@ static VkCommandBuffer beginCmd()
 
 }
 
-static void endCmd(VkCommandBuffer commandBuffer) 
+static void endCmd(VkCommandBuffer commandBuffer, const VkCommandPool& cmdPool, const VkDevice& l_device, const VkQueue& gfxQueue)
 {
-	assert(_Application != NULL);
-
 	VK_CHECK_RESULT(vkEndCommandBuffer(commandBuffer));
 
 	VkSubmitInfo submitInfo = {};
@@ -844,10 +315,10 @@ static void endCmd(VkCommandBuffer commandBuffer)
 	submitInfo.commandBufferCount = 1;
 	submitInfo.pCommandBuffers = &commandBuffer;
 
-	VK_CHECK_RESULT(vkQueueSubmit(_Application->GraphicsQueue(), 1, &submitInfo, VK_NULL_HANDLE));
-	VK_CHECK_RESULT(vkQueueWaitIdle(_Application->GraphicsQueue()));
+	VK_CHECK_RESULT(vkQueueSubmit(gfxQueue, 1, &submitInfo, VK_NULL_HANDLE));
+	VK_CHECK_RESULT(vkQueueWaitIdle(gfxQueue));
 
-	vkFreeCommandBuffers(_Application->LogicalDevice(), _Application->CommandPool(), 1, &commandBuffer);
+	vkFreeCommandBuffers(l_device, cmdPool, 1, &commandBuffer);
 
 }
 
@@ -925,95 +396,18 @@ static void copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, ui
 	endCmd(cmdBuffer);
 }
 
-VkFormat Application::findSupportedFormat(const std::vector<VkFormat>& possibleFormats, 
-VkImageTiling tiling, VkFormatFeatureFlags features) 
-{
-	for (VkFormat format : possibleFormats) 
-	{
-		VkFormatProperties properties;
-		vkGetPhysicalDeviceFormatProperties(this->m_physicalDevices[device_index], format, &properties);
-
-		if (tiling == VK_IMAGE_TILING_LINEAR && (properties.linearTilingFeatures & features) == features) 
-		{
-			return format;
-		}
-		else if (tiling == VK_IMAGE_TILING_OPTIMAL && (properties.optimalTilingFeatures & features) == features) 
-		{
-			return format;
-		}
-
-	}
-
-	throw std::runtime_error("couldn't find a suitable format supported on the physical device.");
-}
-void Application::CreateDepthResources() 
-{
-	this->depthFormat = findSupportedFormat(
-		{ VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT }, 
-		VK_IMAGE_TILING_OPTIMAL, VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
-
-	//create depth image
-	CreateImage((uint32_t)this->m_viewPort.width, (uint32_t)this->m_viewPort.height, 1, this->depthFormat, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
-	VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, this->depthImage,
-	this->depthImageMemory, 1);
-	//create depth image view 
-
-	VkImageViewCreateInfo viewInfo = {};
-	viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-	viewInfo.image = this->depthImage;
-	viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-	viewInfo.format = this->depthFormat;
-	viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
-	viewInfo.subresourceRange.baseMipLevel = 0;
-	viewInfo.subresourceRange.levelCount = 1;
-	viewInfo.subresourceRange.baseArrayLayer = 0;
-	viewInfo.subresourceRange.layerCount = 1;
-
-	VK_CHECK_RESULT(vkCreateImageView(this->m_logicalDevice, &viewInfo, nullptr, &this->depthImageView));
-
-}
-
 static std::string PathToTextures() 
 {
 	return "External/textures/";
 }
 
-//TODO
-void Application::CreateCubeMap() 
-{
-	/*unsigned char* textureData[6];
-	int textureWidth, textureHeight, textureChannels;
-	textureData[0] = stbi_load((PathToTextures() + std::string("texture.jpg")).c_str(), &textureWidth, &textureHeight, &textureChannels, STBI_rgb_alpha);
-	textureData[1] = stbi_load((PathToTextures() + std::string("texture.jpg")).c_str(), &textureWidth, &textureHeight, &textureChannels, STBI_rgb_alpha);
-	textureData[2] = stbi_load((PathToTextures() + std::string("texture.jpg")).c_str(), &textureWidth, &textureHeight, &textureChannels, STBI_rgb_alpha);
-	textureData[3] = stbi_load((PathToTextures() + std::string("texture.jpg")).c_str(), &textureWidth, &textureHeight, &textureChannels, STBI_rgb_alpha);
-	textureData[4] = stbi_load((PathToTextures() + std::string("texture.jpg")).c_str(), &textureWidth, &textureHeight, &textureChannels, STBI_rgb_alpha);
-	textureData[5] = stbi_load((PathToTextures() + std::string("texture.jpg")).c_str(), &textureWidth, &textureHeight, &textureChannels, STBI_rgb_alpha);
-	
-	VkDeviceSize imageSize = textureWidth * textureHeight * 4 * 6;
-	VkDeviceSize layerSize = imageSize / 6;
-
-	Buffer stagingBuffer = Buffer(imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, NULL);
-
-	vkMapMemory(this->m_logicalDevice, stagingBuffer.memory, 0, VK_WHOLE_SIZE, 0, &stagingBuffer.mappedMemory);
-
-	for (unsigned i = 0; i < 6; ++i) 
-	{
-		memcpy(reinterpret_cast<unsigned char*>(stagingBuffer.mappedMemory) + layerSize * i, textureData[i], layerSize);
-	}
-
-	vkUnmapMemory(this->m_logicalDevice, stagingBuffer.memory);*/
-
-	/*ktxResult result;
-	ktxTexture* ktxTexture;*/
-}
 
 
-void Application::GenerateMipMaps(VkImage image, VkFormat imgFormat, uint32_t textureWidth, uint32_t textureHeight, uint32_t mipLevels) 
+void Application::GenerateMipMaps(const VkPhysicalDevice& p_device, VkImage image, VkFormat imgFormat, uint32_t textureWidth, uint32_t textureHeight, uint32_t mipLevels) 
 {
 
 	VkFormatProperties formatProperties;
-	vkGetPhysicalDeviceFormatProperties(this->m_physicalDevices[device_index], imgFormat, &formatProperties);
+	vkGetPhysicalDeviceFormatProperties(p_device, imgFormat, &formatProperties);
 
 	if (!(formatProperties.optimalTilingFeatures & VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT)) 
 	{
@@ -1232,13 +626,12 @@ void Application::CreateDescriptorSets()
 		descriptorAllocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
 		descriptorAllocInfo.descriptorPool = this->descriptorPool;
 		descriptorAllocInfo.descriptorSetCount = 1;
-		descriptorAllocInfo.pSetLayouts = &descriptorSetLayout;
+		descriptorAllocInfo.pSetLayouts = &this->descriptorSetLayout;
 
 		VK_CHECK_RESULT(vkAllocateDescriptorSets(this->m_logicalDevice, &descriptorAllocInfo, &this->mTextures[i].mDescriptor));
 
 	}
 }
-
 
 void Application::WriteDescriptorSets() 
 {
@@ -1323,52 +716,19 @@ void Application::CreatePipelineLayout()
 
 void Application::CreatePipeline(VkPipelineShaderStageCreateInfo* pStages, int numStages, VkPrimitiveTopology primitiveTopology, VkPipeline& pipelineHandle)
 {
+	auto vAttribs = vk::init::VertexAttributeDescriptions();
 
 	VkVertexInputBindingDescription vBindingDescription = {};
 	vBindingDescription.stride = sizeof(struct Vertex);
 	vBindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-	
-	VkVertexInputAttributeDescription vInputAttribute[3] = {};
 
-	//position
-	vInputAttribute[0].format = VK_FORMAT_R32G32B32_SFLOAT;
-	vInputAttribute[0].location = 0;
-	vInputAttribute[0].binding = 0;
-	vInputAttribute[0].offset = offsetof(struct Vertex, pos);
+	VkPipelineVertexInputStateCreateInfo vertexInputCreateInfo = vk::init::VertexInputStateCreateInfo();
+	vertexInputCreateInfo.vertexBindingDescriptionCount = 1; //vertexBindingDescriptionCount
+	vertexInputCreateInfo.pVertexBindingDescriptions = &vBindingDescription,
+	vertexInputCreateInfo.vertexAttributeDescriptionCount = vAttribs.size(); //attribute count
+	vertexInputCreateInfo.pVertexAttributeDescriptions = vAttribs.data();
 
-	//normal
-	vInputAttribute[1].format = vInputAttribute[0].format;
-	vInputAttribute[1].location = 1;
-	vInputAttribute[1].binding = 0;
-	vInputAttribute[1].offset = offsetof(struct Vertex, nrm);
-
-	//texture 
-	vInputAttribute[2].format = VK_FORMAT_R32G32_SFLOAT; 
-	vInputAttribute[2].location = 2;
-	vInputAttribute[2].binding = 0;
-	vInputAttribute[2].offset = offsetof(struct Vertex, uv);
-
-
-	//all vertex info is in the shaders for now...
-	VkPipelineVertexInputStateCreateInfo vertexInputCreateInfo =
-	{
-		VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
-		nullptr, //pNext
-		0, //flags
-		1, //vertexBindingDescriptionCount
-		&vBindingDescription,
-		3, //attribute count
-		vInputAttribute
-	};
-
-	VkPipelineInputAssemblyStateCreateInfo pipelineAssemblyCreateInfo =
-	{
-		VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
-		nullptr, //pNext
-		0, //flags
-		primitiveTopology,//topology
-		VK_FALSE //primitiveRestartEnable
-	};
+	VkPipelineInputAssemblyStateCreateInfo pipelineAssemblyCreateInfo = vk::init::AssemblyInputStateCreateInfo(primitiveTopology);
 
 	VkDynamicState dynamicState[2] = { VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR };
 	VkPipelineDynamicStateCreateInfo dynamicStateCreateInfo{};
@@ -1388,7 +748,7 @@ void Application::CreatePipeline(VkPipelineShaderStageCreateInfo* pStages, int n
 		nullptr, //pScissors
 	};
 
-	//TODO (RESEARCH): look at what the depth optinos and lineWidth options do.
+
 	VkPipelineRasterizationStateCreateInfo rasterizationStateCreateInfo =
 	{
 		VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
@@ -1500,48 +860,14 @@ void Application::CreatePipeline(VkPipelineShaderStageCreateInfo* pStages, int n
 
 }
 
-void Application::CreateCommandPools() 
+void Application::CreateCommandPools(const VkDevice& l_device)
 {
 	VkCommandPoolCreateInfo commandPoolCreateInfo = {};
 	commandPoolCreateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
 	commandPoolCreateInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT; //recording commands every frame.
 	commandPoolCreateInfo.queueFamilyIndex = 0; //only one physical device on initial development machine.
 
-	VK_CHECK_RESULT(vkCreateCommandPool(this->m_logicalDevice, &commandPoolCreateInfo, nullptr, &this->commandPool));
-}
-
-void Application::CreateDescriptorSetLayout() 
-{
-	//TODO:automate the set layout creation.
-	VkDescriptorSetLayoutBinding uTransformBinding{};
-	uTransformBinding.binding = 0;
-	uTransformBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-	uTransformBinding.descriptorCount = 1; //one uniform struct.
-	uTransformBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT; //we are going to use the transforms in the vertex shader.
-
-	VkDescriptorSetLayoutBinding samplerBinding = {};
-	samplerBinding.binding = 2;
-	samplerBinding.descriptorCount = 1;
-	samplerBinding.pImmutableSamplers = nullptr;
-	samplerBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-	samplerBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT; //we are going to use the sampler in the fragment shader.
-
-	VkDescriptorSetLayoutBinding uLightInfoBinding{};
-	uLightInfoBinding.binding = 1;
-	uLightInfoBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-	uLightInfoBinding.descriptorCount = 1;
-	uLightInfoBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-
-	//VkDescriptorSetLayoutBinding 
-
-	VkDescriptorSetLayoutBinding bindings[3] = { uTransformBinding, samplerBinding, uLightInfoBinding };
-
-	VkDescriptorSetLayoutCreateInfo layoutInfo = {};
-	layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-	layoutInfo.bindingCount = 3;
-	layoutInfo.pBindings = bindings;
-
-	VK_CHECK_RESULT(vkCreateDescriptorSetLayout(this->m_logicalDevice, &layoutInfo, nullptr, &descriptorSetLayout));
+	VK_CHECK_RESULT(vkCreateCommandPool(l_device, &commandPoolCreateInfo, nullptr, &this->commandPool));
 }
 
 void Application::CreateCommandBuffers() 
@@ -1553,7 +879,6 @@ void Application::CreateCommandBuffers()
 	cmdBufferCreateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY; //cannot be called by other command buffers
 	cmdBufferCreateInfo.commandBufferCount = 1;
 
-	//TODO: cleanup
 	VK_CHECK_RESULT(vkAllocateCommandBuffers(this->m_logicalDevice, &cmdBufferCreateInfo, &this->commandBuffer));
 }
 
@@ -1583,8 +908,8 @@ void Application::RecreateSwapChain()
 
 	VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(this->m_physicalDevices[device_index], this->m_windowSurface, &this->deviceCapabilities));
 
-	this->m_viewPort.width = deviceCapabilities.currentExtent.width;
-	this->m_viewPort.height = deviceCapabilities.currentExtent.height;
+	this->mWindowExtents.width = deviceCapabilities.currentExtent.width;
+	this->mWindowExtents.height = deviceCapabilities.currentExtent.height;
 
 	for (unsigned i = 0; i < this->imageCount; ++i)
 	{
@@ -1617,15 +942,13 @@ Physics& Application::PhysicsSystem()
 }
 
 
-void Application::ResizeViewport()
+void Application::ResizeViewport(VkViewport& vp, SDL_Window* windowHandle)
 {
 	int nWidth, nHeight;
-	SDL_GetWindowSizeInPixels(this->window, &nWidth, &nHeight);
-	this->m_viewPort.width = (float)nWidth;
-	this->m_viewPort.height = (float)nHeight;
-	this->m_scissor.extent.width = nWidth;
-	this->m_scissor.extent.height = nHeight;
-	uTransform.proj = glm::perspective(glm::radians(45.f), this->m_viewPort.width / this->m_viewPort.height, 0.1f, 1000.f); //proj
+	SDL_GetWindowSizeInPixels(windowHandle, &nWidth, &nHeight);
+	vp.width = (float)nWidth;
+	vp.height = (float)nHeight;
+	uTransform.proj = glm::perspective(glm::radians(45.f), (float)vp.width / vp.height, 0.1f, 1000.f); //proj
 	uTransform.proj[1][1] *= -1.f;
 	memcpy(uniformBuffers[0].mappedMemory, (void*)&uTransform, (size_t)(sizeof(uTransformObject)));
 
@@ -1658,6 +981,7 @@ void Application::InitPhysicsWorld()
 	debugRenderer.setIsDebugItemDisplayed(reactphysics3d::DebugRenderer::DebugItem::COLLIDER_AABB, true);
 	
 }
+
 void Application::InitGui() 
 {
 	IMGUI_CHECKVERSION();
@@ -1688,7 +1012,7 @@ void Application::InitGui()
 	init_info.ImageCount = this->imageCount;
 	init_info.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
 	init_info.Allocator = nullptr;
-	init_info.CheckVkResultFn = check_vk_result;
+	init_info.CheckVkResultFn = vkutil::check_vk_result;
 	ImGui_ImplVulkan_Init(&init_info);
 }
 
@@ -1711,26 +1035,22 @@ bool Application::init()
 {
 	this->mCamera = Camera({ 0.f, 0.f, 10.f }, { 0.f, 0.f, -1.f } , { 0,1,0 });
 
-	this->m_viewPort.width = 640;
-	this->m_viewPort.height = 480;
-	this->m_viewPort.minDepth = 0;
-	this->m_viewPort.maxDepth = 1;
-
-	this->m_scissor.extent.width = (uint32_t)this->m_viewPort.width;
-	this->m_scissor.extent.height = (uint32_t)this->m_viewPort.height;
+	this->mWindow.viewport.width = 640;
+	this->mWindow.viewport.height = 480;
 
 	this->uTransform = {
 		glm::mat4(1.f), //model
 		this->mCamera.LookAt(), //view
-		glm::perspective(glm::radians(45.f), (float)this->m_viewPort.width / this->m_viewPort.height, 0.1f, 1000.f) //proj
+		glm::perspective(glm::radians(45.f), (float)this->mWindow.viewport.width / this->mWindow.viewport.height, 0.1f, 1000.f) //proj
 	};
+
+
 	this->uTransform.proj[1][1] *= -1.f;
 
-	
-	
-	CreateWindow();
 
-	CreateInstance();
+	CreateWindow(this->mWindow);
+
+	m_instance = vk::init::CreateInstance(this->mWindow.sdl_ptr);
 
 	CreateWindowSurface();
 
@@ -1738,12 +1058,10 @@ bool Application::init()
 
 	EnumeratePhysicalDevices();
 	
-	//dunno what to do with this yet, but it fills out a large data structure that holds information about vendor-specific api info.
-	
 	//retrieve queue family properties 
 	// --> group of queues that have identical capabilities and are able to run in parallel 
 	//		--> could be arithmetic, passing shaders, stuff like that.
-	FindQueueFamilies();
+	/*FindQueueFamilies();*/
 
 	CreateLogicalDevice();
 
@@ -1752,10 +1070,6 @@ bool Application::init()
 
 
 	mObjectManager.LoadObject("freddy", "freddy.obj", false, modelTransform);
-
-
-	//std::function<void()> func = [this, modelTransform] { mObjectManager.LoadObject("freddy", (PathToObjects() + "freddy.obj").c_str(), false, modelTransform); };
-
 
 	//object 2
 	modelTransform = glm::mat4(1.f);
@@ -1779,15 +1093,12 @@ bool Application::init()
 	CreateSwapChain();
 
 	CreateImageViews();
-	
-	//VkPipelineShaderStageCreateInfo shaderVertStageInfo = CreateShaderModule("vert.spv", this->shaderVertModule, VK_SHADER_STAGE_VERTEX_BIT);
-	//VkPipelineShaderStageCreateInfo shaderFragModuleInfo = CreateShaderModule("frag.spv", this->shaderFragModule, VK_SHADER_STAGE_FRAGMENT_BIT);
 
 	std::string vertexShaderPath = shaderPath + "blinnvert.spv";
-	VkPipelineShaderStageCreateInfo shaderVertStageInfo = CreateShaderModule(vertexShaderPath.data(), this->shaderVertModule, VK_SHADER_STAGE_VERTEX_BIT);
+	VkPipelineShaderStageCreateInfo shaderVertStageInfo = vkutil::CreateShaderModule(this->m_logicalDevice, vertexShaderPath.data(), this->shaderVertModule, VK_SHADER_STAGE_VERTEX_BIT);
 
 	std::string fragShaderPath = shaderPath + "blinnfrag.spv";
-	VkPipelineShaderStageCreateInfo shaderFragModuleInfo = CreateShaderModule(fragShaderPath.data(), this->shaderFragModule, VK_SHADER_STAGE_FRAGMENT_BIT);
+	VkPipelineShaderStageCreateInfo shaderFragModuleInfo = vkutil::CreateShaderModule(this->m_logicalDevice, fragShaderPath.data(), this->shaderFragModule, VK_SHADER_STAGE_FRAGMENT_BIT);
 
 	VkPipelineShaderStageCreateInfo shaderStages[] = { shaderVertStageInfo, shaderFragModuleInfo };
 
@@ -1796,19 +1107,15 @@ bool Application::init()
 	CreateCommandBuffers();
 	
 	CreateUniformBuffers();
+
+
 	mLights.Create({ 0, 10, 0 }, { 0, -1, 0 });
 	
 	CreateDepthResources();
 
-	CreateDescriptorSetLayout();
+	//ERROR: didn't create descriptoryLayout!!!
 
 	CreatePipelineLayout();
-
-
-	//only thing this is dependent on is the logical device...
-	/*CreateDescriptorSets();
-	WriteDescriptorSets();*/
-	////
 	
 	CreateRenderPass();
 	CreateFrameBuffers();
@@ -1845,15 +1152,12 @@ bool Application::init()
 
 	InitPhysicsWorld();
 
+	//ERROR: vksetcmdviewport? scissor? you made a dynamic viewport!!!
+
 
 	return true;
 
 
-}
-
-const VkViewport& Application::GetViewport() const
-{
-	return this->m_viewPort;
 }
 
 SDL_Window* Application::GetWindow() const
@@ -1892,8 +1196,8 @@ void Application::SelectWorldObjects(const int& mouseX, const int& mouseY)
 	glm::vec4 cursorScreenPos = {};
 
 	//ndc
-	cursorScreenPos.x = (2 * cursorWindowPos.x) / this->m_viewPort.width - 1;
-	cursorScreenPos.y = 1 - (2 * cursorWindowPos.y) / this->m_viewPort.height; //vulkan is upside down.
+	cursorScreenPos.x = (2 * cursorWindowPos.x) / this->mWindowExtents.width - 1;
+	cursorScreenPos.y = 1 - (2 * cursorWindowPos.y) / this->mWindowExtents.height; //vulkan is upside down.
 	cursorScreenPos.z = -1;
 	cursorScreenPos.w = 1;
 
@@ -2007,8 +1311,8 @@ void Application::Render()
 	//bind the graphics pipeline
 	vkCmdBindPipeline(this->commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->pipeline);
 
-	vkCmdSetViewport(this->commandBuffer, 0, 1, &this->m_viewPort);
-	vkCmdSetScissor(this->commandBuffer, 0, 1, &this->m_scissor);
+	/*vkCmdSetViewport(this->commandBuffer, 0, 1, &this->m_viewPort);
+	vkCmdSetScissor(this->commandBuffer, 0, 1, &this->m_scissor);*/
 
 	
 	this->mObjectManager["freddy"].Draw(this->commandBuffer);
@@ -2175,13 +1479,13 @@ void Application::exit()
 	vkDestroyRenderPass(this->m_logicalDevice, this->m_renderPass, nullptr);
 
 	//this already destroys the images in it.
-	vkDestroySwapchainKHR(this->m_logicalDevice, this->swapChain, nullptr);
+	//vkDestroySwapchainKHR(this->m_logicalDevice, this->swapChain, nullptr);
 
 	vkDestroyFence(this->m_logicalDevice, this->inFlightFence, nullptr);
 
 
-	delete[] swapChainImages;
-	delete[] m_physicalDevices;
+	//delete[] swapChainImages;
+	//delete[] m_physicalDevices;
 	
 	auto func = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(this->m_instance, "vkDestroyDebugUtilsMessengerEXT");
 
@@ -2199,12 +1503,11 @@ void Application::exit()
 
 Application::~Application()
 {
-	vkDestroyDevice(this->m_logicalDevice, nullptr);
+	/*vkDestroyDevice(this->m_logicalDevice, nullptr);*/
 
-	vkDestroySurfaceKHR(this->m_instance, this->m_windowSurface, nullptr);
+	vkDestroySurfaceKHR(this->m_instance, this->mWindow.surface, nullptr);
 
 	vkDestroyInstance(this->m_instance, nullptr);
-
 	
 }
 
@@ -2214,16 +1517,6 @@ void Application::CleanUpGui()
 	ImGui_ImplVulkan_Shutdown();
 	ImGui_ImplSDL2_Shutdown();
 	ImGui::DestroyContext();
-}
-
-const VkPhysicalDevice& Application::PhysicalDevice() 
-{
-	return this->m_physicalDevices[device_index];
-}
-
-const VkDevice& Application::LogicalDevice()
-{
-	return this->m_logicalDevice;
 }
 
 
