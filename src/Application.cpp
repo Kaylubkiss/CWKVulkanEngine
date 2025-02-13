@@ -94,83 +94,6 @@ void Application::CreateWindowSurface(const VkInstance& vkInstance, vk::Window& 
 	}
 }
 
-//void Application::CreateImageViews(const VkDevice l_device, VkImage* images, uint32_t imageCount)
-//{
-//
-//	//create imageview --> allow image to be seen in a different format.
-//	this->imageViews = new VkImageView[imageCount];
-//
-//	for (unsigned i = 0; i < imageCount; ++i) {
-//
-//		//this is nothing fancy, we won't be editing the color interpretation.
-//		VkComponentMapping componentMapping =
-//		{
-//			VK_COMPONENT_SWIZZLE_IDENTITY,
-//			VK_COMPONENT_SWIZZLE_IDENTITY,
-//			VK_COMPONENT_SWIZZLE_IDENTITY,
-//			VK_COMPONENT_SWIZZLE_IDENTITY,
-//		};
-//
-//		//the view can only refer to one aspect of the parent image.
-//		VkImageSubresourceRange subresourceRange =
-//		{
-//			VK_IMAGE_ASPECT_COLOR_BIT,
-//			0, //base mip level
-//			1, //levelCount for mip levels
-//			0, //baseArrayLayer -> layer not an array image
-//			1, //layerCount for image array. 
-//		};
-//
-//		VkImageViewCreateInfo imageViewCreateInfo =
-//		{
-//			VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
-//			nullptr, //pNext
-//			0, //flags
-//			images[i], //the created image above
-//			VK_IMAGE_VIEW_TYPE_2D, //view image type
-//			VK_FORMAT_B8G8R8A8_SRGB, //as long as the same bits per pixel, the parent and view will be compatible.
-//			componentMapping,
-//			subresourceRange
-//		};
-//
-//		imageViewCreateInfo.subresourceRange.baseMipLevel = 0;
-//		imageViewCreateInfo.subresourceRange.levelCount = 1;
-//		imageViewCreateInfo.subresourceRange.baseArrayLayer = 0;
-//		imageViewCreateInfo.subresourceRange.layerCount = 1;
-//
-//		VK_CHECK_RESULT(vkCreateImageView(l_device, &imageViewCreateInfo, nullptr, &imageViews[i]));
-//	}
-//
-//}
-
-void Application::CreateFrameBuffers(const VkDevice l_device, VkImageView* imageViews, VkImageView depthImageView, uint32_t imageCount, const VkRect2D vpRect) 
-{
-
-	this->frameBuffer = new VkFramebuffer[imageCount];
-
-	for (unsigned i = 0; i < imageCount; ++i) {
-
-		VkImageView attachments[2] = {imageViews[i], depthImageView };
-
-		//create framebuffer info
-		VkFramebufferCreateInfo framebufferCreateInfo =
-		{
-			VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
-			nullptr, //pNext
-			0, //reserved for future expansion.. flags are zero now.
-			this->m_renderPass,
-			2,// attachmentCount
-			attachments, //attachments
-			vpRect.extent.width, //width
-			vpRect.extent.height, //height
-			1 //1 layer
-		};
-
-		VK_CHECK_RESULT(vkCreateFramebuffer(l_device, &framebufferCreateInfo, nullptr, &this->frameBuffer[i]));
-	}
-
-}
-
 
 void Application::CreateUniformBuffers(const VkPhysicalDevice p_device, const VkDevice l_device)
 {
@@ -823,12 +746,6 @@ void Application::exit()
 	vkDestroyImage(this->m_logicalDevice, this->depthImage, nullptr);
 	vkDestroyImageView(this->m_logicalDevice, this->depthImageView, nullptr);
 	vkFreeMemory(this->m_logicalDevice, this->depthImageMemory, nullptr);
-
-	for (unsigned i = 0; i < imageCount; ++i)
-	{
-	/*	vkDestroyImageView(this->m_logicalDevice, this->imageViews[i], nullptr);*/
-		vkDestroyFramebuffer(this->m_logicalDevice, this->frameBuffer[i], nullptr);
-	}
 
 	vkDestroyShaderModule(this->m_logicalDevice, this->shaderVertModule, nullptr);
 
