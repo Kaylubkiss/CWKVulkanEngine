@@ -110,9 +110,6 @@ void Object::UpdatePipelineLayout(VkPipelineLayout* pipelineLayout)
 
 void Object::InitPhysics(ColliderType cType, BodyType bType)
 {
-    assert(_Application != NULL);
-
-
     glm::vec4 worldMinPoints = mModelTransform * glm::vec4(mMinLocalPoints, 1);
     glm::vec4 worldMaxPoints = mModelTransform * glm::vec4(mMaxLocalPoints, 1);
 
@@ -240,7 +237,7 @@ void Object::Draw(VkCommandBuffer cmdBuffer)
 
 }
 
-void LoadMeshOBJ(const std::string& path, Object& obj)
+static void LoadMeshOBJ(const std::string& path, Object& obj)
 {
     tinyobj::attrib_t attrib;
     std::vector<tinyobj::shape_t> shapes;

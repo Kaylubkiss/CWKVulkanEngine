@@ -24,6 +24,10 @@ namespace vk
 		VkCommandPool CreateCommandPool(const VkDevice& l_device, VkCommandPoolCreateFlags createFlag);
 
 		VkSemaphore CreateSemaphore(const VkDevice l_device);
+
+		VkPipelineLayout CreatePipelineLayout(const VkDevice l_device, const VkDescriptorSetLayout descriptorSetLayout);
+
+		VkPipeline CreatePipeline(const VkDevice l_device, const VkPipelineLayout pipelineLayout, const VkRenderPass renderPass, VkPipelineShaderStageCreateInfo* pStages, int numStages, VkPrimitiveTopology primitiveTopology);
 	}
 
 }

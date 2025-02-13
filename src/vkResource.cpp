@@ -5,12 +5,11 @@ namespace vk
 {
 	namespace rsc 
 	{
-		void CreateImage
+		VkImage CreateImage
 		(
 			const VkPhysicalDevice& p_device, const VkDevice& l_device, uint32_t width, uint32_t height, uint32_t mipLevels,
 			VkFormat format, VkImageTiling tiling,
-			VkImageUsageFlags usage, VkMemoryPropertyFlags flags,
-			VkImage& image, VkDeviceMemory& imageMemory, uint32_t arrayLayerCount
+			VkImageUsageFlags usage, VkMemoryPropertyFlags flags, VkDeviceMemory& imageMemory, uint32_t arrayLayerCount
 		)
 		{
 
@@ -33,11 +32,12 @@ namespace vk
 			imageCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;
 
 
-			VK_CHECK_RESULT(vkCreateImage(l_device, &imageCreateInfo, nullptr, &image));
+			VkImage nImage;
+			VK_CHECK_RESULT(vkCreateImage(l_device, &imageCreateInfo, nullptr, &nImage));
 
 			VkMemoryRequirements memRequirements;
 
-			vkGetImageMemoryRequirements(l_device, image, &memRequirements);
+			vkGetImageMemoryRequirements(l_device, nImage, &memRequirements);
 
 			VkMemoryAllocateInfo memAllocInfo = {};
 			memAllocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
@@ -60,7 +60,9 @@ namespace vk
 			VK_CHECK_RESULT(vkAllocateMemory(l_device, &memAllocInfo, nullptr, &imageMemory));
 
 
-			VK_CHECK_RESULT(vkBindImageMemory(l_device, image, imageMemory, 0));
+			VK_CHECK_RESULT(vkBindImageMemory(l_device, nImage, imageMemory, 0));
+
+			return nImage;
 
 		}
 

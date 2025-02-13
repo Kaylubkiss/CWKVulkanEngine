@@ -1,16 +1,16 @@
 #include "Physics.h"
 
-Physics::Physics() 
+PhysicsSystem::PhysicsSystem()
 {
 	this->mPhysicsWorld = this->mPhysicsCommon.createPhysicsWorld();
 }
 
-Physics::~Physics() 
+PhysicsSystem::~PhysicsSystem()
 {
 	this->mPhysicsCommon.destroyPhysicsWorld(this->mPhysicsWorld);
 }
 
-void Physics::Update(float dt) 
+void PhysicsSystem::Update(float dt)
 {
 	this->mAccumulator += dt;
 
@@ -25,26 +25,28 @@ void Physics::Update(float dt)
 
 }
 
-PhysicsWorld* Physics::GetPhysicsWorld() 
+PhysicsWorld* PhysicsSystem::GetPhysicsWorld()
 {
 	return this->mPhysicsWorld;
+
 }
-float Physics::InterpFactor() 
+
+float PhysicsSystem::InterpFactor()
 {
 	return this->interpFactor;
 }
 
-reactphysics3d::RigidBody* Physics::AddRigidBody(const reactphysics3d::Transform& transform) 
+reactphysics3d::RigidBody* PhysicsSystem::AddRigidBody(const reactphysics3d::Transform& transform)
 {
 	return mPhysicsWorld->createRigidBody(transform);
 }
 
-reactphysics3d::BoxShape* Physics::CreateBoxShape(const reactphysics3d::Vector3& extent) 
+reactphysics3d::BoxShape* PhysicsSystem::CreateBoxShape(const reactphysics3d::Vector3& extent) 
 {
 	return mPhysicsCommon.createBoxShape({extent.x, extent.y, extent.z});
 }
 
-reactphysics3d::CapsuleShape* Physics::CreateCapsuleShape(float radius, float height) 
+reactphysics3d::CapsuleShape* PhysicsSystem::CreateCapsuleShape(float radius, float height)
 {
 	return mPhysicsCommon.createCapsuleShape(radius, height);
 }

@@ -94,9 +94,9 @@ namespace vk
 
 		stbi_image_free(pixels);
 
-		vk::rsc::CreateImage(p_device, l_device, textureWidth, textureHeight, mipLevels, VK_FORMAT_R8G8B8A8_SRGB,
+		newTexture.mTextureImage = vk::rsc::CreateImage(p_device, l_device, textureWidth, textureHeight, mipLevels, VK_FORMAT_R8G8B8A8_SRGB,
 			VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, newTexture.mTextureImage, newTexture.mTextureMemory, 1);
+			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, newTexture.mTextureMemory, 1);
 
 		vk::util::TransitionImageLayout(l_device, cmdPool, gfxQueue, newTexture.mTextureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, mipLevels);
 
@@ -125,7 +125,32 @@ namespace vk
 
 	}
 
-	
+	const Texture& TextureManager::GetTexture(size_t index) const
+	{
+
+		if (index < 0 || index >= mTextures.size()) 
+		{
+			throw std::runtime_error("could not find specified texture!\n");
+		}
+
+		return mTextures[index];
+	}
+
+	int TextureManager::GetTextureIndexByName(const char* fileName) const 
+	{
+		for (size_t i = 0; i < mTextures.size(); ++i)
+		{
+			if (strcmp(fileName, mTextures[i].mName.c_str()) == 0)
+			{
+				return i;
+			}
+		}
+
+		throw std::runtime_error("could not find specified texture!\n");
+
+		return this->mTextures.size() - 1;
+
+	}
 
 
 }

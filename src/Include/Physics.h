@@ -18,7 +18,7 @@ struct PhysicsComponent
 
 	PhysicsComponent() : rigidBody(nullptr), collider(nullptr), shape(nullptr),
 		currTransform(reactphysics3d::Vector3::zero(), reactphysics3d::Quaternion::identity()),
-		prevTransform(currTransform) {};
+		prevTransform(currTransform), bodyType(BodyType::STATIC) {};
 
 	void SetRayCastHit(bool set);
 
@@ -28,7 +28,7 @@ struct PhysicsComponent
 
 
 //for managing the state of the physics simulation.
-class Physics 
+class PhysicsSystem 
 {
 	float mAccumulator = 0.f; //for updating the physics world.
 	float interpFactor = 0.f; //for updating the objects for rendering.
@@ -38,13 +38,13 @@ class Physics
 	reactphysics3d::PhysicsWorld* mPhysicsWorld = nullptr;
 
 public:
-	Physics();
+	PhysicsSystem();
 	float InterpFactor();
 	void Update(float dt);
 	reactphysics3d::PhysicsWorld* GetPhysicsWorld();
 	reactphysics3d::RigidBody* AddRigidBody(const reactphysics3d::Transform& transform);
 	reactphysics3d::BoxShape* CreateBoxShape(const reactphysics3d::Vector3& extent);
 	reactphysics3d::CapsuleShape* CreateCapsuleShape(float radius, float height);
-	~Physics();
+	~PhysicsSystem();
 
 };

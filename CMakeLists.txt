@@ -11,7 +11,8 @@ set(VULKAN_ENGINE_SRC src/vkDebug.cpp
                       src/vkGlobal.cpp
                       src/vkGraphicsSystem.cpp
 											src/vkSwapChain.cpp
-											src/vkBuffer.cpp)
+											src/vkBuffer.cpp
+											src/vkResource.cpp)
 
 
 set(SOURCE_FILES src/Application.cpp 
@@ -25,6 +26,7 @@ set(SOURCE_FILES src/Application.cpp
                    src/Physics.cpp
                    src/Timer.cpp
                    src/ThreadPool.cpp
+									 src/TextureManager.cpp
                    src/External/libraries/imgui/imgui_demo.cpp
                    src/External/libraries/imgui/imgui_draw.cpp
                    src/External/libraries/imgui/imgui_tables.cpp
@@ -48,6 +50,7 @@ set(HEADER_FILES ${SRC_INC}/Application.h
 				 ${SRC_INC}/Timer.h
 				 ${SRC_INC}/ThreadPool.h
 				 ${SRC_INC}/ObjectManager.h
+				 ${SRC_INC}/TextureManager.h
 				 ${SRC_INC}/vkUtility.h
 				 ${SRC_INC}/vkDebug.h
 				 ${SRC_INC}/vkGlobal.h
@@ -55,7 +58,8 @@ set(HEADER_FILES ${SRC_INC}/Application.h
          ${SRC_INC}/vkWindow.h
          ${SRC_INC}/vkGraphicsSystem.h
 				 ${SRC_INC}/vkBuffer.h
-				 ${SRC_INC}/vkSwapChain.h)												
+				 ${SRC_INC}/vkSwapChain.h
+				 ${SRC_INC}/vkResource.h)												
 												
 									 
 set(SHADER_DIR src/Shaders)

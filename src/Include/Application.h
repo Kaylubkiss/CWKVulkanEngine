@@ -25,15 +25,13 @@ private:
 	vk::Window mWindow;
 
 public:
+	void run();
+
 	bool guiWindowIsFocused = false;
 
 	const VkPipeline& GetTrianglePipeline();
 	const VkPipeline& GetLinePipeline();
-	int GetTexture(const char* fileName);
-	VkPipelineLayout* GetPipelineLayout();
-	const std::vector<vk::Texture>& Textures();
 	const Time& GetTime();
-	Physics& PhysicsSystem();
 	void RequestExit();
 	SDL_Window* GetWindow() const;
 	bool WindowisFocused();
@@ -41,16 +39,14 @@ public:
 	//void SelectWorldObjects(const int& mouseX, const int& mouseY);
 	Camera& GetCamera();
 	void UpdateUniformViewMatrix();
+	void ResizeViewport();
 
-	void run();
 private:
 	~Application();
 
 	VkInstance m_instance = VK_NULL_HANDLE;
 
 	uTransformObject uTransform = {};
-
-	vk::DepthResources depthResources;
 
 	vk::GraphicsSystem graphicsSystem;
 
@@ -60,17 +56,13 @@ private:
 
 	Camera mCamera;
 
-	Physics mPhysics = Physics();
+	PhysicsSystem mPhysics;
 	  
 	Controller mController;
 
 	bool exitApplication = false;
 
 	VkDebugUtilsMessengerEXT debugMessenger;
-
-	VkRenderPass m_renderPass = VK_NULL_HANDLE;
-
-	VkFramebuffer* frameBuffer = nullptr;
 	
 	/*VkImageView* imageViews = nullptr;*/
 
@@ -79,17 +71,7 @@ private:
 
 	std::vector<VkPipelineLayout> pipelineLayouts;
 
-	VkPipeline pipeline = VK_NULL_HANDLE;
 	VkPipeline linePipeline = VK_NULL_HANDLE;
-
-	//VkCommandPool commandPool = VK_NULL_HANDLE;
-	//VkCommandBuffer commandBuffer = VK_NULL_HANDLE;
-
-	//VkSemaphore imageAvailableSemaphore = VK_NULL_HANDLE;
-	//VkSemaphore renderFinishedSemaphore = VK_NULL_HANDLE;
-
-	//VkFence inFlightFence = VK_NULL_HANDLE;
-
 
 	VkDescriptorPool descriptorPool = VK_NULL_HANDLE;
 	
@@ -101,21 +83,13 @@ private:
 
 	void CreateWindow(vk::Window& appWindow);
 	void CreateWindowSurface(const VkInstance& vkInstance, vk::Window& appWindow);
-
-	/*void CreateImageViews(const VkDevice l_device, VkImage* images, uint32_t imageCount);*/
-
-	void CreateFrameBuffers(const VkDevice l_device, VkImageView* imageViews, VkImageView depthImageView, uint32_t imageCount, const VkViewport& vp);
 	void CreateDescriptorSets();
 	void WriteDescriptorSets();
-	void CreatePipelineLayout(const VkDevice l_device, const VkDescriptorSetLayout descriptorSetLayout);
-	void CreatePipeline(VkPipelineShaderStageCreateInfo* pStages, int numStages, VkPrimitiveTopology primitiveTopology, VkPipeline& pipelineHandle);
-	VkCommandBuffer CreateCommandBuffer(const VkDevice l_device, const VkCommandPool cmdPool);
 	void CreateSemaphores();
 	void CreateFences(const VkDevice l_device);
 	void CreateUniformBuffers(const VkPhysicalDevice p_device, const VkDevice l_device);
 	void RecreateSwapChain();
-	void ResizeViewport(VkViewport& vp, SDL_Window* windowHandle);
-	 
+
 	void InitPhysicsWorld();
 
 

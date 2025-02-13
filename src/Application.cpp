@@ -143,7 +143,7 @@ void Application::CreateWindowSurface(const VkInstance& vkInstance, vk::Window& 
 //
 //}
 
-void Application::CreateFrameBuffers(const VkDevice l_device, VkImageView* imageViews, VkImageView depthImageView, uint32_t imageCount, const VkViewport& vp) 
+void Application::CreateFrameBuffers(const VkDevice l_device, VkImageView* imageViews, VkImageView depthImageView, uint32_t imageCount, const VkRect2D vpRect) 
 {
 
 	this->frameBuffer = new VkFramebuffer[imageCount];
@@ -161,8 +161,8 @@ void Application::CreateFrameBuffers(const VkDevice l_device, VkImageView* image
 			this->m_renderPass,
 			2,// attachmentCount
 			attachments, //attachments
-			(uint32_t)vp.width, //width
-			(uint32_t)vp.height, //height
+			vpRect.extent.width, //width
+			vpRect.extent.height, //height
 			1 //1 layer
 		};
 
@@ -188,12 +188,6 @@ const VkPipeline& Application::GetTrianglePipeline()
 const VkPipeline& Application::GetLinePipeline()
 {
 	return this->linePipeline;
-}
-
-VkPipelineLayout* Application::GetPipelineLayout() 
-{
-	return &(this->pipelineLayouts.back());
-
 }
 
 void Application::CreateDescriptorSets()
@@ -285,193 +279,6 @@ void Application::WriteDescriptorSets()
 
 }
 
-void Application::CreatePipelineLayout(const VkDevice l_device, const VkDescriptorSetLayout descriptorSetLayout) 
-{
-	VkPushConstantRange pushConstants[1];
-
-	//this is for an object's model transformation.
-	pushConstants[0].offset = 0;
-	pushConstants[0].size = sizeof(glm::mat4);
-	pushConstants[0].stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-
-	VkPipelineLayoutCreateInfo				pipelineLayoutCreateInfo = {};
-	pipelineLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-	pipelineLayoutCreateInfo.pNext = nullptr;
-	pipelineLayoutCreateInfo.flags = 0;
-	pipelineLayoutCreateInfo.setLayoutCount = 1;
-	pipelineLayoutCreateInfo.pSetLayouts = &descriptorSetLayout;
-	pipelineLayoutCreateInfo.pushConstantRangeCount = 1;
-	pipelineLayoutCreateInfo.pPushConstantRanges = pushConstants;
-
-	this->pipelineLayouts.push_back(VkPipelineLayout());
-
-	VK_CHECK_RESULT(vkCreatePipelineLayout(l_device, &pipelineLayoutCreateInfo, nullptr, &this->pipelineLayouts.back()));
-
-
-}
-
-void Application::CreatePipeline(VkPipelineShaderStageCreateInfo* pStages, int numStages, VkPrimitiveTopology primitiveTopology, VkPipeline& pipelineHandle)
-{
-	auto vAttribs = vk::init::VertexAttributeDescriptions();
-
-	VkVertexInputBindingDescription vBindingDescription = {};
-	vBindingDescription.stride = sizeof(struct Vertex);
-	vBindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-
-	VkPipelineVertexInputStateCreateInfo vertexInputCreateInfo = vk::init::VertexInputStateCreateInfo();
-	vertexInputCreateInfo.vertexBindingDescriptionCount = 1; //vertexBindingDescriptionCount
-	vertexInputCreateInfo.pVertexBindingDescriptions = &vBindingDescription,
-	vertexInputCreateInfo.vertexAttributeDescriptionCount = vAttribs.size(); //attribute count
-	vertexInputCreateInfo.pVertexAttributeDescriptions = vAttribs.data();
-
-	VkPipelineInputAssemblyStateCreateInfo pipelineAssemblyCreateInfo = vk::init::AssemblyInputStateCreateInfo(primitiveTopology);
-
-	VkDynamicState dynamicState[2] = { VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR };
-	VkPipelineDynamicStateCreateInfo dynamicStateCreateInfo{};
-	dynamicStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
-	dynamicStateCreateInfo.dynamicStateCount = 2;
-	dynamicStateCreateInfo.pDynamicStates = dynamicState;
-
-	
-	VkPipelineViewportStateCreateInfo viewPortCreateInfo =
-	{
-		VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO,
-		nullptr, //pNext
-		0, //flags
-		1, //viewportCount
-		nullptr, //pViewPorts
-		1, //scissorCount
-		nullptr, //pScissors
-	};
-
-
-	VkPipelineRasterizationStateCreateInfo rasterizationStateCreateInfo =
-	{
-		VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
-		nullptr, //pNext
-		0, //flags
-		VK_FALSE, //depthClampEnable
-		VK_FALSE, //rasterizerDiscardEnable
-		VK_POLYGON_MODE_FILL, //polygonMode
-		VK_CULL_MODE_BACK_BIT, //cullMode
-		VK_FRONT_FACE_COUNTER_CLOCKWISE, //frontFace
-		VK_FALSE, //depthBiasEnable
-		0.f, //depthBiasConstantFactor
-		0.f, //depthBiasClamp
-		0.f, //depthBiasSlopeFactor
-		1.f, //lineWidth
-	};
-
-	VkPipelineColorBlendAttachmentState			colorBlendAttachState;
-	colorBlendAttachState.colorWriteMask = VK_COLOR_COMPONENT_R_BIT
-		| VK_COLOR_COMPONENT_G_BIT
-		| VK_COLOR_COMPONENT_B_BIT
-		| VK_COLOR_COMPONENT_A_BIT;
-	colorBlendAttachState.blendEnable = VK_FALSE;
-	colorBlendAttachState.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_COLOR;
-	colorBlendAttachState.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_COLOR;
-	colorBlendAttachState.colorBlendOp = VK_BLEND_OP_ADD;
-	colorBlendAttachState.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
-	colorBlendAttachState.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
-	colorBlendAttachState.alphaBlendOp = VK_BLEND_OP_ADD;
-
-
-
-	VkPipelineColorBlendStateCreateInfo			colorBlendCreateInfo;
-	colorBlendCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
-	colorBlendCreateInfo.pNext = nullptr;
-	colorBlendCreateInfo.flags = 0;
-	colorBlendCreateInfo.logicOpEnable = VK_FALSE;
-	colorBlendCreateInfo.logicOp = VK_LOGIC_OP_COPY;
-
-	colorBlendCreateInfo.attachmentCount = 1;
-	colorBlendCreateInfo.pAttachments = &colorBlendAttachState;
-	colorBlendCreateInfo.blendConstants[0] = 0;
-	colorBlendCreateInfo.blendConstants[1] = 0;
-	colorBlendCreateInfo.blendConstants[2] = 0;
-	colorBlendCreateInfo.blendConstants[3] = 0;
-
-
-	//depthstencil testing
-	VkPipelineDepthStencilStateCreateInfo depthStencilCreateInfo = {};
-	depthStencilCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
-	depthStencilCreateInfo.depthTestEnable = VK_TRUE;
-	depthStencilCreateInfo.depthWriteEnable = VK_TRUE;
-	depthStencilCreateInfo.depthCompareOp = VK_COMPARE_OP_LESS;
-	
-	depthStencilCreateInfo.depthBoundsTestEnable = VK_FALSE;
-	depthStencilCreateInfo.minDepthBounds = 0.f;
-	depthStencilCreateInfo.maxDepthBounds = 1.f;
-	
-	//no stencil test for now.
-	depthStencilCreateInfo.stencilTestEnable = VK_FALSE;
-	depthStencilCreateInfo.front = {};
-	depthStencilCreateInfo.back = {};
-
-	
-	VkPipelineMultisampleStateCreateInfo multiSampleCreateInfo = {};
-	multiSampleCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
-	multiSampleCreateInfo.sampleShadingEnable = VK_FALSE;
-	multiSampleCreateInfo.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
-
-
-	VkGraphicsPipelineCreateInfo gfxPipelineCreateInfo =
-	{
-		VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
-		nullptr,
-		0,
-		(uint32_t)numStages,
-		pStages,
-		//TODO: VkPipelineVertexInputStateCreateInfo
-		&vertexInputCreateInfo,
-		//TODO: VkPipelineInputAssemblyStateCreateInfo,
-		&pipelineAssemblyCreateInfo,
-		//TODO: VkPipelineTessellationStateCreateInfo,
-		nullptr,
-		//TODO: VkPipelineViewportStateCreateInfo,
-		&viewPortCreateInfo,
-		//TODO: VkPipelineRasterizationStateCreateInfo,
-		&rasterizationStateCreateInfo,
-		//TODO: VkPipelineMultisampleStateCreateInfo,
-		&multiSampleCreateInfo,
-		//TODO: VkPipelineDepthStencilStateCreateInfo,
-		&depthStencilCreateInfo,
-		//TODO: VkPipelineColorBlendStateCreateInfo,
-		&colorBlendCreateInfo,
-		//VkPipelineDynamicStateCreateInfo,
-		&dynamicStateCreateInfo,
-		//VkPipelineLayout,
-		this->pipelineLayouts.back(),
-		//VkRenderPass,
-		this->m_renderPass,
-		//subpass,
-		0,
-		//basePipelineHandle,
-		VK_NULL_HANDLE,
-		//basePipelineIndex   
-		0
-	};
-
-	VK_CHECK_RESULT(vkCreateGraphicsPipelines(this->m_logicalDevice, VK_NULL_HANDLE, 1, &gfxPipelineCreateInfo, nullptr, &pipelineHandle));
-
-}
-
-
-VkCommandBuffer CreateCommandBuffer(const VkDevice l_device, const VkCommandPool cmdPool);
-{
-	VkCommandBufferAllocateInfo cmdBufferCreateInfo = {};
-
-	cmdBufferCreateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-	cmdBufferCreateInfo.commandPool = cmdPool;
-	cmdBufferCreateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY; //cannot be called by other command buffers
-	cmdBufferCreateInfo.commandBufferCount = 1;
-
-	VkCommandBuffer nCommandBuffer;
-	VK_CHECK_RESULT(vkAllocateCommandBuffers(l_device, &cmdBufferCreateInfo, &nCommandBuffer));
-
-	return nCommandBuffer;
-}
-
 void Application::CreateSemaphores() 
 {
 	this->imageAvailableSemaphore = vk::init::CreateSemaphore(this->m_logicalDevice);
@@ -491,6 +298,7 @@ void Application::RecreateSwapChain()
 {
 	VK_CHECK_RESULT(vkDeviceWaitIdle(this->m_logicalDevice));
 
+
 	VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(this->m_physicalDevices[device_index], this->m_windowSurface, &this->deviceCapabilities));
 
 	this->mWindowExtents.width = deviceCapabilities.currentExtent.width;
@@ -498,7 +306,6 @@ void Application::RecreateSwapChain()
 
 	for (unsigned i = 0; i < this->imageCount; ++i)
 	{
-		vkDestroyImageView(this->m_logicalDevice, this->imageViews[i], nullptr);
 		vkDestroyFramebuffer(this->m_logicalDevice, this->frameBuffer[i], nullptr);
 	}
 
@@ -521,20 +328,17 @@ void Application::RecreateSwapChain()
 }
 
 
-Physics& Application::PhysicsSystem() 
-{
-	return this->mPhysics;
-}
-
-
-void Application::ResizeViewport(VkViewport& vp, SDL_Window* windowHandle)
+void Application::ResizeViewport()
 {
 	int nWidth, nHeight;
-	SDL_GetWindowSizeInPixels(windowHandle, &nWidth, &nHeight);
-	vp.width = (float)nWidth;
-	vp.height = (float)nHeight;
-	uTransform.proj = glm::perspective(glm::radians(45.f), (float)vp.width / vp.height, 0.1f, 1000.f); //proj
+
+	SDL_GetWindowSizeInPixels(this->mWindow.sdl_ptr, &nWidth, &nHeight);
+	this->mWindow.viewport.width = (float)nWidth;
+	this->mWindow.viewport.height = (float)nHeight;
+
+	uTransform.proj = glm::perspective(glm::radians(45.f), (float)this->mWindow.viewport.width / this->mWindow.viewport.height, 0.1f, 1000.f); //proj
 	uTransform.proj[1][1] *= -1.f;
+
 	memcpy(uniformBuffers[0].mappedMemory, (void*)&uTransform, (size_t)(sizeof(uTransformObject)));
 
 }
@@ -601,20 +405,6 @@ void Application::InitGui()
 	ImGui_ImplVulkan_Init(&init_info);
 }
 
-
-int Application::GetTexture(const char* fileName) 
-{
-	for (size_t i = 0; i < mTextures.size(); ++i) 
-	{
-		if (strcmp(fileName, mTextures[i].mName.c_str()) == 0) 
-		{
-			return i;
-		}
-	}
-
-	this->CreateTexture(std::string(fileName));
-	return this->mTextures.size() - 1;
-}
 
 bool Application::init() 
 {
@@ -870,6 +660,7 @@ void Application::Render(const VkDevice l_device)
 	cmdBufferBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
 	//everything else is default...
 
+	//resetting command buffer should be implicit with reset flag.
 	VK_CHECK_RESULT(vkBeginCommandBuffer(this->commandBuffer, &cmdBufferBeginInfo))
 
 	VkRenderPassBeginInfo renderPassInfo = {};
@@ -985,13 +776,6 @@ void Application::loop()
 
 }
 
-const std::vector<Texture>& Application::Textures() 
-{
-	return this->mTextures;
-
-}
-
-
 void Application::DestroyObjects() 
 {
 	/*debugCube.DestroyResources();
@@ -1077,8 +861,6 @@ void Application::exit()
 
 Application::~Application()
 {
-	/*vkDestroyDevice(this->m_logicalDevice, nullptr);*/
-
 	vkDestroySurfaceKHR(this->m_instance, this->mWindow.surface, nullptr);
 
 	vkDestroyInstance(this->m_instance, nullptr);

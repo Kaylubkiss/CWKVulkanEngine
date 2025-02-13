@@ -5,25 +5,39 @@
 
 namespace vk 
 {
-	struct SwapChain
+	class SwapChain
 	{
-		VkSwapchainKHR handle = VK_NULL_HANDLE;
-		uint32_t imageCount;
-		VkImage* images = nullptr;
+		private:
+			VkSwapchainKHR handle = VK_NULL_HANDLE;
+			uint32_t imageCount;
+			
+			VkImage* images;
+			VkImageView* imageViews = nullptr;
+			
+			VkRenderPass renderPass;
+			VkFramebuffer* frameBuffers = nullptr;
+			
+			vk::DepthResources depthInfo;
 
-		void Destroy(VkDevice l_device)
-		{
-			vkDestroySwapchainKHR(l_device, this->handle, nullptr);
+		public:
+			void AllocateFrameBuffers(const VkDevice l_device, VkImageView depthImageView, const VkRect2D vpRect);
 
-			for (unsigned i = 0; i < imageCount; ++i)
+
+			void Destroy(VkDevice l_device)
 			{
-				vkDestroyImage(l_device, images[i], nullptr);
+				vkDestroySwapchainKHR(l_device, this->handle, nullptr);
+
+				for (unsigned i = 0; i < imageCount; ++i)
+				{
+					vkDestroyFramebuffer(l_device, this->frameBuffers[i], nullptr);
+				}
 			}
-		}
 
+			SwapChain(const VkDevice l_device, const VkPhysicalDevice p_device, uint32_t graphicsFamily, uint32_t presentFamily, const VkSurfaceKHR windowSurface);
 
-
+		private:
+			void CreateImageViews(const VkDevice l_device, VkImage* images, uint32_t imageCount);
 	};
 
-	SwapChain CreateSwapChain(const VkPhysicalDevice p_device, const VkSurfaceKHR windowSurface);
+	
 }

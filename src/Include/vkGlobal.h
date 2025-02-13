@@ -17,10 +17,10 @@ namespace vk
 
 	struct DepthResources
 	{
-		VkImage image;
-		VkDeviceMemory imageMemory;
-		VkImageView imageView;
-		VkFormat format;
+		VkImage depthImage;
+		VkDeviceMemory depthImageMemory;
+		VkImageView depthImageView;
+		VkFormat depthFormat;
 	};
 
 	struct Queue 

@@ -11,6 +11,11 @@ namespace vk
 	{
 	public:
 		void Add(const VkPhysicalDevice p_device, const VkDevice l_device, const VkQueue gfxQueue, const std::string& fileName);
+		
+		const Texture& GetTexture(size_t index) const;
+
+		int GetTextureIndexByName(const char* fileName) const;
+		
 		void Deallocate(const VkDevice l_device);
 	private:
 		

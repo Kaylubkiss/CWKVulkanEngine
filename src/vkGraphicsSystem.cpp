@@ -4,10 +4,32 @@
 
 namespace vk
 {
+	void RenderResources::Destroy(const VkDevice l_device) 
+	{
+		vkDestroyPipeline(l_device, this->defaultPipeline, nullptr);
+
+		vkDestroyRenderPass(l_device,this->renderPass, nullptr);
+		
+		vkDestroyFence(l_device, this->inFlightFence, nullptr);
+		
+		//command pools and their handles.
+		vkFreeCommandBuffers(l_device, this->commandPool, 1, &this->commandBuffer);
+		vkDestroyCommandPool(l_device, this->commandPool, nullptr);
+		
+		//semaphores
+		vkDestroySemaphore(l_device, this->imageAvailableSemaphore, nullptr);
+		vkDestroySemaphore(l_device, this->renderFinishedSemaphore, nullptr);
+	}
+
 	GraphicsSystem::~GraphicsSystem()
 	{
 		//don't need to delete physical device
+		renderResources.Destroy(this->logicalGpu);
+		swapChain.Destroy(this->logicalGpu);
+
+
 		vkDestroyDevice(this->logicalGpu, nullptr);
+
 		delete [] gpus;
 	}
 
@@ -194,4 +216,5 @@ namespace vk
 	{
 		return this->logicalGpu;
 	}
+
 }
