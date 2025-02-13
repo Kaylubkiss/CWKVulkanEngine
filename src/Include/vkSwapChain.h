@@ -20,5 +20,10 @@ namespace vk
 				vkDestroyImage(l_device, images[i], nullptr);
 			}
 		}
-	}
+
+
+
+	};
+
+	SwapChain CreateSwapChain(const VkPhysicalDevice p_device, const VkSurfaceKHR windowSurface);
 }

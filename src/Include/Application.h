@@ -8,6 +8,8 @@
 #include "ObjectManager.h"
 #include "ThreadPool.h"
 #include "vkWindow.h"
+#include "vkTexture.h"
+#include "vkGraphicsSystem.h"
 
 
 struct uTransformObject
@@ -29,24 +31,28 @@ public:
 	const VkPipeline& GetLinePipeline();
 	int GetTexture(const char* fileName);
 	VkPipelineLayout* GetPipelineLayout();
-	const std::vector<Texture>& Textures();
+	const std::vector<vk::Texture>& Textures();
 	const Time& GetTime();
 	Physics& PhysicsSystem();
 	void RequestExit();
 	SDL_Window* GetWindow() const;
 	bool WindowisFocused();
 	void ToggleObjectVisibility(SDL_Keycode keysym,uint8_t lshift);
-	void SelectWorldObjects(const int& mouseX, const int& mouseY);
+	//void SelectWorldObjects(const int& mouseX, const int& mouseY);
 	Camera& GetCamera();
 	void UpdateUniformViewMatrix();
 
 	void run();
-	~Application();
 private:
+	~Application();
+
+	VkInstance m_instance = VK_NULL_HANDLE;
 
 	uTransformObject uTransform = {};
 
 	vk::DepthResources depthResources;
+
+	vk::GraphicsSystem graphicsSystem;
 
 	Time mTime;
 
@@ -62,16 +68,11 @@ private:
 
 	VkDebugUtilsMessengerEXT debugMessenger;
 
-	//variabless
-	VkInstance m_instance = VK_NULL_HANDLE;
-
-	//VkDevice m_logicalDevice = VK_NULL_HANDLE;
-
 	VkRenderPass m_renderPass = VK_NULL_HANDLE;
 
 	VkFramebuffer* frameBuffer = nullptr;
 	
-	VkImageView* imageViews = nullptr;
+	/*VkImageView* imageViews = nullptr;*/
 
 	VkShaderModule shaderVertModule = VK_NULL_HANDLE;
 	VkShaderModule shaderFragModule = VK_NULL_HANDLE;
@@ -81,69 +82,51 @@ private:
 	VkPipeline pipeline = VK_NULL_HANDLE;
 	VkPipeline linePipeline = VK_NULL_HANDLE;
 
-	VkCommandPool commandPool = VK_NULL_HANDLE;
-	VkCommandBuffer commandBuffer = VK_NULL_HANDLE;
+	//VkCommandPool commandPool = VK_NULL_HANDLE;
+	//VkCommandBuffer commandBuffer = VK_NULL_HANDLE;
 
-	VkSemaphore imageAvailableSemaphore = VK_NULL_HANDLE;
-	VkSemaphore renderFinishedSemaphore = VK_NULL_HANDLE;
+	//VkSemaphore imageAvailableSemaphore = VK_NULL_HANDLE;
+	//VkSemaphore renderFinishedSemaphore = VK_NULL_HANDLE;
 
-	VkFence inFlightFence = VK_NULL_HANDLE;
-
+	//VkFence inFlightFence = VK_NULL_HANDLE;
 
 
 	VkDescriptorPool descriptorPool = VK_NULL_HANDLE;
 	
 	VkDescriptorSetLayout descriptorSetLayout = VK_NULL_HANDLE; //dunno if this should be here...
 
-	std::vector<Buffer> uniformBuffers;
-
-	std::vector<Texture> mTextures;
-
+	std::vector<vk::Buffer> uniformBuffers;
 
 	LightInfoObject mLights;
 
-	/*VkSwapchainKHR swapChain = VK_NULL_HANDLE;
-	VkImage* swapChainImages = nullptr;
-	uint32_t imageCount = -1;*/
-
-	VkSurfaceCapabilitiesKHR deviceCapabilities = {};
-
-	//
 	void CreateWindow(vk::Window& appWindow);
 	void CreateWindowSurface(const VkInstance& vkInstance, vk::Window& appWindow);
 
-	void CreateSwapChain();
-	void CreateImageViews();
-	void CreateFrameBuffers();
+	/*void CreateImageViews(const VkDevice l_device, VkImage* images, uint32_t imageCount);*/
+
+	void CreateFrameBuffers(const VkDevice l_device, VkImageView* imageViews, VkImageView depthImageView, uint32_t imageCount, const VkViewport& vp);
 	void CreateDescriptorSets();
 	void WriteDescriptorSets();
-	void CreatePipelineLayout();
+	void CreatePipelineLayout(const VkDevice l_device, const VkDescriptorSetLayout descriptorSetLayout);
 	void CreatePipeline(VkPipelineShaderStageCreateInfo* pStages, int numStages, VkPrimitiveTopology primitiveTopology, VkPipeline& pipelineHandle);
-	void CreateCommandPools(const VkDevice& l_device);
-	void CreateCommandBuffers();
+	VkCommandBuffer CreateCommandBuffer(const VkDevice l_device, const VkCommandPool cmdPool);
 	void CreateSemaphores();
-	void CreateFences();
-	void CreateUniformBuffers();
+	void CreateFences(const VkDevice l_device);
+	void CreateUniformBuffers(const VkPhysicalDevice p_device, const VkDevice l_device);
 	void RecreateSwapChain();
 	void ResizeViewport(VkViewport& vp, SDL_Window* windowHandle);
-	
-	void GenerateMipMaps(VkImage image, VkFormat imgFormat, uint32_t textureWidth, uint32_t textureHeight, uint32_t mipLevels);
-
-	void CreateTexture(const std::string& fileName);
-	void CreateTextureView(const VkImage& textureImage, VkImageView& textureImageView, uint32_t mipLevels);
-	void CreateTextureSampler(VkSampler& textureSampler, uint32_t mipLevels);
-
+	 
 	void InitPhysicsWorld();
 
 
-	void DrawGui();
+	void DrawGui(VkCommandBuffer cmdBuffer);
 
 
 	bool init();
 	void loop();
 	void exit();
 
-	void Render();
+	void Render(const VkDevice l_device);
 
 	void InitGui();
 	void CleanUpGui();

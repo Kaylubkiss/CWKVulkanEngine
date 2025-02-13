@@ -6,10 +6,12 @@ project("${PROJECT_NAME}" LANGUAGES CXX C)
 
 
 set(VULKAN_ENGINE_SRC src/vkDebug.cpp
-				      src/vkUtility.cpp
-				      src/vkInit.cpp
+											src/vkUtility.cpp
+											src/vkInit.cpp
                       src/vkGlobal.cpp
-                      src/vkGraphicsSystem.cpp)
+                      src/vkGraphicsSystem.cpp
+											src/vkSwapChain.cpp
+											src/vkBuffer.cpp)
 
 
 set(SOURCE_FILES src/Application.cpp 
@@ -50,9 +52,10 @@ set(HEADER_FILES ${SRC_INC}/Application.h
 				 ${SRC_INC}/vkDebug.h
 				 ${SRC_INC}/vkGlobal.h
 				 ${SRC_INC}/vkInit.h
-                 ${SRC_INC}/vkWindow.h
-                 ${SRC_INC}/vkGraphicsSystem.h
-				 ${SRC_INC}/Buffer.h)												
+         ${SRC_INC}/vkWindow.h
+         ${SRC_INC}/vkGraphicsSystem.h
+				 ${SRC_INC}/vkBuffer.h
+				 ${SRC_INC}/vkSwapChain.h)												
 												
 									 
 set(SHADER_DIR src/Shaders)

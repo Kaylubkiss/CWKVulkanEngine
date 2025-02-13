@@ -17,10 +17,10 @@ namespace vk
 
 	struct DepthResources
 	{
-		VkImage depthImage;
-		VkDeviceMemory depthImageMemory;
-		VkImageView depthImageView;
-		VkFormat depthFormat;
+		VkImage image;
+		VkDeviceMemory imageMemory;
+		VkImageView imageView;
+		VkFormat format;
 	};
 
 	struct Queue 
@@ -29,5 +29,9 @@ namespace vk
 		uint32_t family;
 	};
 
-	
+	VkCommandBuffer beginCmd(const VkDevice l_device, const VkCommandPool cmdPool);
+
+	void endCmd(const VkDevice l_device, VkCommandBuffer commandBuffer, const VkCommandPool cmdPool, const VkQueue gfxQueue);
+
+
 }

@@ -9,7 +9,6 @@ namespace vk
 	{
 		VkPipelineVertexInputStateCreateInfo VertexInputStateCreateInfo();
 
-
 		VkPipelineInputAssemblyStateCreateInfo AssemblyInputStateCreateInfo(VkPrimitiveTopology primitiveTopology);
 
 		VkDescriptorSetLayout CreateDescriptorSetLayout();
@@ -21,6 +20,10 @@ namespace vk
 		VkInstance CreateInstance(SDL_Window* window);	
 
 		VkRenderPass CreateRenderPass(const VkDevice l_device, const VkFormat& depthFormat);
+
+		VkCommandPool CreateCommandPool(const VkDevice& l_device, VkCommandPoolCreateFlags createFlag);
+
+		VkSemaphore CreateSemaphore(const VkDevice l_device);
 	}
 
 }

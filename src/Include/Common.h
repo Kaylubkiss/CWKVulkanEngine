@@ -58,18 +58,7 @@ namespace std {
 
 
 
-struct Texture 
-{
-	std::string mName;
-	VkImage mTextureImage;
-	VkDeviceMemory mTextureMemory;
-	VkImageView mTextureImageView;
-	VkSampler mTextureSampler;
 
-	VkDescriptorSet mDescriptor = VK_NULL_HANDLE;
-
-	Texture() : mTextureImage(), mTextureMemory(), mTextureImageView(), mTextureSampler(), mDescriptor(VK_NULL_HANDLE) {};
-};
 
 
 

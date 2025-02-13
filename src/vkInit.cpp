@@ -411,5 +411,65 @@ namespace vk
 			return nSwapChain;
 
 		}
+
+
+		VkSampler CreateTextureSampler(const VkPhysicalDevice p_device, const VkDevice l_device, uint32_t mipLevels)
+		{
+			VkSamplerCreateInfo createInfo = {};
+			createInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+			createInfo.magFilter = VK_FILTER_LINEAR;
+			createInfo.minFilter = VK_FILTER_LINEAR;
+			createInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+			createInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+			createInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+
+			createInfo.anisotropyEnable = VK_TRUE;
+
+			VkPhysicalDeviceProperties pdp = { };
+			vkGetPhysicalDeviceProperties(p_device, &pdp);
+
+			createInfo.maxAnisotropy = pdp.limits.maxSamplerAnisotropy / 2.f;
+
+			createInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
+			createInfo.unnormalizedCoordinates = VK_FALSE;
+
+			createInfo.compareEnable = VK_FALSE;
+			createInfo.compareOp = VK_COMPARE_OP_ALWAYS;
+
+			createInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+			createInfo.minLod = 0.f;
+			createInfo.maxLod = static_cast<float>(mipLevels);
+			createInfo.mipLodBias = 0.f; //optional...
+
+			VkSampler nTextureSampler;
+			VK_CHECK_RESULT(vkCreateSampler(l_device, &createInfo, nullptr, &nTextureSampler));
+
+			return nTextureSampler;
+		}
+
+		VkCommandPool CreateCommandPool(const VkDevice& l_device, VkCommandPoolCreateFlags createFlag) 
+		{
+
+			VkCommandPoolCreateInfo commandPoolCreateInfo = {};
+			commandPoolCreateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+			commandPoolCreateInfo.flags = createFlag; //recording commands every frame.
+			commandPoolCreateInfo.queueFamilyIndex = 0; //only one physical device on initial development machine.
+
+			VkCommandPool cmdPool;
+			VK_CHECK_RESULT(vkCreateCommandPool(l_device, &commandPoolCreateInfo, nullptr, &cmdPool));
+
+			return cmdPool;
+		}
+
+		VkSemaphore CreateSemaphore(const VkDevice l_device)
+		{
+			VkSemaphoreCreateInfo semaphoreInfo = {};
+			semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+
+			VkSemaphore nSemaphore;
+			VK_CHECK_RESULT(vkCreateSemaphore(l_device, &semaphoreInfo, nullptr, &nSemaphore))
+			
+			return nSemaphore;
+		}
 	}
 }

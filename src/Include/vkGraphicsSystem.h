@@ -19,12 +19,17 @@ namespace vk
 
 
 		public:
-			const VkPhysicalDevice& PhysicalDevice() const;
+			GraphicsSystem(const VkInstance vkInstance, const VkSurfaceKHR windowSurface);
+			~GraphicsSystem();
+
+			const VkPhysicalDevice PhysicalDevice() const;
+			const VkDevice LogicalDevice() const;
+
 			static VkDevice CreateLogicalDevice(const VkPhysicalDevice& p_device, uint32_t graphicsFamily, uint32_t presentFamily);
 
+
 		private:
-			GraphicsSystem();
-			~GraphicsSystem();
+			GraphicsSystem() = default;
 
 			void FindQueueFamilies(const VkPhysicalDevice& physicalDevice, const VkSurfaceKHR& windowSurface);
 			void EnumeratePhysicalDevices(const VkInstance& vkInstance);

@@ -23,7 +23,7 @@ namespace vk
 
 		void BindMessengerToInstance(const VkInstance& instance, VkDebugUtilsMessengerEXT& debugMessenger)
 		{
-			VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo = vkinit::DebugMessengerCreateInfo();
+			VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo = vk::init::DebugMessengerCreateInfo();
 
 			auto func = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
 

@@ -8,19 +8,30 @@ namespace vk
 	{
 		//don't need to delete physical device
 		vkDestroyDevice(this->logicalGpu, nullptr);
+		delete [] gpus;
 	}
 
-	GraphicsSystem::GraphicsSystem()
+	GraphicsSystem::GraphicsSystem(const VkInstance vkInstance, const VkSurfaceKHR windowSurface)
 	{
+		if (vkInstance == VK_NULL_HANDLE) {
 
+			throw std::runtime_error("Can't create graphics without instance!");
+		}
+
+		GraphicsSystem::EnumeratePhysicalDevices(vkInstance);
+		GraphicsSystem::FindQueueFamilies(this->gpus[g_index], windowSurface);
+
+		this->logicalGpu = GraphicsSystem::CreateLogicalDevice(this->gpus[g_index], graphicsQueue.family, presentQueue.family);
+
+		vkGetDeviceQueue(this->logicalGpu, graphicsQueue.family, 0, &graphicsQueue.handle);
+		vkGetDeviceQueue(this->logicalGpu, presentQueue.family, 0, &presentQueue.handle);
 
 	}
 
-	const VkPhysicalDevice& GraphicsSystem::PhysicalDevice() const
+	const VkPhysicalDevice GraphicsSystem::PhysicalDevice() const
 	{
 		return this->gpus[g_index];
 	}
-
 
 	void GraphicsSystem::FindQueueFamilies(const VkPhysicalDevice& physicalDevice, const VkSurfaceKHR& windowSurface)
 	{
@@ -128,7 +139,6 @@ namespace vk
 
 	}
 
-
 	VkDevice GraphicsSystem::CreateLogicalDevice(const VkPhysicalDevice& p_device, uint32_t graphicsFamily, uint32_t presentFamily)
 	{
 		VkDeviceQueueCreateInfo deviceQueueCreateInfos[2]; //presentation and graphics.
@@ -178,5 +188,10 @@ namespace vk
 		VK_CHECK_RESULT(vkCreateDevice(p_device, &deviceCreateInfo, nullptr, &nLogicalDevice));
 
 		return nLogicalDevice;
+	}
+
+	const VkDevice GraphicsSystem::LogicalDevice() const 
+	{
+		return this->logicalGpu;
 	}
 }
