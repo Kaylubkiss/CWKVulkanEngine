@@ -64,7 +64,7 @@ namespace vk
 			GraphicsSystem(const GraphicsSystem&) = delete;
 
 			void Destroy();
-			~GraphicsSystem() = delete;
+			~GraphicsSystem() = default;
 
 
 			const VkPhysicalDevice PhysicalDevice() const;
