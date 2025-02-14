@@ -202,8 +202,8 @@ namespace vk
 				renderPass,
 				2,// attachmentCount
 				attachments, //attachments
-				vp.width, //width
-				vp.height, //height
+				static_cast<uint32_t>(vp.width), //width
+				static_cast<uint32_t>(vp.height), //height
 				1 //1 layer
 			};
 

@@ -2,7 +2,6 @@
 #include "vkUtility.h"
 #include "vkDebug.h"
 #include "vkResource.h"
-
 #include <SDL2/SDL_vulkan.h>
 
 namespace vk
@@ -196,7 +195,7 @@ namespace vk
 
 			delete[] extensionNames;
 
-
+			return newInstance;
 
 		}
 
@@ -345,7 +344,7 @@ namespace vk
 			return nTextureSampler;
 		}
 
-		VkCommandPool CreateCommandPool(const VkDevice& l_device, VkCommandPoolCreateFlags createFlag) 
+		VkCommandPool CommandPool(const VkDevice& l_device, VkCommandPoolCreateFlags createFlag) 
 		{
 
 			VkCommandPoolCreateInfo commandPoolCreateInfo = {};
@@ -359,7 +358,7 @@ namespace vk
 			return cmdPool;
 		}
 
-		VkCommandBuffer CreateCommandBuffer(const VkDevice l_device, const VkCommandPool cmdPool)
+		VkCommandBuffer CommandBuffer(const VkDevice l_device, const VkCommandPool cmdPool)
 		{
 			VkCommandBufferAllocateInfo cmdBufferCreateInfo = {};
 
@@ -397,7 +396,7 @@ namespace vk
 			return nFence;
 		}
 
-		VkShaderModule ShaderModule(const VkDevice l_device, const char* filename)
+		VkShaderModule ShaderModule(const VkDevice& l_device, const char* filename)
 		{
 			std::ifstream file(filename, std::ios::ate | std::ios::binary); //when we initialize, we std::ios::ate points to the end.
 
@@ -421,7 +420,6 @@ namespace vk
 
 			file.close();
 
-			delete[] buffer;
 
 			VkShaderModuleCreateInfo shaderVertModuleInfo =
 			{
@@ -432,8 +430,12 @@ namespace vk
 				reinterpret_cast<const uint32_t*>(buffer)
 			};
 
+			
+
 			VkShaderModule nShaderModule;
 			VK_CHECK_RESULT(vkCreateShaderModule(l_device, &shaderVertModuleInfo, nullptr, &nShaderModule));
+			
+			delete[] buffer;
 
 			return nShaderModule;
 		}
@@ -478,6 +480,45 @@ namespace vk
 			return nPipelineLayout;
 
 
+		}
+
+
+		VkDescriptorPool DescriptorPool(const VkDevice l_device) 
+		{
+			VkDescriptorPoolSize poolSize[2] = {};
+			poolSize[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+			poolSize[0].descriptorCount = 2; //max numbers of frames in flight.
+
+			//we are concerned about the fragment stage, so we double the descriptor count here.
+			poolSize[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+			poolSize[1].descriptorCount = 1 * 2; //max numbers of frames in flight times two to accomodate the gui.
+
+			VkDescriptorPoolCreateInfo poolInfo{};
+			poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+			poolInfo.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
+			poolInfo.poolSizeCount = (uint32_t)2;
+			poolInfo.pPoolSizes = poolSize;
+			poolInfo.maxSets = 1000; //how many descriptor sets in this pool?
+
+			VkDescriptorPool nDescriptorPool;
+			VK_CHECK_RESULT(vkCreateDescriptorPool(l_device, &poolInfo, nullptr, &nDescriptorPool));
+
+			return nDescriptorPool;
+		}
+
+
+		VkDescriptorSet DescriptorSet(const VkDevice l_device, const VkDescriptorPool dscPool, const VkDescriptorSetLayout dscLayout)
+		{
+			VkDescriptorSetAllocateInfo descriptorAllocInfo{};
+			descriptorAllocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+			descriptorAllocInfo.descriptorPool = dscPool;
+			descriptorAllocInfo.descriptorSetCount = 1;
+			descriptorAllocInfo.pSetLayouts = &dscLayout;
+
+			VkDescriptorSet nDescriptorSet;
+			VK_CHECK_RESULT(vkAllocateDescriptorSets(l_device, &descriptorAllocInfo, &nDescriptorSet));
+
+			return nDescriptorSet;
 		}
 
 		VkPipeline CreatePipeline(const VkDevice l_device, const VkPipelineLayout pipelineLayout, const VkRenderPass renderPass, VkPipelineShaderStageCreateInfo* pStages, int numStages, VkPrimitiveTopology primitiveTopology)

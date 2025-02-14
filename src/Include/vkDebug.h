@@ -1,5 +1,6 @@
 #pragma once
-#include "Common.h"
+#include "vkInit.h"
+#include <vulkan/vulkan.h>
 
 namespace vk
 {
@@ -21,7 +22,7 @@ namespace vk
 		}
 
 
-		void BindMessengerToInstance(const VkInstance& instance, VkDebugUtilsMessengerEXT& debugMessenger)
+		static void BindMessengerToInstance(const VkInstance& instance, VkDebugUtilsMessengerEXT& debugMessenger)
 		{
 			VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo = vk::init::DebugMessengerCreateInfo();
 

@@ -7,20 +7,27 @@
 
 namespace vk 
 {
-	struct TextureManager 
+	class TextureManager 
 	{
-	public:
-		void Add(const VkPhysicalDevice p_device, const VkDevice l_device, const VkQueue gfxQueue, const std::string& fileName);
-		
-		const Texture& GetTexture(size_t index) const;
+		public:
+			TextureManager(const VkDevice l_device);
+			TextureManager() = default;
+			~TextureManager() = default;
 
-		int GetTextureIndexByName(const char* fileName) const;
-		
-		void Deallocate(const VkDevice l_device);
-	private:
-		
-		//I know that string comparison is slow. Will work on that later.
-		std::vector<Texture> mTextures;
+			void Destroy(const VkDevice l_device);
+
+			void Add(const VkPhysicalDevice p_device, const VkDevice l_device, const VkQueue	gfxQueue, const VkDescriptorSetLayout dscSetLayout, const std::string& fileName);
+			
+			const Texture& GetTexture(size_t index) const;
+
+			int GetTextureIndexByName(const char* fileName) const;
+
+			void WriteDescriptorSets(const VkDevice l_device, const VkDescriptorBufferInfo* pUniformDescriptorBuffers, size_t uniformDescriptorCount);
+
+		private:
+			VkDescriptorPool descriptorPool = VK_NULL_HANDLE;
+
+			std::vector<vk::Texture> mTextures;
 	};
 
 }

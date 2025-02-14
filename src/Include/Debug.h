@@ -10,7 +10,7 @@ private:
 	std::vector<Vertex> debugVertexData;
 	glm::mat4 modelTransforms;
 	uint32_t offsetInLinesArrary = 0;
-	Buffer debugVertexBuffer;
+	vk::Buffer debugVertexBuffer;
 	bool debugBufferAllocated = false;
 	bool isDebugEnabled = false;
 	bool isOnlyDrawing = false;

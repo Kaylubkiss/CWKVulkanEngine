@@ -1,5 +1,6 @@
 #include "TextureManager.h"
 #include "vkUtility.h"
+#define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 #include "vkBuffer.h"
 #include "vkResource.h"
@@ -63,12 +64,55 @@ namespace vk
 		return nTextureSampler;
 	}
 
-	void TextureManager::Add(const VkPhysicalDevice p_device, const VkDevice l_device, const VkQueue gfxQueue, const std::string& fileName)
+	TextureManager::TextureManager(const VkDevice l_device) 
+	{
+		this->descriptorPool = vk::init::DescriptorPool(l_device);
+	}
+
+	//could very well be inefficient. Look into a way to individually write descriptor sets. Shouldn't be hard. Later.
+	void TextureManager::WriteDescriptorSets(const VkDevice l_device, const VkDescriptorBufferInfo* pUniformDescriptorBuffers, size_t uniformDescriptorCount) 
+	{
+		VkDescriptorImageInfo imageInfo = {};
+
+		for (size_t i = 0; i < this->mTextures.size(); ++i)
+		{
+			imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+			imageInfo.imageView = this->mTextures[i].mTextureImageView;
+			imageInfo.sampler = this->mTextures[i].mTextureSampler;
+
+			//writing the uniform transforms.
+			VkWriteDescriptorSet descriptorWrite[2] = {};
+			descriptorWrite[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+			descriptorWrite[0].dstSet = this->mTextures[i].mDescriptorSet;
+			descriptorWrite[0].dstBinding = 0;
+			descriptorWrite[0].dstArrayElement = 0;
+			descriptorWrite[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+			descriptorWrite[0].descriptorCount = uniformDescriptorCount; //how many buffers
+			descriptorWrite[0].pBufferInfo = pUniformDescriptorBuffers;
+			descriptorWrite[0].pImageInfo = nullptr; // Optional
+			descriptorWrite[0].pTexelBufferView = nullptr; // Optional
+
+			//writing the texture sampler.
+			descriptorWrite[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+			descriptorWrite[1].dstSet = this->mTextures[i].mDescriptorSet;
+			descriptorWrite[1].dstBinding = 1;
+			descriptorWrite[1].dstArrayElement = 0;
+			descriptorWrite[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+			descriptorWrite[1].descriptorCount = 1; //how many images
+			descriptorWrite[1].pImageInfo = &imageInfo;
+			descriptorWrite[1].pTexelBufferView = nullptr; // Optional
+
+			vkUpdateDescriptorSets(l_device, 2, descriptorWrite, 0, nullptr);
+		}
+
+	}
+
+	void TextureManager::Add(const VkPhysicalDevice p_device, const VkDevice l_device, const VkQueue	gfxQueue, const VkDescriptorSetLayout dscSetLayout, const std::string& fileName)
 	{
 		//TODO: ensure that the same texture isn't allocated twice.
 
 		//Might want to make command pool a member variable.
-		VkCommandPool cmdPool = vk::init::CreateCommandPool(l_device, VK_COMMAND_POOL_CREATE_TRANSIENT_BIT);
+		VkCommandPool cmdPool = vk::init::CommandPool(l_device, VK_COMMAND_POOL_CREATE_TRANSIENT_BIT);
 
 		this->mTextures.push_back(Texture());
 		Texture& newTexture = this->mTextures.back();
@@ -102,21 +146,25 @@ namespace vk
 		vkDestroyBuffer(l_device, stagingBuffer.handle, nullptr);
 		vkFreeMemory(l_device, stagingBuffer.memory, nullptr);
 
+		vkDestroyCommandPool(l_device, cmdPool, nullptr);
+
 		newTexture.mTextureImageView = CreateTextureView(l_device, newTexture.mTextureImage, mipLevels);
 
 		newTexture.mTextureSampler = CreateTextureSampler(p_device, l_device, mipLevels);
 
 		this->mTextures.back().mName = fileName;
 
-		vkDestroyCommandPool(l_device, cmdPool, nullptr);
+		this->mTextures.back().mDescriptorSet = vk::init::DescriptorSet(l_device, this->descriptorPool, dscSetLayout);
 	}
 
-	void TextureManager::Deallocate(const VkDevice l_device) 
+	void TextureManager::Destroy(const VkDevice l_device) 
 	{
 		for (size_t i = 0; i < mTextures.size(); ++i) 
 		{
 			mTextures[i].Destroy(l_device);
 		}
+
+		vkDestroyDescriptorPool(l_device, this->descriptorPool, nullptr);
 
 	}
 

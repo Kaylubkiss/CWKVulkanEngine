@@ -16,7 +16,7 @@ struct LightInfoObject
 	glm::vec3 lightPos[MaxLights] = { {0,0,0} };
 	int curr_index[MAX_IND_COUNT] = { 0 };
 	bool isUpdated = false;
-	Buffer mBuffer;
+	vk::Buffer mBuffer;
 
 private:
 	/*void AddDirection(const glm::vec3& dir);*/

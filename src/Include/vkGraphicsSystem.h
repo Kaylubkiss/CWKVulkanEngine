@@ -16,8 +16,7 @@ namespace vk
 
 		VkSemaphore imageAvailableSemaphore = VK_NULL_HANDLE;
 		VkSemaphore renderFinishedSemaphore = VK_NULL_HANDLE;
-
-		
+	
 		vk::Buffer uniformBuffer;
 
 		VkRenderPass renderPass;
@@ -27,6 +26,9 @@ namespace vk
 		//for window size information;
 		VkExtent2D currentExtent;
 	
+		//Descriptor sets --> might want this to be an array at some point.
+		VkDescriptorPool descriptorPool;
+
 		//pipeline information
 		VkDescriptorSetLayout defaultDescriptorSetLayout = VK_NULL_HANDLE;
 		VkPipelineLayout defaultPipelineLayout = VK_NULL_HANDLE;
@@ -75,10 +77,9 @@ namespace vk
 			void UpdateUniformViewMatirx(const glm::mat4& viewMat);
 			void ResizeWindow();
 
-			void Render();
-		private:
-			GraphicsSystem() = default;
+			void Render(const vk::Window& appWindow);
 
+		private:
 			void FindQueueFamilies(const VkPhysicalDevice& physicalDevice, const VkSurfaceKHR& windowSurface);
 
 			void EnumeratePhysicalDevices(const VkInstance& vkInstance);

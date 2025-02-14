@@ -14,9 +14,9 @@ namespace vk
 		VkImageView mTextureImageView;
 		VkSampler mTextureSampler;
 
-		VkDescriptorSet mDescriptor = VK_NULL_HANDLE;
+		VkDescriptorSet mDescriptorSet = VK_NULL_HANDLE;
 
-		Texture() : mTextureImage(), mTextureMemory(), mTextureImageView(), mTextureSampler(), mDescriptor(VK_NULL_HANDLE) {};
+		Texture() : mTextureImage(), mTextureMemory(), mTextureImageView(), mTextureSampler(), mDescriptorSet(VK_NULL_HANDLE) {};
 
 		void Destroy(const VkDevice l_device) {
 

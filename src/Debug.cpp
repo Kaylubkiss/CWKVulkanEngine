@@ -3,28 +3,28 @@
 
 void DebugDrawObject::Draw(VkCommandBuffer cmdBuffer) 
 {
-	//WARNING: EXPENSIVE!!!!!
-	if (_Application == NULL) 
-	{
-		return;
-	}
+	////WARNING: EXPENSIVE!!!!!
+	//if (_Application == NULL) 
+	//{
+	//	return;
+	//}
 
-	if (this->isDebugEnabled && this->debugBufferAllocated)
-	{
-		VkDeviceSize offsets[1] = { 0 };
-		vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, _Application->GetLinePipeline());
+	//if (this->isDebugEnabled && this->debugBufferAllocated)
+	//{
+	//	VkDeviceSize offsets[1] = { 0 };
+	//	vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, _Application->GetLinePipeline());
 
-		vkCmdBindVertexBuffers(cmdBuffer, 0, 1, &this->debugVertexBuffer.handle, offsets);
-		vkCmdDraw(cmdBuffer, static_cast<uint32_t>(debugVertexData.size()), 1, 0, 0);
+	//	vkCmdBindVertexBuffers(cmdBuffer, 0, 1, &this->debugVertexBuffer.handle, offsets);
+	//	vkCmdDraw(cmdBuffer, static_cast<uint32_t>(debugVertexData.size()), 1, 0, 0);
 
-		vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, _Application->GetTrianglePipeline());
-	}
+	//	vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, _Application->GetTrianglePipeline());
+	//}
 
 }
 
 void DebugDrawObject::Update() 
 {
-	assert(_Application != NULL);
+	/*assert(_Application != NULL);
 
 	if (this->isDebugEnabled) 
 	{
@@ -63,7 +63,7 @@ void DebugDrawObject::Update()
 				debugVertexData[i + 1].pos = glm::inverse(this->modelTransforms) * glm::vec4(tri.point2.x, tri.point2.y, tri.point2.z, 1);
 			}
 		}
-	}
+	}*/
 
 }
 
@@ -75,8 +75,8 @@ void DebugDrawObject::WillDraw(bool set)
 
 void DebugDrawObject::DestroyResources() 
 {
-	vkFreeMemory(_Application->LogicalDevice(), this->debugVertexBuffer.memory, nullptr);
-	vkDestroyBuffer(_Application->LogicalDevice(), this->debugVertexBuffer.handle, nullptr);
+	/*vkFreeMemory(_Application->LogicalDevice(), this->debugVertexBuffer.memory, nullptr);
+	vkDestroyBuffer(_Application->LogicalDevice(), this->debugVertexBuffer.handle, nullptr);*/
 }
 
 void DebugDrawObject::AddModelTransform(const glm::mat4& model) 

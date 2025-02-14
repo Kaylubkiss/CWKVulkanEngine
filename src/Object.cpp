@@ -10,150 +10,150 @@
 Object::Object(const char* fileName, bool willDebugDraw, const glm::mat4& modelTransform, const char* textureName, VkPipelineLayout* pipelineLayout)
 {
 
-    LoadMeshOBJ(fileName, *this);
+   // LoadMeshOBJ(fileName, *this);
 
 
-    this->mModelTransform = modelTransform;
+   // this->mModelTransform = modelTransform;
 
-    this->numVertices = static_cast<int>(this->vertexBufferData.size());
+   // this->numVertices = static_cast<int>(this->vertexBufferData.size());
 
-    glm::vec3 min_points(0.f);
-    glm::vec3 max_points(0.f);
+   // glm::vec3 min_points(0.f);
+   // glm::vec3 max_points(0.f);
 
-    for (unsigned i = 0; i < this->vertexBufferData.size(); ++i)
-    {
+   // for (unsigned i = 0; i < this->vertexBufferData.size(); ++i)
+   // {
 
-        min_points.x = std::min(min_points.x, vertexBufferData[i].pos.x);
-        min_points.y = std::min(min_points.y, vertexBufferData[i].pos.y);
-        min_points.z = std::min(min_points.z, vertexBufferData[i].pos.z);
+   //     min_points.x = std::min(min_points.x, vertexBufferData[i].pos.x);
+   //     min_points.y = std::min(min_points.y, vertexBufferData[i].pos.y);
+   //     min_points.z = std::min(min_points.z, vertexBufferData[i].pos.z);
 
-        max_points.x = std::max(max_points.x, vertexBufferData[i].pos.x);
-        max_points.y = std::max(max_points.y, vertexBufferData[i].pos.y);
-        max_points.z = std::max(max_points.z, vertexBufferData[i].pos.z);
+   //     max_points.x = std::max(max_points.x, vertexBufferData[i].pos.x);
+   //     max_points.y = std::max(max_points.y, vertexBufferData[i].pos.y);
+   //     max_points.z = std::max(max_points.z, vertexBufferData[i].pos.z);
 
-        this->vertexBufferData[i].nrm = glm::vec3(0, 0, 0.f);
+   //     this->vertexBufferData[i].nrm = glm::vec3(0, 0, 0.f);
 
-        mCenter += vertexBufferData[i].pos;
-    }
+   //     mCenter += vertexBufferData[i].pos;
+   // }
 
-    mCenter /= this->vertexBufferData.size();
-   /* mCenter = (max_points + min_points) * 0.5f;*/
+   // mCenter /= this->vertexBufferData.size();
+   ///* mCenter = (max_points + min_points) * 0.5f;*/
 
-    float unitScale = std::max({ glm::length(max_points.x - min_points.x), glm::length(max_points.y - min_points.y), glm::length(max_points.z - min_points.z) });
+   // float unitScale = std::max({ glm::length(max_points.x - min_points.x), glm::length(max_points.y - min_points.y), glm::length(max_points.z - min_points.z) });
 
-    max_points = { -std::numeric_limits<float>::min(),  -std::numeric_limits<float>::min() , -std::numeric_limits<float>::min() };
-    min_points = { std::numeric_limits<float>::max(), std::numeric_limits<float>::max(), std::numeric_limits<float>::max() };
+   // max_points = { -std::numeric_limits<float>::min(),  -std::numeric_limits<float>::min() , -std::numeric_limits<float>::min() };
+   // min_points = { std::numeric_limits<float>::max(), std::numeric_limits<float>::max(), std::numeric_limits<float>::max() };
 
-    for (size_t i = 0; i < this->vertexBufferData.size(); ++i)
-    {
-        this->vertexBufferData[i].pos = (this->vertexBufferData[i].pos - mCenter) / unitScale;
+   // for (size_t i = 0; i < this->vertexBufferData.size(); ++i)
+   // {
+   //     this->vertexBufferData[i].pos = (this->vertexBufferData[i].pos - mCenter) / unitScale;
 
-        max_points.x = std::max(max_points.x, vertexBufferData[i].pos.x);
-        max_points.y = std::max(max_points.y, vertexBufferData[i].pos.y);
-        max_points.z = std::max(max_points.z, vertexBufferData[i].pos.z);
+   //     max_points.x = std::max(max_points.x, vertexBufferData[i].pos.x);
+   //     max_points.y = std::max(max_points.y, vertexBufferData[i].pos.y);
+   //     max_points.z = std::max(max_points.z, vertexBufferData[i].pos.z);
 
-        min_points.x = std::min(min_points.x, vertexBufferData[i].pos.x);
-        min_points.y = std::min(min_points.y, vertexBufferData[i].pos.y);
-        min_points.z = std::min(min_points.z, vertexBufferData[i].pos.z);
-    }
+   //     min_points.x = std::min(min_points.x, vertexBufferData[i].pos.x);
+   //     min_points.y = std::min(min_points.y, vertexBufferData[i].pos.y);
+   //     min_points.z = std::min(min_points.z, vertexBufferData[i].pos.z);
+   // }
 
-    mMaxLocalPoints = max_points;
-    mMinLocalPoints = min_points;
-    //mHalfExtent.normalize();
+   // mMaxLocalPoints = max_points;
+   // mMinLocalPoints = min_points;
+   // //mHalfExtent.normalize();
 
-    this->ComputeVertexNormals();
+   // this->ComputeVertexNormals();
 
-    size_t sizeOfVertexBuffer = sizeof(std::vector<Vertex>) + (sizeof(Vertex) * this->vertexBufferData.size());
-    this->vertexBuffer = Buffer(sizeOfVertexBuffer, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, this->vertexBufferData.data());
-    size_t sizeOfIndexBuffer = sizeof(std::vector<uint16_t>) + (sizeof(uint16_t) * this->indexBufferData.size());
-    this->indexBuffer = Buffer(sizeOfIndexBuffer, VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, this->indexBufferData.data());
+   // size_t sizeOfVertexBuffer = sizeof(std::vector<Vertex>) + (sizeof(Vertex) * this->vertexBufferData.size());
+   // this->vertexBuffer = vk::Buffer(sizeOfVertexBuffer, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, this->vertexBufferData.data());
+   // size_t sizeOfIndexBuffer = sizeof(std::vector<uint16_t>) + (sizeof(uint16_t) * this->indexBufferData.size());
+   // this->indexBuffer = Buffer(sizeOfIndexBuffer, VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, this->indexBufferData.data());
 
-    std::cout << std::endl;
-    std::cout << "loaded in " + std::string(fileName) << std::endl;
-    std::cout << this->numVertices << " vertices loaded in." << std::endl << std::endl;
+   // std::cout << std::endl;
+   // std::cout << "loaded in " + std::string(fileName) << std::endl;
+   // std::cout << this->numVertices << " vertices loaded in." << std::endl << std::endl;
 
 
-    this->debugDrawObject.WillDraw(willDebugDraw);
+   // this->debugDrawObject.WillDraw(willDebugDraw);
 
-    if (textureName != nullptr) 
-    {
-        assert(_Application != NULL);
+   // if (textureName != nullptr) 
+   // {
+   //     assert(_Application != NULL);
 
-        this->textureIndex = _Application->GetTexture(textureName);
-    }
+   //     this->textureIndex = _Application->GetTexture(textureName);
+   // }
 
-    if (pipelineLayout != nullptr) 
-    {
-        assert(_Application != NULL);
+   // if (pipelineLayout != nullptr) 
+   // {
+   //     assert(_Application != NULL);
 
-        this->mPipelineLayout = _Application->GetPipelineLayout();
-    }
+   //     this->mPipelineLayout = _Application->GetPipelineLayout();
+   // }
 
     
 }
 
 void Object::UpdateTexture(const char* textureName) 
 {
-    if (textureName != nullptr)
+   /* if (textureName != nullptr)
     {
         this->textureIndex = _Application->GetTexture(textureName);
-    }
+    }*/
 }
 
 void Object::UpdatePipelineLayout(VkPipelineLayout* pipelineLayout) 
 {
-    if (pipelineLayout != nullptr)
+    /*if (pipelineLayout != nullptr)
     {
         this->mPipelineLayout = _Application->GetPipelineLayout();
-    }
+    }*/
 }
 
 void Object::InitPhysics(ColliderType cType, BodyType bType)
 {
-    glm::vec4 worldMinPoints = mModelTransform * glm::vec4(mMinLocalPoints, 1);
-    glm::vec4 worldMaxPoints = mModelTransform * glm::vec4(mMaxLocalPoints, 1);
+    //glm::vec4 worldMinPoints = mModelTransform * glm::vec4(mMinLocalPoints, 1);
+    //glm::vec4 worldMaxPoints = mModelTransform * glm::vec4(mMaxLocalPoints, 1);
 
-    const glm::vec4& dc2Position = .5f * (worldMinPoints + worldMaxPoints);
-    reactphysics3d::Vector3 position(dc2Position.x, dc2Position.y, dc2Position.z);
-    reactphysics3d::Quaternion orientation = Quaternion::identity();
-    reactphysics3d::Transform transform(position, orientation);
+    //const glm::vec4& dc2Position = .5f * (worldMinPoints + worldMaxPoints);
+    //reactphysics3d::Vector3 position(dc2Position.x, dc2Position.y, dc2Position.z);
+    //reactphysics3d::Quaternion orientation = Quaternion::identity();
+    //reactphysics3d::Transform transform(position, orientation);
 
    
-    this->mPhysicsComponent.rigidBody = _Application->PhysicsSystem().AddRigidBody(transform);
+    //this->mPhysicsComponent.rigidBody = _Application->PhysicsSystem().AddRigidBody(transform);
 
-    if (bType != BodyType::DYNAMIC)
-    {
-       this->mPhysicsComponent.rigidBody->setType(bType);
-       this->mPhysicsComponent.bodyType = bType;
-    }
+    //if (bType != BodyType::DYNAMIC)
+    //{
+    //   this->mPhysicsComponent.rigidBody->setType(bType);
+    //   this->mPhysicsComponent.bodyType = bType;
+    //}
 
-    switch (cType) 
-    {
-        case ColliderType::CUBE:
-            glm::vec3 worldHalfExtent = glm::vec3((worldMaxPoints - worldMinPoints) * .5f);
+    //switch (cType) 
+    //{
+    //    case ColliderType::CUBE:
+    //        glm::vec3 worldHalfExtent = glm::vec3((worldMaxPoints - worldMinPoints) * .5f);
 
-            this->mPhysicsComponent.shape = _Application->PhysicsSystem().CreateBoxShape({ std::abs(worldHalfExtent.x), std::abs(worldHalfExtent.y), std::abs(worldHalfExtent.z) });
-            break;
-        case ColliderType::NONE:
-            break;
-        default:
-            break;
-    }
-
-
-    //the collider transform is relative to the rigidbody origin.
-    if (this->mPhysicsComponent.shape != nullptr)
-    {
-        this->mPhysicsComponent.collider = this->mPhysicsComponent.rigidBody->addCollider(this->mPhysicsComponent.shape, Transform::identity());
-    }
+    //        this->mPhysicsComponent.shape = _Application->PhysicsSystem().CreateBoxShape({ std::abs(worldHalfExtent.x), std::abs(worldHalfExtent.y), std::abs(worldHalfExtent.z) });
+    //        break;
+    //    case ColliderType::NONE:
+    //        break;
+    //    default:
+    //        break;
+    //}
 
 
-    this->mPhysicsComponent.prevTransform = this->mPhysicsComponent.rigidBody->getTransform();
+    ////the collider transform is relative to the rigidbody origin.
+    //if (this->mPhysicsComponent.shape != nullptr)
+    //{
+    //    this->mPhysicsComponent.collider = this->mPhysicsComponent.rigidBody->addCollider(this->mPhysicsComponent.shape, Transform::identity());
+    //}
+
+
+    //this->mPhysicsComponent.prevTransform = this->mPhysicsComponent.rigidBody->getTransform();
 }
 
 void Object::DestroyResources()
 {
-    assert(_Application != NULL);
+    /*assert(_Application != NULL);
 
     vkFreeMemory(_Application->LogicalDevice(), this->vertexBuffer.memory, nullptr);
     vkDestroyBuffer(_Application->LogicalDevice(), this->vertexBuffer.handle, nullptr);
@@ -161,42 +161,42 @@ void Object::DestroyResources()
     vkFreeMemory(_Application->LogicalDevice(), this->indexBuffer.memory, nullptr);
     vkDestroyBuffer(_Application->LogicalDevice(), this->indexBuffer.handle, nullptr);
 
-    this->debugDrawObject.DestroyResources();
+    this->debugDrawObject.DestroyResources();*/
 }
 
 void Object::willDebugDraw(bool option) 
 {
-    this->debugDrawObject.WillDraw(option);
-    //not memory efficient.
-    this->debugDrawObject.AddModelTransform(this->mModelTransform);
+    //this->debugDrawObject.WillDraw(option);
+    ////not memory efficient.
+    //this->debugDrawObject.AddModelTransform(this->mModelTransform);
 }
 
 void Object::Update(const float& interpFactor)
 {
 
-    if (this->mPhysicsComponent.bodyType != BodyType::STATIC)
-    {
-        Transform uninterpolatedTransform = this->mPhysicsComponent.rigidBody->getTransform();
+    //if (this->mPhysicsComponent.bodyType != BodyType::STATIC)
+    //{
+    //    Transform uninterpolatedTransform = this->mPhysicsComponent.rigidBody->getTransform();
 
-        this->mPhysicsComponent.currTransform = Transform::interpolateTransforms(this->mPhysicsComponent.prevTransform, uninterpolatedTransform, interpFactor);
+    //    this->mPhysicsComponent.currTransform = Transform::interpolateTransforms(this->mPhysicsComponent.prevTransform, uninterpolatedTransform, interpFactor);
 
-        this->mPhysicsComponent.prevTransform = this->mPhysicsComponent.currTransform;
+    //    this->mPhysicsComponent.prevTransform = this->mPhysicsComponent.currTransform;
 
-        float matrix[16];
+    //    float matrix[16];
 
-        this->mPhysicsComponent.currTransform.getOpenGLMatrix(matrix);
+    //    this->mPhysicsComponent.currTransform.getOpenGLMatrix(matrix);
 
-       
-        //this makes this stuff too dang easy.
-        glm::mat4 nModel = glm::mat4(matrix[0], matrix[1], matrix[2], matrix[3], 
-                                            matrix[4], matrix[5], matrix[6], matrix[7],
-                                            matrix[8], matrix[9], matrix[10], matrix[11],
-                                            matrix[12], matrix[13], matrix[14], matrix[15]);
+    //   
+    //    //this makes this stuff too dang easy.
+    //    glm::mat4 nModel = glm::mat4(matrix[0], matrix[1], matrix[2], matrix[3], 
+    //                                 matrix[4], matrix[5], matrix[6], matrix[7],
+    //                                 matrix[8], matrix[9], matrix[10], matrix[11],
+    //                                 matrix[12], matrix[13], matrix[14], matrix[15]);
 
-        this->mModelTransform = nModel;
-    }
+    //    this->mModelTransform = nModel;
+    //}
 
-    this->debugDrawObject.Update();
+    //this->debugDrawObject.Update();
 
 }
 
@@ -207,7 +207,7 @@ void Object::SetLinesArrayOffset(uint32_t index)
 
 void Object::Draw(VkCommandBuffer cmdBuffer) 
 {
-    assert(_Application != NULL);
+   /* assert(_Application != NULL);
 
     if (!this->debugDrawObject.onlyVisible()) 
     {
@@ -233,7 +233,7 @@ void Object::Draw(VkCommandBuffer cmdBuffer)
     if (this->debugDrawObject.isVisible() || this->debugDrawObject.onlyVisible())
     {
         this->debugDrawObject.Draw(cmdBuffer);
-    }
+    }*/
 
 }
 

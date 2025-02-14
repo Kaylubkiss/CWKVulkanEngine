@@ -1,17 +1,17 @@
 #pragma once
 
 #include "Common.h"
-
+#include <vulkan/vulkan.h>
 
 namespace vk
 {
 
-	const char* enabledLayerNames[1] =
+	static const char* enabledLayerNames[1] =
 	{
 		"VK_LAYER_KHRONOS_validation"
 	};
 
-	const char* deviceExtensions[1] =
+	static const char* deviceExtensions[1] =
 	{
 		"VK_KHR_swapchain"
 	};
@@ -26,10 +26,10 @@ namespace vk
 
 	struct DepthResources
 	{
-		VkImage depthImage;
-		VkDeviceMemory depthImageMemory;
-		VkImageView depthImageView;
-		VkFormat depthFormat;
+		VkImage depthImage = VK_NULL_HANDLE;
+		VkDeviceMemory depthImageMemory = VK_NULL_HANDLE;
+		VkImageView depthImageView = VK_NULL_HANDLE;
+		VkFormat depthFormat = {};
 
 		const DepthResources& operator=(const DepthResources& other) 
 		{

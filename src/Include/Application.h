@@ -11,8 +11,6 @@
 #include "vkTexture.h"
 #include "vkGraphicsSystem.h"
 
-
-
 class Application
 {
 private:	
@@ -21,21 +19,21 @@ private:
 
 public:
 	void run();
+	~Application();
 
 	const VkPipeline& GetLinePipeline();
 	const Time& GetTime();
 	void RequestExit();
-	vk::Window& GetWindow() const;
+	vk::Window& GetWindow();
 	bool WindowisFocused();
 	void ToggleObjectVisibility(SDL_Keycode keysym,uint8_t lshift);
 
 	//void SelectWorldObjects(const int& mouseX, const int& mouseY);
 
-	Camera& GetCamera() const;
+	Camera& GetCamera();
 	void UpdateUniformViewMatrix();
 
 private:
-	~Application();
 
 	Time mTime;
 	Camera mCamera;
@@ -44,7 +42,7 @@ private:
 
 	Controller mController;
 	
-	ObjectManager mObjectManager;
+	/*ObjectManager mObjectManager;*/
 
 	PhysicsSystem mPhysics;
 
@@ -58,17 +56,10 @@ private:
 
 	VkPipeline linePipeline = VK_NULL_HANDLE;
 
-	VkDescriptorPool descriptorPool = VK_NULL_HANDLE;
-	
-	VkDescriptorSetLayout descriptorSetLayout = VK_NULL_HANDLE; //dunno if this should be here...
-
 	LightInfoObject mLights;
 
 	void CreateWindow(vk::Window& appWindow);
 	void CreateWindowSurface(const VkInstance& vkInstance, vk::Window& appWindow);
-	void CreateDescriptorSets();
-	void WriteDescriptorSets();
-	void CreateFences(const VkDevice l_device);
 
 	void InitPhysicsWorld();
 

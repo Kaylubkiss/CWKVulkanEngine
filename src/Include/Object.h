@@ -30,8 +30,8 @@ struct Object
 	int numVertices = 0;
 	int textureIndex = -1;
 	glm::vec3 mCenter = glm::vec3(0.f);
-	Buffer vertexBuffer;
-	Buffer indexBuffer;
+	vk::Buffer vertexBuffer;
+	vk::Buffer indexBuffer;
 	DebugDrawObject debugDrawObject;
 	PhysicsComponent mPhysicsComponent;
 	VkPipelineLayout* mPipelineLayout = nullptr;

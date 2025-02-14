@@ -44,11 +44,13 @@ namespace vk
 		assert(_Application != NULL);
 
 		Camera& appCamera = _Application->GetCamera();
-		vk::Window& appWindow = _Application->GetWindow();
 
 		this->depthInfo = vk::init::CreateDepthResources(p_device, l_device, appWindow.viewport);
 
 		this->renderPass = vk::init::RenderPass(l_device, depthInfo.depthFormat);
+
+		this->commandPool = vk::init::CommandPool(l_device, VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
+		this->commandBuffer = vk::init::CommandBuffer(l_device, this->commandPool);
 
 		//uniform transform for objects of default pipeline.
 		this->uTransform = {
@@ -75,15 +77,14 @@ namespace vk
 		this->defaultPipelineLayout = vk::init::CreatePipelineLayout(l_device, this->defaultDescriptorSetLayout);
 
 		//create shader modules...
-		const char* vertexShaderPath = std::string(shaderPath + "blinnvert.spv").c_str();
-		this->vertexShaderModule = vk::init::ShaderModule(l_device, vertexShaderPath);
+		std::string vertexShaderPath = shaderPath + "blinnvert.spv";
+		this->vertexShaderModule = vk::init::ShaderModule(l_device, vertexShaderPath.data());
 
-		const char* fragmentShaderPath = std::string(shaderPath + "blinnfrag.spv").c_str();
-		this->fragmentShaderModule = vk::init::ShaderModule(l_device, fragmentShaderPath);
+		std::string fragmentShaderPath = shaderPath + "blinnfrag.spv";
+		this->fragmentShaderModule = vk::init::ShaderModule(l_device, fragmentShaderPath.data());
 
 
 		VkPipelineShaderStageCreateInfo vertexShaderStageCreateInfo = vk::init::PipelineShaderStageCreateInfo(this->vertexShaderModule, VK_SHADER_STAGE_VERTEX_BIT);
-
 		VkPipelineShaderStageCreateInfo fragmentShaderStageCreateInfo = vk::init::PipelineShaderStageCreateInfo(this->fragmentShaderModule, VK_SHADER_STAGE_FRAGMENT_BIT);
 
 		VkPipelineShaderStageCreateInfo shaderStages[2] = { vertexShaderStageCreateInfo, fragmentShaderStageCreateInfo };
@@ -99,6 +100,9 @@ namespace vk
 
 	void GraphicsSystem::Destroy() 
 	{
+
+		VK_CHECK_RESULT(vkDeviceWaitIdle(this->logicalGpu));
+
 		renderResources.Destroy(this->logicalGpu);
 		swapChain.Destroy(this->logicalGpu);
 
@@ -122,18 +126,18 @@ namespace vk
 		vkGetDeviceQueue(this->logicalGpu, graphicsQueue.family, 0, &graphicsQueue.handle);
 		vkGetDeviceQueue(this->logicalGpu, presentQueue.family, 0, &presentQueue.handle);
 
-		this->swapChain = SwapChain(this->logicalGpu, this->gpus[g_index], graphicsQueue.family, presentQueue.family, appWindow.surface);
-
 		this->renderResources.Allocate(this->gpus[g_index], this->logicalGpu, appWindow);
 
+		this->swapChain = SwapChain(this->logicalGpu, this->gpus[g_index], graphicsQueue.family, presentQueue.family, appWindow.surface);
+		this->swapChain.AllocateFrameBuffers(this->logicalGpu, appWindow.viewport, this->renderResources.depthInfo, this->renderResources.renderPass);
 
+		
 		//special thing here, for dynamic viewport, which is officially set during pipeline creation.
-		vkCmdSetViewport(this->renderResources.commandBuffer, 0, 1, &appWindow.viewport);
-		vkCmdSetScissor(this->renderResources.commandBuffer, 0, 1, &appWindow.scissor);
+		/*vkCmdSetViewport(this->renderResources.commandBuffer, 0, 1, &appWindow.viewport);
+		vkCmdSetScissor(this->renderResources.commandBuffer, 0, 1, &appWindow.scissor);*/
 
 	}
-
-
+	
 	const VkPhysicalDevice GraphicsSystem::PhysicalDevice() const
 	{
 		return this->gpus[g_index];
@@ -332,7 +336,7 @@ namespace vk
 	}
 
 
-	void GraphicsSystem::Render() 
+	void GraphicsSystem::Render(const vk::Window& appWindow) 
 	{
 		VK_CHECK_RESULT(vkWaitForFences(this->logicalGpu, 1, &this->renderResources.inFlightFence, VK_TRUE, UINT64_MAX))
 
@@ -382,8 +386,8 @@ namespace vk
 		//bind the graphics pipeline
 		vkCmdBindPipeline(this->renderResources.commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->renderResources.defaultPipeline);
 
-		/*vkCmdSetViewport(this->commandBuffer, 0, 1, &this->m_viewPort);
-		vkCmdSetScissor(this->commandBuffer, 0, 1, &this->m_scissor);*/
+		vkCmdSetViewport(this->renderResources.commandBuffer, 0, 1, &appWindow.viewport);
+		vkCmdSetScissor(this->renderResources.commandBuffer, 0, 1, &appWindow.scissor);
 
 
 		//this->mObjectManager["freddy"].Draw(this->commandBuffer);

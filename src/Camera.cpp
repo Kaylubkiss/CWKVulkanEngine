@@ -40,7 +40,7 @@ void Camera::setIsGrounded(bool set)
 
 void Camera::MoveDown() 
 {
-	assert(_Application != NULL);
+	/*assert(_Application != NULL);
 
 	float dT = _Application->GetTime().DeltaTime();
 	reactphysics3d::Vector3 gravity = _Application->PhysicsSystem().GetPhysicsWorld()->getGravity();
@@ -53,12 +53,12 @@ void Camera::MoveDown()
 
 	nTransform.setPosition(position);
 
-	mPhysicsComponent.rigidBody->setTransform(nTransform);
+	mPhysicsComponent.rigidBody->setTransform(nTransform);*/
 }
 
 void Camera::InitPhysics(BodyType bType)
 {
-	assert(_Application != NULL);
+	/*assert(_Application != NULL);
 
 	this->mCamRayCast.SetParent(this);
 
@@ -95,7 +95,7 @@ void Camera::InitPhysics(BodyType bType)
 
 	this->mPhysicsComponent.rigidBody->updateMassFromColliders();
 
-	this->mPhysicsComponent.prevTransform = this->mPhysicsComponent.rigidBody->getTransform();
+	this->mPhysicsComponent.prevTransform = this->mPhysicsComponent.rigidBody->getTransform();*/
 }
 
 void Camera::UpdatePosition(reactphysics3d::Vector3& velocity) 

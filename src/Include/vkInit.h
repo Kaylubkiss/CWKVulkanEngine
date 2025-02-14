@@ -7,6 +7,8 @@ namespace vk
 {
 	namespace init 
 	{
+		VkDebugUtilsMessengerCreateInfoEXT DebugMessengerCreateInfo();
+
 		VkPipelineVertexInputStateCreateInfo VertexInputStateCreateInfo();
 
 		VkPipelineInputAssemblyStateCreateInfo AssemblyInputStateCreateInfo(VkPrimitiveTopology primitiveTopology);
@@ -15,13 +17,13 @@ namespace vk
 
 		std::array<VkVertexInputAttributeDescription, 3> VertexAttributeDescriptions();
 
-		VkDebugUtilsMessengerCreateInfoEXT DebugMessengerCreateInfo();
-
 		VkInstance CreateInstance(SDL_Window* window);	
 
 		VkRenderPass RenderPass(const VkDevice l_device, const VkFormat& depthFormat);
 
-		VkCommandPool CreateCommandPool(const VkDevice& l_device, VkCommandPoolCreateFlags createFlag);
+		VkCommandPool CommandPool(const VkDevice& l_device, VkCommandPoolCreateFlags createFlag);
+
+		VkCommandBuffer CommandBuffer(const VkDevice l_device, const VkCommandPool cmdPool);
 
 		VkSemaphore CreateSemaphore(const VkDevice l_device);
 
@@ -33,9 +35,13 @@ namespace vk
 
 		VkPipelineShaderStageCreateInfo PipelineShaderStageCreateInfo(const VkShaderModule& shaderModule, VkShaderStageFlagBits stage);
 
-		VkShaderModule ShaderModule(const VkDevice l_device, const char* filename);
+		VkShaderModule ShaderModule(const VkDevice& l_device, const char* filename);
 
 		DepthResources CreateDepthResources(const VkPhysicalDevice& p_device, const VkDevice& l_device, const VkViewport& viewport);
+
+		VkDescriptorPool DescriptorPool(const VkDevice l_device);
+
+		VkDescriptorSet DescriptorSet(const VkDevice l_device, const VkDescriptorPool dscPool, const VkDescriptorSetLayout dscLayout);
 	}
 
 }

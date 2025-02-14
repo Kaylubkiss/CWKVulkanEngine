@@ -17,7 +17,7 @@ namespace vk {
 			vkEnumerateInstanceLayerProperties(&layerCount, availableLayers.data());
 
 
-			for (const char* layerName : vulkan_engine::enabledLayerNames)
+			for (const char* layerName : vk::enabledLayerNames)
 			{
 				bool layerFound = false;
 				for (const VkLayerProperties& layerProperties : availableLayers)
