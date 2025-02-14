@@ -14,6 +14,8 @@ Object::Object(const VkPhysicalDevice p_device, const VkDevice l_device,
 {
 
     (void)(willDebugDraw);
+    (void)(textureName);
+    (void)(pipelineLayout);
 
     LoadMeshOBJ(fileName, *this);
 
@@ -80,7 +82,7 @@ Object::Object(const VkPhysicalDevice p_device, const VkDevice l_device,
 
     //this->debugDrawObject.WillDraw(willDebugDraw);
 
-    if (textureName != nullptr) 
+   /* if (textureName != nullptr) 
     {
         this->textureIndex = _Application->GetTexture(textureName);
     }
@@ -90,7 +92,7 @@ Object::Object(const VkPhysicalDevice p_device, const VkDevice l_device,
         assert(_Application != NULL);
 
         this->mPipelineLayout = _Application->GetPipelineLayout();
-    }
+    }*/
 
     
 }
