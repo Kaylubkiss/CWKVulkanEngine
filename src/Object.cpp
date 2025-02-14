@@ -7,87 +7,90 @@
 #define TINYOBJLOADER_IMPLEMENTATION
 #include "tiny_obj_loader.h"
 
-Object::Object(const char* fileName, bool willDebugDraw, const glm::mat4& modelTransform, const char* textureName, VkPipelineLayout* pipelineLayout)
+Object::Object(const VkPhysicalDevice p_device, const VkDevice l_device, 
+                const char* fileName, bool willDebugDraw, 
+                const glm::mat4& modelTransform, 
+                const char* textureName, VkPipelineLayout* pipelineLayout)
 {
 
-   // LoadMeshOBJ(fileName, *this);
+    (void)(willDebugDraw);
+
+    LoadMeshOBJ(fileName, *this);
 
 
-   // this->mModelTransform = modelTransform;
+    this->mModelTransform = modelTransform;
+    this->numVertices = static_cast<int>(this->vertexBufferData.size());
 
-   // this->numVertices = static_cast<int>(this->vertexBufferData.size());
+    glm::vec3 min_points(0.f);
+    glm::vec3 max_points(0.f);
 
-   // glm::vec3 min_points(0.f);
-   // glm::vec3 max_points(0.f);
+    for (unsigned i = 0; i < this->vertexBufferData.size(); ++i)
+    {
 
-   // for (unsigned i = 0; i < this->vertexBufferData.size(); ++i)
-   // {
+        min_points.x = std::min(min_points.x, vertexBufferData[i].pos.x);
+        min_points.y = std::min(min_points.y, vertexBufferData[i].pos.y);
+        min_points.z = std::min(min_points.z, vertexBufferData[i].pos.z);
 
-   //     min_points.x = std::min(min_points.x, vertexBufferData[i].pos.x);
-   //     min_points.y = std::min(min_points.y, vertexBufferData[i].pos.y);
-   //     min_points.z = std::min(min_points.z, vertexBufferData[i].pos.z);
+        max_points.x = std::max(max_points.x, vertexBufferData[i].pos.x);
+        max_points.y = std::max(max_points.y, vertexBufferData[i].pos.y);
+        max_points.z = std::max(max_points.z, vertexBufferData[i].pos.z);
 
-   //     max_points.x = std::max(max_points.x, vertexBufferData[i].pos.x);
-   //     max_points.y = std::max(max_points.y, vertexBufferData[i].pos.y);
-   //     max_points.z = std::max(max_points.z, vertexBufferData[i].pos.z);
+        this->vertexBufferData[i].nrm = glm::vec3(0, 0, 0.f);
 
-   //     this->vertexBufferData[i].nrm = glm::vec3(0, 0, 0.f);
+        mCenter += vertexBufferData[i].pos;
+    }
 
-   //     mCenter += vertexBufferData[i].pos;
-   // }
+    mCenter /= this->vertexBufferData.size();
 
-   // mCenter /= this->vertexBufferData.size();
-   ///* mCenter = (max_points + min_points) * 0.5f;*/
+    float unitScale = std::max({ glm::length(max_points.x - min_points.x), glm::length(max_points.y - min_points.y), glm::length(max_points.z - min_points.z) });
 
-   // float unitScale = std::max({ glm::length(max_points.x - min_points.x), glm::length(max_points.y - min_points.y), glm::length(max_points.z - min_points.z) });
+    max_points = { -std::numeric_limits<float>::min(),  -std::numeric_limits<float>::min() , -std::numeric_limits<float>::min() };
+    min_points = { std::numeric_limits<float>::max(), std::numeric_limits<float>::max(), std::numeric_limits<float>::max() };
 
-   // max_points = { -std::numeric_limits<float>::min(),  -std::numeric_limits<float>::min() , -std::numeric_limits<float>::min() };
-   // min_points = { std::numeric_limits<float>::max(), std::numeric_limits<float>::max(), std::numeric_limits<float>::max() };
+    for (size_t i = 0; i < this->vertexBufferData.size(); ++i)
+    {
+        this->vertexBufferData[i].pos = (this->vertexBufferData[i].pos - mCenter) / unitScale;
 
-   // for (size_t i = 0; i < this->vertexBufferData.size(); ++i)
-   // {
-   //     this->vertexBufferData[i].pos = (this->vertexBufferData[i].pos - mCenter) / unitScale;
+        max_points.x = std::max(max_points.x, vertexBufferData[i].pos.x);
+        max_points.y = std::max(max_points.y, vertexBufferData[i].pos.y);
+        max_points.z = std::max(max_points.z, vertexBufferData[i].pos.z);
 
-   //     max_points.x = std::max(max_points.x, vertexBufferData[i].pos.x);
-   //     max_points.y = std::max(max_points.y, vertexBufferData[i].pos.y);
-   //     max_points.z = std::max(max_points.z, vertexBufferData[i].pos.z);
+        min_points.x = std::min(min_points.x, vertexBufferData[i].pos.x);
+        min_points.y = std::min(min_points.y, vertexBufferData[i].pos.y);
+        min_points.z = std::min(min_points.z, vertexBufferData[i].pos.z);
+    }
 
-   //     min_points.x = std::min(min_points.x, vertexBufferData[i].pos.x);
-   //     min_points.y = std::min(min_points.y, vertexBufferData[i].pos.y);
-   //     min_points.z = std::min(min_points.z, vertexBufferData[i].pos.z);
-   // }
+    mMaxLocalPoints = max_points;
+    mMinLocalPoints = min_points;
 
-   // mMaxLocalPoints = max_points;
-   // mMinLocalPoints = min_points;
-   // //mHalfExtent.normalize();
+    //mHalfExtent.normalize();
 
-   // this->ComputeVertexNormals();
+    this->ComputeVertexNormals();
 
-   // size_t sizeOfVertexBuffer = sizeof(std::vector<Vertex>) + (sizeof(Vertex) * this->vertexBufferData.size());
-   // this->vertexBuffer = vk::Buffer(sizeOfVertexBuffer, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, this->vertexBufferData.data());
-   // size_t sizeOfIndexBuffer = sizeof(std::vector<uint16_t>) + (sizeof(uint16_t) * this->indexBufferData.size());
-   // this->indexBuffer = Buffer(sizeOfIndexBuffer, VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, this->indexBufferData.data());
+    size_t sizeOfVertexBuffer = sizeof(std::vector<Vertex>) + (sizeof(Vertex) * this->vertexBufferData.size());
+    this->vertexBuffer = vk::Buffer(p_device, l_device, sizeOfVertexBuffer, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, this->vertexBufferData.data());
 
-   // std::cout << std::endl;
-   // std::cout << "loaded in " + std::string(fileName) << std::endl;
-   // std::cout << this->numVertices << " vertices loaded in." << std::endl << std::endl;
+    size_t sizeOfIndexBuffer = sizeof(std::vector<uint16_t>) + (sizeof(uint16_t) * this->indexBufferData.size());
+    this->indexBuffer = vk::Buffer(p_device, l_device, sizeOfIndexBuffer, VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, this->indexBufferData.data());
+
+    std::cout << std::endl;
+    std::cout << "loaded in " + std::string(fileName) << std::endl;
+    std::cout << this->numVertices << " vertices loaded in." << std::endl << std::endl;
 
 
-   // this->debugDrawObject.WillDraw(willDebugDraw);
+    //this->debugDrawObject.WillDraw(willDebugDraw);
 
-   // if (textureName != nullptr) 
-   // {
-   //     assert(_Application != NULL);
+    if (textureName != nullptr) 
+    {
+        this->textureIndex = _Application->GetTexture(textureName);
+    }
 
-   //     this->textureIndex = _Application->GetTexture(textureName);
-   // }
+    if (pipelineLayout != nullptr) 
+    {
+        assert(_Application != NULL);
 
-   // if (pipelineLayout != nullptr) 
-   // {
-   //     assert(_Application != NULL);
-
-   //     this->mPipelineLayout = _Application->GetPipelineLayout();
-   // }
+        this->mPipelineLayout = _Application->GetPipelineLayout();
+    }
 
     
 }
@@ -100,7 +103,7 @@ void Object::UpdateTexture(const char* textureName)
     }*/
 }
 
-void Object::UpdatePipelineLayout(VkPipelineLayout* pipelineLayout) 
+void Object::UpdatePipelineLayout(const VkPipelineLayout pipelineLayout = nullptr)
 {
     /*if (pipelineLayout != nullptr)
     {
@@ -151,24 +154,17 @@ void Object::InitPhysics(ColliderType cType, BodyType bType)
     //this->mPhysicsComponent.prevTransform = this->mPhysicsComponent.rigidBody->getTransform();
 }
 
-void Object::DestroyResources()
+
+void Object::Destroy(const VkDevice l_device) 
 {
-    /*assert(_Application != NULL);
+   vkFreeMemory(l_device, this->vertexBuffer.memory, nullptr);
+   vkDestroyBuffer(l_device, this->vertexBuffer.handle, nullptr);
 
-    vkFreeMemory(_Application->LogicalDevice(), this->vertexBuffer.memory, nullptr);
-    vkDestroyBuffer(_Application->LogicalDevice(), this->vertexBuffer.handle, nullptr);
-    
-    vkFreeMemory(_Application->LogicalDevice(), this->indexBuffer.memory, nullptr);
-    vkDestroyBuffer(_Application->LogicalDevice(), this->indexBuffer.handle, nullptr);
+   vkFreeMemory(l_device, this->indexBuffer.memory, nullptr);
+   vkDestroyBuffer(l_device, this->indexBuffer.handle, nullptr);
 
-    this->debugDrawObject.DestroyResources();*/
-}
+   //this->debugDrawObject.DestroyResources();
 
-void Object::willDebugDraw(bool option) 
-{
-    //this->debugDrawObject.WillDraw(option);
-    ////not memory efficient.
-    //this->debugDrawObject.AddModelTransform(this->mModelTransform);
 }
 
 void Object::Update(const float& interpFactor)
@@ -200,10 +196,10 @@ void Object::Update(const float& interpFactor)
 
 }
 
-void Object::SetLinesArrayOffset(uint32_t index) 
-{
-    this->debugDrawObject.SetArrayOffset(index);
-}
+//void Object::SetLinesArrayOffset(uint32_t index) 
+//{
+//    this->debugDrawObject.SetArrayOffset(index);
+//}
 
 void Object::Draw(VkCommandBuffer cmdBuffer) 
 {

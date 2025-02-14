@@ -19,39 +19,43 @@ struct str_cmp
 	}
 
 };
+
 class ObjectManager 
 {
-
-public:
-	ObjectManager();
-	~ObjectManager() 
-	{
-		objects.clear();
-	}
-
-	void LoadObject(const char* name = nullptr, const char* filename = nullptr, bool willDebugDraw = false, const glm::mat4& modelTransform = glm::mat4(1.f));
-
-	Object& operator[](const char* name) 
-	{
-		size_t count = objects.count(name);
-
-		if (objects.count(name) > 0)
+	public:
+		ObjectManager();
+		~ObjectManager() 
 		{
-			return *objects[name];
+			objects.clear();
 		}
-		else 
+	
+		void LoadObject(const VkPhysicalDevice p_device, const VkDevice l_device, const char* name = nullptr, const char* filename = nullptr, bool willDebugDraw = false, const glm::mat4& modelTransform = glm::mat4(1.f));
+		
+		Object& operator[](const char* name) 
 		{
-			throw std::runtime_error("no object in object manager!\n");
+			size_t count = objects.count(name);
+	
+			if (objects.count(name) > 0)
+			{
+				return *objects[name];
+			}
+			else 
+			{
+				throw std::runtime_error("no object in object manager!\n");
+			}
 		}
-	}
-
-	ThreadPool mThreadWorkers;
-
-private:
-	void LoadObjParallel(const char* name = nullptr, const char* filename = nullptr, bool willDebugDraw = false, const glm::mat4& modelTransform = glm::mat4(1.f));
-
-	std::map<const char*, Object*, str_cmp> objects;
-	std::mutex map_mutex;
-
-
+		
+		void Draw();
+		void Init(const VkDevice l_device, VkCommandPool cmdPool);
+	
+	private:
+		void LoadObjParallel(const VkPhysicalDevice p_device, const VkDevice l_device, const char* name = nullptr, const char* filename = nullptr, bool willDebugDraw = false, const glm::mat4& modelTransform = glm::mat4(1.f));
+	
+		ThreadPool mThreadWorkers;
+		std::map<const char*, Object*, str_cmp> objects;
+		std::mutex map_mutex;
+	
+	public:
+		VkCommandBuffer secondaryCmdBuffer = VK_NULL_HANDLE;
+	
 };

@@ -358,13 +358,13 @@ namespace vk
 			return cmdPool;
 		}
 
-		VkCommandBuffer CommandBuffer(const VkDevice l_device, const VkCommandPool cmdPool)
+		VkCommandBuffer CommandBuffer(const VkDevice l_device, const VkCommandPool cmdPool, VkCommandBufferLevel cmdLevel)
 		{
 			VkCommandBufferAllocateInfo cmdBufferCreateInfo = {};
 
 			cmdBufferCreateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
 			cmdBufferCreateInfo.commandPool = cmdPool;
-			cmdBufferCreateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY; //cannot be called by other command buffers
+			cmdBufferCreateInfo.level = cmdLevel; //cannot be called by other command buffers
 			cmdBufferCreateInfo.commandBufferCount = 1;
 
 			VkCommandBuffer nCommandBuffer;

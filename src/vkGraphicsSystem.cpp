@@ -50,7 +50,8 @@ namespace vk
 		this->renderPass = vk::init::RenderPass(l_device, depthInfo.depthFormat);
 
 		this->commandPool = vk::init::CommandPool(l_device, VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
-		this->commandBuffer = vk::init::CommandBuffer(l_device, this->commandPool);
+
+		this->commandBuffer = vk::init::CommandBuffer(l_device, this->commandPool, VK_COMMAND_BUFFER_LEVEL_PRIMARY);
 
 		//uniform transform for objects of default pipeline.
 		this->uTransform = {
@@ -335,14 +336,18 @@ namespace vk
 		this->swapChain.Recreate(this->gpus[g_index], this->logicalGpu, this->graphicsQueue.family, this->presentQueue.family, this->renderResources.depthInfo, this->renderResources.renderPass, appWindow);
 	}
 
+	VkCommandPool GraphicsSystem::GetCommandPool() 
+	{
+		return this->renderResources.commandPool;
+	}
 
-	void GraphicsSystem::Render(const vk::Window& appWindow) 
+	void GraphicsSystem::Render(const vk::Window& appWindow, VkCommandBuffer* secondCmdBuffers, size_t secondCmdCount) 
 	{
 		VK_CHECK_RESULT(vkWaitForFences(this->logicalGpu, 1, &this->renderResources.inFlightFence, VK_TRUE, UINT64_MAX))
 
 		VK_CHECK_RESULT(vkResetFences(this->logicalGpu, 1, &this->renderResources.inFlightFence))
 
-			uint32_t imageIndex;
+		uint32_t imageIndex;
 		VkResult result = vkAcquireNextImageKHR(this->logicalGpu, this->swapChain.handle, UINT64_MAX, this->renderResources.imageAvailableSemaphore, VK_NULL_HANDLE, &imageIndex);
 
 
@@ -351,10 +356,13 @@ namespace vk
 			GraphicsSystem::ResizeWindow();
 			return;
 		}
+		else 
+		{
+			assert(result == VK_SUCCESS);
+		}
 
-		assert(result == VK_SUCCESS);
-
-		VK_CHECK_RESULT(vkResetCommandBuffer(this->renderResources.commandBuffer, 0))
+	
+		/*VK_CHECK_RESULT(vkResetCommandBuffer(this->renderResources.commandBuffer, 0))*/
 
 			////always begin recording command buffers by calling vkBeginCommandBuffer --> just tells vulkan about the usage of a particular command buffer.
 			VkCommandBufferBeginInfo cmdBufferBeginInfo = {};
@@ -362,9 +370,11 @@ namespace vk
 		cmdBufferBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
 		//everything else is default...
 
-		//resetting command buffer should be implicit with reset flag.
+		//resetting command buffer should be implicit with reset flag set on this.
 		VK_CHECK_RESULT(vkBeginCommandBuffer(this->renderResources.commandBuffer, &cmdBufferBeginInfo))
-
+		
+		//sync up all additional commands.
+		vkCmdExecuteCommands(this->renderResources.commandBuffer, secondCmdCount, secondCmdBuffers);
 		
 		VkRenderPassBeginInfo renderPassInfo = {};
 		renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
@@ -404,8 +414,8 @@ namespace vk
 		VkSubmitInfo submitInfo{};
 		submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 
-		VkSemaphore waitSemaphores[] = { this->renderResources.imageAvailableSemaphore };
-		VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
+		VkSemaphore waitSemaphores[1] = { this->renderResources.imageAvailableSemaphore };
+		VkPipelineStageFlags waitStages[1] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
 		submitInfo.waitSemaphoreCount = 1;
 		submitInfo.pWaitSemaphores = waitSemaphores;
 		submitInfo.pWaitDstStageMask = waitStages;
@@ -413,7 +423,7 @@ namespace vk
 		submitInfo.commandBufferCount = 1;
 		submitInfo.pCommandBuffers = &this->renderResources.commandBuffer;
 
-		VkSemaphore signalSemaphores[] = { this->renderResources.renderFinishedSemaphore };
+		VkSemaphore signalSemaphores[1] = { this->renderResources.renderFinishedSemaphore };
 		submitInfo.signalSemaphoreCount = 1;
 		submitInfo.pSignalSemaphores = signalSemaphores;
 
@@ -421,14 +431,12 @@ namespace vk
 
 		VkPresentInfoKHR presentInfo{};
 		presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
-
 		presentInfo.waitSemaphoreCount = 1;
 		presentInfo.pWaitSemaphores = signalSemaphores;
 
-		VkSwapchainKHR swapChains[] = { this->swapChain.handle };
+		VkSwapchainKHR swapChains[1] = { this->swapChain.handle };
 		presentInfo.swapchainCount = 1;
 		presentInfo.pSwapchains = swapChains;
-
 		presentInfo.pImageIndices = &imageIndex;
 
 		result = vkQueuePresentKHR(this->presentQueue.handle, &presentInfo);
@@ -438,9 +446,10 @@ namespace vk
 			GraphicsSystem::ResizeWindow();
 			return;
 		}
-
-		assert(result == VK_SUCCESS);
-
+		else 
+		{
+			assert(result == VK_SUCCESS);
+		}
 	}
 
 }

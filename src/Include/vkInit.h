@@ -23,7 +23,7 @@ namespace vk
 
 		VkCommandPool CommandPool(const VkDevice& l_device, VkCommandPoolCreateFlags createFlag);
 
-		VkCommandBuffer CommandBuffer(const VkDevice l_device, const VkCommandPool cmdPool);
+		VkCommandBuffer CommandBuffer(const VkDevice l_device, const VkCommandPool cmdPool, VkCommandBufferLevel cmdLevel);
 
 		VkSemaphore CreateSemaphore(const VkDevice l_device);
 

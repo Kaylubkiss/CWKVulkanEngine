@@ -77,7 +77,9 @@ namespace vk
 			void UpdateUniformViewMatirx(const glm::mat4& viewMat);
 			void ResizeWindow();
 
-			void Render(const vk::Window& appWindow);
+			void Render(const vk::Window& appWindow, VkCommandBuffer* secondCmdBuffers, size_t secondCmdCount);
+
+			VkCommandPool GetCommandPool();
 
 		private:
 			void FindQueueFamilies(const VkPhysicalDevice& physicalDevice, const VkSurfaceKHR& windowSurface);
