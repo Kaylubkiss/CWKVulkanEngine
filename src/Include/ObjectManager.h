@@ -24,12 +24,10 @@ class ObjectManager
 
 public:
 	ObjectManager();
-	~ObjectManager() = default;
-
-	void Deallocate() {
+	~ObjectManager() 
+	{
 		objects.clear();
 	}
-
 
 	void LoadObject(const char* name = nullptr, const char* filename = nullptr, bool willDebugDraw = false, const glm::mat4& modelTransform = glm::mat4(1.f));
 

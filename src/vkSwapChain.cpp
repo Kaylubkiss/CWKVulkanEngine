@@ -1,5 +1,6 @@
 #include "vkSwapChain.h"
 #include "vkUtility.h"
+#include "vkInit.h"
 #include <stdexcept>
 
 namespace vk 
@@ -99,13 +100,36 @@ namespace vk
 
 		delete[] surfaceFormats;
 
-		//just get the count of swapchain images
 		VK_CHECK_RESULT(vkGetSwapchainImagesKHR(l_device, this->handle, &this->imageCount, this->images));
+
+
+		//Do some extra work to setup the framebuffers.
+		SwapChain::CreateImageViews(l_device, this->images, this->imageCount);
+	}
+	
+	void SwapChain::Recreate(const VkPhysicalDevice p_device, const VkDevice l_device, uint32_t graphicsFamily, uint32_t presentFamily, const DepthResources& depthResources, const VkRenderPass renderPass, const vk::Window& appWindow)
+	{
+		//reason we don't call destroy: don't need to destroy every resource in swapchain.
+
+		for (unsigned i = 0; i < this->imageCount; ++i)
+		{
+			vkDestroyFramebuffer(l_device, this->frameBuffers[i], nullptr);
+		}
+
+
+		delete[] this->frameBuffers;
+		delete[] this->images;
+
+		vkDestroySwapchainKHR(l_device, this->handle, nullptr);
+
+
+		*this = SwapChain(l_device, p_device, graphicsFamily, presentFamily, appWindow.surface);
 
 		SwapChain::CreateImageViews(l_device, this->images, this->imageCount);
 
+		SwapChain::AllocateFrameBuffers(l_device, appWindow.viewport, depthResources, renderPass);
 	}
-	
+
 	void SwapChain::CreateImageViews(const VkDevice l_device, VkImage* images, uint32_t imageCount)
 	{
 
@@ -155,7 +179,7 @@ namespace vk
 
 	}
 
-	void SwapChain::AllocateFrameBuffers(const VkDevice l_device, VkImageView depthImageView, const VkRect2D vpRect)
+	void SwapChain::AllocateFrameBuffers(const VkDevice l_device, const VkViewport& vp, const DepthResources& depthResources, const VkRenderPass renderPass)
 	{
 
 		if (this->imageCount <= 0) 
@@ -167,7 +191,7 @@ namespace vk
 
 		for (unsigned i = 0; i < this->imageCount; ++i) {
 
-			VkImageView attachments[2] = { imageViews[i], depthImageView };
+			VkImageView attachments[2] = { imageViews[i], depthResources.depthImageView };
 
 			//create framebuffer info
 			VkFramebufferCreateInfo framebufferCreateInfo =
@@ -175,11 +199,11 @@ namespace vk
 				VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
 				nullptr, //pNext
 				0, //reserved for future expansion.. flags are zero now.
-				this->renderPass,
+				renderPass,
 				2,// attachmentCount
 				attachments, //attachments
-				vpRect.extent.width, //width
-				vpRect.extent.height, //height
+				vp.width, //width
+				vp.height, //height
 				1 //1 layer
 			};
 
@@ -187,4 +211,7 @@ namespace vk
 		}
 
 	}
+
+
+
 }

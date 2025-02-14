@@ -14,29 +14,41 @@ namespace vk
 			VkImage* images;
 			VkImageView* imageViews = nullptr;
 			
-			VkRenderPass renderPass;
 			VkFramebuffer* frameBuffers = nullptr;
-			
-			vk::DepthResources depthInfo;
 
 		public:
-			void AllocateFrameBuffers(const VkDevice l_device, VkImageView depthImageView, const VkRect2D vpRect);
+			SwapChain() = default;
+			SwapChain(const SwapChain&) = delete;
+			~SwapChain() = default;
+
+			//assignment operator??
+
+			SwapChain(const VkDevice l_device, const VkPhysicalDevice p_device, uint32_t graphicsFamily, uint32_t presentFamily, const VkSurfaceKHR windowSurface);
+
+			void Recreate(const VkPhysicalDevice p_device, const VkDevice l_device, uint32_t graphicsFamily, uint32_t presentFamily, const DepthResources& depthResources, const VkRenderPass renderPass, const vk::Window& appWindow);
+
+			void AllocateFrameBuffers(const VkDevice l_device, const VkViewport& vp, const DepthResources& depthResources, const VkRenderPass renderPass);
 
 
 			void Destroy(VkDevice l_device)
 			{
+						
 				vkDestroySwapchainKHR(l_device, this->handle, nullptr);
 
 				for (unsigned i = 0; i < imageCount; ++i)
 				{
 					vkDestroyFramebuffer(l_device, this->frameBuffers[i], nullptr);
 				}
+
+				delete[] images;
 			}
 
-			SwapChain(const VkDevice l_device, const VkPhysicalDevice p_device, uint32_t graphicsFamily, uint32_t presentFamily, const VkSurfaceKHR windowSurface);
+		
 
 		private:
 			void CreateImageViews(const VkDevice l_device, VkImage* images, uint32_t imageCount);
+
+		friend class GraphicsSystem;
 	};
 
 	

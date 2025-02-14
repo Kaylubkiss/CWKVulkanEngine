@@ -27,6 +27,7 @@ set(SOURCE_FILES src/Application.cpp
                    src/Timer.cpp
                    src/ThreadPool.cpp
 									 src/TextureManager.cpp
+									 src/ObjectManager.cpp
                    src/External/libraries/imgui/imgui_demo.cpp
                    src/External/libraries/imgui/imgui_draw.cpp
                    src/External/libraries/imgui/imgui_tables.cpp

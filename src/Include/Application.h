@@ -12,62 +12,47 @@
 #include "vkGraphicsSystem.h"
 
 
-struct uTransformObject
-{
-	glm::mat4 model;
-	glm::mat4 view;
-	glm::mat4 proj;
-};
 
 class Application
 {
 private:	
 	vk::Window mWindow;
+	bool guiWindowIsFocused = false;
 
 public:
 	void run();
 
-	bool guiWindowIsFocused = false;
-
-	const VkPipeline& GetTrianglePipeline();
 	const VkPipeline& GetLinePipeline();
 	const Time& GetTime();
 	void RequestExit();
-	SDL_Window* GetWindow() const;
+	vk::Window& GetWindow() const;
 	bool WindowisFocused();
 	void ToggleObjectVisibility(SDL_Keycode keysym,uint8_t lshift);
+
 	//void SelectWorldObjects(const int& mouseX, const int& mouseY);
-	Camera& GetCamera();
+
+	Camera& GetCamera() const;
 	void UpdateUniformViewMatrix();
-	void ResizeViewport();
 
 private:
 	~Application();
 
-	VkInstance m_instance = VK_NULL_HANDLE;
-
-	uTransformObject uTransform = {};
-
-	vk::GraphicsSystem graphicsSystem;
-
 	Time mTime;
-
-	ObjectManager mObjectManager;
-
 	Camera mCamera;
 
-	PhysicsSystem mPhysics;
-	  
+	VkInstance m_instance = VK_NULL_HANDLE;
+
 	Controller mController;
+	
+	ObjectManager mObjectManager;
+
+	PhysicsSystem mPhysics;
+
+	vk::GraphicsSystem mGraphicsSystem;
 
 	bool exitApplication = false;
 
 	VkDebugUtilsMessengerEXT debugMessenger;
-	
-	/*VkImageView* imageViews = nullptr;*/
-
-	VkShaderModule shaderVertModule = VK_NULL_HANDLE;
-	VkShaderModule shaderFragModule = VK_NULL_HANDLE;
 
 	std::vector<VkPipelineLayout> pipelineLayouts;
 
@@ -77,18 +62,13 @@ private:
 	
 	VkDescriptorSetLayout descriptorSetLayout = VK_NULL_HANDLE; //dunno if this should be here...
 
-	std::vector<vk::Buffer> uniformBuffers;
-
 	LightInfoObject mLights;
 
 	void CreateWindow(vk::Window& appWindow);
 	void CreateWindowSurface(const VkInstance& vkInstance, vk::Window& appWindow);
 	void CreateDescriptorSets();
 	void WriteDescriptorSets();
-	void CreateSemaphores();
 	void CreateFences(const VkDevice l_device);
-	void CreateUniformBuffers(const VkPhysicalDevice p_device, const VkDevice l_device);
-	void RecreateSwapChain();
 
 	void InitPhysicsWorld();
 
@@ -100,12 +80,9 @@ private:
 	void loop();
 	void exit();
 
-	void Render(const VkDevice l_device);
-
 	void InitGui();
 	void CleanUpGui();
 
-	void DestroyObjects();
 };
 
 

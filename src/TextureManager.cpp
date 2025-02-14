@@ -7,12 +7,7 @@
 
 namespace vk 
 {
-
-	static std::string PathToTextures()
-	{
-		return "External/textures/";
-	}
-
+	const std::string texturePath{ "External/textures/" };
 
 	static VkImageView CreateTextureView(const VkDevice l_device, const VkImage& textureImage, uint32_t mipLevels)
 	{
@@ -79,7 +74,7 @@ namespace vk
 		Texture& newTexture = this->mTextures.back();
 
 		int textureWidth, textureHeight, textureChannels;
-		stbi_uc* pixels = stbi_load((PathToTextures() + fileName).c_str(), &textureWidth, &textureHeight, &textureChannels, STBI_rgb_alpha);
+		stbi_uc* pixels = stbi_load((texturePath + fileName).c_str(), &textureWidth, &textureHeight, &textureChannels, STBI_rgb_alpha);
 
 		VkDeviceSize imageSize = textureWidth * textureHeight * 4;
 

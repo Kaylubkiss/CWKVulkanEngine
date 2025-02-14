@@ -17,7 +17,6 @@ void ObjectManager::LoadObject(const char* name, const char* filename, bool will
 
 ObjectManager::ObjectManager() 
 {
-
 	//keep it to one thread.
 	this->mThreadWorkers.Init(1);
 }

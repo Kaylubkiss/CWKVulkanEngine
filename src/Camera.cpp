@@ -130,8 +130,6 @@ void Camera::Update(float interpFactor)
 
 		this->accumulatedVelocity = reactphysics3d::Vector3::zero();
 
-		_Application->UpdateUniformViewMatrix();
-
 		this->isUpdate = false;
 	}
 

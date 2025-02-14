@@ -26,8 +26,6 @@ namespace vk
 
 		bool CheckValidationSupport();
 
-		VkPipelineShaderStageCreateInfo CreateShaderModule(VkDevice logicalDevice, const char* name, VkShaderModule& shaderModule, VkShaderStageFlagBits stage);
-
 		/* IDEA:
 		VkPipelineShaderStageCreateInfo PipelineStageCreateInfo(VkShaderStageFlagBits stage, VkShaderModule shaderModule);*/
 

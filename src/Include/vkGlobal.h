@@ -5,6 +5,7 @@
 
 namespace vk
 {
+
 	const char* enabledLayerNames[1] =
 	{
 		"VK_LAYER_KHRONOS_validation"
@@ -15,12 +16,33 @@ namespace vk
 		"VK_KHR_swapchain"
 	};
 
+	struct uTransformObject
+	{
+		glm::mat4 model;
+		glm::mat4 view;
+		glm::mat4 proj;
+	};
+
+
 	struct DepthResources
 	{
 		VkImage depthImage;
 		VkDeviceMemory depthImageMemory;
 		VkImageView depthImageView;
 		VkFormat depthFormat;
+
+		const DepthResources& operator=(const DepthResources& other) 
+		{
+			if (this != &other) 
+			{
+				this->depthImage = other.depthImage;
+				this->depthImageMemory = other.depthImageMemory;
+				this->depthImageView = other.depthImageView;
+				this->depthFormat = other.depthFormat;
+			}
+
+			return *this;
+		}
 
 		void Destroy(const VkDevice l_device) 
 		{

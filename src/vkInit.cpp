@@ -60,7 +60,7 @@ namespace vk
 		}
 
 
-		VkDescriptorSetLayout CreateDescriptorSetLayout(VkDevice logicalDevice)
+		VkDescriptorSetLayout DescriptorSetLayout(VkDevice logicalDevice)
 		{
 			VkDescriptorSetLayoutBinding uTransformBinding{};
 			uTransformBinding.binding = 0;
@@ -209,11 +209,11 @@ namespace vk
 				VK_IMAGE_TILING_OPTIMAL, VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
 
 			//create depth image
-			vk::rsc::CreateImage(p_device, l_device, (uint32_t)viewport.width, (uint32_t)viewport.height, 1, nDepthResources.depthFormat, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
-				VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, nDepthResources.depthImage,
+			nDepthResources.depthImage = vk::rsc::CreateImage(p_device, l_device, (uint32_t)viewport.width, (uint32_t)viewport.height, 1, nDepthResources.depthFormat, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
+				VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
 				nDepthResources.depthImageMemory, 1);
-			//create depth image view 
 
+			//create depth image view 
 			VkImageViewCreateInfo viewInfo = {};
 			viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
 			viewInfo.image = nDepthResources.depthImage;
@@ -231,7 +231,7 @@ namespace vk
 					 nDepthResources.depthImageView, nDepthResources.depthFormat };
 		}
 		
-		VkRenderPass CreateRenderPass(const VkDevice l_device, const VkFormat& depthFormat)
+		VkRenderPass RenderPass(const VkDevice l_device, const VkFormat& depthFormat)
 		{
 			VkAttachmentDescription depthAttachment = {};
 			depthAttachment.format = depthFormat;
@@ -311,107 +311,6 @@ namespace vk
 
 		}
 
-		VkSwapchainKHR CreateSwapChain(const VkPhysicalDevice p_device, uint32_t graphicsFamily, uint32_t presentFamily, const VkSurfaceKHR windowSurface)
-		{
-
-			VkSwapchainCreateInfoKHR swapChainInfo = {};
-			swapChainInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-			swapChainInfo.surface = windowSurface;
-
-			VkSurfaceCapabilitiesKHR deviceCapabilities;
-			VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(p_device, windowSurface, &deviceCapabilities));
-
-
-			uint32_t surfaceFormatCount = 0;
-			VkSurfaceFormatKHR* surfaceFormats = nullptr;
-
-			VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceFormatsKHR(p_device, windowSurface, &surfaceFormatCount, nullptr));
-
-			//surfaceFormatCount now filled..
-			if (surfaceFormatCount <= 0)
-			{
-				throw std::runtime_error("no surface formats available...");
-			}
-
-			surfaceFormats = new VkSurfaceFormatKHR[surfaceFormatCount];
-
-			if (surfaceFormats == nullptr)
-			{
-				throw std::runtime_error("failed to allocate surfaceFormats");
-				return;
-			}
-
-			VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceFormatsKHR(p_device, windowSurface, &surfaceFormatCount, surfaceFormats));
-
-
-			//choose suitable format
-			int surfaceIndex = -1;
-
-			for (size_t i = 0; i < surfaceFormatCount; ++i)
-			{
-				if ((*(surfaceFormats + i)).format == VK_FORMAT_B8G8R8A8_SRGB && (*(surfaceFormats + i)).colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
-				{
-					surfaceIndex = i;
-				}
-			}
-
-			if (surfaceIndex < 0)
-			{
-				surfaceIndex = 0;
-			}
-
-			if (surfaceIndex < 0)
-			{
-				throw std::runtime_error("couldn't find a suitable format for swap chain");
-			}
-
-
-			this->imageCount = deviceCapabilities.minImageCount + 1;
-
-			if (deviceCapabilities.maxImageCount > 0 && imageCount > deviceCapabilities.maxImageCount)
-			{
-				this->imageCount = deviceCapabilities.maxImageCount;
-			}
-
-			swapChainInfo.minImageCount = this->imageCount;
-			swapChainInfo.imageColorSpace = (*(surfaceFormats + surfaceIndex)).colorSpace;
-			swapChainInfo.imageFormat = (*(surfaceFormats + surfaceIndex)).format;
-			swapChainInfo.imageExtent = deviceCapabilities.currentExtent;
-			swapChainInfo.imageArrayLayers = 1;
-			swapChainInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-
-			if (graphicsFamily == presentFamily)
-			{
-				swapChainInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE; //present mode and graphics mode are the same.
-				swapChainInfo.queueFamilyIndexCount = 0;
-				swapChainInfo.pQueueFamilyIndices = nullptr;
-			}
-			else
-			{
-				uint32_t queueFamilyIndices[2] = { graphicsFamily, presentFamily };
-
-				swapChainInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
-				swapChainInfo.queueFamilyIndexCount = 2;
-				swapChainInfo.pQueueFamilyIndices = queueFamilyIndices;
-			}
-
-
-			swapChainInfo.preTransform = deviceCapabilities.currentTransform;
-			swapChainInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
-			swapChainInfo.presentMode = VK_PRESENT_MODE_FIFO_KHR; //this is always guaranteed.
-			swapChainInfo.clipped = VK_TRUE;
-			swapChainInfo.oldSwapchain = nullptr; //resizing needs a reference to the old swap chain
-
-			VkSwapchainKHR nSwapChain;
-			VK_CHECK_RESULT(vkCreateSwapchainKHR(l_device, &swapChainInfo, nullptr, &nSwapChain));
-
-			delete[] surfaceFormats;
-
-			return nSwapChain;
-
-		}
-
-
 		VkSampler CreateTextureSampler(const VkPhysicalDevice p_device, const VkDevice l_device, uint32_t mipLevels)
 		{
 			VkSamplerCreateInfo createInfo = {};
@@ -484,6 +383,75 @@ namespace vk
 			VK_CHECK_RESULT(vkCreateSemaphore(l_device, &semaphoreInfo, nullptr, &nSemaphore))
 			
 			return nSemaphore;
+		}
+
+		VkFence CreateFence(const VkDevice l_device) 
+		{
+			VkFenceCreateInfo fenceInfo = {};
+			fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+			fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT; //to prevent indefinite waiting on first frame.
+
+			VkFence nFence;
+			VK_CHECK_RESULT(vkCreateFence(l_device, &fenceInfo, nullptr, &nFence));
+
+			return nFence;
+		}
+
+		VkShaderModule ShaderModule(const VkDevice l_device, const char* filename)
+		{
+			std::ifstream file(filename, std::ios::ate | std::ios::binary); //when we initialize, we std::ios::ate points to the end.
+
+			if (!file.is_open())
+			{
+				throw std::runtime_error("failed to open shader file!");
+			}
+
+			char* buffer = nullptr;
+
+
+			//reads the offset from the beginning of the file
+			size_t fileSize = (size_t)file.tellg();
+
+			buffer = new char[fileSize];
+
+			//set the stream to the beginning of the file after being positioned at the end.
+			file.seekg(0);
+
+			file.read(buffer, fileSize);
+
+			file.close();
+
+			delete[] buffer;
+
+			VkShaderModuleCreateInfo shaderVertModuleInfo =
+			{
+				VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
+				nullptr,
+				0,
+				fileSize,
+				reinterpret_cast<const uint32_t*>(buffer)
+			};
+
+			VkShaderModule nShaderModule;
+			VK_CHECK_RESULT(vkCreateShaderModule(l_device, &shaderVertModuleInfo, nullptr, &nShaderModule));
+
+			return nShaderModule;
+		}
+
+		VkPipelineShaderStageCreateInfo PipelineShaderStageCreateInfo(const VkShaderModule& shaderModule, VkShaderStageFlagBits stage) 
+		{
+			VkPipelineShaderStageCreateInfo nShaderStageInfo =
+			{
+				VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+				nullptr,
+				0,
+				stage,
+				shaderModule,
+				"main", //entry point -->pName
+				nullptr //no specialization constants
+			};
+
+			return nShaderStageInfo;
 		}
 
 		VkPipelineLayout CreatePipelineLayout(const VkDevice l_device, const VkDescriptorSetLayout descriptorSetLayout)

@@ -19,6 +19,12 @@ namespace vk
 
 			SDL_Quit();
 		}
+
+		void UpdateExtents(const VkExtent2D& area)
+		{
+			viewport.width = area.width;
+			viewport.height = area.height;
+		}
 	};
 
 }

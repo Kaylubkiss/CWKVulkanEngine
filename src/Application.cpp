@@ -25,12 +25,11 @@ void Application::UpdateUniformViewMatrix()
 {
 	if (mCamera.isUpdated()) 
 	{
-		uTransform.view = mCamera.LookAt();
-		memcpy(uniformBuffers[0].mappedMemory, (void*)&uTransform, (size_t)(sizeof(uTransformObject)));
+		mGraphicsSystem.UpdateUniformViewMatirx(mCamera.LookAt());
 	}
 }
 
-Camera& Application::GetCamera()
+Camera& Application::GetCamera() const
 {
 	return this->mCamera;
 }
@@ -95,18 +94,6 @@ void Application::CreateWindowSurface(const VkInstance& vkInstance, vk::Window& 
 }
 
 
-void Application::CreateUniformBuffers(const VkPhysicalDevice p_device, const VkDevice l_device)
-{
-	this->uniformBuffers.push_back(vk::Buffer(p_device, l_device, sizeof(uTransformObject), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, (void*)&uTransform));
-	
-}
-
-
-
-const VkPipeline& Application::GetTrianglePipeline()
-{
-	return this->pipeline;
-}
 
 const VkPipeline& Application::GetLinePipeline()
 {
@@ -202,12 +189,6 @@ void Application::WriteDescriptorSets()
 
 }
 
-void Application::CreateSemaphores() 
-{
-	this->imageAvailableSemaphore = vk::init::CreateSemaphore(this->m_logicalDevice);
-	this->renderFinishedSemaphore = vk::init::CreateSemaphore(this->m_logicalDevice);
-}
-
 void Application::CreateFences(const VkDevice l_device) 
 {
 	VkFenceCreateInfo fenceInfo = {};
@@ -217,54 +198,6 @@ void Application::CreateFences(const VkDevice l_device)
 	VK_CHECK_RESULT(vkCreateFence(l_device, &fenceInfo, nullptr, &this->inFlightFence));
 }
 
-void Application::RecreateSwapChain() 
-{
-	VK_CHECK_RESULT(vkDeviceWaitIdle(this->m_logicalDevice));
-
-
-	VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(this->m_physicalDevices[device_index], this->m_windowSurface, &this->deviceCapabilities));
-
-	this->mWindowExtents.width = deviceCapabilities.currentExtent.width;
-	this->mWindowExtents.height = deviceCapabilities.currentExtent.height;
-
-	for (unsigned i = 0; i < this->imageCount; ++i)
-	{
-		vkDestroyFramebuffer(this->m_logicalDevice, this->frameBuffer[i], nullptr);
-	}
-
-	
-	vkDestroyImageView(this->m_logicalDevice, this->depthImageView, nullptr);
-	vkDestroyImage(this->m_logicalDevice, this->depthImage, nullptr);
-	
-	delete[] this->frameBuffer;
-	delete[] this->swapChainImages;
-
-	vkDestroySwapchainKHR(this->m_logicalDevice, this->swapChain, nullptr);
-
-	CreateSwapChain();
-
-	CreateImageViews();
-
-	CreateDepthResources();
-
-	CreateFrameBuffers();
-}
-
-
-void Application::ResizeViewport()
-{
-	int nWidth, nHeight;
-
-	SDL_GetWindowSizeInPixels(this->mWindow.sdl_ptr, &nWidth, &nHeight);
-	this->mWindow.viewport.width = (float)nWidth;
-	this->mWindow.viewport.height = (float)nHeight;
-
-	uTransform.proj = glm::perspective(glm::radians(45.f), (float)this->mWindow.viewport.width / this->mWindow.viewport.height, 0.1f, 1000.f); //proj
-	uTransform.proj[1][1] *= -1.f;
-
-	memcpy(uniformBuffers[0].mappedMemory, (void*)&uTransform, (size_t)(sizeof(uTransformObject)));
-
-}
 
 void Application::InitPhysicsWorld() 
 {
@@ -336,16 +269,6 @@ bool Application::init()
 	this->mWindow.viewport.width = 640;
 	this->mWindow.viewport.height = 480;
 
-	this->uTransform = {
-		glm::mat4(1.f), //model
-		this->mCamera.LookAt(), //view
-		glm::perspective(glm::radians(45.f), (float)this->mWindow.viewport.width / this->mWindow.viewport.height, 0.1f, 1000.f) //proj
-	};
-
-
-	this->uTransform.proj[1][1] *= -1.f;
-
-
 	CreateWindow(this->mWindow);
 
 	m_instance = vk::init::CreateInstance(this->mWindow.sdl_ptr);
@@ -354,7 +277,7 @@ bool Application::init()
 
 	//setup the debug callbacks... (optional...)
 
-	this->graphicsSystem = vk::GraphicsSystem(this->m_instance, this->mWindow.surface);
+	this->mGraphicsSystem = vk::GraphicsSystem(this->m_instance, this->mWindow);
 	
 	//retrieve queue family properties 
 	// --> group of queues that have identical capabilities and are able to run in parallel 
@@ -448,15 +371,15 @@ bool Application::init()
 
 	//ERROR: vksetcmdviewport? scissor? you made a dynamic viewport!!!
 
-
 	return true;
 
 
 }
 
-SDL_Window* Application::GetWindow() const
+
+vk::Window& Application::GetWindow() const
 {
-	return this->window;
+	return this->mWindow;
 }
 
 const Time& Application::GetTime()
@@ -554,117 +477,6 @@ void Application::DrawGui(VkCommandBuffer cmdBuffer)
 
 }
 
-void Application::Render(const VkDevice l_device) 
-{
-	
-	VK_CHECK_RESULT(vkWaitForFences(this->m_logicalDevice, 1, &this->inFlightFence, VK_TRUE, UINT64_MAX))
-	VK_CHECK_RESULT(vkResetFences(this->m_logicalDevice, 1, &this->inFlightFence))
-
-	uint32_t imageIndex;
-	VkResult result = vkAcquireNextImageKHR(this->m_logicalDevice, this->swapChain, UINT64_MAX, this->imageAvailableSemaphore, VK_NULL_HANDLE, &imageIndex);
-
-
-	if (result == VK_ERROR_OUT_OF_DATE_KHR)
-	{
-		RecreateSwapChain();
-		ResizeViewport();
-		return;
-	}
-
-	assert(result == VK_SUCCESS);
-
-	VK_CHECK_RESULT(vkResetCommandBuffer(this->commandBuffer, 0))
-
-
-	////always begin recording command buffers by calling vkBeginCommandBuffer --> just tells vulkan about the usage of a particular command buffer.
-	//always begin recording command buffers by calling vkBeginCommandBuffer --> just tells vulkan about the usage of a particular command buffer.
-	VkCommandBufferBeginInfo cmdBufferBeginInfo = {};
-	cmdBufferBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-	cmdBufferBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-	//everything else is default...
-
-	//resetting command buffer should be implicit with reset flag.
-	VK_CHECK_RESULT(vkBeginCommandBuffer(this->commandBuffer, &cmdBufferBeginInfo))
-
-	VkRenderPassBeginInfo renderPassInfo = {};
-	renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-	renderPassInfo.renderPass = this->m_renderPass;
-	renderPassInfo.framebuffer = this->frameBuffer[imageIndex];
-	renderPassInfo.renderArea.offset = { 0,0 };
-	renderPassInfo.renderArea.extent = deviceCapabilities.currentExtent;
-
-	VkClearValue clearColors[2] = {};
-	clearColors[0].color = { {0.f, 0.f, 0.f, 1.f} };
-	clearColors[1].depthStencil = { 1.f, 0 };
-
-	renderPassInfo.clearValueCount = 2;
-	renderPassInfo.pClearValues = clearColors;
-
-	//put this in a draw frame
-	vkCmdBeginRenderPass(this->commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
-
-	//bind the graphics pipeline
-	vkCmdBindPipeline(this->commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->pipeline);
-
-	/*vkCmdSetViewport(this->commandBuffer, 0, 1, &this->m_viewPort);
-	vkCmdSetScissor(this->commandBuffer, 0, 1, &this->m_scissor);*/
-
-	
-	this->mObjectManager["freddy"].Draw(this->commandBuffer);
-	this->mObjectManager["base"].Draw(this->commandBuffer);  
-	this->mObjectManager["cube"].Draw(this->commandBuffer);
-
-
-	DrawGui();
-
-	vkCmdEndRenderPass(this->commandBuffer);
-
-	VK_CHECK_RESULT(vkEndCommandBuffer(this->commandBuffer));
-
-	VkSubmitInfo submitInfo{};
-	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-
-	VkSemaphore waitSemaphores[] = { imageAvailableSemaphore };
-	VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
-	submitInfo.waitSemaphoreCount = 1;
-	submitInfo.pWaitSemaphores = waitSemaphores;
-	submitInfo.pWaitDstStageMask = waitStages;
-
-	submitInfo.commandBufferCount = 1;
-	submitInfo.pCommandBuffers = &this->commandBuffer;
-
-	VkSemaphore signalSemaphores[] = { renderFinishedSemaphore };
-	submitInfo.signalSemaphoreCount = 1;
-	submitInfo.pSignalSemaphores = signalSemaphores;
-
-	VK_CHECK_RESULT(vkQueueSubmit(graphicsQueue, 1, &submitInfo, this->inFlightFence));
-
-	VkPresentInfoKHR presentInfo{};
-	presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
-
-	presentInfo.waitSemaphoreCount = 1;
-	presentInfo.pWaitSemaphores = signalSemaphores;
-
-	VkSwapchainKHR swapChains[] = { swapChain };
-	presentInfo.swapchainCount = 1;
-	presentInfo.pSwapchains = swapChains;
-
-	presentInfo.pImageIndices = &imageIndex;
-
-	result = vkQueuePresentKHR(presentQueue, &presentInfo);
-
-	if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
-	{
-		RecreateSwapChain();
-		ResizeViewport();
-		return;
-	}
-
-	assert(result == VK_SUCCESS);
-
-}
-
-
 void Application::RequestExit() 
 {
 	this->exitApplication = true;
@@ -686,11 +498,14 @@ void Application::loop()
 		this->mObjectManager["base"].Update(mPhysics.InterpFactor());
 		
 		mCamera.Update(mPhysics.InterpFactor());
+		Application::UpdateUniformViewMatrix();
 
 		mLights.Update();
 		
+		//rendering objects
+		mGraphicsSystem.Render();
 
-		Render();
+		
 	}
 
 	VK_CHECK_RESULT(vkDeviceWaitIdle(this->m_logicalDevice));
@@ -699,68 +514,17 @@ void Application::loop()
 
 }
 
-void Application::DestroyObjects() 
-{
-	/*debugCube.DestroyResources();
-	debugCube2.DestroyResources();
-	debugCube3.DestroyResources();*/
-}
 
 void Application::exit()
 {
 
 	CleanUpGui();
 
-	DestroyObjects();
-
-	vkDestroySemaphore(this->m_logicalDevice, this->imageAvailableSemaphore, nullptr);
-
-	vkDestroySemaphore(this->m_logicalDevice, this->renderFinishedSemaphore, nullptr);
-
-	vkFreeCommandBuffers(this->m_logicalDevice, this->commandPool, 1, &this->commandBuffer);
-	
-	vkDestroyCommandPool(this->m_logicalDevice, this->commandPool, nullptr);
-
-	for (size_t i = 0; i < this->pipelineLayouts.size(); ++i) 
-	{
-		vkDestroyPipelineLayout(this->m_logicalDevice, this->pipelineLayouts[i], nullptr);
-	}
-
-	
-	vkDestroyPipeline(this->m_logicalDevice, this->pipeline, nullptr);
-
-	vkDestroyPipeline(this->m_logicalDevice, this->linePipeline, nullptr);
+	//vkDestroyPipeline(this->m_logicalDevice, this->linePipeline, nullptr);
 
 	vkDestroyDescriptorPool(this->m_logicalDevice, this->descriptorPool, nullptr);
 
 	vkDestroyDescriptorSetLayout(this->m_logicalDevice, this->descriptorSetLayout, nullptr);
-
-	for (unsigned i = 0; i < uniformBuffers.size(); ++i) 
-	{
-		vkDestroyBuffer(this->m_logicalDevice, uniformBuffers[i].handle, nullptr);
-		vkFreeMemory(this->m_logicalDevice, uniformBuffers[i].memory, nullptr);
-	}
-	
-	//Texture manager destroy.
-
-	vkDestroyImage(this->m_logicalDevice, this->depthImage, nullptr);
-	vkDestroyImageView(this->m_logicalDevice, this->depthImageView, nullptr);
-	vkFreeMemory(this->m_logicalDevice, this->depthImageMemory, nullptr);
-
-	vkDestroyShaderModule(this->m_logicalDevice, this->shaderVertModule, nullptr);
-
-	vkDestroyShaderModule(this->m_logicalDevice, this->shaderFragModule, nullptr);
-	
-	vkDestroyRenderPass(this->m_logicalDevice, this->m_renderPass, nullptr);
-
-	//this already destroys the images in it.
-	//vkDestroySwapchainKHR(this->m_logicalDevice, this->swapChain, nullptr);
-
-	vkDestroyFence(this->m_logicalDevice, this->inFlightFence, nullptr);
-
-
-	//delete[] swapChainImages;
-	//delete[] m_physicalDevices;
 	
 	auto func = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(this->m_instance, "vkDestroyDebugUtilsMessengerEXT");
 
@@ -771,7 +535,7 @@ void Application::exit()
 
 	mLights.Deallocate();
 
-	mObjectManager.Deallocate();
+	/*mObjectManager.Deallocate();*/
 
 }
 
