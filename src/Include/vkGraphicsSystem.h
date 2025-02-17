@@ -78,9 +78,11 @@ namespace vk
 			static VkDevice CreateLogicalDevice(const VkPhysicalDevice& p_device, uint32_t graphicsFamily, uint32_t presentFamily);
 
 			void UpdateUniformViewMatirx(const glm::mat4& viewMat);
+
 			void ResizeWindow();
 
 			void WaitForQueueSubmission();
+
 			void Render(const vk::Window& appWindow, VkCommandBuffer* secondCmdBuffers, size_t secondCmdCount);
 
 			VkCommandPool CommandPool();

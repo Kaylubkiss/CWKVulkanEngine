@@ -113,16 +113,7 @@ namespace vk
 	{
 		//reason we don't call destroy: don't need to destroy every resource in swapchain.
 
-		for (unsigned i = 0; i < this->imageCount; ++i)
-		{
-			vkDestroyFramebuffer(l_device, this->frameBuffers[i], nullptr);
-			vkDestroyImageView(l_device, this->imageViews[i], nullptr);
-		}
-
-		delete[] this->frameBuffers;
-		delete[] this->images;
-
-		vkDestroySwapchainKHR(l_device, this->handle, nullptr);
+		SwapChain::Destroy(l_device);
 
 		*this = SwapChain(l_device, p_device, graphicsFamily, presentFamily, appWindow.surface);
 

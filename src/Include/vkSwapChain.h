@@ -35,12 +35,13 @@ namespace vk
 
 				for (unsigned i = 0; i < imageCount; ++i)
 				{
-					vkDestroyFramebuffer(l_device, this->frameBuffers[i], nullptr);
 					vkDestroyImageView(l_device, this->imageViews[i], nullptr);
+					vkDestroyFramebuffer(l_device, this->frameBuffers[i], nullptr);
 				}
 
-				delete[] this->frameBuffers;
+				delete[] frameBuffers;
 				delete[] images;
+				delete[] imageViews;
 			}
 
 		

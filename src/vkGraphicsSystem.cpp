@@ -103,8 +103,6 @@ namespace vk
 	void GraphicsSystem::Destroy() 
 	{
 
-		
-
 		renderResources.Destroy(this->logicalGpu);
 		swapChain.Destroy(this->logicalGpu);
 
@@ -359,7 +357,6 @@ namespace vk
 		VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(this->gpus[g_index], appWindow.surface, &deviceCapabilities));
 
 		appWindow.UpdateExtents(deviceCapabilities.currentExtent);
-
 		this->renderResources.currentExtent = deviceCapabilities.currentExtent;
 
 		this->renderResources.depthInfo.Destroy(this->logicalGpu);
@@ -367,7 +364,9 @@ namespace vk
 
 		//updating the uniform projection matrix after updating the viewport size
 		this->renderResources.uTransform.proj = glm::perspective(glm::radians(45.f), (float)appWindow.viewport.width / appWindow.viewport.height, 0.1f, 1000.f); //proj
-			this->renderResources.uTransform.proj[1][1] *= -1.f;		
+		
+		this->renderResources.uTransform.proj[1][1] *= -1.f;		
+		
 		memcpy(this->renderResources.uniformBuffer.mappedMemory, (void*)&this->renderResources.uTransform, (size_t)(sizeof(uTransformObject)));
 
 		this->swapChain.Recreate(this->gpus[g_index], this->logicalGpu, this->graphicsQueue.family, this->presentQueue.family, this->renderResources.depthInfo, this->renderResources.renderPass, appWindow);

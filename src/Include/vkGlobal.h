@@ -51,8 +51,8 @@ namespace vk
 
 		void Destroy(const VkDevice l_device) 
 		{
-			vkDestroyImage(l_device, this->depthImage, nullptr);
 			vkDestroyImageView(l_device, this->depthImageView, nullptr);
+			vkDestroyImage(l_device, this->depthImage, nullptr);
 			vkFreeMemory(l_device, this->depthImageMemory, nullptr);
 		}
 	};
