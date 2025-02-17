@@ -22,7 +22,7 @@ namespace vk
 				VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
 				VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
 
-			createInfo.pfnUserCallback = vk::debug::debugCallback;
+			createInfo.pfnUserCallback = vk::debug::debugMessengerCallback;
 
 			return createInfo;
 		}
@@ -68,24 +68,24 @@ namespace vk
 			uTransformBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT; //we are going to use the transforms in the vertex shader.
 
 			VkDescriptorSetLayoutBinding samplerBinding = {};
-			samplerBinding.binding = 2;
+			samplerBinding.binding = 1;
 			samplerBinding.descriptorCount = 1;
 			samplerBinding.pImmutableSamplers = nullptr;
 			samplerBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 			samplerBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT; //we are going to use the sampler in the fragment shader.
 
-			VkDescriptorSetLayoutBinding uLightInfoBinding{};
-			uLightInfoBinding.binding = 1;
+			/*VkDescriptorSetLayoutBinding uLightInfoBinding{};
+			uLightInfoBinding.binding = 2;
 			uLightInfoBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 			uLightInfoBinding.descriptorCount = 1;
-			uLightInfoBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+			uLightInfoBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;*/
 
-			VkDescriptorSetLayoutBinding bindings[3] = { uTransformBinding, samplerBinding, uLightInfoBinding };
+			VkDescriptorSetLayoutBinding bindings[2] = { uTransformBinding, samplerBinding };
 
 
 			VkDescriptorSetLayoutCreateInfo layoutInfo = {};
 			layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-			layoutInfo.bindingCount = 3;
+			layoutInfo.bindingCount = 2;
 			layoutInfo.pBindings = bindings;
 
 
@@ -145,37 +145,58 @@ namespace vk
 
 			//we won't be doing any extension for now --> look into it at a later time.
 			//need to get sdl extensionss
-			unsigned int extensionCount = 0;
-			const char** extensionNames = nullptr;
+			unsigned int sdl_extensionCount = 0;
 
 			VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo = vk::init::DebugMessengerCreateInfo();
 
-			if (SDL_Vulkan_GetInstanceExtensions(window, &extensionCount, nullptr) != SDL_TRUE)
+			if (SDL_Vulkan_GetInstanceExtensions(window, &sdl_extensionCount, nullptr) != SDL_TRUE)
 			{
 				throw std::runtime_error("could not grab extensions from SDL!");
 			}
 
-			extensionNames = new const char* [extensionCount + 1];
+			std::vector<const char*> extensionNames(sdl_extensionCount);
 
-			if (SDL_Vulkan_GetInstanceExtensions(window, &extensionCount, (extensionNames)) != SDL_TRUE)
+			if (SDL_Vulkan_GetInstanceExtensions(window, &sdl_extensionCount, extensionNames.data()) != SDL_TRUE)
 			{
 				throw std::runtime_error("could not grab extensions from SDL!");
 			}
 
 
-			extensionNames[extensionCount] = VK_EXT_DEBUG_UTILS_EXTENSION_NAME;
+			//find other instance extensions.
+			uint32_t extensionPropertyCount = 0;
+			vkEnumerateInstanceExtensionProperties(nullptr, &extensionPropertyCount, nullptr);
 
-			createInfo.enabledExtensionCount = extensionCount + 1;
-			createInfo.ppEnabledExtensionNames = (extensionNames);
+			std::vector<VkExtensionProperties> extensionProperties(extensionPropertyCount);
+
+			vkEnumerateInstanceExtensionProperties(nullptr, &extensionPropertyCount, extensionProperties.data());
+
+			bool foundExtension = false;
+			int additionalExtensionCount = 0;
+			for (auto& property : extensionProperties)
+			{
+				if (strcmp(property.extensionName, VK_EXT_DEBUG_UTILS_EXTENSION_NAME) == 0) {
+					extensionNames.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+					foundExtension = true;
+					break;
+				}
+			}
+
+
+			if (foundExtension) 
+			{
+				additionalExtensionCount = 1;
+			}
+
+			createInfo.enabledExtensionCount = sdl_extensionCount + additionalExtensionCount;
+			createInfo.ppEnabledExtensionNames = extensionNames.data();
 
 
 			//this could be useful for logging, profiling, debugging, whatever.
 			//it intercepts the API
-
 			if (vk::util::CheckValidationSupport())
 			{
-				createInfo.ppEnabledLayerNames = vk::enabledLayerNames;
-				createInfo.enabledLayerCount = 1;
+				createInfo.ppEnabledLayerNames = vk::instanceLayerExtensions;
+				createInfo.enabledLayerCount = 2;
 			}
 
 			createInfo.pNext = (VkDebugUtilsMessengerCreateInfoEXT*)&debugCreateInfo;
@@ -192,8 +213,6 @@ namespace vk
 			VkInstance newInstance;
 
 			VK_CHECK_RESULT(vkCreateInstance(&createInfo, nullptr, &newInstance))
-
-			delete[] extensionNames;
 
 			return newInstance;
 
@@ -458,6 +477,8 @@ namespace vk
 
 		VkPipelineLayout CreatePipelineLayout(const VkDevice l_device, const VkDescriptorSetLayout descriptorSetLayout)
 		{
+			//TODO: check if the amount of set layouts exceed the physical limit!!!
+
 			VkPushConstantRange pushConstants[1];
 
 			//this is for an object's model transformation.

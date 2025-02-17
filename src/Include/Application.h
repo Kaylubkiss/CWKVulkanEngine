@@ -4,12 +4,11 @@
 #include "Camera.h"
 #include "Debug.h"
 #include "Controller.h"
-#include "BlinnPhong.h"
 #include "ObjectManager.h"
 #include "ThreadPool.h"
 #include "vkWindow.h"
-#include "vkTexture.h"
 #include "vkGraphicsSystem.h"
+#include "TextureManager.h"
 
 class Application
 {
@@ -39,10 +38,12 @@ private:
 	Camera mCamera;
 
 	VkInstance m_instance = VK_NULL_HANDLE;
+	VkCommandBuffer secondaryCmdBuffer = VK_NULL_HANDLE;
 
 	Controller mController;
-	
-	/*ObjectManager mObjectManager;*/
+
+	vk::TextureManager mTextureManager;
+	vk::ObjectManager mObjectManager;
 
 	PhysicsSystem mPhysics;
 
@@ -50,13 +51,12 @@ private:
 
 	bool exitApplication = false;
 
-	VkDebugUtilsMessengerEXT debugMessenger;
+	VkDebugUtilsMessengerEXT debugMessenger = VK_NULL_HANDLE;
+	VkDebugUtilsObjectNameInfoEXT instanceDebug = {};
 
 	std::vector<VkPipelineLayout> pipelineLayouts;
 
 	VkPipeline linePipeline = VK_NULL_HANDLE;
-
-	LightInfoObject mLights;
 
 	void CreateWindow(vk::Window& appWindow);
 	void CreateWindowSurface(const VkInstance& vkInstance, vk::Window& appWindow);

@@ -16,8 +16,7 @@ namespace vk {
 
 			vkEnumerateInstanceLayerProperties(&layerCount, availableLayers.data());
 
-
-			for (const char* layerName : vk::enabledLayerNames)
+			for (const char* layerName : vk::instanceLayerExtensions)
 			{
 				bool layerFound = false;
 				for (const VkLayerProperties& layerProperties : availableLayers)

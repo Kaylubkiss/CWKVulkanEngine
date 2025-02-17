@@ -100,8 +100,10 @@ namespace vk
 
 		delete[] surfaceFormats;
 
-		VK_CHECK_RESULT(vkGetSwapchainImagesKHR(l_device, this->handle, &this->imageCount, this->images));
 
+		this->images = new VkImage[this->imageCount];
+
+		VK_CHECK_RESULT(vkGetSwapchainImagesKHR(l_device, this->handle, &this->imageCount, this->images));
 
 		//Do some extra work to setup the framebuffers.
 		SwapChain::CreateImageViews(l_device, this->images, this->imageCount);

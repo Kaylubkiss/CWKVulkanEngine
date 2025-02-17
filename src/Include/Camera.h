@@ -3,9 +3,6 @@
 #include "Physics.h"
 
 
-
-
-
 struct Capsule 
 {
 	float mRadius;

@@ -8,15 +8,15 @@ namespace vk
 
 	struct Texture
 	{
-		std::string mName;
-		VkImage mTextureImage;
-		VkDeviceMemory mTextureMemory;
-		VkImageView mTextureImageView;
-		VkSampler mTextureSampler;
+		std::string mName = "";
+		VkImage mTextureImage = VK_NULL_HANDLE;
+		VkDeviceMemory mTextureMemory = VK_NULL_HANDLE;
+		VkImageView mTextureImageView = VK_NULL_HANDLE;
+		VkSampler mTextureSampler = VK_NULL_HANDLE;
 
 		VkDescriptorSet mDescriptorSet = VK_NULL_HANDLE;
 
-		Texture() : mTextureImage(), mTextureMemory(), mTextureImageView(), mTextureSampler(), mDescriptorSet(VK_NULL_HANDLE) {};
+		Texture() = default;
 
 		void Destroy(const VkDevice l_device) {
 

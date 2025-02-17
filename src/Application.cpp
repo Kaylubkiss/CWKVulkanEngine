@@ -1,11 +1,8 @@
 #include "Application.h"
 #include <iostream>
 #include <SDL2/SDL_vulkan.h>
-#include <glm/gtc/matrix_transform.hpp>
-#include "vkUtility.h"
 #include "vkDebug.h"
 #include "vkInit.h"
-#include "vkResource.h"
 
 
 //NOTE: to remove pesky warnings from visual studio, on dynamically allocated arrays,
@@ -51,6 +48,16 @@ void Application::ToggleObjectVisibility(SDL_Keycode keysym, uint8_t lshift)
 
 void Application::CreateWindow(vk::Window& appWindow)
 {
+
+	//set the viewport depth value!!!
+	appWindow.viewport.width = 640;
+	appWindow.viewport.height = 480;
+	appWindow.viewport.minDepth = 0;
+	appWindow.viewport.maxDepth = 1;
+
+	appWindow.scissor.extent.width = (uint32_t)this->mWindow.viewport.width;
+	appWindow.scissor.extent.height = (uint32_t)this->mWindow.viewport.height;
+
 	if (SDL_Init(SDL_INIT_VIDEO) < 0)
 	{
 		printf("SDL could not initialize! SDL_Error: %s\n", SDL_GetError());
@@ -64,8 +71,6 @@ void Application::CreateWindow(vk::Window& appWindow)
 		printf("Window could not be created! SDL_Error: %s\n", SDL_GetError());
 	}
 
-
-	
 }
 
 bool Application::WindowisFocused() 
@@ -165,87 +170,48 @@ bool Application::init()
 {
 	this->mCamera = Camera({ 0.f, 0.f, 10.f }, { 0.f, 0.f, -1.f } , { 0,1,0 });
 
-	this->mWindow.viewport.width = 640;
-	this->mWindow.viewport.height = 480;
-
 	CreateWindow(this->mWindow);
 
-	m_instance = vk::init::CreateInstance(this->mWindow.sdl_ptr);
+	this->m_instance = vk::init::CreateInstance(this->mWindow.sdl_ptr);
 
 	CreateWindowSurface(this->m_instance, this->mWindow);
 
 	//setup the debug callbacks... (optional...)
 
 	this->mGraphicsSystem = vk::GraphicsSystem(this->m_instance, this->mWindow);
+
+	/*vk::debug::SetInstanceDebugObject(this->m_instance, this->mGraphicsSystem.LogicalDevice(), this->instanceDebug);*/
+
+	this->secondaryCmdBuffer = vk::init::CommandBuffer(this->mGraphicsSystem.LogicalDevice(), this->mGraphicsSystem.CommandPool(), VK_COMMAND_BUFFER_LEVEL_SECONDARY);
+
+	this->mTextureManager.Init(this->mGraphicsSystem.LogicalDevice());
+	
+	this->mObjectManager.Init();
+
+	mTime = Time(SDL_GetPerformanceCounter());
 	
 	////retrieve queue family properties 
 	//// --> group of queues that have identical capabilities and are able to run in parallel 
 	////		--> could be arithmetic, passing shaders, stuff like that.
 
-	//glm::mat4 modelTransform = glm::mat4(5.f);
-	//modelTransform[3] = glm::vec4(1.f, 0, -20.f, 1);
+	glm::mat4 modelTransform = glm::mat4(5.f);
+	modelTransform[3] = glm::vec4(1.f, 0, -20.f, 1);
 
-	//mObjectManager.LoadObject("freddy", "freddy.obj", false, modelTransform);
+	mObjectManager.LoadObject(mGraphicsSystem.PhysicalDevice(), mGraphicsSystem.LogicalDevice(), "freddy", "freddy.obj", "texture.jpg", false, modelTransform);
 
-	////object 2
-	//modelTransform = glm::mat4(1.f);
-	//modelTransform[3] = glm::vec4(0, 20, -5.f, 1);
+	//object 2
+	modelTransform = glm::mat4(1.f);
+	modelTransform[3] = glm::vec4(0, 20, -5.f, 1);
 
-	//mObjectManager.LoadObject("cube", "cube.obj", true, modelTransform);
+	mObjectManager.LoadObject(mGraphicsSystem.PhysicalDevice(), mGraphicsSystem.LogicalDevice(), "cube", "cube.obj", "puppy1.bmp", true, modelTransform);
 
-	////object 3
-	//const float dbScale = 30.f;
-	//modelTransform = glm::mat4(dbScale);
-	//modelTransform[3] = { 0.f, -5.f, 0.f, 1 };
+	//object 3
+	const float dbScale = 30.f;
+	modelTransform = glm::mat4(dbScale);
+	modelTransform[3] = { 0.f, -5.f, 0.f, 1 };
 
-	//mObjectManager.LoadObject("base", "base.obj", true, modelTransform);
-
-	//
-	//// If you want to draw a triangle:
-	//// - create renderpass object
-	//CreateSwapChain();
-
-	//CreateImageViews();
-
-	//std::string vertexShaderPath = shaderPath + "blinnvert.spv";
-	//VkPipelineShaderStageCreateInfo shaderVertStageInfo = vk::util::CreateShaderModule(this->m_logicalDevice, vertexShaderPath.data(), this->shaderVertModule, VK_SHADER_STAGE_VERTEX_BIT);
-
-	//std::string fragShaderPath = shaderPath + "blinnfrag.spv";
-	//VkPipelineShaderStageCreateInfo shaderFragModuleInfo = vk::util::CreateShaderModule(this->m_logicalDevice, fragShaderPath.data(), this->shaderFragModule, VK_SHADER_STAGE_FRAGMENT_BIT);
-
-	//VkPipelineShaderStageCreateInfo shaderStages[] = { shaderVertStageInfo, shaderFragModuleInfo };
-
-	//////create layout 
-	////this->commandPool = vk::init::CreateCommandPool(this->m_logicalDevice, VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
-
-	////this->commandBuffer = CreateCommandBuffer(this->m_logicalDevice, this->commandPool);
-	////
-	////CreateUniformBuffers();
-
-
-	//mLights.Create({ 0, 10, 0 }, { 0, -1, 0 });
-	//
-	//CreateDepthResources();
-
-	////ERROR: didn't create descriptoryLayout!!!
-
-	//CreatePipelineLayout();
-	//
-	//CreateRenderPass();
-	//CreateFrameBuffers();
-	//
-	//CreatePipeline(shaderStages, 2, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, this->pipeline);
-	//CreatePipeline(shaderStages, 2, VK_PRIMITIVE_TOPOLOGY_LINE_LIST, this->linePipeline);
-
-	//commands
-
-
-	//CreateSemaphores();
-
-	//CreateFences();
-
+	mObjectManager.LoadObject(mGraphicsSystem.PhysicalDevice(), mGraphicsSystem.LogicalDevice(), "base", "base.obj", "puppy1.bmp", true, modelTransform);
 	
-	mTime = Time(SDL_GetPerformanceCounter());
 
 	//while (mObjectManager.mThreadWorkers.isBusy()) { //wait until the jobs are done... 
 	//}
@@ -260,13 +226,9 @@ bool Application::init()
 	this->mObjectManager["base"].UpdatePipelineLayout(&this->pipelineLayouts.back());*/
 
 
-	//CreateDescriptorSets();
-	//WriteDescriptorSets();
+	//InitGui();
 
-
-	InitGui();
-
-	InitPhysicsWorld();
+	//InitPhysicsWorld();
 
 	//ERROR: vksetcmdviewport? scissor? you made a dynamic viewport!!!
 
@@ -389,20 +351,47 @@ void Application::loop()
 	{	
 		mTime.Update();
 
-		mController.Update();
+		//mController.Update();
 
-		mPhysics.Update(mTime.DeltaTime());
+		//mPhysics.Update(mTime.DeltaTime());
 
-		/*this->mObjectManager["cube"].Update(mPhysics.InterpFactor());
-		this->mObjectManager["base"].Update(mPhysics.InterpFactor());
-		*/
-		mCamera.Update(mPhysics.InterpFactor());
-		Application::UpdateUniformViewMatrix();
+		//mCamera.Update(mPhysics.InterpFactor());
+		//Application::UpdateUniformViewMatrix();
 
-		mLights.Update();
+		this->mObjectManager.Update(this->mTextureManager, this->mGraphicsSystem);
 		
-		//rendering objects
-		mGraphicsSystem.Render(this->mWindow);
+		//draw objects using secondary command buffer
+		/*VkCommandBufferBeginInfo beginInfo = {};
+		beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+		beginInfo.flags = VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT;
+
+		
+		VkCommandBufferInheritanceInfo inheritanceInfo = {};
+		inheritanceInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_INFO;
+		inheritanceInfo.renderPass = mGraphicsSystem.RenderPass();
+		inheritanceInfo.subpass = 0;
+
+		beginInfo.pInheritanceInfo = &inheritanceInfo;*/
+
+		mGraphicsSystem.WaitForQueueSubmission();
+		
+
+		/*VK_CHECK_RESULT(vkResetCommandBuffer(this->secondaryCmdBuffer, 0))
+		VK_CHECK_RESULT(vkBeginCommandBuffer(this->secondaryCmdBuffer, &beginInfo))
+		
+		vkCmdBindPipeline(this->secondaryCmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->mGraphicsSystem.Pipeline());
+
+
+		vkCmdSetViewport(this->secondaryCmdBuffer, 0, 1, &mWindow.viewport);
+		vkCmdSetScissor(this->secondaryCmdBuffer, 0, 1, &mWindow.scissor);
+
+		this->mObjectManager.Draw(this->secondaryCmdBuffer);
+
+		VK_CHECK_RESULT(vkEndCommandBuffer(this->secondaryCmdBuffer))*/
+
+
+		//sync this up with primary command buffer in graphics system...
+		mGraphicsSystem.Render(this->mWindow, this->mObjectManager, &this->secondaryCmdBuffer, 1);
 
 		
 	}
@@ -415,24 +404,17 @@ void Application::exit()
 
 	/*CleanUpGui();*/
 
+	mObjectManager.Destroy(mGraphicsSystem.LogicalDevice());
+
 	mGraphicsSystem.Destroy();
 
-
-	/*vkDestroyDescriptorPool(this->m_logicalDevice, this->descriptorPool, nullptr);
-
-	vkDestroyDescriptorSetLayout(this->m_logicalDevice, this->descriptorSetLayout, nullptr);*/
-	
 	auto func = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(this->m_instance, "vkDestroyDebugUtilsMessengerEXT");
 
-	if (func != nullptr) 
+	if (func != nullptr)
 	{
 		func(this->m_instance, this->debugMessenger, nullptr);
 	}
-
 	/*mLights.Deallocate();*/
-
-	/*mObjectManager.Deallocate();*/
-
 }
 
 

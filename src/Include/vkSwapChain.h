@@ -1,7 +1,7 @@
 #pragma once
 
 #include <vulkan/vulkan.h>
-
+#include "vkWindow.h"
 
 namespace vk 
 {
@@ -9,9 +9,9 @@ namespace vk
 	{
 		private:
 			VkSwapchainKHR handle = VK_NULL_HANDLE;
-			uint32_t imageCount;
+			uint32_t imageCount = 0;
 			
-			VkImage* images;
+			VkImage* images = nullptr;
 			VkImageView* imageViews = nullptr;
 			
 			VkFramebuffer* frameBuffers = nullptr;
@@ -20,8 +20,6 @@ namespace vk
 			SwapChain() = default;
 			SwapChain(const SwapChain&) = delete;
 			~SwapChain() = default;
-
-			//assignment operator??
 
 			SwapChain(const VkDevice l_device, const VkPhysicalDevice p_device, uint32_t graphicsFamily, uint32_t presentFamily, const VkSurfaceKHR windowSurface);
 

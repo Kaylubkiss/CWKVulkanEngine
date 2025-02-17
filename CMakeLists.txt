@@ -60,16 +60,20 @@ set(HEADER_FILES ${SRC_INC}/Application.h
          ${SRC_INC}/vkGraphicsSystem.h
 				 ${SRC_INC}/vkBuffer.h
 				 ${SRC_INC}/vkSwapChain.h
-				 ${SRC_INC}/vkResource.h)												
+				 ${SRC_INC}/vkResource.h
+				 ${SRC_INC}/vkMesh.h)												
 												
 									 
 set(SHADER_DIR src/Shaders)
 set(SHADER_FILES ${SHADER_DIR}/blinn.frag
 				 ${SHADER_DIR}/blinn.vert)	 
 
-add_executable("${PROJECT_NAME}"  ${SOURCE_FILES}  ${SHADER_FILES} ${HEADER_FILES})
-	
 
+
+
+add_executable("${PROJECT_NAME}"  ${SOURCE_FILES} ${SHADER_FILES} ${HEADER_FILES})
+	
+source_group("Objects" FILES Objects.cpp)
 
 target_precompile_headers("${PROJECT_NAME}" PUBLIC "src/Include/pch.h")
 
@@ -84,6 +88,9 @@ if(CMAKE_C_COMPILER_ID STREQUAL "MSVC")
     string(APPEND CMAKE_C_FLAGS " /MP")
 		set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /NODEFAULTLIB:library")
 endif()
+
+
+
 
 set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT "${PROJECT_NAME}")
 

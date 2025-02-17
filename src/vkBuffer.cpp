@@ -71,4 +71,11 @@ namespace vk
 			vkUnmapMemory(l_device, this->memory);
 		}
 	}
+
+
+	void Buffer::Destroy(const VkDevice l_device) 
+	{
+		vkFreeMemory(l_device, this->memory, nullptr);
+		vkDestroyBuffer(l_device, this->handle, nullptr);
+	}
 }

@@ -6,10 +6,11 @@
 #include "vkResource.h"
 #include "vkInit.h"
 
+
+#define TEXTURE_PATH "External/textures/"
+
 namespace vk 
 {
-	const std::string texturePath{ "External/textures/" };
-
 	static VkImageView CreateTextureView(const VkDevice l_device, const VkImage& textureImage, uint32_t mipLevels)
 	{
 
@@ -64,18 +65,21 @@ namespace vk
 		return nTextureSampler;
 	}
 
-	TextureManager::TextureManager(const VkDevice l_device) 
+
+	void TextureManager::Init(const VkDevice l_device) 
 	{
 		this->descriptorPool = vk::init::DescriptorPool(l_device);
 	}
 
-	//could very well be inefficient. Look into a way to individually write descriptor sets. Shouldn't be hard. Later.
-	void TextureManager::WriteDescriptorSets(const VkDevice l_device, const VkDescriptorBufferInfo* pUniformDescriptorBuffers, size_t uniformDescriptorCount) 
+	//Inefficient. Look into a way to individually write descriptor sets. Shouldn't be hard. Later.
+	void TextureManager::UpdateDescriptorSets(const VkDevice l_device, const VkDescriptorBufferInfo* pUniformDescriptorBuffers, size_t uniformDescriptorCount) 
 	{
 		VkDescriptorImageInfo imageInfo = {};
 
 		for (size_t i = 0; i < this->mTextures.size(); ++i)
 		{
+			//potentially extra check in here to see if the descriptor set needs to be updated??
+
 			imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 			imageInfo.imageView = this->mTextures[i].mTextureImageView;
 			imageInfo.sampler = this->mTextures[i].mTextureSampler;
@@ -107,10 +111,8 @@ namespace vk
 
 	}
 
-	void TextureManager::Add(const VkPhysicalDevice p_device, const VkDevice l_device, const VkQueue	gfxQueue, const VkDescriptorSetLayout dscSetLayout, const std::string& fileName)
+	void TextureManager::Add(const VkPhysicalDevice p_device, const VkDevice l_device, const VkQueue gfxQueue, const VkDescriptorSetLayout dscSetLayout, const std::string& fileName)
 	{
-		//TODO: ensure that the same texture isn't allocated twice.
-
 		//Might want to make command pool a member variable.
 		VkCommandPool cmdPool = vk::init::CommandPool(l_device, VK_COMMAND_POOL_CREATE_TRANSIENT_BIT);
 
@@ -118,7 +120,7 @@ namespace vk
 		Texture& newTexture = this->mTextures.back();
 
 		int textureWidth, textureHeight, textureChannels;
-		stbi_uc* pixels = stbi_load((texturePath + fileName).c_str(), &textureWidth, &textureHeight, &textureChannels, STBI_rgb_alpha);
+		stbi_uc* pixels = stbi_load((TEXTURE_PATH + fileName).c_str(), &textureWidth, &textureHeight, &textureChannels, STBI_rgb_alpha);
 
 		VkDeviceSize imageSize = textureWidth * textureHeight * 4;
 
@@ -137,16 +139,21 @@ namespace vk
 			VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
 			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, newTexture.mTextureMemory, 1);
 
+
+		//creating mipmaps
 		vk::util::TransitionImageLayout(l_device, cmdPool, gfxQueue, newTexture.mTextureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, mipLevels);
 
 		vk::util::copyBufferToImage(l_device, cmdPool, stagingBuffer.handle, gfxQueue, newTexture.mTextureImage, (uint32_t)(textureWidth), (uint32_t)(textureHeight));
 
 		vk::util::GenerateMipMaps(p_device, l_device, cmdPool, gfxQueue, newTexture.mTextureImage, VK_FORMAT_R8G8B8A8_SRGB, (uint32_t)textureWidth, (uint32_t)textureHeight, mipLevels);
+	
 
 		vkDestroyBuffer(l_device, stagingBuffer.handle, nullptr);
 		vkFreeMemory(l_device, stagingBuffer.memory, nullptr);
 
 		vkDestroyCommandPool(l_device, cmdPool, nullptr);
+
+		//end of creating mipmaps.
 
 		newTexture.mTextureImageView = CreateTextureView(l_device, newTexture.mTextureImage, mipLevels);
 
@@ -168,9 +175,8 @@ namespace vk
 
 	}
 
-	const Texture& TextureManager::GetTexture(size_t index) const
+	const Texture& TextureManager::GetTextureObject(size_t index) const
 	{
-
 		if (index < 0 || index >= mTextures.size()) 
 		{
 			throw std::runtime_error("could not find specified texture!\n");
@@ -189,11 +195,38 @@ namespace vk
 			}
 		}
 
-		throw std::runtime_error("could not find specified texture!\n");
+		/*throw std::runtime_error("could not find specified texture!\n");*/
+		std::cerr << "could not find specified texture!\n";
 
-		return this->mTextures.size() - 1;
+		return -1;
 
 	}
 
 
+	void TextureManager::BindTextureToObject(const std::string& fileName, GraphicsSystem& graphicsSystem, Object& obj)
+	{
+		int index = TextureManager::GetTextureIndexByName(fileName.c_str());
+
+		if (index < 0) 
+		{
+			TextureManager::Add(graphicsSystem.PhysicalDevice(), 
+							    graphicsSystem.LogicalDevice(), 
+								graphicsSystem.GraphicsQueue(), 
+								graphicsSystem.DescriptorSetLayout(),
+								fileName);
+
+			VkDescriptorBufferInfo uTransformbufferInfo = {};
+			uTransformbufferInfo.buffer = graphicsSystem.UniformTransformBuffer();
+			uTransformbufferInfo.offset = 0;
+			uTransformbufferInfo.range = sizeof(uTransformObject);
+
+			VkDescriptorBufferInfo bufferInfo[1] = { uTransformbufferInfo };
+
+			TextureManager::UpdateDescriptorSets(graphicsSystem.LogicalDevice(), bufferInfo, 1);
+
+			index = TextureManager::GetTextureIndexByName(fileName.c_str());
+		}
+
+		obj.UpdateTexture(this->mTextures[index].mDescriptorSet);
+	}
 }

@@ -9,17 +9,6 @@ layout(binding = 0) uniform uTransformObject {
 } uTransform;
 
 
-
-const int maxLights = 1;
-
-layout(binding = 1) uniform lightInfoObject
-{
-	int num_lights;
-	vec3 position[maxLights];
-	
-} lightInfo;
-
-
 layout( location = 0 ) in vec3 aPos;
 layout( location = 1 ) in vec3 aNorm;
 layout( location = 2 ) in vec2 aUv;
@@ -33,7 +22,6 @@ layout (push_constant) uniform Matrix
 layout(location = 1) out vec2 fragTexCoord;
 layout(location = 2) out vec3 viewDir;
 layout(location = 3) out vec3 normal;
-layout(location = 4) out vec3 lightDir[maxLights];
 
 //centered around unit square --> make sure to orientate ccw
 vec2 positions[3] = vec2[3]
@@ -68,8 +56,6 @@ void main ()
 	gl_Position = uTransform.proj * posVF; 
 
 	viewDir = -posVF.xyz;
-
-	lightDir[0] =  (uTransform.view * vec4(lightInfo.position[0],1) - posVF).xyz;
 
 	fragTexCoord =  aUv;
 }

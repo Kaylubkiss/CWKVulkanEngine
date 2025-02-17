@@ -3,6 +3,7 @@
 #include "vkInit.h"
 #include <stdexcept>
 #include "Camera.h"
+#include "ObjectManager.h"
 
 
 namespace vk
@@ -12,9 +13,9 @@ namespace vk
 	void RenderResources::Destroy(const VkDevice l_device) 
 	{
 		//pipeline info...
+		vkDestroyDescriptorSetLayout(l_device, this->defaultDescriptorSetLayout, nullptr);
 		vkDestroyPipelineLayout(l_device, this->defaultPipelineLayout, nullptr);
 		vkDestroyPipeline(l_device, this->defaultPipeline, nullptr);
-
 
 		this->depthInfo.Destroy(l_device);
 		
@@ -63,7 +64,7 @@ namespace vk
 		this->uTransform.proj[1][1] *= -1.f;
 
 		//uniform(s)
-		this->uniformBuffer = vk::Buffer(p_device, l_device, sizeof(uTransformObject), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, (void*)&uTransform);
+		this->uniformBuffer = vk::Buffer(p_device, l_device, sizeof(uTransformObject), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, (void*)&this->uTransform);
 
 		//semaphores
 		this->imageAvailableSemaphore = vk::init::CreateSemaphore(l_device);
@@ -142,6 +143,37 @@ namespace vk
 	const VkPhysicalDevice GraphicsSystem::PhysicalDevice() const
 	{
 		return this->gpus[g_index];
+	}
+
+	const VkDevice GraphicsSystem::LogicalDevice() const 
+	{
+		return this->logicalGpu;
+	}
+
+	const VkQueue GraphicsSystem::GraphicsQueue() const 
+	{
+		return this->graphicsQueue.handle;
+	}
+
+	const VkRenderPass GraphicsSystem::RenderPass() const 
+	{
+		return this->renderResources.renderPass;
+	}
+
+	const VkPipeline GraphicsSystem::Pipeline() const 
+	{
+		return this->renderResources.defaultPipeline;
+	}
+
+	const VkDescriptorSetLayout GraphicsSystem::DescriptorSetLayout() const 
+	{
+		//TODO: support different descriptorsetlayouts.
+		return this->renderResources.defaultDescriptorSetLayout;
+	}
+
+	const VkBuffer GraphicsSystem::UniformTransformBuffer() const 
+	{
+		return this->renderResources.uniformBuffer.handle;
 	}
 
 	void GraphicsSystem::FindQueueFamilies(const VkPhysicalDevice& physicalDevice, const VkSurfaceKHR& windowSurface)
@@ -284,12 +316,16 @@ namespace vk
 
 		//layers are no right now.
 
-		deviceCreateInfo.enabledLayerCount = 1;
-		deviceCreateInfo.ppEnabledLayerNames = enabledLayerNames;
+		if (vk::util::CheckValidationSupport())
+		{
+			deviceCreateInfo.enabledLayerCount = 2;
+			deviceCreateInfo.ppEnabledLayerNames = vk::instanceLayerExtensions;
+		}
 
+		//maybe don't assume extensions are there!!!!
 		deviceCreateInfo.enabledExtensionCount = 1;
 		deviceCreateInfo.ppEnabledExtensionNames = deviceExtensions;
-
+		
 		deviceCreateInfo.pEnabledFeatures = &deviceFeatures; //call vkGetPhysicalDeviceFeatures to set additional features.
 
 		deviceCreateInfo.pQueueCreateInfos = deviceQueueCreateInfos;
@@ -301,10 +337,6 @@ namespace vk
 		return nLogicalDevice;
 	}
 
-	const VkDevice GraphicsSystem::LogicalDevice() const 
-	{
-		return this->logicalGpu;
-	}
 
 	void GraphicsSystem::UpdateUniformViewMatirx(const glm::mat4& viewMat) 
 	{
@@ -317,6 +349,7 @@ namespace vk
 	void GraphicsSystem::ResizeWindow() 
 	{
 		assert(_Application != NULL);
+
 		vk::Window& appWindow = _Application->GetWindow();
 
  		VK_CHECK_RESULT(vkDeviceWaitIdle(this->logicalGpu));
@@ -336,16 +369,29 @@ namespace vk
 		this->swapChain.Recreate(this->gpus[g_index], this->logicalGpu, this->graphicsQueue.family, this->presentQueue.family, this->renderResources.depthInfo, this->renderResources.renderPass, appWindow);
 	}
 
-	VkCommandPool GraphicsSystem::GetCommandPool() 
+	VkCommandPool GraphicsSystem::CommandPool() 
 	{
 		return this->renderResources.commandPool;
 	}
 
-	void GraphicsSystem::Render(const vk::Window& appWindow, VkCommandBuffer* secondCmdBuffers, size_t secondCmdCount) 
+	void GraphicsSystem::BindPipelineLayoutToObject(Object& obj) 
+	{
+		//TODO: update this to support different pipeline layouts.
+		obj.UpdatePipelineLayout(this->renderResources.defaultPipelineLayout);
+	}
+
+	void GraphicsSystem::WaitForQueueSubmission()
 	{
 		VK_CHECK_RESULT(vkWaitForFences(this->logicalGpu, 1, &this->renderResources.inFlightFence, VK_TRUE, UINT64_MAX))
 
 		VK_CHECK_RESULT(vkResetFences(this->logicalGpu, 1, &this->renderResources.inFlightFence))
+	}
+
+
+	void GraphicsSystem::Render(const vk::Window& appWindow, vk::ObjectManager& objManager, VkCommandBuffer* secondCmdBuffers, size_t secondCmdCount)
+	{
+		//wait for queue submission..
+
 
 		uint32_t imageIndex;
 		VkResult result = vkAcquireNextImageKHR(this->logicalGpu, this->swapChain.handle, UINT64_MAX, this->renderResources.imageAvailableSemaphore, VK_NULL_HANDLE, &imageIndex);
@@ -362,7 +408,7 @@ namespace vk
 		}
 
 	
-		/*VK_CHECK_RESULT(vkResetCommandBuffer(this->renderResources.commandBuffer, 0))*/
+		VK_CHECK_RESULT(vkResetCommandBuffer(this->renderResources.commandBuffer, 0))
 
 			////always begin recording command buffers by calling vkBeginCommandBuffer --> just tells vulkan about the usage of a particular command buffer.
 			VkCommandBufferBeginInfo cmdBufferBeginInfo = {};
@@ -372,10 +418,9 @@ namespace vk
 
 		//resetting command buffer should be implicit with reset flag set on this.
 		VK_CHECK_RESULT(vkBeginCommandBuffer(this->renderResources.commandBuffer, &cmdBufferBeginInfo))
-		
-		//sync up all additional commands.
-		vkCmdExecuteCommands(this->renderResources.commandBuffer, secondCmdCount, secondCmdBuffers);
-		
+
+
+
 		VkRenderPassBeginInfo renderPassInfo = {};
 		renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
 		renderPassInfo.renderPass = this->renderResources.renderPass;
@@ -384,7 +429,7 @@ namespace vk
 		renderPassInfo.renderArea.extent = this->renderResources.currentExtent;
 
 		VkClearValue clearColors[2] = {};
-		clearColors[0].color = { {0.f, 0.f, 0.f, 1.f} };
+		clearColors[0].color = { {0.f, 0.f, 5.f, 1.f} };
 		clearColors[1].depthStencil = { 1.f, 0 };
 
 		renderPassInfo.clearValueCount = 2;
@@ -393,18 +438,23 @@ namespace vk
 		//put this in a draw frame
 		vkCmdBeginRenderPass(this->renderResources.commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
+
+	/*	vkCmdExecuteCommands(this->renderResources.commandBuffer, secondCmdCount, secondCmdBuffers);*/
+
 		//bind the graphics pipeline
 		vkCmdBindPipeline(this->renderResources.commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->renderResources.defaultPipeline);
 
 		vkCmdSetViewport(this->renderResources.commandBuffer, 0, 1, &appWindow.viewport);
 		vkCmdSetScissor(this->renderResources.commandBuffer, 0, 1, &appWindow.scissor);
 
-
+		
 		//this->mObjectManager["freddy"].Draw(this->commandBuffer);
 		//this->mObjectManager["base"].Draw(this->commandBuffer);
 		//this->mObjectManager["cube"].Draw(this->commandBuffer);
+			//sync up all additional commands.
 
-
+		objManager.Draw(this->renderResources.commandBuffer);
+	
 		/*DrawGui();*/
 
 		vkCmdEndRenderPass(this->renderResources.commandBuffer);

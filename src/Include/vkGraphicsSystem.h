@@ -1,10 +1,12 @@
 #pragma once
 
-#include "Common.h"
 #include "vkSwapChain.h"
+
 
 namespace vk
 {
+	class ObjectManager;
+
 	struct RenderResources
 	{
 		uTransformObject uTransform = {};
@@ -25,9 +27,6 @@ namespace vk
 
 		//for window size information;
 		VkExtent2D currentExtent;
-	
-		//Descriptor sets --> might want this to be an array at some point.
-		VkDescriptorPool descriptorPool;
 
 		//pipeline information
 		VkDescriptorSetLayout defaultDescriptorSetLayout = VK_NULL_HANDLE;
@@ -71,15 +70,23 @@ namespace vk
 
 			const VkPhysicalDevice PhysicalDevice() const;
 			const VkDevice LogicalDevice() const;
+			const VkQueue GraphicsQueue() const;
+			const VkDescriptorSetLayout DescriptorSetLayout() const;
+			const VkRenderPass RenderPass() const;
+			const VkPipeline Pipeline() const;
+			const VkBuffer UniformTransformBuffer() const;
 
 			static VkDevice CreateLogicalDevice(const VkPhysicalDevice& p_device, uint32_t graphicsFamily, uint32_t presentFamily);
 
 			void UpdateUniformViewMatirx(const glm::mat4& viewMat);
 			void ResizeWindow();
 
-			void Render(const vk::Window& appWindow, VkCommandBuffer* secondCmdBuffers, size_t secondCmdCount);
+			void WaitForQueueSubmission();
+			void Render(const vk::Window& appWindow, vk::ObjectManager& objManager, VkCommandBuffer* secondCmdBuffers, size_t secondCmdCount);
 
-			VkCommandPool GetCommandPool();
+			VkCommandPool CommandPool();
+
+			void BindPipelineLayoutToObject(Object& obj);
 
 		private:
 			void FindQueueFamilies(const VkPhysicalDevice& physicalDevice, const VkSurfaceKHR& windowSurface);

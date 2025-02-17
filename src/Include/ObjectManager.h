@@ -2,14 +2,12 @@
 
 
 #include "Object.h"
+#include "vkGraphicsSystem.h"
 #include <map>
 #include <thread>
 #include "Threadpool.h"
+#include "TextureManager.h"
 
-static std::string PathToObjects() {
-
-	return "External/objects/";
-}
 
 struct str_cmp 
 {
@@ -20,42 +18,60 @@ struct str_cmp
 
 };
 
-class ObjectManager 
+namespace vk 
 {
+
+	class ObjectManager
+	{
 	public:
 		ObjectManager();
-		~ObjectManager() 
+		void Destroy(const VkDevice l_device) 
 		{
-			objects.clear();
+			for (auto obj : objects) 
+			{
+				if (obj.second != nullptr) 
+				{
+					obj.second->Destroy(l_device);
+				}
+			}
 		}
-	
-		void LoadObject(const VkPhysicalDevice p_device, const VkDevice l_device, const char* name = nullptr, const char* filename = nullptr, bool willDebugDraw = false, const glm::mat4& modelTransform = glm::mat4(1.f));
-		
-		Object& operator[](const char* name) 
+		~ObjectManager() = default;
+
+		void LoadObject(const VkPhysicalDevice p_device, const VkDevice l_device, const char* name = nullptr, const char* filename = nullptr, const char* texturename = nullptr, bool willDebugDraw = false, const glm::mat4& modelTransform = glm::mat4(1.f));
+
+		Object* operator[](const char* name)
 		{
 			size_t count = objects.count(name);
-	
+
 			if (objects.count(name) > 0)
 			{
-				return *objects[name];
+				return objects[name];
 			}
-			else 
+			else
 			{
-				throw std::runtime_error("no object in object manager!\n");
+				return nullptr;
 			}
 		}
-		
-		void Draw();
-		void Init(const VkDevice l_device, VkCommandPool cmdPool);
-	
+
+		void Draw(VkCommandBuffer cmdBuffer);
+		void Init();
+
+		void Update(TextureManager& textureManager, GraphicsSystem& graphicsSystem);
+
 	private:
 		void LoadObjParallel(const VkPhysicalDevice p_device, const VkDevice l_device, const char* name = nullptr, const char* filename = nullptr, bool willDebugDraw = false, const glm::mat4& modelTransform = glm::mat4(1.f));
-	
+
 		ThreadPool mThreadWorkers;
 		std::map<const char*, Object*, str_cmp> objects;
 		std::mutex map_mutex;
-	
+
+		typedef const char* ObjectName;
+		typedef std::string TextureFileName;
+
+		std::list<std::pair<ObjectName, TextureFileName>> objectUpdateQueue;
+
 	public:
-		VkCommandBuffer secondaryCmdBuffer = VK_NULL_HANDLE;
-	
-};
+
+
+	};
+}

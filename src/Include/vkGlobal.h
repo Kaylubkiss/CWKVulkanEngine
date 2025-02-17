@@ -1,14 +1,19 @@
 #pragma once
 
-#include "Common.h"
 #include <vulkan/vulkan.h>
 
 namespace vk
 {
 
-	static const char* enabledLayerNames[1] =
+	static const char* instanceExtensions[1] =
 	{
-		"VK_LAYER_KHRONOS_validation"
+		VK_EXT_DEBUG_UTILS_EXTENSION_NAME
+	};
+
+	static const char* instanceLayerExtensions[2] = 
+	{
+		"VK_LAYER_KHRONOS_validation",
+		"VK_LAYER_RENDERDOC_Capture"
 	};
 
 	static const char* deviceExtensions[1] =

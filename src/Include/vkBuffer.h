@@ -12,7 +12,7 @@ namespace vk
 
 		void* mappedMemory = NULL;
 
-		bool isAllocated = false;
+		bool isAllocated = false;  
 
 		//shallow copy
 		void operator=(const Buffer& rhs)
@@ -28,6 +28,8 @@ namespace vk
 		//assume that build info is shared among all buffers.
 		Buffer(VkPhysicalDevice p_device, VkDevice l_device, size_t size, VkBufferUsageFlags usage, VkMemoryPropertyFlags flags, void* data);
 		Buffer() : handle(VK_NULL_HANDLE), memory(VK_NULL_HANDLE), size(0), mappedMemory(NULL) {};
+
+		void Destroy(const VkDevice l_device);
 	};
 }
 

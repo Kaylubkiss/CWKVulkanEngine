@@ -36,7 +36,6 @@ namespace vk
 			VK_CHECK_RESULT(vkCreateImage(l_device, &imageCreateInfo, nullptr, &nImage));
 
 			VkMemoryRequirements memRequirements;
-
 			vkGetImageMemoryRequirements(l_device, nImage, &memRequirements);
 
 			VkMemoryAllocateInfo memAllocInfo = {};

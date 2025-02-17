@@ -4,6 +4,7 @@
 #include "vkBuffer.h"
 #include <iostream>
 #include <string>
+#include "vkMesh.h"
 
 
 enum ColliderType
@@ -12,36 +13,28 @@ enum ColliderType
 	CUBE,
 };
 
+
 class Object 
 {
 	private:
+		Mesh mMesh;
+		
 		PhysicsComponent mPhysicsComponent;
-		
-		int numVertices = 0;
+
 		int textureIndex = -1;
-	
-		vk::Buffer vertexBuffer;
-		vk::Buffer indexBuffer;
-		
-		VkPipelineLayout* mPipelineLayout = nullptr;
-	
-		std::vector<Vertex> vertexBufferData;
-		std::vector<uint16_t> indexBufferData;
-		
-		glm::vec3 mCenter = glm::vec3(0.f);
-	
-		glm::mat4 mModelTransform = glm::mat4(1.f);
-		
-		glm::vec3 mMaxLocalPoints = glm::vec3(0.f);
-		glm::vec3 mMinLocalPoints = glm::vec3(0.f);
+
+		VkDescriptorSet mTextureDescriptor = VK_NULL_HANDLE;
+		VkPipelineLayout mPipelineLayout = VK_NULL_HANDLE;
 	
 	public:
-		Object(const VkPhysicalDevice p_device, const VkDevice l_device, const char* fileName, bool willDebugDraw = false, const glm::mat4& modelTransform = glm::mat4  (1.f), const char* textureName = nullptr, VkPipelineLayout* pipelineLayout = nullptr);
+		Object(const VkPhysicalDevice p_device, const VkDevice l_device,
+			const char* fileName, bool willDebugDraw,
+			const glm::mat4& modelTransform);
 	
-		void UpdateTexture(const char* textureName = nullptr);
+		void UpdateTexture(const VkDescriptorSet textureDescriptor);
 		void UpdatePipelineLayout(const VkPipelineLayout pipelineLayout = nullptr);
 	
-		Object() : mCenter(0.f), mModelTransform(1.f), vertexBuffer(), indexBuffer(), mPhysicsComponent() {};
+		Object() = default;
 		~Object() = default;
 		void Destroy(const VkDevice l_device);
 
@@ -50,6 +43,8 @@ class Object
 		void InitPhysics(ColliderType cType, BodyType bType = BodyType::DYNAMIC);
 		/*void SetLinesArrayOffset(uint32_t index);*/
 		void ComputeVertexNormals();
+
+		friend void LoadMeshOBJ(const std::string& path, Object& obj);
 };
 
 void LoadMeshOBJ(const std::string& path, Object& obj);
