@@ -39,6 +39,7 @@ namespace vk
 					vkDestroyImageView(l_device, this->imageViews[i], nullptr);
 				}
 
+				delete[] this->frameBuffers;
 				delete[] images;
 			}
 

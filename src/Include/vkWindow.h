@@ -24,6 +24,9 @@ namespace vk
 		{
 			viewport.width = area.width;
 			viewport.height = area.height;
+
+			scissor.extent.width = area.width;
+			scissor.extent.height = area.height;
 		}
 	};
 

@@ -116,19 +116,18 @@ namespace vk
 		for (unsigned i = 0; i < this->imageCount; ++i)
 		{
 			vkDestroyFramebuffer(l_device, this->frameBuffers[i], nullptr);
+			vkDestroyImageView(l_device, this->imageViews[i], nullptr);
 		}
-
 
 		delete[] this->frameBuffers;
 		delete[] this->images;
 
 		vkDestroySwapchainKHR(l_device, this->handle, nullptr);
 
-
 		*this = SwapChain(l_device, p_device, graphicsFamily, presentFamily, appWindow.surface);
 
 		SwapChain::CreateImageViews(l_device, this->images, this->imageCount);
-
+	
 		SwapChain::AllocateFrameBuffers(l_device, appWindow.viewport, depthResources, renderPass);
 	}
 

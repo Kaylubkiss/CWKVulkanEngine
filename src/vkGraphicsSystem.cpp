@@ -350,9 +350,10 @@ namespace vk
 	{
 		assert(_Application != NULL);
 
-		vk::Window& appWindow = _Application->GetWindow();
-
  		VK_CHECK_RESULT(vkDeviceWaitIdle(this->logicalGpu));
+
+
+		vk::Window& appWindow = _Application->GetWindow();
 
 		VkSurfaceCapabilitiesKHR deviceCapabilities;
 		VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(this->gpus[g_index], appWindow.surface, &deviceCapabilities));
@@ -361,12 +362,17 @@ namespace vk
 
 		this->renderResources.currentExtent = deviceCapabilities.currentExtent;
 
+		this->renderResources.depthInfo.Destroy(this->logicalGpu);
+		this->renderResources.depthInfo = vk::init::CreateDepthResources(this->gpus[g_index], this->logicalGpu, appWindow.viewport);
+
 		//updating the uniform projection matrix after updating the viewport size
 		this->renderResources.uTransform.proj = glm::perspective(glm::radians(45.f), (float)appWindow.viewport.width / appWindow.viewport.height, 0.1f, 1000.f); //proj
 			this->renderResources.uTransform.proj[1][1] *= -1.f;		
 		memcpy(this->renderResources.uniformBuffer.mappedMemory, (void*)&this->renderResources.uTransform, (size_t)(sizeof(uTransformObject)));
 
 		this->swapChain.Recreate(this->gpus[g_index], this->logicalGpu, this->graphicsQueue.family, this->presentQueue.family, this->renderResources.depthInfo, this->renderResources.renderPass, appWindow);
+
+
 	}
 
 	VkCommandPool GraphicsSystem::CommandPool() 
