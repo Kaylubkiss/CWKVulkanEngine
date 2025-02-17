@@ -176,23 +176,13 @@ bool Application::init()
 
 	CreateWindowSurface(this->m_instance, this->mWindow);
 
-	//setup the debug callbacks... (optional...)
-
 	this->mGraphicsSystem = vk::GraphicsSystem(this->m_instance, this->mWindow);
-
-	/*vk::debug::SetInstanceDebugObject(this->m_instance, this->mGraphicsSystem.LogicalDevice(), this->instanceDebug);*/
 
 	this->secondaryCmdBuffer = vk::init::CommandBuffer(this->mGraphicsSystem.LogicalDevice(), this->mGraphicsSystem.CommandPool(), VK_COMMAND_BUFFER_LEVEL_SECONDARY);
 
 	this->mTextureManager.Init(this->mGraphicsSystem.LogicalDevice());
 	
 	this->mObjectManager.Init();
-
-	mTime = Time(SDL_GetPerformanceCounter());
-	
-	////retrieve queue family properties 
-	//// --> group of queues that have identical capabilities and are able to run in parallel 
-	////		--> could be arithmetic, passing shaders, stuff like that.
 
 	glm::mat4 modelTransform = glm::mat4(5.f);
 	modelTransform[3] = glm::vec4(1.f, 0, -20.f, 1);
@@ -213,30 +203,18 @@ bool Application::init()
 	mObjectManager.LoadObject(mGraphicsSystem.PhysicalDevice(), mGraphicsSystem.LogicalDevice(), "base", "base.obj", "puppy1.bmp", true, modelTransform);
 	
 
-	//while (mObjectManager.mThreadWorkers.isBusy()) { //wait until the jobs are done... 
-	//}
-
-	/*this->mObjectManager["freddy"].UpdateTexture("texture.jpg");
-	this->mObjectManager["freddy"].UpdatePipelineLayout(&this->pipelineLayouts.back());
-
-	this->mObjectManager["cube"].UpdateTexture("puppy1.bmp");
-	this->mObjectManager["cube"].UpdatePipelineLayout(&this->pipelineLayouts.back());
-
-	this->mObjectManager["base"].UpdateTexture("puppy1.bmp");
-	this->mObjectManager["base"].UpdatePipelineLayout(&this->pipelineLayouts.back());*/
-
-
 	//InitGui();
 
 	//InitPhysicsWorld();
 
 	//ERROR: vksetcmdviewport? scissor? you made a dynamic viewport!!!
 
+	mTime = Time(SDL_GetPerformanceCounter());
+
 	return true;
 
 
 }
-
 
 vk::Window& Application::GetWindow()
 {
@@ -247,23 +225,6 @@ const Time& Application::GetTime()
 {
 	return this->mTime;
 }
-
-class RayCastObject : public RaycastCallback {
-public:
-	virtual decimal notifyRaycastHit(const RaycastInfo& info)
-	{
-		// Display the world hit point coordinates
-		std::cout << " Hit point : " <<
-			info.worldPoint.x <<
-			info.worldPoint.y <<
-			info.worldPoint.z <<
-			std::endl;
-
-		// Return a fraction of 1.0 to gather all hits
-		return decimal(-1.0);
-	}
-};
-
 
 //void Application::SelectWorldObjects(const int& mouseX, const int& mouseY)
 //{
@@ -351,7 +312,7 @@ void Application::loop()
 	{	
 		mTime.Update();
 
-		//mController.Update();
+		/*mController.Update();*/
 
 		//mPhysics.Update(mTime.DeltaTime());
 
@@ -361,7 +322,7 @@ void Application::loop()
 		this->mObjectManager.Update(this->mTextureManager, this->mGraphicsSystem);
 		
 		//draw objects using secondary command buffer
-		/*VkCommandBufferBeginInfo beginInfo = {};
+		VkCommandBufferBeginInfo beginInfo = {};
 		beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 		beginInfo.flags = VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT;
 
@@ -371,12 +332,12 @@ void Application::loop()
 		inheritanceInfo.renderPass = mGraphicsSystem.RenderPass();
 		inheritanceInfo.subpass = 0;
 
-		beginInfo.pInheritanceInfo = &inheritanceInfo;*/
+		beginInfo.pInheritanceInfo = &inheritanceInfo;
 
 		mGraphicsSystem.WaitForQueueSubmission();
 		
 
-		/*VK_CHECK_RESULT(vkResetCommandBuffer(this->secondaryCmdBuffer, 0))
+		VK_CHECK_RESULT(vkResetCommandBuffer(this->secondaryCmdBuffer, 0))
 		VK_CHECK_RESULT(vkBeginCommandBuffer(this->secondaryCmdBuffer, &beginInfo))
 		
 		vkCmdBindPipeline(this->secondaryCmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->mGraphicsSystem.Pipeline());
@@ -387,11 +348,11 @@ void Application::loop()
 
 		this->mObjectManager.Draw(this->secondaryCmdBuffer);
 
-		VK_CHECK_RESULT(vkEndCommandBuffer(this->secondaryCmdBuffer))*/
+		VK_CHECK_RESULT(vkEndCommandBuffer(this->secondaryCmdBuffer))
 
 
 		//sync this up with primary command buffer in graphics system...
-		mGraphicsSystem.Render(this->mWindow, this->mObjectManager, &this->secondaryCmdBuffer, 1);
+		mGraphicsSystem.Render(this->mWindow, &this->secondaryCmdBuffer, 1);
 
 		
 	}

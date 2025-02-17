@@ -5,63 +5,53 @@
 
 void Controller::Update() 
 {
-	//assert(_Application != NULL);
+	SDL_Event e;
+	while (SDL_PollEvent(&e))
+	{
+		const Uint8* keystates = SDL_GetKeyboardState(nullptr);
 
+		if (e.type == SDL_QUIT)
+		{
+			//it should exit.
+			_Application->RequestExit();
+			return;
+		}
 
-	//SDL_Event e;
-	//while (SDL_PollEvent(&e))
-	//{
-	//	const Uint8* keystates = SDL_GetKeyboardState(nullptr);
+		if (e.type == SDL_KEYDOWN)
+		{
+			switch (e.key.keysym.sym)
+			{
+			case SDLK_w:
+				keys[W] = true;
+				break;
+			case SDLK_s:
+				keys[S] = true;
+				break;
+			case SDLK_a:
+				keys[A] = true;
+				break;
+			case SDLK_d:
+				keys[D] = true;
+				break;
+			case (SDLK_t):
+				break;
+			case (SDLK_ESCAPE):
+				if (SDL_GetGrabbedWindow())
+				{
+					SDL_SetWindowGrab(_Application->GetWindow().sdl_ptr, SDL_FALSE);
+					SDL_ShowCursor(1);
+					break;
+				}
+				else
+				{
+					//it should exit.
+					_Application->RequestExit();
+					return;
+				}
 
-	//	ImGui_ImplSDL2_ProcessEvent(&e);
-
-	//	
-
-	//	static glm::vec2 mousePos(window_info.width / 2, window_info.height / 2);
-
-
-	//	if (e.type == SDL_QUIT)
-	//	{
-	//		//it should exit.
-	//		_Application->RequestExit();
-	//		return;
-	//	}
-
-	//	if (e.type == SDL_KEYDOWN)
-	//	{
-	//		switch (e.key.keysym.sym)
-	//		{
-	//			case SDLK_w:
-	//				keys[W] = true;
-	//				break;
-	//			case SDLK_s:
-	//				keys[S] = true;
-	//				break;
-	//			case SDLK_a:
-	//				keys[A] = true;
-	//				break;
-	//			case SDLK_d:
-	//				keys[D] = true;
-	//				break;
-	//			case (SDLK_t):
-	//				_Application->ToggleObjectVisibility(e.key.keysym.sym, keystates[SDL_SCANCODE_LSHIFT]);
-	//				break;
-	//			case (SDLK_ESCAPE):
-	//				if (SDL_GetGrabbedWindow())
-	//				{
-	//					SDL_SetWindowGrab(_Application->GetWindow(), SDL_FALSE);
-	//					SDL_ShowCursor(1);
-	//					break;
-	//				}
-	//				else
-	//				{
-	//					//it should exit.
-	//					_Application->RequestExit();
-	//					return;
-	//				}
-	//				
-	//		}
-	//	}
+			}
+		}
+	}
 	//	
 	//	
 	//	if (e.type == SDL_KEYUP)

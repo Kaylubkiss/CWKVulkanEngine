@@ -388,7 +388,7 @@ namespace vk
 	}
 
 
-	void GraphicsSystem::Render(const vk::Window& appWindow, vk::ObjectManager& objManager, VkCommandBuffer* secondCmdBuffers, size_t secondCmdCount)
+	void GraphicsSystem::Render(const vk::Window& appWindow, VkCommandBuffer* secondCmdBuffers, size_t secondCmdCount)
 	{
 		//wait for queue submission..
 
@@ -436,16 +436,16 @@ namespace vk
 		renderPassInfo.pClearValues = clearColors;
 
 		//put this in a draw frame
-		vkCmdBeginRenderPass(this->renderResources.commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+		vkCmdBeginRenderPass(this->renderResources.commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS);
 
 
-	/*	vkCmdExecuteCommands(this->renderResources.commandBuffer, secondCmdCount, secondCmdBuffers);*/
+		vkCmdExecuteCommands(this->renderResources.commandBuffer, secondCmdCount, secondCmdBuffers);
 
 		//bind the graphics pipeline
-		vkCmdBindPipeline(this->renderResources.commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->renderResources.defaultPipeline);
+		/*vkCmdBindPipeline(this->renderResources.commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->renderResources.defaultPipeline);
 
 		vkCmdSetViewport(this->renderResources.commandBuffer, 0, 1, &appWindow.viewport);
-		vkCmdSetScissor(this->renderResources.commandBuffer, 0, 1, &appWindow.scissor);
+		vkCmdSetScissor(this->renderResources.commandBuffer, 0, 1, &appWindow.scissor);*/
 
 		
 		//this->mObjectManager["freddy"].Draw(this->commandBuffer);
@@ -453,7 +453,7 @@ namespace vk
 		//this->mObjectManager["cube"].Draw(this->commandBuffer);
 			//sync up all additional commands.
 
-		objManager.Draw(this->renderResources.commandBuffer);
+		/*objManager.Draw(this->renderResources.commandBuffer);*/
 	
 		/*DrawGui();*/
 

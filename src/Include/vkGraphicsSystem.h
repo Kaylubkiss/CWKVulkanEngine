@@ -5,7 +5,6 @@
 
 namespace vk
 {
-	class ObjectManager;
 
 	struct RenderResources
 	{
@@ -82,7 +81,7 @@ namespace vk
 			void ResizeWindow();
 
 			void WaitForQueueSubmission();
-			void Render(const vk::Window& appWindow, vk::ObjectManager& objManager, VkCommandBuffer* secondCmdBuffers, size_t secondCmdCount);
+			void Render(const vk::Window& appWindow, VkCommandBuffer* secondCmdBuffers, size_t secondCmdCount);
 
 			VkCommandPool CommandPool();
 

@@ -52,7 +52,6 @@ private:
 	bool exitApplication = false;
 
 	VkDebugUtilsMessengerEXT debugMessenger = VK_NULL_HANDLE;
-	VkDebugUtilsObjectNameInfoEXT instanceDebug = {};
 
 	std::vector<VkPipelineLayout> pipelineLayouts;
 
