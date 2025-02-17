@@ -34,6 +34,7 @@ namespace vk
 					obj.second->Destroy(l_device);
 				}
 			}
+
 		}
 		~ObjectManager() = default;
 

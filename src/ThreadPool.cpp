@@ -71,7 +71,7 @@ void ThreadPool::ThreadLoop()
 }
 
 
-void ThreadPool::Terminate() {
+void ThreadPool::Terminate() {	
 	{
 		std::unique_lock<std::mutex> lock(queue_mutex);
 		terminate = true;

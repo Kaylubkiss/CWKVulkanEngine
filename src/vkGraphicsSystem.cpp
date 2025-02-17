@@ -103,7 +103,7 @@ namespace vk
 	void GraphicsSystem::Destroy() 
 	{
 
-		VK_CHECK_RESULT(vkDeviceWaitIdle(this->logicalGpu));
+		
 
 		renderResources.Destroy(this->logicalGpu);
 		swapChain.Destroy(this->logicalGpu);

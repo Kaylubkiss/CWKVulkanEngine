@@ -65,7 +65,6 @@ private:
 
 	void DrawGui(VkCommandBuffer cmdBuffer);
 
-
 	bool init();
 	void loop();
 	void exit();

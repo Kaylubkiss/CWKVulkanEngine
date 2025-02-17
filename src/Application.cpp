@@ -9,11 +9,6 @@
 //I've used the syntax: *(array + i) to access the array instead of array[i].
 //the static analyzer of visual studio is bad.
 
-const static glm::vec4 X_BASIS = { 1,0,0,0 };
-const static glm::vec4 Y_BASIS = { 0,1,0,0 };
-const static glm::vec4 Z_BASIS = { 0,0,1,0 };
-const static glm::vec4 W_BASIS = { 0,0,0,1 };
-
 void Application::UpdateUniformViewMatrix() 
 {
 	if (mCamera.isUpdated()) 
@@ -312,7 +307,7 @@ void Application::loop()
 	{	
 		mTime.Update();
 
-		/*mController.Update();*/
+		mController.Update();
 
 		//mPhysics.Update(mTime.DeltaTime());
 
@@ -326,7 +321,6 @@ void Application::loop()
 		beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 		beginInfo.flags = VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT;
 
-		
 		VkCommandBufferInheritanceInfo inheritanceInfo = {};
 		inheritanceInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_INFO;
 		inheritanceInfo.renderPass = mGraphicsSystem.RenderPass();
@@ -336,7 +330,6 @@ void Application::loop()
 
 		mGraphicsSystem.WaitForQueueSubmission();
 		
-		VK_CHECK_RESULT(vkResetCommandBuffer(this->secondaryCmdBuffer, 0))
 		VK_CHECK_RESULT(vkBeginCommandBuffer(this->secondaryCmdBuffer, &beginInfo))
 		
 		vkCmdBindPipeline(this->secondaryCmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->mGraphicsSystem.Pipeline());
@@ -361,7 +354,10 @@ void Application::exit()
 {
 
 	/*CleanUpGui();*/
+	VK_CHECK_RESULT(vkDeviceWaitIdle(mGraphicsSystem.LogicalDevice()));
 
+
+	mTextureManager.Destroy(mGraphicsSystem.LogicalDevice());
 	mObjectManager.Destroy(mGraphicsSystem.LogicalDevice());
 
 	mGraphicsSystem.Destroy();

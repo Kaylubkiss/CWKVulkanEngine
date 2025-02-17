@@ -2,12 +2,15 @@
 
 PhysicsSystem::PhysicsSystem()
 {
-	this->mPhysicsWorld = this->mPhysicsCommon.createPhysicsWorld();
+	/*this->mPhysicsWorld = this->mPhysicsCommon.createPhysicsWorld();*/
 }
 
 PhysicsSystem::~PhysicsSystem()
 {
-	this->mPhysicsCommon.destroyPhysicsWorld(this->mPhysicsWorld);
+	if (this->mPhysicsWorld != nullptr) 
+	{
+		this->mPhysicsCommon.destroyPhysicsWorld(this->mPhysicsWorld);
+	}
 }
 
 void PhysicsSystem::Update(float dt)
