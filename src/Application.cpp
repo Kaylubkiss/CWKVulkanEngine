@@ -336,12 +336,10 @@ void Application::loop()
 
 		mGraphicsSystem.WaitForQueueSubmission();
 		
-
 		VK_CHECK_RESULT(vkResetCommandBuffer(this->secondaryCmdBuffer, 0))
 		VK_CHECK_RESULT(vkBeginCommandBuffer(this->secondaryCmdBuffer, &beginInfo))
 		
 		vkCmdBindPipeline(this->secondaryCmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->mGraphicsSystem.Pipeline());
-
 
 		vkCmdSetViewport(this->secondaryCmdBuffer, 0, 1, &mWindow.viewport);
 		vkCmdSetScissor(this->secondaryCmdBuffer, 0, 1, &mWindow.scissor);
@@ -349,7 +347,6 @@ void Application::loop()
 		this->mObjectManager.Draw(this->secondaryCmdBuffer);
 
 		VK_CHECK_RESULT(vkEndCommandBuffer(this->secondaryCmdBuffer))
-
 
 		//sync this up with primary command buffer in graphics system...
 		mGraphicsSystem.Render(this->mWindow, &this->secondaryCmdBuffer, 1);

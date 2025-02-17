@@ -391,8 +391,6 @@ namespace vk
 	void GraphicsSystem::Render(const vk::Window& appWindow, VkCommandBuffer* secondCmdBuffers, size_t secondCmdCount)
 	{
 		//wait for queue submission..
-
-
 		uint32_t imageIndex;
 		VkResult result = vkAcquireNextImageKHR(this->logicalGpu, this->swapChain.handle, UINT64_MAX, this->renderResources.imageAvailableSemaphore, VK_NULL_HANDLE, &imageIndex);
 
@@ -441,17 +439,6 @@ namespace vk
 
 		vkCmdExecuteCommands(this->renderResources.commandBuffer, secondCmdCount, secondCmdBuffers);
 
-		//bind the graphics pipeline
-		/*vkCmdBindPipeline(this->renderResources.commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->renderResources.defaultPipeline);
-
-		vkCmdSetViewport(this->renderResources.commandBuffer, 0, 1, &appWindow.viewport);
-		vkCmdSetScissor(this->renderResources.commandBuffer, 0, 1, &appWindow.scissor);*/
-
-		
-		//this->mObjectManager["freddy"].Draw(this->commandBuffer);
-		//this->mObjectManager["base"].Draw(this->commandBuffer);
-		//this->mObjectManager["cube"].Draw(this->commandBuffer);
-			//sync up all additional commands.
 
 		/*objManager.Draw(this->renderResources.commandBuffer);*/
 	
