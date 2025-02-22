@@ -49,7 +49,7 @@ namespace vk
 			return *this;
 		}
 
-		void Destroy(const VkDevice l_device) 
+		void Destroy(VkDevice l_device) 
 		{
 			vkDestroyImageView(l_device, this->depthImageView, nullptr);
 			vkDestroyImage(l_device, this->depthImage, nullptr);

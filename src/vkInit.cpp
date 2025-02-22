@@ -245,8 +245,7 @@ namespace vk
 
 			VK_CHECK_RESULT(vkCreateImageView(l_device, &viewInfo, nullptr, &nDepthResources.depthImageView));
 
-			return { nDepthResources.depthImage, nDepthResources.depthImageMemory,
-					 nDepthResources.depthImageView, nDepthResources.depthFormat };
+			return nDepthResources;
 		}
 		
 		VkRenderPass RenderPass(const VkDevice l_device, const VkFormat& depthFormat)

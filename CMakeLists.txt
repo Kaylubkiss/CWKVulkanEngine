@@ -19,7 +19,6 @@ set(SOURCE_FILES src/Application.cpp
                    src/BlinnPhong.cpp 
                    src/Camera.cpp 
                    src/Common.cpp
-                   src/Controller.cpp
                    src/Debug.cpp
                    src/Main.cpp
                    src/Object.cpp
@@ -28,6 +27,8 @@ set(SOURCE_FILES src/Application.cpp
                    src/ThreadPool.cpp
 									 src/TextureManager.cpp
 									 src/ObjectManager.cpp
+									 src/ApplicationGlobal.cpp
+									 src/CameraController.cpp
                    src/External/libraries/imgui/imgui_demo.cpp
                    src/External/libraries/imgui/imgui_draw.cpp
                    src/External/libraries/imgui/imgui_tables.cpp
@@ -39,34 +40,34 @@ set(SOURCE_FILES src/Application.cpp
                    ${VULKAN_ENGINE_SRC})
 									 
 									 
-set(SRC_INC src/Include)
-set(HEADER_FILES ${SRC_INC}/Application.h
-				 ${SRC_INC}/BlinnPhong.h
-				 ${SRC_INC}/Camera.h
-				 ${SRC_INC}/Common.h
-				 ${SRC_INC}/Controller.h
-				 ${SRC_INC}/Debug.h
-				 ${SRC_INC}/Object.h
-				 ${SRC_INC}/Physics.h
-				 ${SRC_INC}/Timer.h
-				 ${SRC_INC}/ThreadPool.h
-				 ${SRC_INC}/ObjectManager.h
-				 ${SRC_INC}/TextureManager.h
-				 ${SRC_INC}/vkUtility.h
-				 ${SRC_INC}/vkDebug.h
-				 ${SRC_INC}/vkGlobal.h
-				 ${SRC_INC}/vkInit.h
-         ${SRC_INC}/vkWindow.h
-         ${SRC_INC}/vkGraphicsSystem.h
-				 ${SRC_INC}/vkBuffer.h
-				 ${SRC_INC}/vkSwapChain.h
-				 ${SRC_INC}/vkResource.h
-				 ${SRC_INC}/vkMesh.h)												
+#set(SRC_INC src/Include)
+set(HEADER_FILES src/Include/Application.h
+								 src/Include/BlinnPhong.h
+				         src/Include/Camera.h
+								 src/Include/Common.h
+								 src/Include/Debug.h
+								 src/Include/Object.h
+								 src/Include/Physics.h
+								 src/Include/Timer.h
+								 src/Include/ThreadPool.h
+								 src/Include/ObjectManager.h
+								 src/Include/TextureManager.h
+								 src/Include/ApplicationGlobal.h
+								 src/Include/CameraController.h
+								 src/Include/vkUtility.h
+								 src/Include/vkDebug.h
+								 src/Include/vkGlobal.h
+								 src/Include/vkInit.h
+								 src/Include/vkWindow.h
+								 src/Include/vkGraphicsSystem.h
+								 src/Include/vkBuffer.h
+								 src/Include/vkSwapChain.h
+								 src/Include/vkResource.h
+								 src/Include/vkMesh.h)												
 												
 									 
-set(SHADER_DIR src/Shaders)
-set(SHADER_FILES ${SHADER_DIR}/blinn.frag
-				 ${SHADER_DIR}/blinn.vert)	 
+set(SHADER_FILES src/Shaders/blinn.frag
+								 src/Shaders/blinn.vert)	 
 
 
 

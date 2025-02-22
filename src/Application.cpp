@@ -3,6 +3,7 @@
 #include <SDL2/SDL_vulkan.h>
 #include "vkDebug.h"
 #include "vkInit.h"
+#include "CameraController.h"
 
 
 //NOTE: to remove pesky warnings from visual studio, on dynamically allocated arrays,
@@ -11,10 +12,10 @@
 
 void Application::UpdateUniformViewMatrix() 
 {
-	if (mCamera.isUpdated()) 
+	/*if (mCamera.isUpdated()) 
 	{
 		mGraphicsSystem.UpdateUniformViewMatirx(mCamera.LookAt());
-	}
+	}*/
 }
 
 Camera& Application::GetCamera()
@@ -91,11 +92,6 @@ void Application::CreateWindowSurface(const VkInstance& vkInstance, vk::Window& 
 
 
 
-const VkPipeline& Application::GetLinePipeline()
-{
-	return this->linePipeline;
-}
-
 
 
 void Application::InitPhysicsWorld() 
@@ -109,7 +105,7 @@ void Application::InitPhysicsWorld()
 	
 	this->mObjectManager["base"].InitPhysics(ColliderType::CUBE, BodyType::STATIC);*/
 	
-	mCamera.InitPhysics(BodyType::STATIC);
+	//mCamera.InitPhysics(BodyType::STATIC);
 
 
 	//this->mObjectManager["cube"].SetLinesArrayOffset(12);
@@ -121,8 +117,8 @@ void Application::InitPhysicsWorld()
 	//this->mObjectManager["cube"].mPhysicsComponent.rigidBody->setIsDebugEnabled(true);
 	
 	//the order they were added to the physics world
-	reactphysics3d::DebugRenderer& debugRenderer = this->mPhysics.GetPhysicsWorld()->getDebugRenderer();
-	debugRenderer.setIsDebugItemDisplayed(reactphysics3d::DebugRenderer::DebugItem::COLLIDER_AABB, true);
+	//reactphysics3d::DebugRenderer& debugRenderer = this->mPhysics.GetPhysicsWorld()->getDebugRenderer();
+	//debugRenderer.setIsDebugItemDisplayed(reactphysics3d::DebugRenderer::DebugItem::COLLIDER_AABB, true);
 	
 }
 
@@ -307,7 +303,8 @@ void Application::loop()
 	{	
 		mTime.Update();
 
-		mController.Update();
+		bool result = Controller::MoveCamera(mCamera, mTime.DeltaTime());
+		if (result) { mGraphicsSystem.UpdateUniformViewMatrix(mCamera.LookAt()); }
 
 		//mPhysics.Update(mTime.DeltaTime());
 
@@ -362,13 +359,13 @@ void Application::exit()
 
 	mGraphicsSystem.Destroy();
 
-	auto func = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(this->m_instance, "vkDestroyDebugUtilsMessengerEXT");
+	auto destroyDebugUtils = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(this->m_instance, "vkDestroyDebugUtilsMessengerEXT");
 
-	if (func != nullptr)
+	if (destroyDebugUtils != nullptr)
 	{
-		func(this->m_instance, this->debugMessenger, nullptr);
+		destroyDebugUtils(this->m_instance, this->debugMessenger, nullptr);
 	}
-	/*mLights.Deallocate();*/
+
 }
 
 

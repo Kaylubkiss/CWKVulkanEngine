@@ -1,7 +1,7 @@
-#include "Controller.h"
+#include "ControllerBase.h"
 #include <SDL2/SDL.h>
 #include <glm/common.hpp>
-#include "Application.h"
+//#include "ApplicationManager.h"
 
 void Controller::Update() 
 {
@@ -22,13 +22,13 @@ void Controller::Update()
 			switch (e.key.keysym.sym)
 			{
 			case SDLK_w:
-				keys[W] = true;
-				break;
-			case SDLK_s:
-				keys[S] = true;
+				
 				break;
 			case SDLK_a:
 				keys[A] = true;
+				break;
+			case SDLK_s:
+				keys[S] = true;
 				break;
 			case SDLK_d:
 				keys[D] = true;
@@ -115,26 +115,6 @@ void Controller::Update()
 	//	{
 	//		SDL_ShowCursor(1);
 	//	}
-	//}
-
-	//if (keys[W])
-	//{
-	//	_Application->GetCamera().MoveForward();
-	//}
-	//
-	//if (keys[S])
-	//{
-	//	_Application->GetCamera().MoveBack();
-	//}
-	//
-	//if (keys[A])
-	//{
-	//	_Application->GetCamera().MoveLeft();
-	//}
-	//
-	//if (keys[D])
-	//{
-	//	_Application->GetCamera().MoveRight();
 	//}
 
 	

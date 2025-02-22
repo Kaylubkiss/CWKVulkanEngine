@@ -1,14 +1,13 @@
 #pragma once
-#include "Common.h"
 #include "Timer.h"
 #include "Camera.h"
 #include "Debug.h"
-#include "Controller.h"
 #include "ObjectManager.h"
 #include "ThreadPool.h"
 #include "vkWindow.h"
 #include "vkGraphicsSystem.h"
 #include "TextureManager.h"
+#include "Physics.h"
 
 class Application
 {
@@ -20,7 +19,6 @@ public:
 	void run();
 	~Application();
 
-	const VkPipeline& GetLinePipeline();
 	const Time& GetTime();
 	void RequestExit();
 	vk::Window& GetWindow();
@@ -40,28 +38,20 @@ private:
 	VkInstance m_instance = VK_NULL_HANDLE;
 	VkCommandBuffer secondaryCmdBuffer = VK_NULL_HANDLE;
 
-	Controller mController;
-
 	vk::TextureManager mTextureManager;
 	vk::ObjectManager mObjectManager;
 
 	PhysicsSystem mPhysics;
-
 	vk::GraphicsSystem mGraphicsSystem;
 
 	bool exitApplication = false;
 
 	VkDebugUtilsMessengerEXT debugMessenger = VK_NULL_HANDLE;
 
-	std::vector<VkPipelineLayout> pipelineLayouts;
-
-	VkPipeline linePipeline = VK_NULL_HANDLE;
-
 	void CreateWindow(vk::Window& appWindow);
 	void CreateWindowSurface(const VkInstance& vkInstance, vk::Window& appWindow);
 
 	void InitPhysicsWorld();
-
 
 	void DrawGui(VkCommandBuffer cmdBuffer);
 

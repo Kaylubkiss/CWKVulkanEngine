@@ -1,7 +1,9 @@
 #pragma once
-#include "Common.h"
-#include "Physics.h"
-
+#define GLM_FORCE_RADIANS
+#define GLM_FORCE_DEFAULT_ALIGNED_GENTYPES
+#include <glm/glm.hpp>
+#include <reactphysics3d/reactphysics3d.h>
+using namespace reactphysics3d;
 
 struct Capsule 
 {
@@ -11,9 +13,16 @@ struct Capsule
 
 class CamRayCastCallBack : public RaycastCallback {};
 
+struct CamControllerInfo 
+{
+	bool firstLook = true;
+	glm::vec2 mMousePos_0 = { 0,0 };
+};
+
 class Camera 
 {
-	class CamRayCastCallback : public RaycastCallback {
+	protected:
+		class CamRayCastCallback : public RaycastCallback {
 
 	private:
 		Camera* mCamera = nullptr;
@@ -50,56 +59,56 @@ class Camera
 			return decimal(0.0);
 		}
 	};
-
-	glm::vec3 mEye;
-	/*glm::vec3 mCenter;*/
-	glm::vec3 mUpVector;
-	glm::vec3 mLookDir = glm::vec3(0, 0, -1);
-	glm::vec2 mOldMousePos = glm::vec3(0.f);
-	float mPitch = 0.f;
-	float mYaw = 0.f;
-	bool isUpdate = false;
-	bool flyCam = false;
-	bool isGrounded = false;
-
-
-	Capsule mCapsule;
-	PhysicsComponent mPhysicsComponent; 
-	CamRayCastCallback mCamRayCast;
-	reactphysics3d::Transform mMovementTransform;
-	reactphysics3d::Vector3 accumulatedVelocity = Vector3::zero();
-
-	void UpdatePosition(reactphysics3d::Vector3& velocity);
-
-public:
-	Camera() : mEye(0.f), mUpVector(0.f), mCapsule()
-	{
-	}
-
-	Camera(const glm::vec3& eye, const glm::vec3& lookDirection, const glm::vec3& up);
 	
-	void MoveLeft();
-	void MoveRight();
-	void MoveBack();
-	void MoveForward();
-	void MoveDown();
+		glm::vec3 mEye;
+		glm::vec3 mUpVector;
+		glm::vec3 mLookDir = glm::vec3(0, 0, -1);
+	
+		float mPitch = 0.f;
+		float mYaw = 0.f;
+	
+		bool isUpdate = false;
+		
+		
+		float constant_velocity = 15.f;
 
-	void Update(float interpFactor);
-	void InitPhysics(BodyType bType = BodyType::DYNAMIC);
-	void Rotate(const int& mouseX, const int& mouseY);
 
-	//void SetOldMousePos(const glm::vec2& pos);
-	//used for function parameters, this computes the lookat matrix.
-	glm::mat4 LookAt(); 
-	//returns world position.
-	glm::vec3 Position();
-
-	glm::vec3 ViewDirection();
-
-	bool isUpdated();
-
-	void setIsGrounded(bool set);
-
+	
+	
+		Capsule mCapsule;
+		PhysicsComponent mPhysicsComponent; 
+		CamRayCastCallback mCamRayCast;
+		reactphysics3d::Transform mMovementTransform;
+		reactphysics3d::Vector3 accumulatedVelocity = Vector3::zero();
+	
+		void UpdatePosition(reactphysics3d::Vector3& velocity, const float& dt);
+	
+	private:
+		CamControllerInfo controlInfo;
+	
+	public:
+		Camera() : mEye(0.f), mUpVector(0.f), mCapsule()
+		{
+		}
+	
+		Camera(const glm::vec3& eye, const glm::vec3& lookDirection, const	glm::vec3& up);
+		
+		void MoveLeft();
+		void MoveRight();
+		void MoveBack();
+		void MoveForward();
+		void MoveDown();
+	
+		void Update(const float& dt);
+		void Rotate(const int& mouseX, const int& mouseY);
+		
+		//getter functions.
+		glm::mat4 LookAt(); 
+		glm::vec3 Position();
+		glm::vec3 ViewDirection();
+	
+	
+		CamControllerInfo& ControllerInfo();
 };
 
 

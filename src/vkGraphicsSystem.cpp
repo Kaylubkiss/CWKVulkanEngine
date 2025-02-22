@@ -2,8 +2,8 @@
 #include "vkUtility.h"
 #include "vkInit.h"
 #include <stdexcept>
-#include "Camera.h"
 #include "ObjectManager.h"
+#include "ApplicationGlobal.h"
 
 
 namespace vk
@@ -336,7 +336,7 @@ namespace vk
 	}
 
 
-	void GraphicsSystem::UpdateUniformViewMatirx(const glm::mat4& viewMat) 
+	void GraphicsSystem::UpdateUniformViewMatrix(const glm::mat4& viewMat) 
 	{
 		this->renderResources.uTransform.view = viewMat;
 

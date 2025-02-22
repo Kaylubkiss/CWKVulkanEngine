@@ -2,11 +2,7 @@
 #include "Application.h"
 #include <glm/gtx/rotate_vector.hpp>
 
-namespace Global 
-{
-	static float temp_cameraSpeed = 15.0f;
 
-}
 Camera::Camera(const glm::vec3& eye, const glm::vec3& lookDirection, const glm::vec3& up) : mEye(eye), mLookDir(lookDirection), mUpVector(up) 
 {
 
@@ -33,79 +29,23 @@ glm::vec3 Camera::Position()
 	return -mEye;
 }
 
-void Camera::setIsGrounded(bool set) 
-{
-	isGrounded = set;
-}
 
 void Camera::MoveDown() 
 {
-	/*assert(_Application != NULL);
-
-	float dT = _Application->GetTime().DeltaTime();
-	reactphysics3d::Vector3 gravity = _Application->PhysicsSystem().GetPhysicsWorld()->getGravity();
-	
-	reactphysics3d::Transform nTransform = mPhysicsComponent.rigidBody->getTransform();
-
-	reactphysics3d::Vector3 position = nTransform.getPosition();
-
-	position.y -= gravity.length() * dT;
-
-	nTransform.setPosition(position);
-
-	mPhysicsComponent.rigidBody->setTransform(nTransform);*/
+	//TODO
 }
 
-void Camera::InitPhysics(BodyType bType)
+CamControllerInfo& Camera::ControllerInfo()
 {
-	/*assert(_Application != NULL);
-
-	this->mCamRayCast.SetParent(this);
-
-	glm::vec3 colliderPosition = -mEye;
-	colliderPosition.y -= mCapsule.mHeight * .5f;
-	const glm::vec4& dc2Position = glm::vec4(colliderPosition, 1);
-	reactphysics3d::Vector3 position(dc2Position.x, dc2Position.y, dc2Position.z);
-	reactphysics3d::Quaternion orientation = Quaternion::identity();
-	reactphysics3d::Transform transform(position, orientation);
-
-	this->mPhysicsComponent.rigidBody = _Application->PhysicsSystem().AddRigidBody(transform);
-
-	mPhysicsComponent.rigidBody->setAngularLockAxisFactor(reactphysics3d::Vector3(0,0,0));
-	
-	mPhysicsComponent.rigidBody->enableGravity(false);
-
-	if (bType != BodyType::DYNAMIC)
-	{
-		this->mPhysicsComponent.rigidBody->setType(bType);
-		this->mPhysicsComponent.bodyType = bType;
-	}
-
-	this->mPhysicsComponent.shape = _Application->PhysicsSystem().CreateCapsuleShape(mCapsule.mRadius, mCapsule.mHeight);
-
-	if (this->mPhysicsComponent.shape != nullptr)
-	{
-		this->mPhysicsComponent.collider = this->mPhysicsComponent.rigidBody->addCollider(this->mPhysicsComponent.shape, Transform::identity());
-	}
-
-	reactphysics3d::Material& colliderMat = this->mPhysicsComponent.collider->getMaterial();
-
-	colliderMat.setBounciness(0.f);
-	colliderMat.setFrictionCoefficient(0.f);
-
-	this->mPhysicsComponent.rigidBody->updateMassFromColliders();
-
-	this->mPhysicsComponent.prevTransform = this->mPhysicsComponent.rigidBody->getTransform();*/
+	return controlInfo;
 }
 
-void Camera::UpdatePosition(reactphysics3d::Vector3& velocity) 
+void Camera::UpdatePosition(reactphysics3d::Vector3& velocity, const float& dt) 
 {
-
-	float dT = _Application->GetTime().DeltaTime();
 
 	velocity.normalize();
 
-	velocity *= Global::temp_cameraSpeed * dT;
+	velocity *= this->constant_velocity * dt;
 
 	reactphysics3d::Vector3 nPosition = this->mMovementTransform.getPosition() + velocity;
 
@@ -118,12 +58,12 @@ glm::vec3 Camera::ViewDirection()
 	return this->mLookDir;
 }
 
-void Camera::Update(float interpFactor) 
+void Camera::Update(const float& dt) 
 {
 	if (this->isUpdate)
 	{
 
-		this->UpdatePosition(this->accumulatedVelocity);
+		this->UpdatePosition(this->accumulatedVelocity, dt);
 
 		reactphysics3d::Vector3 currTransform = this->mMovementTransform.getPosition();
 		this->mEye = glm::vec3(-currTransform.x, -(currTransform.y + .5f * mCapsule.mHeight), -currTransform.z);
@@ -151,7 +91,6 @@ void Camera::MoveRight()
 	//TODO
 	isUpdate = true;
 	
-	//mEye += glm::cross(mLookDir, mUpVector) * temp_cameraSpeed * dT;
 	reactphysics3d::Vector3 velocity = -reactphysics3d::Vector3(mLookDir.x, 0, mLookDir.z).cross({mUpVector.x, mUpVector.y, mUpVector.z});
 
 	this->accumulatedVelocity += velocity;
@@ -180,30 +119,23 @@ void Camera::MoveBack()
 
 }
 
-bool Camera::isUpdated() 
-{
-	return this->isUpdate;
-}
 
 void Camera::Rotate(const int& mouseX, const int& mouseY)
 {
 	isUpdate = true;
 
-	glm::vec2 currentMousePos(mouseX, mouseY);
+	/*glm::vec2 currentMousePos(mouseX, mouseY);
 
-
-	static bool firstLook = true;
-
-	if (firstLook) 
+	if (this->controlInfo.firstLook)
 	{
-		mOldMousePos = currentMousePos;
-		firstLook = false;
+		this->controlInfo.mMousePos_0 = currentMousePos;
+		this->controlInfo.firstLook = false;
 	}
 
-	glm::vec2 delta = currentMousePos - mOldMousePos;
-	
-	mPitch -= delta.y;
-	mYaw += delta.x;
+	glm::vec2 delta = currentMousePos - this->controlInfo.mMousePos_0;
+	*/
+	mPitch -= mouseY;
+	mYaw += mouseX;
 	
 	if (mPitch > 89)
 	{
@@ -220,6 +152,6 @@ void Camera::Rotate(const int& mouseX, const int& mouseY)
 
 	mLookDir /= glm::length(mLookDir);
 
-	mOldMousePos = currentMousePos;
+	//this->controlInfo.mMousePos_0 = currentMousePos;
 
 }
