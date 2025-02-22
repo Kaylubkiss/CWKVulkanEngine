@@ -1,5 +1,5 @@
 #include "Object.h"
-#include "Application.h"
+#include "ApplicationGlobal.h"
 #include <fstream>
 #include <sstream>
 #include <algorithm>
@@ -18,7 +18,6 @@ Object::Object(const VkPhysicalDevice p_device, const VkDevice l_device,
     (void)(willDebugDraw);
 
     LoadMeshOBJ((OBJECT_PATH + std::string(fileName)).c_str(), *this);
-
 
     this->mMesh.modelTransform = modelTransform;
     int numVertices = static_cast<int>(this->mMesh.data.vertices.size());
@@ -75,24 +74,7 @@ Object::Object(const VkPhysicalDevice p_device, const VkDevice l_device,
 
     std::cout << std::endl;
     std::cout << "loaded in " + std::string(fileName) << std::endl;
-    std::cout << numVertices << " vertices loaded in." << std::endl << std::endl;
-
-
-    //this->debugDrawObject.WillDraw(willDebugDraw);
-
-   /* if (textureName != nullptr) 
-    {
-        this->textureIndex = _Application->GetTexture(textureName);
-    }
-
-    if (pipelineLayout != nullptr) 
-    {
-        assert(_Application != NULL);
-
-        this->mPipelineLayout = _Application->GetPipelineLayout();
-    }*/
-
-    
+    std::cout << numVertices << " vertices loaded in." << std::endl << std::endl;    
 }
 
 void Object::UpdateTexture(const VkDescriptorSet textureDescriptor)
@@ -105,47 +87,64 @@ void Object::UpdatePipelineLayout(const VkPipelineLayout pipelineLayout)
     this->mPipelineLayout = pipelineLayout;
 }
 
-void Object::InitPhysics(ColliderType cType, BodyType bType)
+void Object::UpdatePhysicsComponent(PhysicsComponent* physComp) 
 {
-    //glm::vec4 worldMinPoints = mModelTransform * glm::vec4(mMinLocalPoints, 1);
-    //glm::vec4 worldMaxPoints = mModelTransform * glm::vec4(mMaxLocalPoints, 1);
+   
+    if (physComp != nullptr) 
+    {
 
-    //const glm::vec4& dc2Position = .5f * (worldMinPoints + worldMaxPoints);
-    //reactphysics3d::Vector3 position(dc2Position.x, dc2Position.y, dc2Position.z);
-    //reactphysics3d::Quaternion orientation = Quaternion::identity();
-    //reactphysics3d::Transform transform(position, orientation);
+        mPhysicsComponent = *physComp;
+        
+        assert(_Application != NULL);
+        PhysicsSystem& appPhysics = _Application->GetPhysics();
+
+        Object::InitPhysics(appPhysics);        
+    }
+
+}
+
+void Object::InitPhysics(PhysicsSystem& appPhysics)
+{
+
+    glm::vec4 worldMinPoints = mMesh.modelTransform * glm::vec4(mMesh.minLocalPoints, 1);
+    glm::vec4 worldMaxPoints = mMesh.modelTransform * glm::vec4(mMesh.maxLocalPoints, 1);
+
+    const glm::vec4& dc2Position = .5f * (worldMinPoints + worldMaxPoints);
+    reactphysics3d::Vector3 position(dc2Position.x, dc2Position.y, dc2Position.z);
+    reactphysics3d::Quaternion orientation = Quaternion::identity();
+    reactphysics3d::Transform transform(position, orientation);
 
    
-    //this->mPhysicsComponent.rigidBody = _Application->PhysicsSystem().AddRigidBody(transform);
+    this->mPhysicsComponent.rigidBody = appPhysics.AddRigidBody(transform);
 
-    //if (bType != BodyType::DYNAMIC)
-    //{
-    //   this->mPhysicsComponent.rigidBody->setType(bType);
-    //   this->mPhysicsComponent.bodyType = bType;
-    //}
+    if (this->mPhysicsComponent.bodyType != BodyType::DYNAMIC)
+    {
+        this->mPhysicsComponent.rigidBody->setType(this->mPhysicsComponent.bodyType);
+    }
 
-    //switch (cType) 
-    //{
-    //    case ColliderType::CUBE:
-    //        glm::vec3 worldHalfExtent = glm::vec3((worldMaxPoints - worldMinPoints) * .5f);
+    switch (this->mPhysicsComponent.colliderType)
+    {
+        case PhysicsComponent::ColliderType::CUBE:
+            glm::vec3 worldHalfExtent = glm::vec3((worldMaxPoints - worldMinPoints) * .5f);
 
-    //        this->mPhysicsComponent.shape = _Application->PhysicsSystem().CreateBoxShape({ std::abs(worldHalfExtent.x), std::abs(worldHalfExtent.y), std::abs(worldHalfExtent.z) });
-    //        break;
-    //    case ColliderType::NONE:
-    //        break;
-    //    default:
-    //        break;
-    //}
-
-
-    ////the collider transform is relative to the rigidbody origin.
-    //if (this->mPhysicsComponent.shape != nullptr)
-    //{
-    //    this->mPhysicsComponent.collider = this->mPhysicsComponent.rigidBody->addCollider(this->mPhysicsComponent.shape, Transform::identity());
-    //}
+            this->mPhysicsComponent.shape = appPhysics.CreateBoxShape({ std::abs(worldHalfExtent.x), std::abs(worldHalfExtent.y), std::abs(worldHalfExtent.z) });
+            break;
+        case PhysicsComponent::ColliderType::NONE:
+            break;
+        default:
+            break;
+    }
 
 
-    //this->mPhysicsComponent.prevTransform = this->mPhysicsComponent.rigidBody->getTransform();
+    //the collider transform is relative to the rigidbody origin.
+    if (this->mPhysicsComponent.shape != nullptr)
+    {
+        this->mPhysicsComponent.collider = this->mPhysicsComponent.rigidBody->addCollider(this->mPhysicsComponent.shape, Transform::identity());
+    }
+
+
+    this->mPhysicsComponent.prevTransform = this->mPhysicsComponent.rigidBody->getTransform();
+
 }
 
 
@@ -159,27 +158,27 @@ void Object::Destroy(const VkDevice l_device)
 void Object::Update(const float& interpFactor)
 {
 
-    //if (this->mPhysicsComponent.bodyType != BodyType::STATIC)
-    //{
-    //    Transform uninterpolatedTransform = this->mPhysicsComponent.rigidBody->getTransform();
+    if (this->mPhysicsComponent.bodyType != BodyType::STATIC)
+    {
+        Transform uninterpolatedTransform = this->mPhysicsComponent.rigidBody->getTransform();
 
-    //    this->mPhysicsComponent.currTransform = Transform::interpolateTransforms(this->mPhysicsComponent.prevTransform, uninterpolatedTransform, interpFactor);
+        this->mPhysicsComponent.currTransform = Transform::interpolateTransforms(this->mPhysicsComponent.prevTransform, uninterpolatedTransform, interpFactor);
 
-    //    this->mPhysicsComponent.prevTransform = this->mPhysicsComponent.currTransform;
+        this->mPhysicsComponent.prevTransform = this->mPhysicsComponent.currTransform;
 
-    //    float matrix[16];
+        float matrix[16];
 
-    //    this->mPhysicsComponent.currTransform.getOpenGLMatrix(matrix);
+        this->mPhysicsComponent.currTransform.getOpenGLMatrix(matrix);
 
-    //   
-    //    //this makes this stuff too dang easy.
-    //    glm::mat4 nModel = glm::mat4(matrix[0], matrix[1], matrix[2], matrix[3], 
-    //                                 matrix[4], matrix[5], matrix[6], matrix[7],
-    //                                 matrix[8], matrix[9], matrix[10], matrix[11],
-    //                                 matrix[12], matrix[13], matrix[14], matrix[15]);
+       
+        //this makes this stuff too dang easy.
+        glm::mat4 nModel = glm::mat4(matrix[0], matrix[1], matrix[2], matrix[3], 
+                                     matrix[4], matrix[5], matrix[6], matrix[7],
+                                     matrix[8], matrix[9], matrix[10], matrix[11],
+                                     matrix[12], matrix[13], matrix[14], matrix[15]);
 
-    //    this->mModelTransform = nModel;
-    //}
+        this->mMesh.modelTransform = nModel;
+    }
 
     //this->debugDrawObject.Update();
 
@@ -269,7 +268,7 @@ void Object::ComputeVertexNormals()
     } //calculate the normals
 }
 
-static void LoadMeshOBJ(const std::string& path, Object& obj)
+void LoadMeshOBJ(const std::string& path, Object& obj)
 {
     tinyobj::attrib_t attrib;
     std::vector<tinyobj::shape_t> shapes;

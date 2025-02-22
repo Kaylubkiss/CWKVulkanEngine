@@ -13,12 +13,6 @@ struct Capsule
 
 class CamRayCastCallBack : public RaycastCallback {};
 
-struct CamControllerInfo 
-{
-	bool firstLook = true;
-	glm::vec2 mMousePos_0 = { 0,0 };
-};
-
 class Camera 
 {
 	protected:
@@ -72,9 +66,6 @@ class Camera
 		
 		float constant_velocity = 15.f;
 
-
-	
-	
 		Capsule mCapsule;
 		PhysicsComponent mPhysicsComponent; 
 		CamRayCastCallback mCamRayCast;
@@ -82,9 +73,6 @@ class Camera
 		reactphysics3d::Vector3 accumulatedVelocity = Vector3::zero();
 	
 		void UpdatePosition(reactphysics3d::Vector3& velocity, const float& dt);
-	
-	private:
-		CamControllerInfo controlInfo;
 	
 	public:
 		Camera() : mEye(0.f), mUpVector(0.f), mCapsule()
@@ -107,8 +95,6 @@ class Camera
 		glm::vec3 Position();
 		glm::vec3 ViewDirection();
 	
-	
-		CamControllerInfo& ControllerInfo();
 };
 
 

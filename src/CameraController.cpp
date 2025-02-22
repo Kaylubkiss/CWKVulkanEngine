@@ -1,4 +1,4 @@
-#include "CameraController.h"
+#include "Controller.h"
 #include <SDL2/SDL.h>
 #include "ApplicationGlobal.h"
 #include "vkGraphicsSystem.h"
@@ -94,6 +94,8 @@ bool Controller::MoveCamera(Camera& camera, const float& dt)
 		if (e.button.button == SDL_BUTTON(SDL_BUTTON_LEFT) && e.button.state == SDL_PRESSED) 
 		{
 			SDL_SetRelativeMouseMode(SDL_TRUE);
+
+			glm::vec2 selectMouse(e.motion.x, e.motion.y);
 		}
 
 		if (e.type == SDL_MOUSEMOTION && SDL_GetRelativeMouseMode() == SDL_TRUE)

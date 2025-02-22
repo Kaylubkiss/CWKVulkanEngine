@@ -2,6 +2,23 @@
 #include <reactphysics3d/reactphysics3d.h>
 using namespace reactphysics3d;
 
+
+class RayCastObject : public reactphysics3d::RaycastCallback {
+public:
+	virtual decimal notifyRaycastHit(const RaycastInfo& info)
+	{
+		// Display the world hit point coordinates
+		std::cout << " Hit point : " <<
+			info.worldPoint.x <<
+			info.worldPoint.y <<
+			info.worldPoint.z <<
+			std::endl;
+
+		// Return a fraction of 1.0 to gather all hits
+		return decimal(1.0);
+	}
+};
+
 //for general objects.
 struct PhysicsComponent
 {
@@ -13,17 +30,42 @@ struct PhysicsComponent
 	reactphysics3d::Transform prevTransform;
 
 	reactphysics3d::BodyType bodyType;
+	enum ColliderType
+	{
+		NONE = 0,
+		CUBE,
+	};
+	ColliderType colliderType;
 
 	bool rayCastHit = false;
 
 	PhysicsComponent() : rigidBody(nullptr), collider(nullptr), shape(nullptr),
 		currTransform(reactphysics3d::Vector3::zero(), reactphysics3d::Quaternion::identity()),
-		prevTransform(currTransform), bodyType(BodyType::STATIC) {};
+		prevTransform(currTransform), bodyType(BodyType::STATIC), colliderType(ColliderType::NONE) {};
 
+	
 	void SetRayCastHit(bool set);
 
+	PhysicsComponent(const PhysicsComponent& rhs) = default;
+	const PhysicsComponent& operator=(const PhysicsComponent& rhs) 
+	{
+		if (this != &rhs) 
+		{
+			this->rigidBody = rhs.rigidBody;
+			this->collider = rhs.collider;
+			this->shape = rhs.shape;
 
-	//void operator=(const PhysicsComponent& rhs);
+			this->currTransform = rhs.currTransform;
+			this->prevTransform = rhs.prevTransform;
+
+			this->bodyType = rhs.bodyType;
+			this->colliderType = rhs.colliderType;
+
+			this->rayCastHit = rhs.rayCastHit;
+		}
+
+		return *this;
+	}
 };
 
 
@@ -38,10 +80,11 @@ class PhysicsSystem
 	reactphysics3d::PhysicsWorld* mPhysicsWorld = nullptr;
 
 public:
-	PhysicsSystem();
+	PhysicsSystem() = default;
+	void Init();
 	float InterpFactor();
 	void Update(float dt);
-	reactphysics3d::PhysicsWorld* GetPhysicsWorld();
+	reactphysics3d::PhysicsWorld* World();
 	reactphysics3d::RigidBody* AddRigidBody(const reactphysics3d::Transform& transform);
 	reactphysics3d::BoxShape* CreateBoxShape(const reactphysics3d::Vector3& extent);
 	reactphysics3d::CapsuleShape* CreateCapsuleShape(float radius, float height);

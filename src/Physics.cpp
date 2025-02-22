@@ -1,8 +1,14 @@
 #include "Physics.h"
 
-PhysicsSystem::PhysicsSystem()
+void PhysicsSystem::Init() 
 {
-	/*this->mPhysicsWorld = this->mPhysicsCommon.createPhysicsWorld();*/
+	if (this->mPhysicsWorld == nullptr) 
+	{
+		this->mPhysicsWorld = this->mPhysicsCommon.createPhysicsWorld();
+
+		//empty rigidbody..trick so it doesn't crash when closing the application.
+		this->mPhysicsWorld->createRigidBody(reactphysics3d::Transform::identity());
+	}
 }
 
 PhysicsSystem::~PhysicsSystem()
@@ -15,6 +21,7 @@ PhysicsSystem::~PhysicsSystem()
 
 void PhysicsSystem::Update(float dt)
 {
+	
 	this->mAccumulator += dt;
 
 	while (this->mAccumulator >= this->timeStep)
@@ -28,7 +35,7 @@ void PhysicsSystem::Update(float dt)
 
 }
 
-PhysicsWorld* PhysicsSystem::GetPhysicsWorld()
+PhysicsWorld* PhysicsSystem::World()
 {
 	return this->mPhysicsWorld;
 

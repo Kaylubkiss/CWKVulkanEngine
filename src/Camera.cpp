@@ -35,11 +35,6 @@ void Camera::MoveDown()
 	//TODO
 }
 
-CamControllerInfo& Camera::ControllerInfo()
-{
-	return controlInfo;
-}
-
 void Camera::UpdatePosition(reactphysics3d::Vector3& velocity, const float& dt) 
 {
 

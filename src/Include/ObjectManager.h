@@ -21,6 +21,16 @@ struct str_cmp
 namespace vk 
 {
 
+	typedef const char* ObjectName;
+	typedef std::string TextureFileName;
+
+	struct AsyncObjectInitInfo 
+	{
+		PhysicsComponent* physComp;
+		TextureFileName textureName;
+		ObjectName objName;
+	};
+
 	class ObjectManager
 	{
 	public:
@@ -38,7 +48,7 @@ namespace vk
 		}
 		~ObjectManager() = default;
 
-		void LoadObject(const VkPhysicalDevice p_device, const VkDevice l_device, const char* name = nullptr, const char* filename = nullptr, const char* texturename = nullptr, bool willDebugDraw = false, const glm::mat4& modelTransform = glm::mat4(1.f));
+		void LoadObject(const VkPhysicalDevice p_device, const VkDevice l_device, const char* filename = nullptr, const glm::mat4& modelTransform = glm::mat4(1.f), const char* texturename = nullptr, const PhysicsComponent* physComp = nullptr, bool willDebugDraw = false, const char* name = nullptr);
 
 		Object* operator[](const char* name)
 		{
@@ -58,7 +68,7 @@ namespace vk
 		void Init();
 
 		void Update(TextureManager& textureManager, GraphicsSystem& graphicsSystem);
-
+		void Update(float dt);
 	private:
 		void LoadObjParallel(const VkPhysicalDevice p_device, const VkDevice l_device, const char* name = nullptr, const char* filename = nullptr, bool willDebugDraw = false, const glm::mat4& modelTransform = glm::mat4(1.f));
 
@@ -66,10 +76,9 @@ namespace vk
 		std::map<const char*, Object*, str_cmp> objects;
 		std::mutex map_mutex;
 
-		typedef const char* ObjectName;
-		typedef std::string TextureFileName;
+		
 
-		std::list<std::pair<ObjectName, TextureFileName>> objectUpdateQueue;
+		std::list<AsyncObjectInitInfo> objectUpdateQueue;
 
 	public:
 

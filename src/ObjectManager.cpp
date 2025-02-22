@@ -12,9 +12,21 @@ namespace vk
 		objects[name] = new Object(p_device, l_device, filename, willDebugDraw, modelTransform);
 	}
 
-	void ObjectManager::LoadObject(const VkPhysicalDevice p_device, const VkDevice l_device, const char* name, const char* filename, const char* texturename, bool willDebugDraw, const glm::mat4& modelTransform)
+	void ObjectManager::LoadObject(const VkPhysicalDevice p_device, const VkDevice l_device, const char* filename, const glm::mat4& modelTransform, const char* texturename, const PhysicsComponent* physComp, bool willDebugDraw, const char* name)
 	{
-		objectUpdateQueue.push_back({name, texturename});
+		PhysicsComponent* nPhysics = nullptr;
+
+		if (physComp != nullptr) 
+		{
+			nPhysics = new PhysicsComponent(*physComp);
+		}
+
+		if (name == nullptr) 
+		{
+			name = filename;
+		}
+
+		objectUpdateQueue.push_back({ nPhysics, texturename, name});
 
 		/*std::function<void()> func = [this, p_device, l_device, modelTransform, name, filename, willDebugDraw] { ObjectManager::LoadObjParallel(p_device, l_device, name, (objectPath + std::string(filename)).c_str(), willDebugDraw, modelTransform); };
 
@@ -36,12 +48,18 @@ namespace vk
 
 		while (it != objectUpdateQueue.end()) 
 		{
-			Object* curr_obj = objects[it->first];
+			Object* curr_obj = objects[it->objName];
 
 			if (curr_obj != nullptr)
 			{
-				textureManager.BindTextureToObject(it->second, graphicsSystem, *curr_obj);
+				textureManager.BindTextureToObject(it->textureName, graphicsSystem, *curr_obj);
 				graphicsSystem.BindPipelineLayoutToObject(*curr_obj);
+				
+				if (it->physComp != nullptr) 
+				{
+					curr_obj->UpdatePhysicsComponent(it->physComp);
+					delete it->physComp;
+				}
 
 				objectUpdateQueue.erase(it++);
 			}
@@ -49,6 +67,21 @@ namespace vk
 			{
 				++it;
 			}
+		}
+	}
+
+	void ObjectManager::Update(float dt) {
+
+		for (auto& obj : objects) 
+		{
+			Object* curr_obj = obj.second;
+
+			if (curr_obj != nullptr)
+			{
+				curr_obj->Update(dt);
+			}
+
+
 		}
 	}
 
@@ -68,6 +101,5 @@ namespace vk
 	ObjectManager::ObjectManager()
 	{
 		//keep it to one thread.
-
 	}
 }

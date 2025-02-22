@@ -53,7 +53,7 @@ set(HEADER_FILES src/Include/Application.h
 								 src/Include/ObjectManager.h
 								 src/Include/TextureManager.h
 								 src/Include/ApplicationGlobal.h
-								 src/Include/CameraController.h
+								 src/Include/Controller.h
 								 src/Include/vkUtility.h
 								 src/Include/vkDebug.h
 								 src/Include/vkGlobal.h

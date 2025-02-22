@@ -7,11 +7,7 @@
 #include "vkMesh.h"
 
 
-enum ColliderType
-{
-	NONE = 0,
-	CUBE,
-};
+
 
 
 class Object 
@@ -33,19 +29,19 @@ class Object
 	
 		void UpdateTexture(const VkDescriptorSet textureDescriptor);
 		void UpdatePipelineLayout(const VkPipelineLayout pipelineLayout = nullptr);
-	
+		void UpdatePhysicsComponent(PhysicsComponent* physComp);
+
 		Object() = default;
 		~Object() = default;
 		void Destroy(const VkDevice l_device);
 
 		void Update(const float& interpFactor);
 		void Draw(VkCommandBuffer cmdBuffer);
-		void InitPhysics(ColliderType cType, BodyType bType = BodyType::DYNAMIC);
+		void InitPhysics(PhysicsSystem& appPhysics);
 		/*void SetLinesArrayOffset(uint32_t index);*/
 		void ComputeVertexNormals();
 
 		friend void LoadMeshOBJ(const std::string& path, Object& obj);
 };
 
-void LoadMeshOBJ(const std::string& path, Object& obj);
 

@@ -23,12 +23,12 @@ public:
 	void RequestExit();
 	vk::Window& GetWindow();
 	bool WindowisFocused();
-	void ToggleObjectVisibility(SDL_Keycode keysym,uint8_t lshift);
 
-	//void SelectWorldObjects(const int& mouseX, const int& mouseY);
+	void SelectWorldObjects(const int& mouseX, const int& mouseY, const vk::Window& appWindow,
+							Camera& camera, const vk::uTransformObject& uTransform, PhysicsSystem& physics);
 
 	Camera& GetCamera();
-	void UpdateUniformViewMatrix();
+	PhysicsSystem& GetPhysics();
 
 private:
 

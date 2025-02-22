@@ -3,24 +3,26 @@
 #include <SDL2/SDL_vulkan.h>
 #include "vkDebug.h"
 #include "vkInit.h"
-#include "CameraController.h"
+#include "Controller.h"
+#include "Physics.h"
+#define GLM_FORCE_RADIANS
+#define GLM_FORCE_DEFAULT_ALIGNED_GENTYPES
+#include <glm/gtc/matrix_transform.hpp>
 
 
 //NOTE: to remove pesky warnings from visual studio, on dynamically allocated arrays,
 //I've used the syntax: *(array + i) to access the array instead of array[i].
 //the static analyzer of visual studio is bad.
 
-void Application::UpdateUniformViewMatrix() 
-{
-	/*if (mCamera.isUpdated()) 
-	{
-		mGraphicsSystem.UpdateUniformViewMatirx(mCamera.LookAt());
-	}*/
-}
 
 Camera& Application::GetCamera()
 {
 	return this->mCamera;
+}
+
+PhysicsSystem& Application::GetPhysics() 
+{
+	return this->mPhysics;
 }
 
 void Application::run() 
@@ -35,12 +37,6 @@ void Application::run()
 	exit();
 }
 
-void Application::ToggleObjectVisibility(SDL_Keycode keysym, uint8_t lshift) 
-{
-	/*debugCube3.debugDrawObject.ToggleVisibility(keysym, lshift);
-	debugCube2.debugDrawObject.ToggleVisibility(keysym, lshift);*/
-
-}
 
 void Application::CreateWindow(vk::Window& appWindow)
 {
@@ -96,9 +92,7 @@ void Application::CreateWindowSurface(const VkInstance& vkInstance, vk::Window& 
 
 void Application::InitPhysicsWorld() 
 {
-	/*this->mObjectManager["cube"].InitPhysics(ColliderType::CUBE);
-	
-	reactphysics3d::Material& db2Material = this->mObjectManager["cube"].mPhysicsComponent.collider->getMaterial();
+	/* reactphysics3d::Material& db2Material = this->mObjectManager["cube"].mPhysicsComponent.collider->getMaterial();
 	db2Material.setBounciness(0.f);
 	db2Material.setMassDensity(10.f);
 	this->mObjectManager["cube"].mPhysicsComponent.rigidBody->updateMassPropertiesFromColliders();
@@ -119,7 +113,10 @@ void Application::InitPhysicsWorld()
 	//the order they were added to the physics world
 	//reactphysics3d::DebugRenderer& debugRenderer = this->mPhysics.GetPhysicsWorld()->getDebugRenderer();
 	//debugRenderer.setIsDebugItemDisplayed(reactphysics3d::DebugRenderer::DebugItem::COLLIDER_AABB, true);
-	
+
+	//this->mObjectManager["base"].InitPhysics(ColliderType::CUBE, BodyType::STATIC);
+
+
 }
 
 void Application::InitGui() 
@@ -175,28 +172,38 @@ bool Application::init()
 	
 	this->mObjectManager.Init();
 
+	
 	glm::mat4 modelTransform = glm::mat4(5.f);
 	modelTransform[3] = glm::vec4(1.f, 0, -20.f, 1);
 
-	mObjectManager.LoadObject(mGraphicsSystem.PhysicalDevice(), mGraphicsSystem.LogicalDevice(), "freddy", "freddy.obj", "texture.jpg", false, modelTransform);
+	mObjectManager.LoadObject(mGraphicsSystem.PhysicalDevice(), mGraphicsSystem.LogicalDevice(), "freddy.obj", modelTransform, "texture.jpg", nullptr, false, "freddy");
 
 	//object 2
 	modelTransform = glm::mat4(1.f);
 	modelTransform[3] = glm::vec4(0, 20, -5.f, 1);
 
-	mObjectManager.LoadObject(mGraphicsSystem.PhysicalDevice(), mGraphicsSystem.LogicalDevice(), "cube", "cube.obj", "puppy1.bmp", true, modelTransform);
+	PhysicsComponent physicsComponent;
+	physicsComponent.bodyType = BodyType::DYNAMIC;
+	physicsComponent.colliderType = PhysicsComponent::ColliderType::CUBE;
+
+	mObjectManager.LoadObject(mGraphicsSystem.PhysicalDevice(), mGraphicsSystem.LogicalDevice(), "cube.obj", modelTransform, "puppy1.bmp", &physicsComponent, true, "cube");
 
 	//object 3
 	const float dbScale = 30.f;
 	modelTransform = glm::mat4(dbScale);
 	modelTransform[3] = { 0.f, -5.f, 0.f, 1 };
 
-	mObjectManager.LoadObject(mGraphicsSystem.PhysicalDevice(), mGraphicsSystem.LogicalDevice(), "base", "base.obj", "puppy1.bmp", true, modelTransform);
+	/*this->mObjectManager["base"].InitPhysics(ColliderType::CUBE, BodyType::STATIC)*/
 	
+	physicsComponent.bodyType = reactphysics3d::BodyType::STATIC;
+	mObjectManager.LoadObject(mGraphicsSystem.PhysicalDevice(), mGraphicsSystem.LogicalDevice(), "base.obj", modelTransform, "puppy1.bmp", &physicsComponent, true, "base");
+	
+
 
 	//InitGui();
 
 	//InitPhysicsWorld();
+	mPhysics.Init();
 
 	//ERROR: vksetcmdviewport? scissor? you made a dynamic viewport!!!
 
@@ -217,44 +224,45 @@ const Time& Application::GetTime()
 	return this->mTime;
 }
 
-//void Application::SelectWorldObjects(const int& mouseX, const int& mouseY)
-//{
-//	
-//
-//	glm::vec4 cursorWindowPos(mouseX, mouseY, 1, 1);
-//
-//	glm::vec4 cursorScreenPos = {};
-//
-//	//ndc
-//	cursorScreenPos.x = (2 * cursorWindowPos.x) / this->mWindowExtents.width - 1;
-//	cursorScreenPos.y = 1 - (2 * cursorWindowPos.y) / this->mWindowExtents.height; //vulkan is upside down.
-//	cursorScreenPos.z = -1;
-//	cursorScreenPos.w = 1;
-//
-//	////eye
-//
-//	////world 
-//	glm::vec4 ray_world = glm::inverse(uTransform.view * uTransform.proj) * cursorScreenPos;
-//
-//	ray_world /= ray_world.w;
-//
-//	//2. cast ray from the mouse position and in the direction forward from the mouse position
-//
-//	glm::vec3 CameraPos = mCamera.Position();
-//
-//	reactphysics3d::Vector3 rayStart(CameraPos.x, CameraPos.y, CameraPos.z);
-//
-//	reactphysics3d::Vector3 rayEnd(ray_world.x, ray_world.y, ray_world.z);
-//
-//	Ray ray(rayStart, rayEnd);
-//
-//	RaycastInfo raycastInfo = {};
-//
-//	RayCastObject callbackObject;
-//
-//	this->mPhysics.GetPhysicsWorld()->raycast(ray, &callbackObject);
-//
-//}
+
+void Application::SelectWorldObjects(const int& mouseX, const int& mouseY, const vk::Window& appWindow, 
+									 Camera& camera, const vk::uTransformObject& uTransform, PhysicsSystem& physics)
+{
+	
+	glm::vec4 cursorWindowPos(mouseX, mouseY, 1, 1);
+
+	glm::vec4 cursorScreenPos = {};
+
+	//ndc
+	cursorScreenPos.x = (2 * cursorWindowPos.x) / appWindow.viewport.width - 1;
+	cursorScreenPos.y = 1 - (2 * cursorWindowPos.y) / appWindow.viewport.height; //vulkan is upside down.
+	cursorScreenPos.z = -1;
+	cursorScreenPos.w = 1;
+
+	////eye
+
+	////world 
+	glm::vec4 ray_world = glm::inverse(uTransform.view * uTransform.proj) * cursorScreenPos;
+
+	ray_world /= ray_world.w;
+
+	//2. cast ray from the mouse position and in the direction forward from the mouse position
+
+	glm::vec3 CameraPos = camera.Position();
+
+	reactphysics3d::Vector3 rayStart(CameraPos.x, CameraPos.y, CameraPos.z);
+
+	reactphysics3d::Vector3 rayEnd(ray_world.x, ray_world.y, ray_world.z);
+
+	Ray ray(rayStart, rayEnd);
+
+	RaycastInfo raycastInfo = {};
+
+	RayCastObject callbackObject;
+
+	physics.World()->raycast(ray, &callbackObject);
+
+}
 
 void Application::DrawGui(VkCommandBuffer cmdBuffer)
 {
@@ -306,13 +314,11 @@ void Application::loop()
 		bool result = Controller::MoveCamera(mCamera, mTime.DeltaTime());
 		if (result) { mGraphicsSystem.UpdateUniformViewMatrix(mCamera.LookAt()); }
 
-		//mPhysics.Update(mTime.DeltaTime());
-
-		//mCamera.Update(mPhysics.InterpFactor());
-		//Application::UpdateUniformViewMatrix();
+		mPhysics.Update(mTime.DeltaTime());
 
 		this->mObjectManager.Update(this->mTextureManager, this->mGraphicsSystem);
-		
+		this->mObjectManager.Update(mPhysics.InterpFactor());
+
 		//draw objects using secondary command buffer
 		VkCommandBufferBeginInfo beginInfo = {};
 		beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
