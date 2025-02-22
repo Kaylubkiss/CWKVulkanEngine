@@ -109,9 +109,7 @@ void Camera::MoveForward()
 
 void Camera::MoveBack() 
 {
-	//TODO
 	isUpdate = true;
-	//mEye -= mLookDir * temp_cameraSpeed * dT;
 
 	reactphysics3d::Vector3 velocity = reactphysics3d::Vector3(mLookDir.x, mLookDir.y, mLookDir.z);
 

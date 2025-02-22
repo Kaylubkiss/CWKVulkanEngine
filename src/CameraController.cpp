@@ -89,34 +89,25 @@ bool Controller::MoveCamera(Camera& camera, const float& dt)
 					break;
 			}
 		}
+
+
+		if (e.button.button == SDL_BUTTON(SDL_BUTTON_LEFT) && e.button.state == SDL_PRESSED) 
+		{
+			SDL_SetRelativeMouseMode(SDL_TRUE);
+		}
+
+		if (e.type == SDL_MOUSEMOTION && SDL_GetRelativeMouseMode() == SDL_TRUE)
+		{
+			Sint32 deltaX = e.motion.xrel;
+			Sint32 deltaY = e.motion.yrel;
+
+			camera.Rotate(deltaX, deltaY);
+			
+			updated = true;
+		}
 	}
 
 	ChangeCameraPosition(camera, dt, updated);
-
-	if (e.button.button == SDL_BUTTON(SDL_BUTTON_LEFT) && e.button.state == SDL_PRESSED)
-	{
-		if (_Application->WindowisFocused())
-		{
-			SDL_SetRelativeMouseMode(SDL_TRUE);
-
-			//glm::vec2 selectMouse(e.motion.x, e.motion.y);
-
-			//_Application->SelectWorldObjects(selectMouse.x, selectMouse.y);
-		}
-	}
-
-
-	Sint32 deltaX = e.motion.xrel;
-	Sint32 deltaY = e.motion.yrel;
-
-
-	if ((deltaX || deltaY))
-	{
-		if (e.type == SDL_MOUSEMOTION && SDL_GetRelativeMouseMode() == SDL_TRUE)
-		{
-			camera.Rotate(deltaX, deltaY);
-		}
-	}
 
 	return updated;
 }
