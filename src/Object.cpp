@@ -8,8 +8,6 @@
 #include "tiny_obj_loader.h"
 
 
-#define OBJECT_PATH "External/objects/"
-
 Object::Object(const VkPhysicalDevice p_device, const VkDevice l_device, 
                 const char* fileName, bool willDebugDraw, 
                 const glm::mat4& modelTransform)

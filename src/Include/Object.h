@@ -8,7 +8,7 @@
 
 
 
-
+#define OBJECT_PATH "External/objects/"
 
 class Object 
 {

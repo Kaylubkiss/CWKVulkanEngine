@@ -72,16 +72,13 @@ namespace vk
 	private:
 		void LoadObjParallel(const VkPhysicalDevice p_device, const VkDevice l_device, const char* name = nullptr, const char* filename = nullptr, bool willDebugDraw = false, const glm::mat4& modelTransform = glm::mat4(1.f));
 
-		ThreadPool mThreadWorkers;
 		std::map<const char*, Object*, str_cmp> objects;
+
+		ThreadPool mThreadWorkers;
 		std::mutex map_mutex;
 
-		
-
+	
 		std::list<AsyncObjectInitInfo> objectUpdateQueue;
-
-	public:
-
 
 	};
 }
