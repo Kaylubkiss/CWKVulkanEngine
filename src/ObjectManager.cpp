@@ -18,6 +18,7 @@ namespace vk
 
 		if (physComp != nullptr) 
 		{
+			//make sure to delete this in the update function when given to the object!!
 			nPhysics = new PhysicsComponent(*physComp);
 		}
 
@@ -28,9 +29,9 @@ namespace vk
 
 		objectUpdateQueue.push_back({ nPhysics, texturename, name});
 
-		std::function<void()> func = [this, p_device, l_device, modelTransform, name, filename, willDebugDraw] { ObjectManager::LoadObjParallel(p_device, l_device, name, (std::string(filename)).c_str(), willDebugDraw, modelTransform); };
+		/*std::function<void()> func = [this, p_device, l_device, modelTransform, name, filename, willDebugDraw] { ObjectManager::LoadObjParallel(p_device, l_device, name, (std::string(filename)).c_str(), willDebugDraw, modelTransform); };
 
-		mThreadWorkers.EnqueueTask(func);
+		mThreadWorkers.EnqueueTask(func);*/
 
 		objects[name] = new Object(p_device, l_device, filename, willDebugDraw, modelTransform);
 

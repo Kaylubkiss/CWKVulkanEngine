@@ -319,20 +319,19 @@ void Application::loop()
 		this->mObjectManager.Update(this->mTextureManager, this->mGraphicsSystem);
 		this->mObjectManager.Update(mPhysics.InterpFactor());
 
-		//draw objects using secondary command buffer
-		VkCommandBufferBeginInfo beginInfo = {};
-		beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-		beginInfo.flags = VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT;
+		mGraphicsSystem.WaitForQueueSubmission();
 
+		//draw objects using secondary command buffer
 		VkCommandBufferInheritanceInfo inheritanceInfo = {};
 		inheritanceInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_INFO;
 		inheritanceInfo.renderPass = mGraphicsSystem.RenderPass();
 		inheritanceInfo.subpass = 0;
 
+		VkCommandBufferBeginInfo beginInfo = {};
+		beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+		beginInfo.flags = VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT;
 		beginInfo.pInheritanceInfo = &inheritanceInfo;
 
-		mGraphicsSystem.WaitForQueueSubmission();
-		
 		VK_CHECK_RESULT(vkBeginCommandBuffer(this->secondaryCmdBuffer, &beginInfo))
 		
 		vkCmdBindPipeline(this->secondaryCmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->mGraphicsSystem.Pipeline());
@@ -345,9 +344,7 @@ void Application::loop()
 		VK_CHECK_RESULT(vkEndCommandBuffer(this->secondaryCmdBuffer))
 
 		//sync this up with primary command buffer in graphics system...
-		mGraphicsSystem.Render(this->mWindow, &this->secondaryCmdBuffer, 1);
-
-		
+		mGraphicsSystem.Render(this->mWindow, &this->secondaryCmdBuffer, 1);	
 	}
 
 }
@@ -358,7 +355,6 @@ void Application::exit()
 
 	/*CleanUpGui();*/
 	VK_CHECK_RESULT(vkDeviceWaitIdle(mGraphicsSystem.LogicalDevice()));
-
 
 	mTextureManager.Destroy(mGraphicsSystem.LogicalDevice());
 	mObjectManager.Destroy(mGraphicsSystem.LogicalDevice());
