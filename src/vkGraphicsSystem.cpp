@@ -11,8 +11,8 @@ namespace vk
 	void GraphicsSystem::Destroy() 
 	{
 
-		renderResources.Destroy(this->logicalGpu);
 		swapChain.Destroy(this->logicalGpu);
+		renderResources.Destroy(this->logicalGpu);
 
 		vkDestroyDevice(this->logicalGpu, nullptr);
 		delete[] gpus;
@@ -37,12 +37,8 @@ namespace vk
 		this->renderResources.Allocate(this->gpus[g_index], this->logicalGpu, appWindow);
 
 		this->swapChain = SwapChain(this->logicalGpu, this->gpus[g_index], graphicsQueue.family, presentQueue.family, appWindow.surface);
-		this->swapChain.AllocateFrameBuffers(this->logicalGpu, appWindow.viewport, this->renderResources.depthInfo, this->renderResources.renderPass);
 
-		
-		//special thing here, for dynamic viewport, which is officially set during pipeline creation.
-		/*vkCmdSetViewport(this->renderResources.commandBuffer, 0, 1, &appWindow.viewport);
-		vkCmdSetScissor(this->renderResources.commandBuffer, 0, 1, &appWindow.scissor);*/
+		this->swapChain.AllocateFrameBuffers(this->logicalGpu, appWindow.viewport, this->renderResources.depthInfo, this->renderResources.renderPass);
 
 	}
 	
@@ -256,9 +252,8 @@ namespace vk
 	{
 		assert(_Application != NULL);
 
- 		VK_CHECK_RESULT(vkDeviceWaitIdle(this->logicalGpu));
-
-
+		VK_CHECK_RESULT(vkDeviceWaitIdle(this->logicalGpu));
+		
 		vk::Window& appWindow = _Application->GetWindow();
 
 		VkSurfaceCapabilitiesKHR deviceCapabilities;
@@ -266,9 +261,6 @@ namespace vk
 
 		appWindow.UpdateExtents(deviceCapabilities.currentExtent);
 		this->renderResources.currentExtent = deviceCapabilities.currentExtent;
-
-		this->renderResources.depthInfo.Destroy(this->logicalGpu);
-		this->renderResources.depthInfo = vk::init::CreateDepthResources(this->gpus[g_index], this->logicalGpu, appWindow.viewport);
 
 		//updating the uniform projection matrix after updating the viewport size
 		this->renderResources.uTransform.proj = glm::perspective(glm::radians(45.f), (float)appWindow.viewport.width / appWindow.viewport.height, 0.1f, 1000.f); //proj

@@ -14,10 +14,10 @@ namespace vk
 
 			vk::SwapChain swapChain;
 			
-			VkPhysicalDevice* gpus;
+			VkPhysicalDevice* gpus = nullptr;
 			unsigned int g_index = -1;
 
-			VkDevice logicalGpu;
+			VkDevice logicalGpu = VK_NULL_HANDLE;
 
 			vk::Queue graphicsQueue;
 			vk::Queue presentQueue;

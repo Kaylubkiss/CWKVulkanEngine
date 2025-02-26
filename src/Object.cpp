@@ -150,7 +150,6 @@ void Object::Destroy(const VkDevice l_device)
 {
     this->mMesh.Destroy(l_device);
    //this->debugDrawObject.DestroyResources();
-
 }
 
 void Object::Update(const float& interpFactor)

@@ -42,6 +42,7 @@ namespace vk
 			if ((*(surfaceFormats + i)).format == VK_FORMAT_B8G8R8A8_SRGB && (*(surfaceFormats + i)).colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
 			{
 				surfaceIndex = i;
+				break;
 			}
 		}
 
@@ -105,20 +106,19 @@ namespace vk
 
 		VK_CHECK_RESULT(vkGetSwapchainImagesKHR(l_device, this->handle, &this->imageCount, this->images));
 
-		//Do some extra work to setup the framebuffers.
 		SwapChain::CreateImageViews(l_device, this->images, this->imageCount);
 	}
 	
-	void SwapChain::Recreate(const VkPhysicalDevice p_device, const VkDevice l_device, uint32_t graphicsFamily, uint32_t presentFamily, const DepthResources& depthResources, const VkRenderPass renderPass, const vk::Window& appWindow)
+	void SwapChain::Recreate(const VkPhysicalDevice p_device, const VkDevice l_device, uint32_t graphicsFamily, uint32_t presentFamily, DepthResources& depthResources, const VkRenderPass renderPass, const vk::Window& appWindow)
 	{
-		//reason we don't call destroy: don't need to destroy every resource in swapchain.
 
 		SwapChain::Destroy(l_device);
 
 		*this = SwapChain(l_device, p_device, graphicsFamily, presentFamily, appWindow.surface);
+		
+		depthResources.Destroy(l_device);
+		depthResources = vk::init::CreateDepthResources(p_device, l_device, appWindow.viewport);
 
-		SwapChain::CreateImageViews(l_device, this->images, this->imageCount);
-	
 		SwapChain::AllocateFrameBuffers(l_device, appWindow.viewport, depthResources, renderPass);
 	}
 

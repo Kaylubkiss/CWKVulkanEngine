@@ -22,7 +22,7 @@ public:
 	const Time& GetTime();
 	void RequestExit();
 	vk::Window& GetWindow();
-	bool WindowisFocused();
+	bool WindowisFocused(); 
 
 	void SelectWorldObjects(const int& mouseX, const int& mouseY, const vk::Window& appWindow,
 							Camera& camera, const vk::uTransformObject& uTransform, PhysicsSystem& physics);

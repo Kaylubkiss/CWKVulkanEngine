@@ -59,8 +59,8 @@ namespace vk
 
 	struct Queue 
 	{
-		VkQueue handle;
-		uint32_t family;
+		VkQueue handle = VK_NULL_HANDLE;
+		uint32_t family = -1;
 	};
 
 	VkCommandBuffer beginCmd(const VkDevice l_device, const VkCommandPool cmdPool);

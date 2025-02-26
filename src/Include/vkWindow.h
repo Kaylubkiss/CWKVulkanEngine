@@ -16,7 +16,6 @@ namespace vk
 		~Window() 
 		{
 			SDL_DestroyWindow(sdl_ptr);
-
 			SDL_Quit();
 		}
 
