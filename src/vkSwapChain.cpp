@@ -101,9 +101,7 @@ namespace vk
 
 		delete[] surfaceFormats;
 
-
 		this->images = new VkImage[this->imageCount];
-
 		VK_CHECK_RESULT(vkGetSwapchainImagesKHR(l_device, this->handle, &this->imageCount, this->images));
 
 		SwapChain::CreateImageViews(l_device, this->images, this->imageCount);

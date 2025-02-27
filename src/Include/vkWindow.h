@@ -10,8 +10,8 @@ namespace vk
 		VkViewport viewport;
 		VkRect2D scissor;
 
-		SDL_Window* sdl_ptr;
-		VkSurfaceKHR surface;
+		SDL_Window* sdl_ptr = nullptr;
+		VkSurfaceKHR surface = VK_NULL_HANDLE;
 
 		~Window() 
 		{

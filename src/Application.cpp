@@ -87,9 +87,6 @@ void Application::CreateWindowSurface(const VkInstance& vkInstance, vk::Window& 
 }
 
 
-
-
-
 void Application::InitPhysicsWorld() 
 {
 	/* reactphysics3d::Material& db2Material = this->mObjectManager["cube"].mPhysicsComponent.collider->getMaterial();

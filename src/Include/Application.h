@@ -17,6 +17,7 @@ private:
 
 public:
 	void run();
+	Application() = default;
 	~Application();
 
 	const Time& GetTime();
