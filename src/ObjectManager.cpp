@@ -9,7 +9,9 @@ namespace vk
 
 	void ObjectManager::LoadObjParallel(const VkPhysicalDevice p_device, const VkDevice l_device, const char* name, const char* filename, bool willDebugDraw, const glm::mat4& modelTransform)
 	{
-		objects[name] = new Object(p_device, l_device, filename, willDebugDraw, modelTransform);
+		objects[name].second  = new Object(p_device, l_device, filename, willDebugDraw, modelTransform);
+		objects[name].first = true;
+
 	}
 
 	void ObjectManager::LoadObject(const VkPhysicalDevice p_device, const VkDevice l_device, const char* filename, const glm::mat4& modelTransform, const char* texturename, const PhysicsComponent* physComp, bool willDebugDraw, const char* name)
@@ -29,11 +31,11 @@ namespace vk
 
 		objectUpdateQueue.push_back({ nPhysics, texturename, name});
 
-		/*std::function<void()> func = [this, p_device, l_device, modelTransform, name, filename, willDebugDraw] { ObjectManager::LoadObjParallel(p_device, l_device, name, (std::string(filename)).c_str(), willDebugDraw, modelTransform); };
+		std::function<void()> func = [this, p_device, l_device, modelTransform, name, filename, willDebugDraw] { ObjectManager::LoadObjParallel(p_device, l_device, name, (std::string(filename)).c_str(), willDebugDraw, modelTransform); };
 
-		mThreadWorkers.EnqueueTask(func);*/
+		mThreadWorkers.EnqueueTask(func);
 
-		objects[name] = new Object(p_device, l_device, filename, willDebugDraw, modelTransform);
+		//objects[name] = new Object(p_device, l_device, filename, willDebugDraw, modelTransform);
 
 	}
 
@@ -42,58 +44,60 @@ namespace vk
 		this->mThreadWorkers.Init(1);
 	}
 
-	void ObjectManager::Update(TextureManager& textureManager, GraphicsSystem& graphicsSystem) 
+	void ObjectManager::AttachSystems(TextureManager* textureManager, GraphicsSystem* graphicsSystem) 
+	{
+		this->textureSys = textureManager;
+		this->gfxSys = graphicsSystem;
+	}
+
+	void ObjectManager::FinalizeObjects() 
 	{
 		//warning: can be very slow. Don't update object textures often at this point in development though.
 		auto it = objectUpdateQueue.begin();
 
-		while (it != objectUpdateQueue.end()) 
+		while (it != objectUpdateQueue.end())
 		{
-			Object* curr_obj = objects[it->objName];
+			std::pair<doneLoading, Object*>& pair = objects[it->objName];
 
-			if (curr_obj != nullptr)
+			if (pair.first)
 			{
-				textureManager.BindTextureToObject(it->textureName, graphicsSystem, *curr_obj);
-				graphicsSystem.BindPipelineLayoutToObject(*curr_obj);
-				
-				if (it->physComp != nullptr) 
+				Object* curr_obj = pair.second;
+
+				this->textureSys->BindTextureToObject(it->textureName, *this->gfxSys, *curr_obj);
+				this->gfxSys->BindPipelineLayoutToObject(*curr_obj);
+
+				if (it->physComp != nullptr)
 				{
 					curr_obj->UpdatePhysicsComponent(it->physComp);
 					delete it->physComp;
 				}
 
 				objectUpdateQueue.erase(it++);
+				
 			}
 			else 
 			{
 				++it;
 			}
 		}
+
 	}
 
-	void ObjectManager::Update(float dt) {
+	void ObjectManager::Update(float dt, VkCommandBuffer cmdBuffer) 
+	{
+		if (!objectUpdateQueue.empty()) 
+		{
+			ObjectManager::FinalizeObjects();		
+		}
 
 		for (auto& obj : objects) 
 		{
-			Object* curr_obj = obj.second;
-
-			if (curr_obj != nullptr)
+			auto pair = obj.second;
+			if (pair.first) 
 			{
+				Object* curr_obj = pair.second;
 				curr_obj->Update(dt);
-			}
-
-
-		}
-	}
-
-	void ObjectManager::Draw(VkCommandBuffer cmdBuffer)
-	{
-		//this does not take advantage of the multithreading. Need some kind of array to offload from.
-		for (auto& object : objects)
-		{
-			if (object.second != nullptr) 
-			{
-				object.second->Draw(cmdBuffer);
+				curr_obj->Draw(cmdBuffer);
 			}
 		}
 	}

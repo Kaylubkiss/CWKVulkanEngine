@@ -86,7 +86,6 @@ void Application::CreateWindowSurface(const VkInstance& vkInstance, vk::Window& 
 	}
 }
 
-
 void Application::InitPhysicsWorld() 
 {
 	/* reactphysics3d::Material& db2Material = this->mObjectManager["cube"].mPhysicsComponent.collider->getMaterial();
@@ -168,7 +167,7 @@ bool Application::init()
 	this->mTextureManager.Init(this->mGraphicsSystem.LogicalDevice());
 	
 	this->mObjectManager.Init();
-
+	this->mObjectManager.AttachSystems(&this->mTextureManager, &this->mGraphicsSystem);
 	
 	glm::mat4 modelTransform = glm::mat4(5.f);
 	modelTransform[3] = glm::vec4(1.f, 0, -20.f, 1);
@@ -195,14 +194,10 @@ bool Application::init()
 	physicsComponent.bodyType = reactphysics3d::BodyType::STATIC;
 	mObjectManager.LoadObject(mGraphicsSystem.PhysicalDevice(), mGraphicsSystem.LogicalDevice(), "base.obj", modelTransform, "puppy1.bmp", &physicsComponent, true, "base");
 	
-
-
 	//InitGui();
 
 	//InitPhysicsWorld();
 	mPhysics.Init();
-
-	//ERROR: vksetcmdviewport? scissor? you made a dynamic viewport!!!
 
 	mTime = Time(SDL_GetPerformanceCounter());
 
@@ -313,9 +308,6 @@ void Application::loop()
 
 		mPhysics.Update(mTime.DeltaTime());
 
-		this->mObjectManager.Update(this->mTextureManager, this->mGraphicsSystem);
-		this->mObjectManager.Update(mPhysics.InterpFactor());
-
 		mGraphicsSystem.WaitForQueueSubmission();
 
 		//draw objects using secondary command buffer
@@ -336,7 +328,7 @@ void Application::loop()
 		vkCmdSetViewport(this->secondaryCmdBuffer, 0, 1, &mWindow.viewport);
 		vkCmdSetScissor(this->secondaryCmdBuffer, 0, 1, &mWindow.scissor);
 
-		this->mObjectManager.Draw(this->secondaryCmdBuffer);
+		this->mObjectManager.Update(mPhysics.InterpFactor(), this->secondaryCmdBuffer);
 
 		VK_CHECK_RESULT(vkEndCommandBuffer(this->secondaryCmdBuffer))
 

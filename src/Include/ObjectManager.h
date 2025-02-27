@@ -26,9 +26,9 @@ namespace vk
 
 	struct AsyncObjectInitInfo 
 	{
-		PhysicsComponent* physComp;
-		TextureFileName textureName;
-		ObjectName objName;
+		PhysicsComponent* physComp = nullptr;
+		TextureFileName textureName = "";
+		ObjectName objName = "";
 	};
 
 	class ObjectManager
@@ -37,11 +37,13 @@ namespace vk
 		ObjectManager();
 		void Destroy(const VkDevice l_device) 
 		{
-			for (auto obj : objects) 
+			for (auto& obj : objects) 
 			{
-				if (obj.second != nullptr) 
+				Object* curr_obj = obj.second.second;
+
+				if (curr_obj != nullptr)
 				{
-					obj.second->Destroy(l_device);
+					curr_obj->Destroy(l_device);
 				}
 			}
 		}
@@ -55,7 +57,7 @@ namespace vk
 
 			if (objects.count(name) > 0)
 			{
-				return objects[name];
+				return objects[name].second;
 			}
 			else
 			{
@@ -63,21 +65,24 @@ namespace vk
 			}
 		}
 
-		void Draw(VkCommandBuffer cmdBuffer);
 		void Init();
 
-		void Update(TextureManager& textureManager, GraphicsSystem& graphicsSystem);
-		void Update(float dt);
+		void FinalizeObjects();
+		void Update(float dt, VkCommandBuffer cmdBuffer);
+
+		void AttachSystems(TextureManager* textureManager, GraphicsSystem* graphicsSystem);
 	private:
 		void LoadObjParallel(const VkPhysicalDevice p_device, const VkDevice l_device, const char* name = nullptr, const char* filename = nullptr, bool willDebugDraw = false, const glm::mat4& modelTransform = glm::mat4(1.f));
 
-		std::map<const char*, Object*, str_cmp> objects;
-
+	//variables.
 		ThreadPool mThreadWorkers;
 		std::mutex map_mutex;
 
-	
+		typedef bool doneLoading;
+		std::map<const char*, std::pair<doneLoading, Object*>, str_cmp> objects;
 		std::list<AsyncObjectInitInfo> objectUpdateQueue;
-
+		
+		TextureManager* textureSys = nullptr;
+		GraphicsSystem* gfxSys = nullptr;
 	};
 }
