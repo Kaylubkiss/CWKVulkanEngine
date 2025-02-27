@@ -9,6 +9,8 @@ enum LightCountIndex {
 };
 
 static const int MaxLights = 1024;
+
+
 //WARNING: THIS STRUCT IS 33kb!!!
 struct LightInfoObject
 {
