@@ -31,7 +31,7 @@ namespace vk
 			void Destroy();
 			~GraphicsSystem() = default;
 
-
+			//getters
 			const VkPhysicalDevice PhysicalDevice() const;
 			const VkDevice LogicalDevice() const;
 			const VkQueue GraphicsQueue() const;
@@ -39,9 +39,9 @@ namespace vk
 			const VkRenderPass RenderPass() const;
 			const VkPipeline Pipeline() const;
 			const VkBuffer UniformTransformBuffer() const;
+			VkCommandPool CommandPool();
 
-			static VkDevice CreateLogicalDevice(const VkPhysicalDevice& p_device, uint32_t graphicsFamily, uint32_t presentFamily);
-
+			//updating
 			void UpdateUniformViewMatrix(const glm::mat4& viewMat);
 
 			void ResizeWindow();
@@ -50,11 +50,13 @@ namespace vk
 
 			void Render(const vk::Window& appWindow, VkCommandBuffer* secondCmdBuffers, size_t secondCmdCount);
 
-			VkCommandPool CommandPool();
 
 			void BindPipelineLayoutToObject(Object& obj);
 
 		private:
+
+			VkDevice CreateLogicalDevice(const VkPhysicalDevice& p_device, uint32_t graphicsFamily, uint32_t presentFamily);
+
 			void FindQueueFamilies(const VkPhysicalDevice& physicalDevice, const VkSurfaceKHR& windowSurface);
 
 			void EnumeratePhysicalDevices(const VkInstance& vkInstance);

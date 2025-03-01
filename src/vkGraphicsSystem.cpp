@@ -322,8 +322,6 @@ namespace vk
 		//resetting command buffer should be implicit with reset flag set on this.
 		VK_CHECK_RESULT(vkBeginCommandBuffer(this->renderResources.commandBuffer, &cmdBufferBeginInfo))
 
-
-
 		VkRenderPassBeginInfo renderPassInfo = {};
 		renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
 		renderPassInfo.renderPass = this->renderResources.renderPass;

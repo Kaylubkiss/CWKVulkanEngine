@@ -188,15 +188,12 @@ bool Application::init()
 	const float dbScale = 30.f;
 	modelTransform = glm::mat4(dbScale);
 	modelTransform[3] = { 0.f, -5.f, 0.f, 1 };
-
-	/*this->mObjectManager["base"].InitPhysics(ColliderType::CUBE, BodyType::STATIC)*/
 	
 	physicsComponent.bodyType = reactphysics3d::BodyType::STATIC;
 	mObjectManager.LoadObject(mGraphicsSystem.PhysicalDevice(), mGraphicsSystem.LogicalDevice(), "base.obj", modelTransform, "puppy1.bmp", &physicsComponent, true, "base");
 	
 	//InitGui();
 
-	//InitPhysicsWorld();
 	mPhysics.Init();
 
 	mTime = Time(SDL_GetPerformanceCounter());

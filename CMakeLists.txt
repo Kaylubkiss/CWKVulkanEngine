@@ -13,7 +13,8 @@ set(VULKAN_ENGINE_SRC src/vkDebug.cpp
 											src/vkSwapChain.cpp
 											src/vkBuffer.cpp
 											src/vkResource.cpp
-											src/vkRenderResources.cpp)
+											src/vkRenderResources.cpp
+											src/vkTexture.cpp)
 
 
 set(SOURCE_FILES src/Application.cpp 
@@ -62,6 +63,7 @@ set(HEADER_FILES src/Include/Application.h
 								 src/Include/vkWindow.h
 								 src/Include/vkGraphicsSystem.h
 								 src/Include/vkBuffer.h
+								 src/Include/vkTexture.h
 								 src/Include/vkSwapChain.h
 								 src/Include/vkResource.h
 								 src/Include/vkMesh.h

@@ -5,7 +5,7 @@
 namespace vk 
 {
 
-	static const std::string shaderPath{ "Shaders/" };
+	#define SHADER_PATH "Shaders/"
 
 	void RenderResources::Allocate(const VkPhysicalDevice p_device, const VkDevice l_device, const vk::Window& appWindow)
 	{
@@ -46,10 +46,10 @@ namespace vk
 		this->defaultPipelineLayout = vk::init::CreatePipelineLayout(l_device, this->defaultDescriptorSetLayout);
 
 		//create shader modules...
-		std::string vertexShaderPath = shaderPath + "blinnvert.spv";
+		std::string vertexShaderPath = std::string(SHADER_PATH) + "blinnvert.spv";
 		this->vertexShaderModule = vk::init::ShaderModule(l_device, vertexShaderPath.data());
 
-		std::string fragmentShaderPath = shaderPath + "blinnfrag.spv";
+		std::string fragmentShaderPath = std::string(SHADER_PATH) + "blinnfrag.spv";
 		this->fragmentShaderModule = vk::init::ShaderModule(l_device, fragmentShaderPath.data());
 
 

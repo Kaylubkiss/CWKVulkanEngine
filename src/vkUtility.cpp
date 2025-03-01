@@ -222,5 +222,12 @@ namespace vk {
 			endCmd(l_device, cmdBuffer, cmdPool, gfxQueue);
 
 		}
+
+
+		uint32_t CalculateMipLevels(const uint32_t& imageWidth, const uint32_t& imageHeight) 
+		{
+			return std::floor(std::log2(std::max(imageWidth, imageHeight))) + 1;
+
+		}
 	}
 }
