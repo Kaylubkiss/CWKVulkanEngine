@@ -5,6 +5,7 @@
 #include <cassert>
 #include <iostream>
 #include <cmath>
+#include <string>
 
 #define VK_CHECK_RESULT(function) {VkResult check = function; assert(check == VK_SUCCESS); if (check != VK_SUCCESS) {std::cout << check << '\n';}}
 
@@ -40,5 +41,9 @@ namespace vk
 		void GenerateMipMaps(const VkPhysicalDevice p_device, const VkDevice l_device, const VkCommandPool& cmdPool, const VkQueue gfxQueue, VkImage image, VkFormat imgFormat, uint32_t textureWidth, uint32_t textureHeight, uint32_t mipLevels);
 
 		uint32_t CalculateMipLevels(const uint32_t& imageWidth, const uint32_t& imageHeight);
+
+		std::string ReadFile(const char* filename);
+
+		void WriteSpirvFile(const char* filename, const std::vector<uint32_t>& data);
 	}
 }

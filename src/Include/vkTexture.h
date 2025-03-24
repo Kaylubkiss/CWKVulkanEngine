@@ -28,7 +28,9 @@ namespace vk
 		//member methods
 		public:
 			Texture() = default;
+			Texture(const Texture& other);
 			Texture(const VkPhysicalDevice p_device, const VkDevice l_device, const VkQueue gfxQueue, const VkDescriptorPool dscPool, const VkDescriptorSetLayout dscSetLayout, const std::string& fileName);
+
 
 			virtual void Destroy(const VkDevice l_device) {
 

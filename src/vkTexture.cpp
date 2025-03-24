@@ -3,7 +3,6 @@
 #include "vkInit.h"
 #include "vkBuffer.h"
 #include "vkResource.h"
-#define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 
 namespace vk {
@@ -62,12 +61,13 @@ namespace vk {
 
 		return nTextureSampler;
 	}
-
+		
 	Texture::Texture(const VkPhysicalDevice p_device, const VkDevice l_device, const VkQueue gfxQueue, const VkDescriptorPool dscPool, const VkDescriptorSetLayout dscSetLayout, const std::string& fileName)
 	{
 		//Might want to make command pool a member variable.
 		VkCommandPool cmdPool = vk::init::CommandPool(l_device, VK_COMMAND_POOL_CREATE_TRANSIENT_BIT);
 
+		uint32_t arrayLayerCount = 1;
 		int textureWidth, textureHeight, textureChannels;
 		stbi_uc* pixels = stbi_load((TEXTURE_PATH + fileName).c_str(), &textureWidth, &textureHeight, &textureChannels, STBI_rgb_alpha);
 
@@ -86,7 +86,7 @@ namespace vk {
 
 		this->mTextureImage = vk::rsc::CreateImage(p_device, l_device, textureWidth, textureHeight, mipLevels, VK_FORMAT_R8G8B8A8_SRGB,
 			VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, this->mTextureMemory, 1);
+			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, this->mTextureMemory, arrayLayerCount);
 
 
 		//creating mipmaps
@@ -111,6 +111,20 @@ namespace vk {
 		this->mName = fileName;
 
 		this->mDescriptorSet = vk::init::DescriptorSet(l_device, dscPool, dscSetLayout);
+	}
+
+	Texture::Texture(const Texture& other) 
+	{
+
+		mName = other.mName;
+		
+		mTextureImage = other.mTextureImage;
+		mTextureMemory = other.mTextureMemory;
+		mTextureImageView = other.mTextureImageView;
+		mTextureSampler = other.mTextureSampler;
+
+		mDescriptorSet = other.mDescriptorSet;
+
 	}
 
 }

@@ -3,7 +3,7 @@
 
 namespace vk 
 {
-	VkCommandBuffer beginCmd(const VkDevice l_device, const VkCommandPool cmdPool)
+	VkCommandBuffer beginSingleTimeCommand(const VkDevice l_device, const VkCommandPool cmdPool)
 	{
 
 		VkCommandBufferAllocateInfo allocInfo = {};
@@ -25,7 +25,7 @@ namespace vk
 
 	}
 
-	void endCmd(const VkDevice l_device, VkCommandBuffer commandBuffer, const VkCommandPool cmdPool, const VkQueue gfxQueue)
+	void endSingleTimeCommand(const VkDevice l_device, VkCommandBuffer commandBuffer, const VkCommandPool cmdPool, const VkQueue gfxQueue)
 	{
 		VK_CHECK_RESULT(vkEndCommandBuffer(commandBuffer));
 

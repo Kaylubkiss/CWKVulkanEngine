@@ -1,7 +1,6 @@
 #include "vkInit.h"
 #include "vkUtility.h"
 #include "vkDebug.h"
-#include "vkResource.h"
 #include <SDL2/SDL_vulkan.h>
 
 namespace vk
@@ -218,115 +217,7 @@ namespace vk
 
 		}
 
-		DepthResources CreateDepthResources(const VkPhysicalDevice& p_device, const VkDevice& l_device, const VkViewport& viewport)
-		{
-			DepthResources nDepthResources = {};
-
-			nDepthResources.depthFormat = vk::util::findSupportedFormat(p_device,
-				{ VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT },
-				VK_IMAGE_TILING_OPTIMAL, VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
-
-			//create depth image
-			nDepthResources.depthImage = vk::rsc::CreateImage(p_device, l_device, (uint32_t)viewport.width, (uint32_t)viewport.height, 1, nDepthResources.depthFormat, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
-				VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-				nDepthResources.depthImageMemory, 1);
-
-			//create depth image view 
-			VkImageViewCreateInfo viewInfo = {};
-			viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-			viewInfo.image = nDepthResources.depthImage;
-			viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-			viewInfo.format = nDepthResources.depthFormat;
-			viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
-			viewInfo.subresourceRange.baseMipLevel = 0;
-			viewInfo.subresourceRange.levelCount = 1;
-			viewInfo.subresourceRange.baseArrayLayer = 0;
-			viewInfo.subresourceRange.layerCount = 1;
-
-			VK_CHECK_RESULT(vkCreateImageView(l_device, &viewInfo, nullptr, &nDepthResources.depthImageView));
-
-			return nDepthResources;
-		}
 		
-		VkRenderPass RenderPass(const VkDevice l_device, const VkFormat& depthFormat)
-		{
-			VkAttachmentDescription depthAttachment = {};
-			depthAttachment.format = depthFormat;
-			depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-			depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-			depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-			depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-			depthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-			depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-			depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-
-			VkAttachmentReference depthAttachmentReference =
-			{
-				1,
-				VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL
-			};
-
-
-			VkAttachmentDescription colorAttachment =
-			{
-				//in memory tight scenarios, 
-				// we can tell vulkan not to do anything 
-				// that may make the data in this attachment inconsistent
-				0,
-				VK_FORMAT_B8G8R8A8_SRGB, //normalized format --> 0-1 unsigned float.
-				VK_SAMPLE_COUNT_1_BIT, //samples -> no multisampling, so make it 1_bit.
-				VK_ATTACHMENT_LOAD_OP_CLEAR, //load operation --> clear everything when the renderpass begins.
-				VK_ATTACHMENT_STORE_OP_STORE, //store operation --> store resources to memory for later use.
-				VK_ATTACHMENT_LOAD_OP_DONT_CARE, //stencil load operation
-				VK_ATTACHMENT_STORE_OP_DONT_CARE, //stencil store operation
-
-				//these two parameters can be expounded on with ***MULTIPASS RENDERING****.
-				VK_IMAGE_LAYOUT_UNDEFINED, //really don't have an image to specify.
-				VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, //final layout.
-			};
-
-			VkAttachmentReference colorAttachmentReference =
-			{
-				0,
-				VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
-			};
-
-			VkSubpassDescription subpass =
-			{
-				0,
-				VK_PIPELINE_BIND_POINT_GRAPHICS,
-				0, //input attachment count
-				nullptr, //pointer to input attachments
-				1, //color attachment count
-				&colorAttachmentReference,
-				nullptr, //resolve attachments
-				&depthAttachmentReference, //depth stencil attachment
-				0, //preserve attachment count
-				nullptr //pointer to reserved attachments.
-			};
-
-			VkAttachmentDescription attachments[2] = { colorAttachment, depthAttachment };
-
-			VkRenderPassCreateInfo renderPassCreateInfo =
-			{
-				VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
-				nullptr, //pNext
-				0, //flags are for future use...
-				2, //attachment count
-				attachments,
-				1, //subpass count
-				&subpass, //pointer to subpasses
-				0, //dependency count
-				nullptr //pointer to dependencies.
-			};
-
-			//two render passes are compatible if their attachment references are the same
-			VkRenderPass nRenderPass;
-			VK_CHECK_RESULT(vkCreateRenderPass(l_device, &renderPassCreateInfo, nullptr, &nRenderPass));
-
-			return nRenderPass;
-
-		}
 
 		VkSampler CreateTextureSampler(const VkPhysicalDevice p_device, const VkDevice l_device, uint32_t mipLevels)
 		{
@@ -416,44 +307,22 @@ namespace vk
 
 		VkShaderModule ShaderModule(const VkDevice& l_device, const char* filename)
 		{
-			std::ifstream file(filename, std::ios::ate | std::ios::binary); //when we initialize, we std::ios::ate points to the end.
-
-			if (!file.is_open())
-			{
-				throw std::runtime_error("failed to open shader file!");
-			}
-
-			char* buffer = nullptr;
-
-
-			//reads the offset from the beginning of the file
-			size_t fileSize = (size_t)file.tellg();
-
-			buffer = new char[fileSize];
-
-			//set the stream to the beginning of the file after being positioned at the end.
-			file.seekg(0);
-
-			file.read(buffer, fileSize);
-
-			file.close();
-
+			
+			std::string source_file = vk::util::ReadFile(filename);
 
 			VkShaderModuleCreateInfo shaderVertModuleInfo =
 			{
 				VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
 				nullptr,
 				0,
-				fileSize,
-				reinterpret_cast<const uint32_t*>(buffer)
+				source_file.size(),
+				reinterpret_cast<const uint32_t*>(source_file.data())
 			};
 
 			
 
 			VkShaderModule nShaderModule;
 			VK_CHECK_RESULT(vkCreateShaderModule(l_device, &shaderVertModuleInfo, nullptr, &nShaderModule));
-			
-			delete[] buffer;
 
 			return nShaderModule;
 		}
@@ -689,6 +558,88 @@ namespace vk
 
 			return pipelineHandle;
 		}
+
+		VkRenderPass RenderPass(const VkDevice l_device, const VkFormat& depthFormat)
+		{
+			VkAttachmentDescription depthAttachment = {};
+			depthAttachment.format = depthFormat;
+			depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+			depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+			depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+			depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+			depthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+			depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+			depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+			VkAttachmentReference depthAttachmentReference =
+			{
+				1,
+				VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL
+			};
+
+
+			VkAttachmentDescription colorAttachment =
+			{
+				//in memory tight scenarios, 
+				// we can tell vulkan not to do anything 
+				// that may make the data in this attachment inconsistent
+				0,
+				VK_FORMAT_B8G8R8A8_SRGB, //normalized format --> 0-1 unsigned float.
+				VK_SAMPLE_COUNT_1_BIT, //samples -> no multisampling, so make it 1_bit.
+				VK_ATTACHMENT_LOAD_OP_CLEAR, //load operation --> clear everything when the renderpass begins.
+				VK_ATTACHMENT_STORE_OP_STORE, //store operation --> store resources to memory for later use.
+				VK_ATTACHMENT_LOAD_OP_DONT_CARE, //stencil load operation
+				VK_ATTACHMENT_STORE_OP_DONT_CARE, //stencil store operation
+
+				//these two parameters can be expounded on with ***MULTIPASS RENDERING****.
+				VK_IMAGE_LAYOUT_UNDEFINED, //really don't have an image to specify.
+				VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, //final layout.
+			};
+
+			VkAttachmentReference colorAttachmentReference =
+			{
+				0,
+				VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
+			};
+
+			VkSubpassDescription subpass =
+			{
+				0,
+				VK_PIPELINE_BIND_POINT_GRAPHICS,
+				0, //input attachment count
+				nullptr, //pointer to input attachments
+				1, //color attachment count
+				&colorAttachmentReference,
+				nullptr, //resolve attachments
+				&depthAttachmentReference, //depth stencil attachment
+				0, //preserve attachment count
+				nullptr //pointer to reserved attachments.
+			};
+
+			VkAttachmentDescription attachments[2] = { colorAttachment, depthAttachment };
+
+			VkRenderPassCreateInfo renderPassCreateInfo =
+			{
+				VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
+				nullptr, //pNext
+				0, //flags are for future use...
+				2, //attachment count
+				attachments,
+				1, //subpass count
+				&subpass, //pointer to subpasses
+				0, //dependency count
+				nullptr //pointer to dependencies.
+			};
+
+			//two render passes are compatible if their attachment references are the same
+			VkRenderPass nRenderPass;
+			VK_CHECK_RESULT(vkCreateRenderPass(l_device, &renderPassCreateInfo, nullptr, &nRenderPass));
+
+			return nRenderPass;
+
+		}
+
+
 
 
 	}

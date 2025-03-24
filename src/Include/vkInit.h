@@ -2,6 +2,7 @@
 
 
 #include <vulkan/vulkan.h>
+#include "vkResource.h"
 
 namespace vk
 {
@@ -18,6 +19,7 @@ namespace vk
 		std::array<VkVertexInputAttributeDescription, 3> VertexAttributeDescriptions();
 
 		VkInstance CreateInstance(SDL_Window* window);	
+
 
 		VkRenderPass RenderPass(const VkDevice l_device, const VkFormat& depthFormat);
 
@@ -37,7 +39,6 @@ namespace vk
 
 		VkShaderModule ShaderModule(const VkDevice& l_device, const char* filename);
 
-		DepthResources CreateDepthResources(const VkPhysicalDevice& p_device, const VkDevice& l_device, const VkViewport& viewport);
 
 		VkDescriptorPool DescriptorPool(const VkDevice l_device);
 

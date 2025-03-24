@@ -7,7 +7,6 @@ namespace vk
 {
 	Buffer::Buffer(VkPhysicalDevice p_device, VkDevice l_device, size_t size, VkBufferUsageFlags usage, VkMemoryPropertyFlags flags, void* data)
 	{
-
 		VkResult result;
 
 		this->size = static_cast<VkDeviceSize>(size);

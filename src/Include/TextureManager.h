@@ -19,6 +19,8 @@ namespace vk
 			void Init(const VkDevice l_device);
 
 			void Add(const VkPhysicalDevice p_device, const VkDevice l_device, const VkQueue gfxQueue, const VkDescriptorSetLayout dscSetLayout, const std::string& fileName);
+
+			void Add(const Texture& nTexture);
 			
 			int GetTextureIndexByName(const char* fileName) const;
 			

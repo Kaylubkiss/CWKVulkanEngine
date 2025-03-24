@@ -25,7 +25,6 @@
 
 #include <SDL2/SDL.h>
 
-
 class Application; //forward declare class.
 
 struct Vertex
@@ -42,8 +41,6 @@ struct Vertex
 namespace std {
 	template<>
 	struct hash<Vertex> {
-
-
 		size_t operator()(Vertex const& vertex) const
 		{
 			size_t h1 = hash<glm::vec3>{}(vertex.pos);

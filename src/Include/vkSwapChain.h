@@ -2,6 +2,7 @@
 
 #include <vulkan/vulkan.h>
 #include "vkWindow.h"
+#include "vkResource.h"
 
 namespace vk 
 {
@@ -23,9 +24,9 @@ namespace vk
 
 			SwapChain(const VkDevice l_device, const VkPhysicalDevice p_device, uint32_t graphicsFamily, uint32_t presentFamily, const VkSurfaceKHR windowSurface);
 
-			void Recreate(const VkPhysicalDevice p_device, const VkDevice l_device, uint32_t graphicsFamily, uint32_t presentFamily, DepthResources& depthResources, const VkRenderPass renderPass, const vk::Window& appWindow);
+			void Recreate(const VkPhysicalDevice p_device, const VkDevice l_device, uint32_t graphicsFamily, uint32_t presentFamily, vk::rsc::DepthResources& depthResources, const VkRenderPass renderPass, const vk::Window& appWindow);
 
-			void AllocateFrameBuffers(const VkDevice l_device, const VkViewport& vp, const DepthResources& depthResources, const VkRenderPass renderPass);
+			void AllocateFrameBuffers(const VkDevice l_device, const VkViewport& vp, const vk::rsc::DepthResources& depthResources, const VkRenderPass renderPass);
 
 
 			void Destroy(VkDevice l_device)

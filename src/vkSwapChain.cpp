@@ -107,7 +107,7 @@ namespace vk
 		SwapChain::CreateImageViews(l_device, this->images, this->imageCount);
 	}
 	
-	void SwapChain::Recreate(const VkPhysicalDevice p_device, const VkDevice l_device, uint32_t graphicsFamily, uint32_t presentFamily, DepthResources& depthResources, const VkRenderPass renderPass, const vk::Window& appWindow)
+	void SwapChain::Recreate(const VkPhysicalDevice p_device, const VkDevice l_device, uint32_t graphicsFamily, uint32_t presentFamily, vk::rsc::DepthResources& depthResources, const VkRenderPass renderPass, const vk::Window& appWindow)
 	{
 
 		SwapChain::Destroy(l_device);
@@ -115,7 +115,7 @@ namespace vk
 		*this = SwapChain(l_device, p_device, graphicsFamily, presentFamily, appWindow.surface);
 		
 		depthResources.Destroy(l_device);
-		depthResources = vk::init::CreateDepthResources(p_device, l_device, appWindow.viewport);
+		depthResources = vk::rsc::CreateDepthResources(p_device, l_device, appWindow.viewport);
 
 		SwapChain::AllocateFrameBuffers(l_device, appWindow.viewport, depthResources, renderPass);
 	}
@@ -169,7 +169,7 @@ namespace vk
 
 	}
 
-	void SwapChain::AllocateFrameBuffers(const VkDevice l_device, const VkViewport& vp, const DepthResources& depthResources, const VkRenderPass renderPass)
+	void SwapChain::AllocateFrameBuffers(const VkDevice l_device, const VkViewport& vp, const vk::rsc::DepthResources& depthResources, const VkRenderPass renderPass)
 	{
 
 		if (this->imageCount <= 0) 

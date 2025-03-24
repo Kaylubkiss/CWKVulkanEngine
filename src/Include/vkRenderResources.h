@@ -3,6 +3,7 @@
 #include <vulkan/vulkan.h>
 #include "vkGlobal.h"
 #include "vkBuffer.h"
+#include "vkResource.h"
 
 namespace vk 
 {
@@ -20,12 +21,12 @@ namespace vk
 
 		vk::Buffer uniformBuffer;
 
-		VkRenderPass renderPass;
+		VkRenderPass renderPass = VK_NULL_HANDLE;
 
-		vk::DepthResources depthInfo;
+		vk::rsc::DepthResources depthInfo;
 
 		//for window size information;
-		VkExtent2D currentExtent;
+		VkExtent2D currentExtent = {0,0};
 
 		//pipeline information
 		VkDescriptorSetLayout defaultDescriptorSetLayout = VK_NULL_HANDLE;

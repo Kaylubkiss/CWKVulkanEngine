@@ -18,8 +18,8 @@ static void Locatecwd()
 
 int main(int argc, char* argv[])
 {
-
     Locatecwd();
+
 
 	_Application->run();
 

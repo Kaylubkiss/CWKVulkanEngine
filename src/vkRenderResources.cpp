@@ -1,6 +1,8 @@
 #include "vkRenderResources.h"
 #include "ApplicationGlobal.h"
 #include "vkInit.h"
+#include "SpirvHelper.h"
+#include "vkUtility.h"
 
 namespace vk 
 {
@@ -13,7 +15,7 @@ namespace vk
 
 		Camera& appCamera = _Application->GetCamera();
 
-		this->depthInfo = vk::init::CreateDepthResources(p_device, l_device, appWindow.viewport);
+		this->depthInfo = vk::rsc::CreateDepthResources(p_device, l_device, appWindow.viewport);
 
 		this->renderPass = vk::init::RenderPass(l_device, depthInfo.depthFormat);
 
@@ -45,11 +47,31 @@ namespace vk
 
 		this->defaultPipelineLayout = vk::init::CreatePipelineLayout(l_device, this->defaultDescriptorSetLayout);
 
-		//create shader modules...
+		//------------------create shader modules---------------
+
+		//vertex shader reading and compilation
+		vk::shader::CompilationInfo shaderInfo = {};
+		shaderInfo.source = vk::util::ReadFile("Shaders/blinn.vert");
+		shaderInfo.filename = "blinn.vert";
+		shaderInfo.kind = shaderc_vertex_shader;
+
+		std::vector<uint32_t> output = vk::shader::SourceToSpv(shaderInfo);
+
 		std::string vertexShaderPath = std::string(SHADER_PATH) + "blinnvert.spv";
+		vk::util::WriteSpirvFile(vertexShaderPath.data(), output);
+
 		this->vertexShaderModule = vk::init::ShaderModule(l_device, vertexShaderPath.data());
 
+		//fragment shader reading and compilation
+		shaderInfo.source = vk::util::ReadFile("Shaders/blinn.frag");
+		shaderInfo.filename = "blinn.frag";
+		shaderInfo.kind = shaderc_fragment_shader;
+
+		output = vk::shader::SourceToSpv(shaderInfo);
+
 		std::string fragmentShaderPath = std::string(SHADER_PATH) + "blinnfrag.spv";
+		vk::util::WriteSpirvFile(fragmentShaderPath.data(), output);
+
 		this->fragmentShaderModule = vk::init::ShaderModule(l_device, fragmentShaderPath.data());
 
 

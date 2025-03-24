@@ -64,7 +64,7 @@ namespace vk {
 
 		void TransitionImageLayout(const VkDevice l_device, const VkCommandPool cmdPool, const VkQueue& gfxQueue, VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, uint32_t mipLevels)
 		{
-			VkCommandBuffer cmdBuffer = beginCmd(l_device, cmdPool);
+			VkCommandBuffer cmdBuffer = beginSingleTimeCommand(l_device, cmdPool);
 
 			VkImageMemoryBarrier barrier = {};
 			barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -108,13 +108,13 @@ namespace vk {
 			//first two parameters 
 			vkCmdPipelineBarrier(cmdBuffer, srcStage, dstStage, 0, 0, nullptr, 0, nullptr, 1, &barrier);
 
-			endCmd(l_device, cmdBuffer, cmdPool, gfxQueue);
+			endSingleTimeCommand(l_device, cmdBuffer, cmdPool, gfxQueue);
 
 		}
 
 		void copyBufferToImage(const VkDevice l_device, const VkCommandPool cmdPool, VkBuffer buffer, const VkQueue gfxQueue, VkImage image, uint32_t width, uint32_t height)
 		{
-			VkCommandBuffer cmdBuffer = beginCmd(l_device, cmdPool);
+			VkCommandBuffer cmdBuffer = beginSingleTimeCommand(l_device, cmdPool);
 
 			VkBufferImageCopy region = {};
 			region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
@@ -132,7 +132,7 @@ namespace vk {
 
 			vkCmdCopyBufferToImage(cmdBuffer, buffer, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
 
-			endCmd(l_device, cmdBuffer, cmdPool, gfxQueue);
+			endSingleTimeCommand(l_device, cmdBuffer, cmdPool, gfxQueue);
 		}
 
 		void GenerateMipMaps(const VkPhysicalDevice p_device, const VkDevice l_device, const VkCommandPool& cmdPool, const VkQueue gfxQueue, VkImage image, VkFormat imgFormat, uint32_t textureWidth, uint32_t textureHeight, uint32_t mipLevels)
@@ -147,7 +147,7 @@ namespace vk {
 				//TODO: generate mipmap levels with software/storing mip levels in texture image and sampling that.
 			}
 
-			VkCommandBuffer cmdBuffer = beginCmd(l_device, cmdPool);
+			VkCommandBuffer cmdBuffer = beginSingleTimeCommand(l_device, cmdPool);
 
 			VkImageMemoryBarrier barrier = {};
 			barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -219,7 +219,7 @@ namespace vk {
 			vkCmdPipelineBarrier(cmdBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0,
 				0, nullptr, 0, nullptr, 1, &barrier);
 
-			endCmd(l_device, cmdBuffer, cmdPool, gfxQueue);
+			endSingleTimeCommand(l_device, cmdBuffer, cmdPool, gfxQueue);
 
 		}
 
@@ -228,6 +228,47 @@ namespace vk {
 		{
 			return std::floor(std::log2(std::max(imageWidth, imageHeight))) + 1;
 
+		}
+
+		std::string ReadFile(const char* filename) 
+		{
+			std::ifstream file(filename, std::ios::ate | std::ios::binary); //when we initialize, we std::ios::ate points to the end.
+
+			if (!file.is_open())
+			{
+				throw std::runtime_error("failed to open shader file!");
+			}
+
+			//reads the offset from the beginning of the file
+			size_t fileSize = (size_t)file.tellg();
+
+			std::vector<char> buffer (fileSize);
+
+
+			//set the stream to the beginning of the file after being positioned at the end.
+			file.seekg(0);
+
+			file.read(buffer.data(), fileSize);
+
+			file.close();
+
+			std::string src_string(buffer.data(), fileSize);
+
+			return src_string;
+		}
+
+		void WriteSpirvFile(const char* filename, const std::vector<uint32_t>& data) 
+		{
+			std::ofstream output(filename,std::ios::out | std::ios::binary);
+
+			if (!output.is_open()) {
+
+				std::cerr << "could not write to file: " + std::string(filename) << "\n";
+			}
+
+			output.write((char*)(data.data()), data.size());
+
+			output.close();
 		}
 	}
 }

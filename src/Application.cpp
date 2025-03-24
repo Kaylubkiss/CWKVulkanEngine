@@ -25,11 +25,15 @@ PhysicsSystem& Application::GetPhysics()
 	return this->mPhysics;
 }
 
+#include <SpirvHelper.h>
+
 void Application::run() 
 {
+
+	
 	//initialize all resources.
 	init();
-
+	 
 	//render, update, render, update...
 	loop();
 
@@ -148,6 +152,7 @@ void Application::InitGui()
 	//init_info.CheckVkResultFn = vk::util::check_vk_result;
 	//ImGui_ImplVulkan_Init(&init_info);
 }
+
 
 
 bool Application::init() 
@@ -359,9 +364,15 @@ void Application::exit()
 
 Application::~Application()
 {
-	vkDestroySurfaceKHR(this->m_instance, this->mWindow.surface, nullptr);
+	if (this->m_instance != VK_NULL_HANDLE) 
+	{
+		if (this->mWindow.surface != VK_NULL_HANDLE)
+		{
+			vkDestroySurfaceKHR(this->m_instance, this->mWindow.surface, nullptr);
+		}
 
-	vkDestroyInstance(this->m_instance, nullptr);
+		vkDestroyInstance(this->m_instance, nullptr);
+	}
 	
 }
 

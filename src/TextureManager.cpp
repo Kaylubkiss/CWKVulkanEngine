@@ -57,6 +57,12 @@ namespace vk
 		this->mTextures.emplace_back(p_device, l_device, gfxQueue, this->descriptorPool, dscSetLayout, fileName);
 	}
 
+	void TextureManager::Add(const Texture& nTexture) 
+	{
+		//will use copy constructor
+		this->mTextures.push_back(nTexture);
+	}
+
 	void TextureManager::Destroy(const VkDevice l_device) 
 	{
 		for (size_t i = 0; i < mTextures.size(); ++i) 
@@ -100,8 +106,11 @@ namespace vk
 	{
 		int index = TextureManager::GetTextureIndexByName(fileName.c_str());
 
+		
 		if (index < 0) 
 		{
+			std::cout << "adding texture...\n";
+
 			TextureManager::Add(graphicsSystem.PhysicalDevice(), 
 							    graphicsSystem.LogicalDevice(), 
 								graphicsSystem.GraphicsQueue(), 
