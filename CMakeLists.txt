@@ -36,7 +36,6 @@ set(VULKAN_ENGINE_SRC src/vkDebug.cpp
 source_group("Source Files/VulkanSources" FILES ${VULKAN_ENGINE_SRC})			
 list(APPEND SOURCE_FILES ${VULKAN_ENGINE_SRC})		
 
-
 set(IM_GUI_FILES src/External/libraries/imgui/imgui_demo.cpp
                    src/External/libraries/imgui/imgui_draw.cpp
                    src/External/libraries/imgui/imgui_tables.cpp
