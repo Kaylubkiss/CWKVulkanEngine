@@ -22,6 +22,11 @@ PhysicsSystem::~PhysicsSystem()
 void PhysicsSystem::Update(float dt)
 {
 	
+	if (dt > 0.25) 
+	{
+		dt = .25;
+	}
+
 	this->mAccumulator += dt;
 
 	while (this->mAccumulator >= this->timeStep)

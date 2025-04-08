@@ -76,7 +76,7 @@ class PhysicsSystem
 {
 	float mAccumulator = 0.f; //for updating the physics world.
 	float interpFactor = 0.f; //for updating the objects for rendering.
-	const float timeStep = 1.f / 60; //for how fast the physics simulation should be.
+	const double timeStep = 1/60.f; //for how fast the physics simulation should be.
 
 	reactphysics3d::PhysicsCommon mPhysicsCommon;
 	reactphysics3d::PhysicsWorld* mPhysicsWorld = nullptr;
