@@ -21,7 +21,7 @@ PhysicsSystem::~PhysicsSystem()
 
 void PhysicsSystem::Update(float dt)
 {
-	
+	//capping the iteration count so we don't have odd fluctuations.
 	if (dt > 0.25) 
 	{
 		dt = .25;
