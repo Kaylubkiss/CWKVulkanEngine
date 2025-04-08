@@ -113,12 +113,12 @@ namespace vk
 
 			TextureManager::Add(graphicsSystem.PhysicalDevice(), 
 							    graphicsSystem.LogicalDevice(), 
-								graphicsSystem.GraphicsQueue(), 
+								graphicsSystem.GraphicsQueue().handle, 
 								graphicsSystem.DescriptorSetLayout(),
 								fileName);
 
 			VkDescriptorBufferInfo uTransformbufferInfo = {};
-			uTransformbufferInfo.buffer = graphicsSystem.UniformTransformBuffer();
+			uTransformbufferInfo.buffer = global::uniformBuffer.handle;
 			uTransformbufferInfo.offset = 0;
 			uTransformbufferInfo.range = sizeof(uTransformObject);
 

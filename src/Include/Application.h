@@ -25,7 +25,7 @@ public:
 	vk::Window& GetWindow();
 	bool WindowisFocused(); 
 
-	void SelectWorldObjects(const int& mouseX, const int& mouseY, const vk::Window& appWindow,
+	void SelectWorldObjects(const vk::Window& appWindow,
 							Camera& camera, const vk::uTransformObject& uTransform, PhysicsSystem& physics);
 
 	Camera& GetCamera();

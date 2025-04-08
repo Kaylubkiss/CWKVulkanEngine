@@ -2,6 +2,7 @@
 
 #include "vkSwapChain.h"
 #include "vkRenderResources.h"
+#include "VkPipeline.h"
 
 namespace vk
 {
@@ -12,7 +13,13 @@ namespace vk
 			//for now, just keep it to one logical and physical device.
 			vk::RenderResources renderResources;
 
+			vk::Pipeline mPipeline;
+
 			vk::SwapChain swapChain;
+
+		#ifdef _DEBUG
+			HotReloader hotReloader;
+		#endif
 			
 			VkPhysicalDevice* gpus = nullptr;
 			unsigned int g_index = -1;
@@ -34,22 +41,17 @@ namespace vk
 			//getters
 			const VkPhysicalDevice PhysicalDevice() const;
 			const VkDevice LogicalDevice() const;
-			const VkQueue GraphicsQueue() const;
+			vk::Queue GraphicsQueue();
 			const VkDescriptorSetLayout DescriptorSetLayout() const;
 			const VkRenderPass RenderPass() const;
 			const VkPipeline Pipeline() const;
-			const VkBuffer UniformTransformBuffer() const;
 			VkCommandPool CommandPool();
-
-			//updating
-			void UpdateUniformViewMatrix(const glm::mat4& viewMat);
 
 			void ResizeWindow();
 
 			void WaitForQueueSubmission();
 
 			void Render(const vk::Window& appWindow, VkCommandBuffer* secondCmdBuffers, size_t secondCmdCount);
-
 
 			void BindPipelineLayoutToObject(Object& obj);
 

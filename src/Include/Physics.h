@@ -9,10 +9,12 @@ public:
 	{
 		// Display the world hit point coordinates
 		std::cout << " Hit point : " <<
-			info.worldPoint.x <<
-			info.worldPoint.y <<
-			info.worldPoint.z <<
-			std::endl;
+			info.worldPoint.x << " " <<
+			info.worldPoint.y << " " << 
+			info.worldPoint.z << " " << 
+			'\n';
+
+		std::cout << "broad phase ID: " << info.collider->getBroadPhaseId();
 
 		// Return a fraction of 1.0 to gather all hits
 		return decimal(1.0);

@@ -73,7 +73,6 @@ void Camera::Update(const float& dt)
 
 void Camera::MoveLeft() 
 {
-	//TODO
 	isUpdate = true;
 	
 	reactphysics3d::Vector3 velocity = reactphysics3d::Vector3(mLookDir.x, 0, mLookDir.z).cross({ mUpVector.x, mUpVector.y, mUpVector.z });
@@ -93,10 +92,8 @@ void Camera::MoveRight()
 
 void Camera::MoveForward() 
 {
-	//
 	isUpdate = true;
 	
-	/*mEye += mLookDir * temp_cameraSpeed * dT;*/
 	reactphysics3d::Vector3 velocity = -reactphysics3d::Vector3(mLookDir.x, mLookDir.y, mLookDir.z);
 	
 	this->accumulatedVelocity += velocity;
@@ -117,16 +114,6 @@ void Camera::Rotate(const int& mouseX, const int& mouseY)
 {
 	isUpdate = true;
 
-	/*glm::vec2 currentMousePos(mouseX, mouseY);
-
-	if (this->controlInfo.firstLook)
-	{
-		this->controlInfo.mMousePos_0 = currentMousePos;
-		this->controlInfo.firstLook = false;
-	}
-
-	glm::vec2 delta = currentMousePos - this->controlInfo.mMousePos_0;
-	*/
 	mPitch -= mouseY;
 	mYaw += mouseX;
 	
@@ -144,7 +131,5 @@ void Camera::Rotate(const int& mouseX, const int& mouseY)
 	mLookDir.z = glm::sin(glm::radians(mYaw)) * glm::cos(glm::radians(mPitch));
 
 	mLookDir /= glm::length(mLookDir);
-
-	//this->controlInfo.mMousePos_0 = currentMousePos;
 
 }

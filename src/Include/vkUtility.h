@@ -42,7 +42,7 @@ namespace vk
 
 		uint32_t CalculateMipLevels(const uint32_t& imageWidth, const uint32_t& imageHeight);
 
-		std::string ReadFile(const char* filename);
+		std::string ReadFile(const std::string& filename);
 
 		void WriteSpirvFile(const char* filename, const std::vector<uint32_t>& data);
 	}

@@ -1,19 +1,20 @@
 #pragma once
 
 #include <vulkan/vulkan.h>
+#include <vkBuffer.h>
 
 namespace vk
 {
+	
 
 	static const char* instanceExtensions[1] =
 	{
 		VK_EXT_DEBUG_UTILS_EXTENSION_NAME
 	};
 
-	static const char* instanceLayerExtensions[2] = 
+	static const char* instanceLayerExtensions[1] = 
 	{
-		"VK_LAYER_KHRONOS_validation",
-		"VK_LAYER_RENDERDOC_Capture"
+		"VK_LAYER_KHRONOS_validation"
 	};
 
 	static const char* deviceExtensions[1] =
@@ -29,8 +30,6 @@ namespace vk
 	};
 
 
-	
-
 	struct Queue 
 	{
 		VkQueue handle = VK_NULL_HANDLE;
@@ -41,5 +40,11 @@ namespace vk
 
 	void endSingleTimeCommand(const VkDevice l_device, VkCommandBuffer commandBuffer, const VkCommandPool cmdPool, const VkQueue gfxQueue);
 
+	namespace global
+	{
+		extern uTransformObject uTransform;
+		extern vk::Buffer uniformBuffer;
+	}
 
+	void UpdateUniformViewMatrix(const glm::mat4& viewMat);
 }

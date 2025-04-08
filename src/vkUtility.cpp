@@ -230,7 +230,7 @@ namespace vk {
 
 		}
 
-		std::string ReadFile(const char* filename) 
+		std::string ReadFile(const std::string& filename) 
 		{
 			std::ifstream file(filename, std::ios::ate | std::ios::binary); //when we initialize, we std::ios::ate points to the end.
 

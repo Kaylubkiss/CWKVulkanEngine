@@ -37,6 +37,8 @@ namespace vk
 		ObjectManager();
 		void Destroy(const VkDevice l_device) 
 		{
+			this->mThreadWorkers.Terminate();
+
 			for (auto& obj : objects) 
 			{
 				Object* curr_obj = obj.second.second;

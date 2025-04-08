@@ -4,9 +4,9 @@
 #include <sstream>
 #include <algorithm>
 #include <unordered_map>
+#include "vkGlobal.h"
 #define TINYOBJLOADER_IMPLEMENTATION
 #include "tiny_obj_loader.h"
-
 
 Object::Object(const VkPhysicalDevice p_device, const VkDevice l_device, 
                 const char* fileName, bool willDebugDraw, 
@@ -85,6 +85,11 @@ void Object::UpdatePipelineLayout(const VkPipelineLayout pipelineLayout)
     this->mPipelineLayout = pipelineLayout;
 }
 
+void Object::SetDebugDraw(bool option) 
+{
+    this->debugDraw = option;
+}
+
 void Object::UpdatePhysicsComponent(PhysicsComponent* physComp) 
 {
    
@@ -143,6 +148,9 @@ void Object::InitPhysics(PhysicsSystem& appPhysics)
 
     this->mPhysicsComponent.prevTransform = this->mPhysicsComponent.rigidBody->getTransform();
 
+
+    //std::cout << "Broad Phase ID, Init Physics: " << this->mPhysicsComponent.collider->getBroadPhaseId() << '\n';
+
 }
 
 
@@ -188,18 +196,24 @@ void Object::Update(const float& interpFactor)
 
 void Object::Draw(VkCommandBuffer cmdBuffer) 
 {  
-   
-    vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->mPipelineLayout, 0, 1, &this->mTextureDescriptor, 0, nullptr);
-    
-    VkDeviceSize offsets[1] = { 0 };
-    VkBuffer  vBuffers[] = { this->mMesh.buffer.vertex.handle };
-    
-    vkCmdBindVertexBuffers(cmdBuffer, 0, 1, &mMesh.buffer.vertex.handle, offsets);
-    vkCmdBindIndexBuffer(cmdBuffer, mMesh.buffer.index.handle, 0, VK_INDEX_TYPE_UINT16);
-    
-    vkCmdPushConstants(cmdBuffer, this->mPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::mat4), (void*)(&this->mMesh.modelTransform));
-    
-    vkCmdDrawIndexed(cmdBuffer, static_cast<uint32_t>(this->mMesh.data.indices.size()), 1, 0, 0, 0);
+    if (debugDraw == false) 
+    {
+        vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->mPipelineLayout, 0, 1, &this->mTextureDescriptor, 0, nullptr);
+
+        VkDeviceSize offsets[1] = { 0 };
+
+        vkCmdBindVertexBuffers(cmdBuffer, 0, 1, &mMesh.buffer.vertex.handle, offsets);
+        vkCmdBindIndexBuffer(cmdBuffer, mMesh.buffer.index.handle, 0, VK_INDEX_TYPE_UINT16);
+
+        vkCmdPushConstants(cmdBuffer, this->mPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::mat4), (void*)(&this->mMesh.modelTransform));
+      /*  vk::UpdateUniformModelMatrix(this->mMesh.modelTransform);*/
+
+        vkCmdDrawIndexed(cmdBuffer, static_cast<uint32_t>(this->mMesh.data.indices.size()), 1, 0, 0, 0);
+    }
+    else {
+
+        //..draw debug shape!
+    }
 }
 
 void Object::ComputeVertexNormals()

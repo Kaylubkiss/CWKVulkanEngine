@@ -73,14 +73,7 @@ namespace vk
 			samplerBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 			samplerBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT; //we are going to use the sampler in the fragment shader.
 
-			/*VkDescriptorSetLayoutBinding uLightInfoBinding{};
-			uLightInfoBinding.binding = 2;
-			uLightInfoBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-			uLightInfoBinding.descriptorCount = 1;
-			uLightInfoBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;*/
-
 			VkDescriptorSetLayoutBinding bindings[2] = { uTransformBinding, samplerBinding };
-
 
 			VkDescriptorSetLayoutCreateInfo layoutInfo = {};
 			layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
@@ -89,7 +82,6 @@ namespace vk
 
 
 			VkDescriptorSetLayout layout;
-
 			VK_CHECK_RESULT(vkCreateDescriptorSetLayout(logicalDevice, &layoutInfo, nullptr, &layout));
 
 
@@ -134,7 +126,6 @@ namespace vk
 			appInfo.engineVersion = 1;
 
 			createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
-			createInfo.pApplicationInfo = nullptr; //best practice is to fill out this info, but we won't for now.
 			createInfo.flags = 0;
 
 			//linked list of structures to pass to the create instance func.
@@ -169,21 +160,14 @@ namespace vk
 
 			vkEnumerateInstanceExtensionProperties(nullptr, &extensionPropertyCount, extensionProperties.data());
 
-			bool foundExtension = false;
 			int additionalExtensionCount = 0;
 			for (auto& property : extensionProperties)
 			{
 				if (strcmp(property.extensionName, VK_EXT_DEBUG_UTILS_EXTENSION_NAME) == 0) {
 					extensionNames.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
-					foundExtension = true;
+					additionalExtensionCount = 1;
 					break;
 				}
-			}
-
-
-			if (foundExtension) 
-			{
-				additionalExtensionCount = 1;
 			}
 
 			createInfo.enabledExtensionCount = sdl_extensionCount + additionalExtensionCount;
@@ -195,7 +179,7 @@ namespace vk
 			if (vk::util::CheckValidationSupport())
 			{
 				createInfo.ppEnabledLayerNames = vk::instanceLayerExtensions;
-				createInfo.enabledLayerCount = 2;
+				createInfo.enabledLayerCount = 1;
 			}
 
 			createInfo.pNext = (VkDebugUtilsMessengerCreateInfoEXT*)&debugCreateInfo;
@@ -522,33 +506,33 @@ namespace vk
 				0,
 				(uint32_t)numStages,
 				pStages,
-				//TODO: VkPipelineVertexInputStateCreateInfo
+				// VkPipelineVertexInputStateCreateInfo
 				&vertexInputCreateInfo,
-				//TODO: VkPipelineInputAssemblyStateCreateInfo,
+				// VkPipelineInputAssemblyStateCreateInfo,
 				&pipelineAssemblyCreateInfo,
-				//TODO: VkPipelineTessellationStateCreateInfo,
+				// VkPipelineTessellationStateCreateInfo,
 				nullptr,
-				//TODO: VkPipelineViewportStateCreateInfo,
+				// VkPipelineViewportStateCreateInfo,
 				&viewPortCreateInfo,
-				//TODO: VkPipelineRasterizationStateCreateInfo,
+				// VkPipelineRasterizationStateCreateInfo,
 				&rasterizationStateCreateInfo,
-				//TODO: VkPipelineMultisampleStateCreateInfo,
+				// VkPipelineMultisampleStateCreateInfo,
 				&multiSampleCreateInfo,
-				//TODO: VkPipelineDepthStencilStateCreateInfo,
+				// VkPipelineDepthStencilStateCreateInfo,
 				&depthStencilCreateInfo,
-				//TODO: VkPipelineColorBlendStateCreateInfo,
+				// VkPipelineColorBlendStateCreateInfo,
 				&colorBlendCreateInfo,
-				//VkPipelineDynamicStateCreateInfo,
+				// VkPipelineDynamicStateCreateInfo,
 				&dynamicStateCreateInfo,
-				//VkPipelineLayout,
+				// VkPipelineLayout,
 				pipelineLayout,
-				//VkRenderPass,
+				// VkRenderPass,
 				renderPass,
-				//subpass,
+				// subpass,
 				0,
-				//basePipelineHandle,
+				// basePipelineHandle,
 				VK_NULL_HANDLE,
-				//basePipelineIndex   
+				// basePipelineIndex   
 				0
 			};
 

@@ -58,9 +58,9 @@ bool Controller::MoveCamera(Camera& camera, const float& dt)
 
 			if (keySymbol == SDLK_ESCAPE)
 			{
-				if (SDL_GetGrabbedWindow())
+				if (SDL_GetRelativeMouseMode())
 				{
-					SDL_SetWindowGrab(_Application->GetWindow().sdl_ptr, SDL_FALSE);
+					SDL_SetRelativeMouseMode(SDL_FALSE);
 					SDL_ShowCursor(1);
 				}
 				else
@@ -94,8 +94,6 @@ bool Controller::MoveCamera(Camera& camera, const float& dt)
 		if (e.button.button == SDL_BUTTON(SDL_BUTTON_LEFT) && e.button.state == SDL_PRESSED) 
 		{
 			SDL_SetRelativeMouseMode(SDL_TRUE);
-
-			glm::vec2 selectMouse(e.motion.x, e.motion.y);
 		}
 
 		if (e.type == SDL_MOUSEMOTION && SDL_GetRelativeMouseMode() == SDL_TRUE)
@@ -108,6 +106,7 @@ bool Controller::MoveCamera(Camera& camera, const float& dt)
 			updated = true;
 		}
 	}
+
 
 	ChangeCameraPosition(camera, dt, updated);
 

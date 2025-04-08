@@ -10,9 +10,10 @@ namespace vk
 {	
 	void GraphicsSystem::Destroy() 
 	{
-
+		mPipeline.Destroy(this->logicalGpu);
 		swapChain.Destroy(this->logicalGpu);
 		renderResources.Destroy(this->logicalGpu);
+		
 
 		vkDestroyDevice(this->logicalGpu, nullptr);
 		delete[] gpus;
@@ -36,9 +37,16 @@ namespace vk
 
 		this->renderResources.Allocate(this->gpus[g_index], this->logicalGpu, appWindow);
 
+
+
 		this->swapChain = SwapChain(this->logicalGpu, this->gpus[g_index], graphicsQueue.family, presentQueue.family, appWindow.surface);
 
 		this->swapChain.AllocateFrameBuffers(this->logicalGpu, appWindow.viewport, this->renderResources.depthInfo, this->renderResources.renderPass);
+
+		this->mPipeline.AddModule(this->logicalGpu, "blinn.vert", VK_SHADER_STAGE_VERTEX_BIT, shaderc_vertex_shader);
+		this->mPipeline.AddModule(this->logicalGpu, "blinn.frag", VK_SHADER_STAGE_FRAGMENT_BIT, shaderc_fragment_shader);
+
+		this->mPipeline.Finalize(this->logicalGpu, this->renderResources.renderPass, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
 
 	}
 	
@@ -52,9 +60,9 @@ namespace vk
 		return this->logicalGpu;
 	}
 
-	const VkQueue GraphicsSystem::GraphicsQueue() const 
+	vk::Queue GraphicsSystem::GraphicsQueue() 
 	{
-		return this->graphicsQueue.handle;
+		return this->graphicsQueue;
 	}
 
 	const VkRenderPass GraphicsSystem::RenderPass() const 
@@ -64,19 +72,15 @@ namespace vk
 
 	const VkPipeline GraphicsSystem::Pipeline() const 
 	{
-		return this->renderResources.defaultPipeline;
+		return this->mPipeline.handle;
 	}
 
 	const VkDescriptorSetLayout GraphicsSystem::DescriptorSetLayout() const 
 	{
 		//TODO: support different descriptorsetlayouts.
-		return this->renderResources.defaultDescriptorSetLayout;
+		return this->mPipeline.descriptorSetLayout;
 	}
-
-	const VkBuffer GraphicsSystem::UniformTransformBuffer() const 
-	{
-		return this->renderResources.uniformBuffer.handle;
-	}
+	
 
 	void GraphicsSystem::FindQueueFamilies(const VkPhysicalDevice& physicalDevice, const VkSurfaceKHR& windowSurface)
 	{
@@ -240,13 +244,7 @@ namespace vk
 	}
 
 
-	void GraphicsSystem::UpdateUniformViewMatrix(const glm::mat4& viewMat) 
-	{
-		this->renderResources.uTransform.view = viewMat;
-
-		memcpy(this->renderResources.uniformBuffer.mappedMemory, (void*)&this->renderResources.uTransform, (size_t)(sizeof(uTransformObject)));
-
-	}
+	
 
 	void GraphicsSystem::ResizeWindow() 
 	{
@@ -263,11 +261,11 @@ namespace vk
 		this->renderResources.currentExtent = deviceCapabilities.currentExtent;
 
 		//updating the uniform projection matrix after updating the viewport size
-		this->renderResources.uTransform.proj = glm::perspective(glm::radians(45.f), (float)appWindow.viewport.width / appWindow.viewport.height, 0.1f, 1000.f); //proj
+		global::uTransform.proj = glm::perspective(glm::radians(45.f), (float)appWindow.viewport.width / appWindow.viewport.height, 0.1f, 1000.f); //proj
 		
-		this->renderResources.uTransform.proj[1][1] *= -1.f;		
+		global::uTransform.proj[1][1] *= -1.f;		
 		
-		memcpy(this->renderResources.uniformBuffer.mappedMemory, (void*)&this->renderResources.uTransform, (size_t)(sizeof(uTransformObject)));
+		memcpy(global::uniformBuffer.mappedMemory, (void*)&global::uTransform, (size_t)(sizeof(uTransformObject)));
 
 		this->swapChain.Recreate(this->gpus[g_index], this->logicalGpu, this->graphicsQueue.family, this->presentQueue.family, this->renderResources.depthInfo, this->renderResources.renderPass, appWindow);
 
@@ -281,8 +279,7 @@ namespace vk
 
 	void GraphicsSystem::BindPipelineLayoutToObject(Object& obj) 
 	{
-		//TODO: update this to support different pipeline layouts.
-		obj.UpdatePipelineLayout(this->renderResources.defaultPipelineLayout);
+		obj.UpdatePipelineLayout(this->mPipeline.layout);
 	}
 
 	void GraphicsSystem::WaitForQueueSubmission()

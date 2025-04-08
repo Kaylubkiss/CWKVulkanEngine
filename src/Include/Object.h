@@ -21,6 +21,8 @@ class Object
 
 		VkDescriptorSet mTextureDescriptor = VK_NULL_HANDLE;
 		VkPipelineLayout mPipelineLayout = VK_NULL_HANDLE;
+
+		bool debugDraw = false;
 	
 	public:
 		Object(const VkPhysicalDevice p_device, const VkDevice l_device,
@@ -30,6 +32,7 @@ class Object
 		void UpdateTexture(const VkDescriptorSet textureDescriptor);
 		void UpdatePipelineLayout(const VkPipelineLayout pipelineLayout = nullptr);
 		void UpdatePhysicsComponent(PhysicsComponent* physComp);
+		void SetDebugDraw(bool option);
 
 		Object() = default;
 		~Object() = default;

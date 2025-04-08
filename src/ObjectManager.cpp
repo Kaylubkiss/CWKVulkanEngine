@@ -100,6 +100,7 @@ namespace vk
 				curr_obj->Draw(cmdBuffer);
 			}
 		}
+
 	}
 
 
