@@ -9,11 +9,7 @@
 
 namespace vk 
 {
-	namespace global 
-	{
-		uTransformObject uTransform = {};
-		vk::Buffer uniformBuffer;
-	}
+	
 
 
 
@@ -29,7 +25,6 @@ namespace vk
 
 		//uniform transform for objects of default pipeline.
 		global::uTransform = {
-			glm::mat4(1.f), //model
 			appCamera.LookAt(), //view
 			glm::perspective(glm::radians(45.f), (float)appWindow.viewport.width / appWindow.viewport.height, 0.1f, 1000.f) //proj
 		};
@@ -37,7 +32,7 @@ namespace vk
 		global::uTransform.proj[1][1] *= -1.f;
 
 		//uniform(s)
-		global::uniformBuffer = vk::Buffer(p_device, l_device, sizeof(uTransformObject), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, (void*)&global::uTransform);
+		global::uTransformBuffer = vk::Buffer(p_device, l_device, sizeof(uTransformObject), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, (void*)&global::uTransform);
 
 		//semaphores
 		this->imageAvailableSemaphore = vk::init::CreateSemaphore(l_device);
@@ -56,56 +51,6 @@ namespace vk
 
 		this->currentExtent = deviceCapabilities.currentExtent;
 	}
-
-
-	//void RenderResources::RecreatePipeline(const VkPhysicalDevice p_device, const VkDevice l_device, const vk::Window& appWindow)
-	//{
-
-	//	//create pipeline
-	//	this->defaultDescriptorSetLayout = vk::init::DescriptorSetLayout(l_device);
-
-	//	this->defaultPipelineLayout = vk::init::CreatePipelineLayout(l_device, this->defaultDescriptorSetLayout);
-
-	//	//------------------create shader modules---------------
-	//	std::string vertexShaderPath = std::string(SHADER_PATH) + "blinnvert.spv";
-	//	std::string fragmentShaderPath = std::string(SHADER_PATH) + "blinnfrag.spv";
-
-
-	//	//vertex shader reading and compilation
-	//	vk::shader::CompilationInfo shaderInfo = {};
-	//	shaderInfo.source = vk::util::ReadFile(std::string(SHADER_PATH) + "blinn.vert");
-	//	shaderInfo.filename = "blinn.vert";
-	//	shaderInfo.kind = shaderc_vertex_shader;
-
-	//	std::vector<uint32_t> output = vk::shader::SourceToSpv(shaderInfo);
-
-	//	vk::util::WriteSpirvFile(vertexShaderPath.data(), output);
-
-	//	this->vertexShaderModule = vk::init::ShaderModule(l_device, vertexShaderPath.data());
-
-	//	//fragment shader reading and compilation
-	//	shaderInfo.source = vk::util::ReadFile(std::string(SHADER_PATH) + "blinn.frag");
-	//	shaderInfo.filename = "blinn.frag";
-	//	shaderInfo.kind = shaderc_fragment_shader;
-
-	//	output = vk::shader::SourceToSpv(shaderInfo);
-
-	//	vk::util::WriteSpirvFile(fragmentShaderPath.data(), output);
-
-	//	this->fragmentShaderModule = vk::init::ShaderModule(l_device, fragmentShaderPath.data());
-
-	//	VkPipelineShaderStageCreateInfo vertexShaderStageCreateInfo = vk::init::PipelineShaderStageCreateInfo(this->vertexShaderModule, VK_SHADER_STAGE_VERTEX_BIT);
-	//	VkPipelineShaderStageCreateInfo fragmentShaderStageCreateInfo = vk::init::PipelineShaderStageCreateInfo(this->fragmentShaderModule, VK_SHADER_STAGE_FRAGMENT_BIT);
-
-	//	VkPipelineShaderStageCreateInfo shaderStages[2] = { vertexShaderStageCreateInfo, fragmentShaderStageCreateInfo };
-
-	//	this->depthInfo = vk::rsc::CreateDepthResources(p_device, l_device, appWindow.viewport);
-
-	//	this->renderPass = vk::init::RenderPass(l_device, depthInfo.depthFormat);
-
-	//	this->defaultPipeline = vk::init::CreatePipeline(l_device, this->defaultPipelineLayout, this->renderPass, shaderStages, 2, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
-
-	//}
 
 	void RenderResources::Destroy(const VkDevice l_device)
 	{
@@ -126,7 +71,7 @@ namespace vk
 		vkDestroySemaphore(l_device, this->renderFinishedSemaphore, nullptr);
 
 		//buffers
-		vkDestroyBuffer(l_device, global::uniformBuffer.handle, nullptr);
-		vkFreeMemory(l_device, global::uniformBuffer.memory, nullptr);
+		vkDestroyBuffer(l_device, global::uTransformBuffer.handle, nullptr);
+		vkFreeMemory(l_device, global::uTransformBuffer.memory, nullptr);
 	}
 }

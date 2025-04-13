@@ -13,8 +13,7 @@ namespace vk
 		mPipeline.Destroy(this->logicalGpu);
 		swapChain.Destroy(this->logicalGpu);
 		renderResources.Destroy(this->logicalGpu);
-		
-
+	
 		vkDestroyDevice(this->logicalGpu, nullptr);
 		delete[] gpus;
 
@@ -37,16 +36,23 @@ namespace vk
 
 		this->renderResources.Allocate(this->gpus[g_index], this->logicalGpu, appWindow);
 
-
-
 		this->swapChain = SwapChain(this->logicalGpu, this->gpus[g_index], graphicsQueue.family, presentQueue.family, appWindow.surface);
 
 		this->swapChain.AllocateFrameBuffers(this->logicalGpu, appWindow.viewport, this->renderResources.depthInfo, this->renderResources.renderPass);
 
+#ifdef _DEBUG
 		this->mPipeline.AddModule(this->logicalGpu, "blinn.vert", VK_SHADER_STAGE_VERTEX_BIT, shaderc_vertex_shader);
 		this->mPipeline.AddModule(this->logicalGpu, "blinn.frag", VK_SHADER_STAGE_FRAGMENT_BIT, shaderc_fragment_shader);
+#else
+		this->mPipeline.AddModule(this->logicalGpu, "blinnvert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		this->mPipeline.AddModule(this->logicalGpu, "blinnfrag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+#endif
 
 		this->mPipeline.Finalize(this->logicalGpu, this->renderResources.renderPass, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
+
+	#ifdef _DEBUG
+		this->hotReloader = HotReloader(&this->logicalGpu, &this->mPipeline, &this->renderResources.renderPass);
+	#endif
 
 	}
 	
@@ -72,13 +78,13 @@ namespace vk
 
 	const VkPipeline GraphicsSystem::Pipeline() const 
 	{
-		return this->mPipeline.handle;
+		return this->mPipeline.Handle();
 	}
 
 	const VkDescriptorSetLayout GraphicsSystem::DescriptorSetLayout() const 
 	{
 		//TODO: support different descriptorsetlayouts.
-		return this->mPipeline.descriptorSetLayout;
+		return this->mPipeline.DescriptorSetLayout();
 	}
 	
 
@@ -244,8 +250,6 @@ namespace vk
 	}
 
 
-	
-
 	void GraphicsSystem::ResizeWindow() 
 	{
 		assert(_Application != NULL);
@@ -265,7 +269,7 @@ namespace vk
 		
 		global::uTransform.proj[1][1] *= -1.f;		
 		
-		memcpy(global::uniformBuffer.mappedMemory, (void*)&global::uTransform, (size_t)(sizeof(uTransformObject)));
+		memcpy(global::uTransformBuffer.mappedMemory, (void*)&global::uTransform, (size_t)(sizeof(uTransformObject)));
 
 		this->swapChain.Recreate(this->gpus[g_index], this->logicalGpu, this->graphicsQueue.family, this->presentQueue.family, this->renderResources.depthInfo, this->renderResources.renderPass, appWindow);
 
@@ -279,7 +283,7 @@ namespace vk
 
 	void GraphicsSystem::BindPipelineLayoutToObject(Object& obj) 
 	{
-		obj.UpdatePipelineLayout(this->mPipeline.layout);
+		obj.UpdatePipelineLayout(this->mPipeline.Layout());
 	}
 
 	void GraphicsSystem::WaitForQueueSubmission()
@@ -289,6 +293,12 @@ namespace vk
 		VK_CHECK_RESULT(vkResetFences(this->logicalGpu, 1, &this->renderResources.inFlightFence))
 	}
 
+#ifdef _DEBUG
+	void GraphicsSystem::HotReload()
+	{
+		hotReloader.HotReload();
+	}
+#endif
 
 	void GraphicsSystem::Render(const vk::Window& appWindow, VkCommandBuffer* secondCmdBuffers, size_t secondCmdCount)
 	{

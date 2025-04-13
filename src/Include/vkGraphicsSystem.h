@@ -3,6 +3,10 @@
 #include "vkSwapChain.h"
 #include "vkRenderResources.h"
 #include "VkPipeline.h"
+#ifdef _DEBUG
+#include "HotReloader.h"
+#endif
+
 
 namespace vk
 {
@@ -13,6 +17,7 @@ namespace vk
 			//for now, just keep it to one logical and physical device.
 			vk::RenderResources renderResources;
 
+			//maybe one day make a map of pipelines??
 			vk::Pipeline mPipeline;
 
 			vk::SwapChain swapChain;
@@ -54,6 +59,10 @@ namespace vk
 			void Render(const vk::Window& appWindow, VkCommandBuffer* secondCmdBuffers, size_t secondCmdCount);
 
 			void BindPipelineLayoutToObject(Object& obj);
+
+			#ifdef _DEBUG
+				void HotReload();
+			#endif
 
 		private:
 

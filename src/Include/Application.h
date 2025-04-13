@@ -52,8 +52,6 @@ private:
 	void CreateWindow(vk::Window& appWindow);
 	void CreateWindowSurface(const VkInstance& vkInstance, vk::Window& appWindow);
 
-	void InitPhysicsWorld();
-
 	void DrawGui(VkCommandBuffer cmdBuffer);
 
 	bool init();

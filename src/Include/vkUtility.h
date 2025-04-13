@@ -9,6 +9,7 @@
 
 #define VK_CHECK_RESULT(function) {VkResult check = function; assert(check == VK_SUCCESS); if (check != VK_SUCCESS) {std::cout << check << '\n';}}
 
+#define SHADER_PATH "Shaders/"
 
 namespace vk 
 {
@@ -45,5 +46,9 @@ namespace vk
 		std::string ReadFile(const std::string& filename);
 
 		void WriteSpirvFile(const char* filename, const std::vector<uint32_t>& data);
+
+#ifdef _DEBUG
+		std::string ReadSourceAndWriteToSprv(std::string fileName, shaderc_shader_kind shader_kind);
+#endif
 	}
 }

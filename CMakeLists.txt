@@ -132,7 +132,7 @@ target_link_libraries("${PROJECT_NAME}" SDL2.lib
 										SDL2main.lib)
 
 target_link_libraries(${PROJECT_NAME} debug reactphysics3dd.lib
-									  general reactphysics3d.lib)
+																			general reactphysics3d.lib)
 
 target_link_libraries(${PROJECT_NAME} debug shaderc_combinedd.lib)
 

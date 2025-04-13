@@ -206,9 +206,9 @@ void Object::Draw(VkCommandBuffer cmdBuffer)
         vkCmdBindIndexBuffer(cmdBuffer, mMesh.buffer.index.handle, 0, VK_INDEX_TYPE_UINT16);
 
         vkCmdPushConstants(cmdBuffer, this->mPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::mat4), (void*)(&this->mMesh.modelTransform));
-      /*  vk::UpdateUniformModelMatrix(this->mMesh.modelTransform);*/
 
         vkCmdDrawIndexed(cmdBuffer, static_cast<uint32_t>(this->mMesh.data.indices.size()), 1, 0, 0, 0);
+
     }
     else {
 

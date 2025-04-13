@@ -24,7 +24,6 @@ namespace vk
 
 	struct uTransformObject
 	{
-		glm::mat4 model;
 		glm::mat4 view;
 		glm::mat4 proj;
 	};
@@ -43,7 +42,7 @@ namespace vk
 	namespace global
 	{
 		extern uTransformObject uTransform;
-		extern vk::Buffer uniformBuffer;
+		extern vk::Buffer uTransformBuffer;
 	}
 
 	void UpdateUniformViewMatrix(const glm::mat4& viewMat);

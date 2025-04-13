@@ -4,7 +4,7 @@
 #include "vkGlobal.h"
 #include "vkBuffer.h"
 #include "vkResource.h"
-#include "HotReloader.h"
+
 
 namespace vk 
 {
@@ -26,8 +26,6 @@ namespace vk
 		VkExtent2D currentExtent = {0,0};
 
 		void Allocate(const VkPhysicalDevice p_device, const VkDevice l_device, const vk::Window& appWindow);
-
-		/*void RecreatePipeline(const VkPhysicalDevice p_device, const VkDevice l_device, const vk::Window& appWindow);*/
 
 		void Destroy(const VkDevice l_device);
 	};

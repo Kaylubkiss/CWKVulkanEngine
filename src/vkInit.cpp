@@ -90,9 +90,15 @@ namespace vk
 
 		std::array<VkVertexInputAttributeDescription, 3> VertexAttributeDescriptions()
 		{
+
+			//TODO: check VkPhysicalDeviceLimits!!! 
+			// binding -> maxVertexInputBindings, 
+			// location -> maxVertexInputAttributes
+			// offset -> maxVertexInputAttributeOffset
+			//
 			VkVertexInputAttributeDescription vInputAttribute[3] = {};
 
-			//position
+			//position	
 			vInputAttribute[0].format = VK_FORMAT_R32G32B32_SFLOAT;
 			vInputAttribute[0].location = 0;
 			vInputAttribute[0].binding = 0;
@@ -203,7 +209,7 @@ namespace vk
 
 		
 
-		VkSampler CreateTextureSampler(const VkPhysicalDevice p_device, const VkDevice l_device, uint32_t mipLevels)
+		inline VkSampler CreateTextureSampler(const VkPhysicalDevice p_device, const VkDevice l_device, uint32_t mipLevels)
 		{
 			VkSamplerCreateInfo createInfo = {};
 			createInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
@@ -331,9 +337,8 @@ namespace vk
 		{
 			//TODO: check if the amount of set layouts exceed the physical limit!!!
 
-			VkPushConstantRange pushConstants[1];
-
 			//this is for an object's model transformation.
+			VkPushConstantRange pushConstants[1];
 			pushConstants[0].offset = 0;
 			pushConstants[0].size = sizeof(glm::mat4);
 			pushConstants[0].stageFlags = VK_SHADER_STAGE_VERTEX_BIT;

@@ -2,55 +2,55 @@
 #include "vkUtility.h"
 #include "vkInit.h"
 #include <iostream>
-#ifdef _DEBUG
-#include "SpirvHelper.h"
-#endif
+
 
 namespace vk 
 {
-	#define SHADER_PATH "Shaders/"
 
-	void Pipeline::AddModule(const VkDevice l_device, const std::string& filename, VkShaderStageFlagBits type, shaderc_shader_kind shader_kind)
+	//Initializers for shaderModule changes depending on debug and release!
+	// This is to help reduce the size of the application and its objects.
+#ifdef _DEBUG
+	void Pipeline::AddModule(const VkDevice l_device, const std::string& filename, VkShaderStageFlagBits shaderFlags, shaderc_shader_kind shader_kind)
 	{
-		std::string shaderPath = SHADER_PATH + filename;
+	
 		
-		#ifdef _DEBUG
-			std::cout << "WARNING: make sure to load .spv instead of .vert in release!\n";
-			//vertex shader reading and compilation
-			vk::shader::CompilationInfo shaderInfo = {};
-			shaderInfo.source = vk::util::ReadFile(shaderPath);
-			shaderInfo.filename = filename.c_str();
-			shaderInfo.kind = shader_kind;
-
-			std::vector<uint32_t> output = vk::shader::SourceToSpv(shaderInfo);
-
-
-			//WARNING: sloow!!!
-			for (size_t i = 0; i < shaderPath.size(); ++i) 
+			std::string shaderPath = vk::util::ReadSourceAndWriteToSprv(filename, shader_kind);
+			if (shaderPath.empty())
 			{
-				if (shaderPath[i] == '.') 
-				{
-					size_t ext_size = shaderPath.size() - i;
-
-					shaderPath.resize(shaderPath.size() - ext_size);
-
-					break;
-				}
-			}
-
-			if (shader_kind == shaderc_vertex_shader) { shaderPath += "vert"; }
-			else if (shader_kind == shaderc_fragment_shader) { shaderPath += "frag";}
-			else {
-				std::cerr << "unsupported shader type: " << shader_kind << '\n';
+				std::cerr << "[ERROR] Couldn't successfully read shader file " << filename << '\n';
 				return;
 			}
+			shaderModules.push_back({ SHADER_PATH + filename, shader_kind,
+									vk::init::ShaderModule(l_device, shaderPath.data()), 
+									shaderFlags });	
+	}
+#else
+	void Pipeline::AddModule(const VkDevice l_device, const std::string& filename, VkShaderStageFlagBits shaderFlags) 
+	{
+		std::string shaderPath = SHADER_PATH + filename;
+		shaderModules.push_back({ vk::init::ShaderModule(l_device, shaderPath.data()),
+								  shaderFlags });
+	}
+#endif
 
-			shaderPath += ".spv";
 
-			vk::util::WriteSpirvFile(shaderPath.data(), output);
-		#endif
 
-		shaderModules.push_back({ vk::init::ShaderModule(l_device, shaderPath.data()), type });
+	void Pipeline::Recreate(const VkDevice l_device, const VkRenderPass renderPass) 
+	{
+		//NOTE: globals, i.e. descriptor set layout 
+		// cannot be edited in the shader during runtime!!
+		vkDestroyPipeline(l_device, this->handle, nullptr);
+
+
+		std::vector<VkPipelineShaderStageCreateInfo> shaderStageCreateInfo;
+
+		for (size_t i = 0; i < shaderModules.size(); ++i) {
+			shaderStageCreateInfo.push_back(vk::init::PipelineShaderStageCreateInfo(shaderModules[i].handle, shaderModules[i].flags));
+		}
+
+		vk::init::CreatePipeline(l_device, this->layout, renderPass,
+			shaderStageCreateInfo.data(), shaderStageCreateInfo.size(),
+			this->mTopology);
 	}
 
 	void Pipeline::Finalize(const VkDevice l_device, const VkRenderPass renderPass, VkPrimitiveTopology topology) 
@@ -59,15 +59,17 @@ namespace vk
 
 		this->layout = vk::init::CreatePipelineLayout(l_device, this->descriptorSetLayout);
 
+		this->mTopology = topology;
+
 		std::vector<VkPipelineShaderStageCreateInfo> shaderStageCreateInfo;
 
 		for (size_t i = 0; i < shaderModules.size(); ++i){
-			shaderStageCreateInfo.push_back(vk::init::PipelineShaderStageCreateInfo(shaderModules[i].module, shaderModules[i].flags));
+			shaderStageCreateInfo.push_back(vk::init::PipelineShaderStageCreateInfo(shaderModules[i].handle, shaderModules[i].flags));
 		}
 
 		this->handle = vk::init::CreatePipeline(l_device, this->layout, renderPass,
 												shaderStageCreateInfo.data(), shaderStageCreateInfo.size(), 
-												topology);
+												this->mTopology);
 	}
 
 	void Pipeline::Destroy(const VkDevice l_device) 
@@ -79,9 +81,26 @@ namespace vk
 
 
 		for (size_t i = 0; i < shaderModules.size(); ++i) {
-			vkDestroyShaderModule(l_device, shaderModules[i].module, nullptr);
+			vkDestroyShaderModule(l_device, shaderModules[i].handle, nullptr);
 		}
 
+	}
+
+	const VkDescriptorSetLayout Pipeline::DescriptorSetLayout() const {
+		return this->descriptorSetLayout;
+	}
+
+	const VkPipeline Pipeline::Handle() const {
+		return this->handle;
+	}
+
+	const VkPipelineLayout Pipeline::Layout() const {
+		return this->layout;
+	}
+
+	std::vector<ShaderModuleInfo>& Pipeline::ShaderModules() 
+	{
+		return this->shaderModules;
 	}
 
 

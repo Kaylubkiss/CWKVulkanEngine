@@ -88,35 +88,6 @@ void Application::CreateWindowSurface(const VkInstance& vkInstance, vk::Window& 
 	}
 }
 
-void Application::InitPhysicsWorld() 
-{
-	/* reactphysics3d::Material& db2Material = this->mObjectManager["cube"].mPhysicsComponent.collider->getMaterial();
-	db2Material.setBounciness(0.f);
-	db2Material.setMassDensity(10.f);
-	this->mObjectManager["cube"].mPhysicsComponent.rigidBody->updateMassPropertiesFromColliders();
-	
-	this->mObjectManager["base"].InitPhysics(ColliderType::CUBE, BodyType::STATIC);*/
-	
-	//mCamera.InitPhysics(BodyType::STATIC);
-
-
-	//this->mObjectManager["cube"].SetLinesArrayOffset(12);
-
-	////this->mPhysicsWorld->setIsDebugRenderingEnabled(true);
-	//this->mPhysics.GetPhysicsWorld()->setIsDebugRenderingEnabled(true);
-
-	//this->mObjectManager["cube"].mPhysicsComponent.rigidBody->setIsDebugEnabled(true);
-	//this->mObjectManager["cube"].mPhysicsComponent.rigidBody->setIsDebugEnabled(true);
-	
-	//the order they were added to the physics world
-	//reactphysics3d::DebugRenderer& debugRenderer = this->mPhysics.GetPhysicsWorld()->getDebugRenderer();
-	//debugRenderer.setIsDebugItemDisplayed(reactphysics3d::DebugRenderer::DebugItem::COLLIDER_AABB, true);
-
-	//this->mObjectManager["base"].InitPhysics(ColliderType::CUBE, BodyType::STATIC);
-
-
-}
-
 void Application::InitGui() 
 {
 	//IMGUI_CHECKVERSION();

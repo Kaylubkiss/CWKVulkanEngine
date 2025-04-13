@@ -78,7 +78,8 @@ namespace vk
 
 			if (result.GetCompilationStatus() != shaderc_compilation_status_success)
 			{
-				throw std::runtime_error("could not compile the shader: " + result.GetErrorMessage());
+				std::cerr << "[ERROR] Could not compile the shader: " + result.GetErrorMessage() << '\n';
+				return std::vector<uint32_t>();
 			}
 
 

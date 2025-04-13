@@ -3,7 +3,6 @@
 
 
 layout(binding = 0) uniform uTransformObject {
-    mat4 model;
     mat4 view;
     mat4 proj;
 } uTransform;
@@ -14,10 +13,10 @@ layout( location = 1 ) in vec3 aNorm;
 layout( location = 2 ) in vec2 aUv;
 
 
-layout (push_constant) uniform Matrix
+layout (push_constant) uniform pc
 {
 	mat4 modelMatrix;
-} matrix;
+};
 
 layout(location = 1) out vec2 fragTexCoord;
 layout(location = 2) out vec3 viewDir;
@@ -43,13 +42,13 @@ vec3 colors[3] = vec3[3]
 void main ()
 {
 
-	vec4 posVF = uTransform.view * matrix.modelMatrix * vec4(aPos, 1);
+	vec4 posVF = uTransform.view * modelMatrix * vec4(aPos, 1);
 
 	/*this is to transform normals and 
 	prevent scaling from ruining the orthogonality of the normal*/
 
 	//very expensive 
-	mat4 nMV = transpose(inverse(uTransform.view * matrix.modelMatrix));
+	mat4 nMV = transpose(inverse(uTransform.view *  modelMatrix));
 	
 	normal = vec3(nMV * vec4(aNorm,0));
 
