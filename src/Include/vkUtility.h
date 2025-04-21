@@ -47,8 +47,6 @@ namespace vk
 
 		void WriteSpirvFile(const char* filename, const std::vector<uint32_t>& data);
 
-#ifdef _DEBUG
 		std::string ReadSourceAndWriteToSprv(std::string fileName, shaderc_shader_kind shader_kind);
-#endif
 	}
 }

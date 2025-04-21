@@ -166,17 +166,15 @@ namespace vk
 
 			vkEnumerateInstanceExtensionProperties(nullptr, &extensionPropertyCount, extensionProperties.data());
 
-			int additionalExtensionCount = 0;
 			for (auto& property : extensionProperties)
 			{
 				if (strcmp(property.extensionName, VK_EXT_DEBUG_UTILS_EXTENSION_NAME) == 0) {
 					extensionNames.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
-					additionalExtensionCount = 1;
 					break;
 				}
 			}
 
-			createInfo.enabledExtensionCount = sdl_extensionCount + additionalExtensionCount;
+			createInfo.enabledExtensionCount = extensionNames.size();
 			createInfo.ppEnabledExtensionNames = extensionNames.data();
 
 

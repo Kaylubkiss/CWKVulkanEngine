@@ -1,13 +1,13 @@
 #include "Timer.h"
 
-double Time::DeltaTime() const
+double Timer::DeltaTime() const
 {
 	return this->deltaTime;
 }
 
-Time::Time(uint64_t currentTime) : timeNow(currentTime), timeBefore(), deltaTime() {}
+Timer::Timer(uint64_t currentTime) : timeNow(currentTime), timeBefore(), deltaTime() {}
 
-void Time::Update()
+void Timer::Update()
 {
 	this->timeBefore = this->timeNow;
 	this->timeNow = SDL_GetPerformanceCounter();

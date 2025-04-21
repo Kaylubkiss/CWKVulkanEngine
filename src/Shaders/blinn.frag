@@ -28,7 +28,7 @@ const int specularPower = 10;                              /*  specular power of
 
 void main()
 {
-	outColor = texture(texSampler, fragTexCoord);	
+	outColor = texture(texSampler, fragTexCoord);
 	outColor.a = 1;
 
 //    vec4 V = normalize(vec4(viewDir,0));

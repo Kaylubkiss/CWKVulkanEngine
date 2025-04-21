@@ -118,7 +118,7 @@ namespace vk
 								fileName);
 
 			VkDescriptorBufferInfo uTransformbufferInfo = {};
-			uTransformbufferInfo.buffer = global::uTransformBuffer.handle;
+			uTransformbufferInfo.buffer = graphicsSystem.UniformTransformBuffer();
 			uTransformbufferInfo.offset = 0;
 			uTransformbufferInfo.range = sizeof(uTransformObject);
 

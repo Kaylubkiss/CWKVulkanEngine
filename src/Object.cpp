@@ -125,19 +125,13 @@ void Object::InitPhysics(PhysicsSystem& appPhysics)
         this->mPhysicsComponent.rigidBody->setType(this->mPhysicsComponent.bodyType);
     }
 
-    switch (this->mPhysicsComponent.colliderType)
+
+    if (this->mPhysicsComponent.colliderType == PhysicsComponent::ColliderType::CUBE) 
     {
-        case PhysicsComponent::ColliderType::CUBE:
-            glm::vec3 worldHalfExtent = glm::vec3((worldMaxPoints - worldMinPoints) * .5f);
+        glm::vec3 worldHalfExtent = glm::vec3((worldMaxPoints - worldMinPoints) * .5f);
 
-            this->mPhysicsComponent.shape = appPhysics.CreateBoxShape({ std::abs(worldHalfExtent.x), std::abs(worldHalfExtent.y), std::abs(worldHalfExtent.z) });
-            break;
-        case PhysicsComponent::ColliderType::NONE:
-            break;
-        default:
-            break;
+        this->mPhysicsComponent.shape = appPhysics.CreateBoxShape({ std::abs(worldHalfExtent.x), std::abs(worldHalfExtent.y), std::abs(worldHalfExtent.z) });
     }
-
 
     //the collider transform is relative to the rigidbody origin.
     if (this->mPhysicsComponent.shape != nullptr)

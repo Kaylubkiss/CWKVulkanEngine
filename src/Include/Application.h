@@ -8,6 +8,7 @@
 #include "vkGraphicsSystem.h"
 #include "TextureManager.h"
 #include "Physics.h"
+#include "HotReloader.h"
 
 class Application
 {
@@ -20,7 +21,7 @@ public:
 	Application() = default;
 	~Application();
 
-	const Time& GetTime();
+	const Timer& GetTime();
 	void RequestExit();
 	vk::Window& GetWindow();
 	bool WindowisFocused(); 
@@ -33,7 +34,7 @@ public:
 
 private:
 
-	Time mTime;
+	Timer mTime;
 	Camera mCamera;
 
 	VkInstance m_instance = VK_NULL_HANDLE;
@@ -43,6 +44,7 @@ private:
 	vk::ObjectManager mObjectManager;
 
 	PhysicsSystem mPhysics;
+	vk::HotReloader mHotReloader;
 	vk::GraphicsSystem mGraphicsSystem;
 
 	bool exitApplication = false;

@@ -1,9 +1,7 @@
 #include "Common.h"
 #include "vkUtility.h"
 #include <string>
-#ifdef _DEBUG
 #include "SpirvHelper.h"
-#endif
 
 namespace vk {
 
@@ -274,7 +272,6 @@ namespace vk {
 			output.close();
 		}
 
-#ifdef _DEBUG
 		std::string ReadSourceAndWriteToSprv(std::string fileName, shaderc_shader_kind shader_kind) 
 		{
 			std::string shaderPath = SHADER_PATH + fileName;
@@ -318,7 +315,6 @@ namespace vk {
 			vk::util::WriteSpirvFile(shaderPath.data(), output);
 
 			return shaderPath;
-		}
-#endif
+		}	
 	}
 }

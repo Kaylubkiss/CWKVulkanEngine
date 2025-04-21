@@ -18,6 +18,20 @@ namespace vk
 			VkFramebuffer* frameBuffers = nullptr;
 
 		public:
+			inline SwapChain& operator=(const SwapChain& other)
+			{
+				if (this == &other) {
+					return *this;
+				}
+
+				handle = other.handle;
+				imageCount = other.imageCount;
+				images = other.images;
+				imageViews = other.imageViews;
+				frameBuffers = other.frameBuffers;
+
+				return *this;
+			}
 			SwapChain() = default;
 			SwapChain(const SwapChain&) = delete;
 			~SwapChain() = default;

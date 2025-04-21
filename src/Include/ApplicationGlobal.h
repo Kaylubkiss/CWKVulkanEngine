@@ -1,12 +1,17 @@
 #pragma once
 #include "Application.h"
 
-static struct ApplicationManager
+struct ApplicationManager
 {
 	ApplicationManager();
 	~ApplicationManager();
 	Application* GetApplication();
-} appManager;
+
+private:
+	Application* mApp = nullptr;
+};
+
+extern ApplicationManager appManager;
 
 
 #define _Application appManager.GetApplication()

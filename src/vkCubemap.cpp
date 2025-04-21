@@ -40,7 +40,7 @@ namespace vk {
 				vkMapMemory(l_device, stagingBuffer.memory, 0, imageSize, 0, &data);
 			}
 
-			memcpy(reinterpret_cast<void*>((reinterpret_cast<uint64_t*>(data) + imageLayerSize * i)), reinterpret_cast<void*>(pixels), static_cast<size_t>(imageLayerSize));
+			/*memcpy(reinterpret_cast<void*>((reinterpret_cast<uint64_t*>(data) + imageLayerSize * i)), reinterpret_cast<void*>(pixels), static_cast<size_t>(imageLayerSize));*/
 
 			stbi_image_free(pixels);
 		}

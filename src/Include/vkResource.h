@@ -21,7 +21,7 @@ namespace vk
 			VkImageView depthImageView = VK_NULL_HANDLE;
 			VkFormat depthFormat = {};
 
-			const DepthResources& operator=(const DepthResources& other)
+			inline DepthResources& operator=(const DepthResources& other)
 			{
 				if (this != &other)
 				{

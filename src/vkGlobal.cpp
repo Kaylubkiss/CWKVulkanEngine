@@ -3,11 +3,11 @@
 
 namespace vk 
 {
-	namespace global
+	/*namespace global
 	{
 		uTransformObject uTransform = {};
 		vk::Buffer uTransformBuffer;
-	}
+	}*/
 
 	VkCommandBuffer beginSingleTimeCommand(const VkDevice l_device, const VkCommandPool cmdPool)
 	{
@@ -48,11 +48,11 @@ namespace vk
 	}
 
 
-	void UpdateUniformViewMatrix(const glm::mat4& viewMat)
+	/*void UpdateUniformViewMatrix(const glm::mat4& viewMat)
 	{
 		global::uTransform.view = viewMat;
 
 		memcpy(global::uTransformBuffer.mappedMemory, (void*)&global::uTransform, (size_t)(sizeof(uTransformObject)));
-	}
+	}*/
 }
 

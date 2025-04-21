@@ -30,13 +30,13 @@ void Application::run()
 
 	
 	//initialize all resources.
-	init();
+	Application::init();
 	 
 	//render, update, render, update...
-	loop();
+	Application::loop();
 
 	//cleanup resources
-	exit();
+	Application::exit();
 }
 
 
@@ -136,6 +136,8 @@ bool Application::init()
 
 	this->mGraphicsSystem = vk::GraphicsSystem(this->m_instance, this->mWindow);
 
+	this->mGraphicsSystem.AttachHotReloader(this->mHotReloader);
+
 	this->secondaryCmdBuffer = vk::init::CommandBuffer(this->mGraphicsSystem.LogicalDevice(), this->mGraphicsSystem.CommandPool(), VK_COMMAND_BUFFER_LEVEL_SECONDARY);
 
 	this->mTextureManager.Init(this->mGraphicsSystem.LogicalDevice());
@@ -170,7 +172,7 @@ bool Application::init()
 
 	mPhysics.Init();
 
-	mTime = Time(SDL_GetPerformanceCounter());
+	mTime = Timer(SDL_GetPerformanceCounter());
 
 	return true;
 
@@ -182,7 +184,7 @@ vk::Window& Application::GetWindow()
 	return this->mWindow;
 }
 
-const Time& Application::GetTime()
+const Timer& Application::GetTime()
 {
 	return this->mTime;
 }
@@ -290,12 +292,14 @@ void Application::loop()
 		mTime.Update();
 
 		bool result = Controller::MoveCamera(mCamera, mTime.DeltaTime());
-		if (result) { vk::UpdateUniformViewMatrix(mCamera.LookAt()); }
+		if (result) { mGraphicsSystem.UpdateUniformViewMatrix(mCamera.LookAt()); }
 		/*SelectWorldObjects(this->mWindow, this->mCamera, vk::global::uTransform, this->mPhysics);*/
 
 		mPhysics.Update(mTime.DeltaTime());
 
 		mGraphicsSystem.WaitForQueueSubmission();
+
+		mHotReloader.HotReload();
 
 		//draw objects using secondary command buffer
 		VkCommandBufferInheritanceInfo inheritanceInfo = {};

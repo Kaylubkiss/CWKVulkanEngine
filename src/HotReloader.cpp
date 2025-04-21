@@ -9,8 +9,7 @@
 
 namespace vk 
 {
-#ifdef _DEBUG
-	HotReloader::HotReloader(VkDevice* l_device, vk::Pipeline* pipeline, VkRenderPass* renderPass)
+	HotReloader::HotReloader(VkDevice* l_device, vk::Pipeline& pipeline, VkRenderPass* renderPass)
 	{
 		if (l_device == nullptr) 
 		{
@@ -22,26 +21,22 @@ namespace vk
 			throw std::runtime_error("[ERROR] Passed in invalid renderpass to hot reloader\n");
 		}
 
-		appDevicePtr = l_device; 
-		renderPassPtr = renderPass;
+		appDevicePtr = *l_device; 
+		renderPassPtr = *renderPass;
 
 		AddPipeline(pipeline);
 	}
 
-	void HotReloader::AddPipeline(vk::Pipeline* pipeline) 
+	void HotReloader::AddPipeline(vk::Pipeline& pipeline) 
 	{
-		if (pipeline == nullptr) 
-		{
-			std::cerr << "[ERROR] Hot reloader could not add NULL pipeline\n";
-			return;
-		}
 
-		this->pipelinePtr = pipeline;
+		this->pipelinePtr = (&pipeline);
 
 		struct stat fileStat[NUM_MODULES];
 
-		std::vector<vk::ShaderModuleInfo>& shaderModules = pipeline->ShaderModules();
+		std::vector<vk::ShaderModuleInfo>& shaderModules = pipeline.ShaderModules();
 
+		
 		if (NUM_MODULES < shaderModules.size())
 		{
 			throw std::runtime_error(
@@ -57,7 +52,7 @@ namespace vk
 			}
 			else
 			{
-				shaderInfos.push_back({ &shaderModules[i], fileStat[i].st_mtime });
+				shaderInfos.push_back({ i, fileStat[i].st_mtime});
 			}
 		}
 
@@ -68,14 +63,33 @@ namespace vk
 	void HotReloader::HotReload() 
 	{
 		bool somethingChanged = false;
-		const VkDevice& appDevice = *(this->appDevicePtr);
-
+		const VkDevice& appDevice = (this->appDevicePtr);
+	/*	return;*/
 		for (size_t i = 0; i < shaderInfos.size(); ++i)
 		{
 			struct stat fileStat;
-			const char* filePath = shaderInfos[i].moduleInfo->filepath.data();
+			
+			std::vector<vk::ShaderModuleInfo>& shaderModuleVector = pipelinePtr->ShaderModules();
+			vk::ShaderModuleInfo& shaderModule = shaderModuleVector[shaderInfos[i].module_i];
 
-			if (stat(filePath, &fileStat) != 0)
+			
+			std::string filePath = shaderModule.filepath;
+
+			////TODO: rename the file according to if it was a vert or frag file
+			////WARNING: sloow!!!
+			//for (size_t i = 0; i < filePath.size(); ++i)
+			//{
+			//	if (filePath[i] == '.')
+			//	{
+			//		size_t ext_size = filePath.size() - i;
+
+			//		filePath.resize(filePath.size() - ext_size);
+
+			//		break;
+			//	}
+			//}
+
+			if (stat(filePath.c_str(), &fileStat) != 0)
 			{
 				std::cerr << "[ERROR] Can't Read File " << filePath << '\n';
 				continue;
@@ -84,29 +98,43 @@ namespace vk
 			if (fileStat.st_mtime != shaderInfos[i].last_modification)
 			{
 				std::string shaderPath = vk::util::ReadSourceAndWriteToSprv(
-					filePath, shaderInfos[i].moduleInfo->shaderc_kind
+					filePath, shaderModule.shaderc_kind
 				);
 
 				if (shaderPath.empty())
 				{
-					std::cerr << "[ERROR] Couldn't successfully write to file " << shaderInfos[i].moduleInfo->filepath << '\n';
+					std::cerr << "[ERROR] Couldn't successfully write to file " << shaderModule.filepath << '\n';
 					continue;
 				}
 
 				somethingChanged = true;
 
-				vkDestroyShaderModule(appDevice, shaderInfos[i].moduleInfo->handle, nullptr);
-				shaderInfos[i].moduleInfo->handle = vk::init::ShaderModule(appDevice, shaderPath.data());
+				vkDestroyShaderModule(appDevice, shaderModule.handle, nullptr);
+				shaderModule.handle = vk::init::ShaderModule(appDevice, shaderPath.data());
 			}
 		}
 
 
 		if (somethingChanged) 
 		{
-			this->pipelinePtr->Recreate(appDevice, *this->renderPassPtr);
+			pipelinePtr->Recreate(appDevice, this->renderPassPtr);
+		}
+	}
+
+
+	HotReloader& HotReloader::operator=(const HotReloader& other)
+	{
+		if (this == &other) 
+		{
+			return *this;
 		}
 
+		appDevicePtr = other.appDevicePtr;
+		renderPassPtr = other.renderPassPtr;
+		shaderInfos = other.shaderInfos;
 
+		pipelinePtr = other.pipelinePtr;
+
+		return *this;
 	}
-#endif
 }

@@ -3,9 +3,8 @@
 #include "vkSwapChain.h"
 #include "vkRenderResources.h"
 #include "VkPipeline.h"
-#ifdef _DEBUG
 #include "HotReloader.h"
-#endif
+
 
 
 namespace vk
@@ -13,6 +12,10 @@ namespace vk
 	class GraphicsSystem
 	{
 		private:
+
+			uTransformObject uTransform;
+			vk::Buffer uTransformBuffer;
+
 			//may need to create array system out of this.
 			//for now, just keep it to one logical and physical device.
 			vk::RenderResources renderResources;
@@ -22,12 +25,10 @@ namespace vk
 
 			vk::SwapChain swapChain;
 
-		#ifdef _DEBUG
-			HotReloader hotReloader;
-		#endif
-			
-			VkPhysicalDevice* gpus = nullptr;
-			unsigned int g_index = -1;
+	
+
+			std::vector<VkPhysicalDevice> gpus;
+			int g_index = -1;
 
 			VkDevice logicalGpu = VK_NULL_HANDLE;
 
@@ -37,6 +38,26 @@ namespace vk
 
 		public:
 			GraphicsSystem(const VkInstance vkInstance, const vk::Window& appWindow);
+			inline GraphicsSystem& operator=(const GraphicsSystem& other) 
+			{
+				if (this == &other) {
+					return *this;
+				}
+
+				uTransform = other.uTransform;
+				uTransformBuffer = other.uTransformBuffer;
+				renderResources = other.renderResources;
+				mPipeline = other.mPipeline;
+				swapChain = other.swapChain;
+				gpus = other.gpus;
+				g_index = other.g_index;
+				logicalGpu = other.logicalGpu;
+				graphicsQueue = other.graphicsQueue;
+				presentQueue = other.presentQueue;
+
+				return *this;
+			}
+
 			GraphicsSystem() = default;
 			GraphicsSystem(const GraphicsSystem&) = delete;
 
@@ -51,6 +72,8 @@ namespace vk
 			const VkRenderPass RenderPass() const;
 			const VkPipeline Pipeline() const;
 			VkCommandPool CommandPool();
+			const VkBuffer UniformTransformBuffer();
+			void UpdateUniformViewMatrix(const glm::mat4& viewMat);
 
 			void ResizeWindow();
 
@@ -60,9 +83,10 @@ namespace vk
 
 			void BindPipelineLayoutToObject(Object& obj);
 
-			#ifdef _DEBUG
-				void HotReload();
-			#endif
+			void AttachHotReloader(HotReloader& hotReloader) 
+			{
+				hotReloader = HotReloader(&this->logicalGpu, this->mPipeline, &this->renderResources.renderPass);
+			}
 
 		private:
 

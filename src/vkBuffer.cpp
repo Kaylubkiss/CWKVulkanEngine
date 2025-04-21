@@ -65,7 +65,7 @@ namespace vk
 		//fill data buffer --> THIS COULD BE ITS OWN MODULE...
 		if (data != NULL)
 		{
-			vkMapMemory(l_device, this->memory, 0, VK_WHOLE_SIZE, 0, &this->mappedMemory);
+			vkMapMemory(l_device, this->memory, 0, this->size, 0, &this->mappedMemory);
 			memcpy(this->mappedMemory, data, this->size);
 			vkUnmapMemory(l_device, this->memory);
 		}

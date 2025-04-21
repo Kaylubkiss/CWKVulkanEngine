@@ -3,19 +3,16 @@
 #include <vulkan/vulkan.h>
 #include <vector>
 #include <string>
-#ifdef _DEBUG
+#include <list>
 #include "shaderc/shaderc.hpp"
-#endif
 
 namespace vk 
 {
 	struct ShaderModuleInfo
 	{
-		#ifdef _DEBUG
-			std::string filepath; //for hot reloader...
-			shaderc_shader_kind shaderc_kind;
-		#endif
-		VkShaderModule handle;
+		std::string filepath; //for hot reloader...
+		shaderc_shader_kind shaderc_kind;
+		VkShaderModule handle = VK_NULL_HANDLE;
 		VkShaderStageFlagBits flags;
 
 	};
@@ -31,12 +28,8 @@ namespace vk
 		std::vector<ShaderModuleInfo> shaderModules;
 
 		public:
-
-#ifdef _DEBUG
 			void AddModule(const VkDevice l_device, const std::string& filename, VkShaderStageFlagBits shaderFlags, shaderc_shader_kind shader_kind = shaderc_vertex_shader);
-#else
-			void AddModule(const VkDevice l_device, const std::string& filename, VkShaderStageFlagBits shaderFlags);
-#endif
+
 			void Finalize(const VkDevice l_device, const VkRenderPass renderPass, VkPrimitiveTopology topology);
 
 			void Destroy(const VkDevice l_device);

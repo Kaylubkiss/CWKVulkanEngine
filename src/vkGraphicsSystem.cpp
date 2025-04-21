@@ -13,14 +13,20 @@ namespace vk
 		mPipeline.Destroy(this->logicalGpu);
 		swapChain.Destroy(this->logicalGpu);
 		renderResources.Destroy(this->logicalGpu);
+
+		//buffers
+		vkDestroyBuffer(this->logicalGpu, uTransformBuffer.handle, nullptr);
+		vkFreeMemory(this->logicalGpu, uTransformBuffer.memory, nullptr);
 	
 		vkDestroyDevice(this->logicalGpu, nullptr);
-		delete[] gpus;
 
 	}
 
 	GraphicsSystem::GraphicsSystem(const VkInstance vkInstance, const vk::Window& appWindow)
 	{
+
+		assert(_Application != NULL);
+
 		if (vkInstance == VK_NULL_HANDLE) {
 
 			throw std::runtime_error("Can't create graphics without instance!");
@@ -34,26 +40,36 @@ namespace vk
 		vkGetDeviceQueue(this->logicalGpu, graphicsQueue.family, 0, &graphicsQueue.handle);
 		vkGetDeviceQueue(this->logicalGpu, presentQueue.family, 0, &presentQueue.handle);
 
+
+	
+		Camera& appCamera = _Application->GetCamera();
+
+		//uniform transform for objects of default pipeline.
+		this->uTransform = {
+			appCamera.LookAt(), //view
+			glm::perspective(glm::radians(45.f), (float)appWindow.viewport.width / appWindow.viewport.height, 0.1f, 1000.f) //proj
+		};
+
+		this->uTransform.proj[1][1] *= -1.f;
+
+		//uniform(s)
+		this->uTransformBuffer = vk::Buffer(gpus[g_index], logicalGpu, sizeof(uTransformObject), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, (void*)&this->uTransform);
+
 		this->renderResources.Allocate(this->gpus[g_index], this->logicalGpu, appWindow);
 
 		this->swapChain = SwapChain(this->logicalGpu, this->gpus[g_index], graphicsQueue.family, presentQueue.family, appWindow.surface);
 
 		this->swapChain.AllocateFrameBuffers(this->logicalGpu, appWindow.viewport, this->renderResources.depthInfo, this->renderResources.renderPass);
 
-#ifdef _DEBUG
+//#ifdef _DEBUG
 		this->mPipeline.AddModule(this->logicalGpu, "blinn.vert", VK_SHADER_STAGE_VERTEX_BIT, shaderc_vertex_shader);
 		this->mPipeline.AddModule(this->logicalGpu, "blinn.frag", VK_SHADER_STAGE_FRAGMENT_BIT, shaderc_fragment_shader);
-#else
-		this->mPipeline.AddModule(this->logicalGpu, "blinnvert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		this->mPipeline.AddModule(this->logicalGpu, "blinnfrag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
-#endif
+//#else
+//		this->mPipeline.AddModule(this->logicalGpu, "blinnvert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+//		this->mPipeline.AddModule(this->logicalGpu, "blinnfrag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+//#endif
 
 		this->mPipeline.Finalize(this->logicalGpu, this->renderResources.renderPass, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
-
-	#ifdef _DEBUG
-		this->hotReloader = HotReloader(&this->logicalGpu, &this->mPipeline, &this->renderResources.renderPass);
-	#endif
-
 	}
 	
 	const VkPhysicalDevice GraphicsSystem::PhysicalDevice() const
@@ -87,12 +103,16 @@ namespace vk
 		return this->mPipeline.DescriptorSetLayout();
 	}
 	
+	const VkBuffer GraphicsSystem::UniformTransformBuffer() 
+	{
+		return this->uTransformBuffer.handle;
+	}
 
 	void GraphicsSystem::FindQueueFamilies(const VkPhysicalDevice& physicalDevice, const VkSurfaceKHR& windowSurface)
 	{
 
 		uint32_t queueFamilyPropertyCount;
-		VkQueueFamilyProperties* queueFamilies = nullptr;
+		std::vector<VkQueueFamilyProperties> queueFamilies;
 
 		//no use for memory properties right now.
 		VkPhysicalDeviceMemoryProperties physicalDeviceMemoryProperties;
@@ -107,21 +127,16 @@ namespace vk
 			throw std::runtime_error("couldn't find any queue families...");
 		}
 
-		queueFamilies = new VkQueueFamilyProperties[queueFamilyPropertyCount];
+		queueFamilies.resize(queueFamilyPropertyCount);
 
-		if (queueFamilies == nullptr)
-		{
-			throw std::runtime_error("couldn't allocate queueFamilies array\n");
-		}
-
-		vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamilyPropertyCount, queueFamilies);
+		vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamilyPropertyCount, queueFamilies.data());
 
 		bool setGraphicsQueue = false;
 		bool setPresentQueue = false;
 
 		for (unsigned i = 0; i < queueFamilyPropertyCount; ++i)
 		{
-			if (((*(queueFamilies + i)).queueFlags & VK_QUEUE_GRAPHICS_BIT) != 0)
+			if ((queueFamilies[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) != 0)
 			{
 				graphicsQueue.family = i;
 				setGraphicsQueue = true;
@@ -143,8 +158,6 @@ namespace vk
 			}
 
 		}
-
-		delete[] queueFamilies;
 	}
 
 	void GraphicsSystem::EnumeratePhysicalDevices(const VkInstance& vkInstance)
@@ -161,28 +174,26 @@ namespace vk
 			return;
 		}
 
+		this->gpus.resize(max_devices);
 
-		this->gpus = new VkPhysicalDevice[max_devices];
-
-		if (this->gpus == NULL)
-		{
-			throw std::runtime_error("could not allocate array of physical devices\n");
-		}
-
-		VK_CHECK_RESULT(vkEnumeratePhysicalDevices(vkInstance, &max_devices, this->gpus))
+		VK_CHECK_RESULT(vkEnumeratePhysicalDevices(vkInstance, &max_devices, this->gpus.data()))
 
 		for (size_t i = 0; i < max_devices; ++i)
 		{
+			
 			VkPhysicalDeviceProperties properties;
 			VkPhysicalDeviceFeatures features;
 
-			vkGetPhysicalDeviceProperties(*(this->gpus + i), &properties);
-			vkGetPhysicalDeviceFeatures(*(this->gpus + i), &features);
+			vkGetPhysicalDeviceProperties(this->gpus[i], &properties);
+			vkGetPhysicalDeviceFeatures(this->gpus[i], &features);
 
-			if (properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU && 
+
+			if ((properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU ||properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU || 
+			properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_CPU) && 
 			features.geometryShader && features.samplerAnisotropy)
 			{
 				g_index = i;
+				break;
 			}
 		}
 
@@ -196,52 +207,62 @@ namespace vk
 
 	VkDevice GraphicsSystem::CreateLogicalDevice(const VkPhysicalDevice& p_device, uint32_t graphicsFamily, uint32_t presentFamily)
 	{
-		VkDeviceQueueCreateInfo deviceQueueCreateInfos[2]; //presentation and graphics.
+		std::vector<VkDeviceQueueCreateInfo> deviceQueueCreateInfos; //presentation and graphics.
 
 		uint32_t uniqueQueueFamilies[2] = { graphicsFamily, presentFamily };
+		
+		float queuePriority[1] = {1.f};
 
-		for (unsigned i = 0; i < 2; ++i)
+		if (graphicsFamily != presentFamily) 
 		{
+			for (unsigned i = 0; i < 2; ++i)
+			{
+				VkDeviceQueueCreateInfo deviceQueueInfo = {}; //to be passed into deviceCreateInfo's struct members.
+				deviceQueueInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+				deviceQueueInfo.flags = 0;
+				deviceQueueInfo.pNext = nullptr;
+				deviceQueueInfo.queueFamilyIndex = uniqueQueueFamilies[i];
+				deviceQueueInfo.queueCount = 1;
+				//THIS IS APPARENTLY REQUIRED --> REFERENCE BOOK DID NOT SHOW THIS...
+				deviceQueueInfo.pQueuePriorities = queuePriority; //normalized values between 0.f to 1.f that ranks the priority of the queue in the array.
+
+				deviceQueueCreateInfos.push_back(deviceQueueInfo);
+			}
+		}
+		else {
 			VkDeviceQueueCreateInfo deviceQueueInfo = {}; //to be passed into deviceCreateInfo's struct members.
 			deviceQueueInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
 			deviceQueueInfo.flags = 0;
 			deviceQueueInfo.pNext = nullptr;
-			deviceQueueInfo.queueFamilyIndex = uniqueQueueFamilies[i];
+			deviceQueueInfo.queueFamilyIndex = graphicsFamily;
 			deviceQueueInfo.queueCount = 1;
-			float queuePriority = 1.f;
 			//THIS IS APPARENTLY REQUIRED --> REFERENCE BOOK DID NOT SHOW THIS...
-			deviceQueueInfo.pQueuePriorities = &queuePriority; //normalized values between 0.f to 1.f that ranks the priority of the queue in the array.
+			deviceQueueInfo.pQueuePriorities = queuePriority; //normalized values between 0.f to 1.f that ranks the priority of the queue in the array.
 
-			deviceQueueCreateInfos[i] = deviceQueueInfo;
+			deviceQueueCreateInfos.push_back(deviceQueueInfo);
+
 		}
 
 		//won't do many other optional features for now.
 		VkPhysicalDeviceFeatures deviceFeatures = {};
 		deviceFeatures.geometryShader = VK_TRUE;
-		deviceFeatures.tessellationShader = VK_TRUE;
+	/*	deviceFeatures.tessellationShader = VK_TRUE;*/
 		deviceFeatures.samplerAnisotropy = VK_TRUE;
+
 
 		VkDeviceCreateInfo deviceCreateInfo = {};
 		deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
 		deviceCreateInfo.flags = 0;
 		deviceCreateInfo.pNext = nullptr;
 
-		//layers are no right now.
-
-		if (vk::util::CheckValidationSupport())
-		{
-			deviceCreateInfo.enabledLayerCount = 2;
-			deviceCreateInfo.ppEnabledLayerNames = vk::instanceLayerExtensions;
-		}
-
-		//maybe don't assume extensions are there!!!!
-		deviceCreateInfo.enabledExtensionCount = 1;
-		deviceCreateInfo.ppEnabledExtensionNames = deviceExtensions;
+		//maybe don't assume extensions are there!!!!	
+		deviceCreateInfo.enabledExtensionCount = sizeof(deviceExtensions)/sizeof(deviceExtensions[0]);
+		deviceCreateInfo.ppEnabledExtensionNames = vk::deviceExtensions;
 		
 		deviceCreateInfo.pEnabledFeatures = &deviceFeatures; //call vkGetPhysicalDeviceFeatures to set additional features.
 
-		deviceCreateInfo.pQueueCreateInfos = deviceQueueCreateInfos;
-		deviceCreateInfo.queueCreateInfoCount = 1;
+		deviceCreateInfo.pQueueCreateInfos = deviceQueueCreateInfos.data();
+		deviceCreateInfo.queueCreateInfoCount = (uint32_t)(deviceQueueCreateInfos.size());
 
 		VkDevice nLogicalDevice;
 		VK_CHECK_RESULT(vkCreateDevice(p_device, &deviceCreateInfo, nullptr, &nLogicalDevice));
@@ -265,11 +286,11 @@ namespace vk
 		this->renderResources.currentExtent = deviceCapabilities.currentExtent;
 
 		//updating the uniform projection matrix after updating the viewport size
-		global::uTransform.proj = glm::perspective(glm::radians(45.f), (float)appWindow.viewport.width / appWindow.viewport.height, 0.1f, 1000.f); //proj
+		uTransform.proj = glm::perspective(glm::radians(45.f), (float)appWindow.viewport.width / appWindow.viewport.height, 0.1f, 1000.f); //proj
 		
-		global::uTransform.proj[1][1] *= -1.f;		
+		uTransform.proj[1][1] *= -1.f;		
 		
-		memcpy(global::uTransformBuffer.mappedMemory, (void*)&global::uTransform, (size_t)(sizeof(uTransformObject)));
+		memcpy(uTransformBuffer.mappedMemory, (void*)&uTransform, uTransformBuffer.size);
 
 		this->swapChain.Recreate(this->gpus[g_index], this->logicalGpu, this->graphicsQueue.family, this->presentQueue.family, this->renderResources.depthInfo, this->renderResources.renderPass, appWindow);
 
@@ -293,12 +314,12 @@ namespace vk
 		VK_CHECK_RESULT(vkResetFences(this->logicalGpu, 1, &this->renderResources.inFlightFence))
 	}
 
-#ifdef _DEBUG
-	void GraphicsSystem::HotReload()
+	void GraphicsSystem::UpdateUniformViewMatrix(const glm::mat4& viewMat)
 	{
-		hotReloader.HotReload();
+		uTransform.view = viewMat;
+
+		memcpy(uTransformBuffer.mappedMemory, (void*)&uTransform, static_cast<VkDeviceSize>(sizeof(uTransformObject)));
 	}
-#endif
 
 	void GraphicsSystem::Render(const vk::Window& appWindow, VkCommandBuffer* secondCmdBuffers, size_t secondCmdCount)
 	{
