@@ -13,13 +13,15 @@ namespace vk
 	{
 	
 		
-			std::string shaderPath = vk::util::ReadSourceAndWriteToSprv(filename, shader_kind);
+			std::string shaderPath = vk::util::ReadSourceAndWriteToSprv(SHADER_PATH + filename, shader_kind);
+			
 			if (shaderPath.empty())
 			{
 				std::cerr << "[ERROR] Couldn't successfully read shader file " << filename << '\n';
 				return;
 			}
-			shaderModules.push_back({ SHADER_PATH + filename, shader_kind,
+
+			shaderModules.push_back({ filename, shader_kind,
 									vk::init::ShaderModule(l_device, shaderPath.data()), 
 									shaderFlags });	
 	}
@@ -37,7 +39,7 @@ namespace vk
 			shaderStageCreateInfo.push_back(vk::init::PipelineShaderStageCreateInfo(shaderModules[i].handle, shaderModules[i].flags));
 		}
 
-		vk::init::CreatePipeline(l_device, this->layout, renderPass,
+		this->handle = vk::init::CreatePipeline(l_device, this->layout, renderPass,
 			shaderStageCreateInfo.data(), shaderStageCreateInfo.size(),
 			this->mTopology);
 	}

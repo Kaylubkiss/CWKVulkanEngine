@@ -134,8 +134,6 @@ bool Application::init()
 	
 	CreateWindowSurface(this->m_instance, this->mWindow);
 
-	
-
 	this->mGraphicsSystem = vk::GraphicsSystem(this->m_instance, this->mWindow);
 
 	this->mGraphicsSystem.AttachHotReloader(this->mHotReloader);

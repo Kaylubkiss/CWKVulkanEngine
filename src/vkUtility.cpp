@@ -272,15 +272,14 @@ namespace vk {
 			output.close();
 		}
 
-		std::string ReadSourceAndWriteToSprv(std::string fileName, shaderc_shader_kind shader_kind) 
+		std::string ReadSourceAndWriteToSprv(std::string fileNamePath, shaderc_shader_kind shader_kind) 
 		{
-			std::string shaderPath = SHADER_PATH + fileName;
 
 			std::cout << "WARNING: make sure to load .spv instead of .vert in release!\n";
 			//vertex shader reading and compilation
 			vk::shader::CompilationInfo shaderInfo = {};
-			shaderInfo.source = vk::util::ReadFile(shaderPath);
-			shaderInfo.filename = fileName.c_str();
+			shaderInfo.source = vk::util::ReadFile(fileNamePath);
+			shaderInfo.filename = fileNamePath.c_str();
 			shaderInfo.kind = shader_kind;
 
 			std::vector<uint32_t> output = vk::shader::SourceToSpv(shaderInfo);
@@ -291,30 +290,30 @@ namespace vk {
 			}
 
 			//WARNING: sloow!!!
-			for (size_t i = 0; i < shaderPath.size(); ++i)
+			for (size_t i = 0; i < fileNamePath.size(); ++i)
 			{
-				if (shaderPath[i] == '.')
+				if (fileNamePath[i] == '.')
 				{
-					size_t ext_size = shaderPath.size() - i;
+					size_t ext_size = fileNamePath.size() - i;
 
-					shaderPath.resize(shaderPath.size() - ext_size);
+					fileNamePath.resize(fileNamePath.size() - ext_size);
 
 					break;
 				}
 			}
 
-			if (shader_kind == shaderc_vertex_shader) { shaderPath += "vert"; }
-			else if (shader_kind == shaderc_fragment_shader) { shaderPath += "frag"; }
+			if (shader_kind == shaderc_vertex_shader) { fileNamePath += "vert"; }
+			else if (shader_kind == shaderc_fragment_shader) { fileNamePath += "frag"; }
 			else {
 				std::cerr << "unsupported shader type: " << shader_kind << '\n';
 				return std::string();
 			}
 
-			shaderPath += ".spv";
+			fileNamePath += ".spv";
 
-			vk::util::WriteSpirvFile(shaderPath.data(), output);
+			vk::util::WriteSpirvFile(fileNamePath.data(), output);
 
-			return shaderPath;
+			return fileNamePath;
 		}	
 	}
 }

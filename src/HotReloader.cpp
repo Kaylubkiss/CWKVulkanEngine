@@ -46,9 +46,11 @@ namespace vk
 
 		for (size_t i = 0; i < shaderModules.size(); ++i)
 		{
-			if (stat(shaderModules[i].filepath.c_str(), &fileStat[i]) != 0)
+			std::string filePath = SHADER_PATH + shaderModules[i].filename;
+
+			if (stat(filePath.c_str(), &fileStat[i]) != 0)
 			{
-				std::cerr << "[ERROR] Can't open file: " << shaderModules[i].filepath.c_str() << '\n';
+				std::cerr << "[ERROR] Can't open file: " << filePath.c_str() << '\n';
 			}
 			else
 			{
@@ -64,30 +66,15 @@ namespace vk
 	{
 		bool somethingChanged = false;
 		const VkDevice& appDevice = (this->appDevicePtr);
-	/*	return;*/
+
+
 		for (size_t i = 0; i < shaderInfos.size(); ++i)
 		{
 			struct stat fileStat;
 			
 			std::vector<vk::ShaderModuleInfo>& shaderModuleVector = pipelinePtr->ShaderModules();
 			vk::ShaderModuleInfo& shaderModule = shaderModuleVector[shaderInfos[i].module_i];
-
-			
-			std::string filePath = shaderModule.filepath;
-
-			////TODO: rename the file according to if it was a vert or frag file
-			////WARNING: sloow!!!
-			//for (size_t i = 0; i < filePath.size(); ++i)
-			//{
-			//	if (filePath[i] == '.')
-			//	{
-			//		size_t ext_size = filePath.size() - i;
-
-			//		filePath.resize(filePath.size() - ext_size);
-
-			//		break;
-			//	}
-			//}
+			std::string filePath = SHADER_PATH + shaderModule.filename;
 
 			if (stat(filePath.c_str(), &fileStat) != 0)
 			{
@@ -97,20 +84,23 @@ namespace vk
 
 			if (fileStat.st_mtime != shaderInfos[i].last_modification)
 			{
-				std::string shaderPath = vk::util::ReadSourceAndWriteToSprv(
-					filePath, shaderModule.shaderc_kind
-				);
+				std::string shaderPath = 
+					vk::util::ReadSourceAndWriteToSprv(filePath, shaderModule.shaderc_kind);
 
 				if (shaderPath.empty())
 				{
-					std::cerr << "[ERROR] Couldn't successfully write to file " << shaderModule.filepath << '\n';
+					std::cerr << "[ERROR] Couldn't successfully write to file " << shaderModule.filename << '\n';
 					continue;
 				}
 
 				somethingChanged = true;
 
+				VK_CHECK_RESULT(vkDeviceWaitIdle(appDevicePtr))
+
 				vkDestroyShaderModule(appDevice, shaderModule.handle, nullptr);
 				shaderModule.handle = vk::init::ShaderModule(appDevice, shaderPath.data());
+
+				shaderInfos[i].last_modification = fileStat.st_mtime;
 			}
 		}
 

@@ -327,7 +327,6 @@ namespace vk
 		{
 			VK_CHECK_RESULT(vkDeviceWaitIdle(this->logicalGpu));
 		}
-
 	}
 
 	void GraphicsSystem::UpdateUniformViewMatrix(const glm::mat4& viewMat)

@@ -10,7 +10,7 @@ namespace vk
 {
 	struct ShaderModuleInfo
 	{
-		std::string filepath; //for hot reloader...
+		std::string filename; //for hot reloader...
 		shaderc_shader_kind shaderc_kind;
 		VkShaderModule handle = VK_NULL_HANDLE;
 		VkShaderStageFlagBits flags;
