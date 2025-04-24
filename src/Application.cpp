@@ -60,7 +60,7 @@ void Application::CreateWindow(vk::Window& appWindow)
 	appWindow.sdl_ptr = SDL_CreateWindow("Caleb's Vulkan Engine", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 
 	int(appWindow.viewport.width), int(appWindow.viewport.height), SDL_WINDOW_VULKAN | SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
 
-	if (appWindow.sdl_ptr == NULL)
+	if (appWindow.sdl_ptr == nullptr)
 	{
 		printf("Window could not be created! SDL_Error: %s\n", SDL_GetError());
 	}
@@ -84,7 +84,7 @@ void Application::CreateWindowSurface(const VkInstance& vkInstance, vk::Window& 
 {
 	if (SDL_Vulkan_CreateSurface(appWindow.sdl_ptr, vkInstance, &appWindow.surface) != SDL_TRUE)
 	{
-		throw std::runtime_error("could not create window surface!");
+		throw std::runtime_error("could not create window surface! " + std::string(SDL_GetError()));
 	}
 }
 
@@ -131,8 +131,10 @@ bool Application::init()
 	CreateWindow(this->mWindow);
 
 	this->m_instance = vk::init::CreateInstance(this->mWindow.sdl_ptr);
-
+	
 	CreateWindowSurface(this->m_instance, this->mWindow);
+
+	
 
 	this->mGraphicsSystem = vk::GraphicsSystem(this->m_instance, this->mWindow);
 
@@ -171,6 +173,16 @@ bool Application::init()
 	//InitGui();
 
 	mPhysics.Init();
+
+	/*VkDebugUtilsObjectNameInfoEXT dscPoolDebug = {};
+	dscPoolDebug.objectHandle = (uint64_t)(this->mTextureManager.DescriptorPool());
+	dscPoolDebug.objectType = VK_OBJECT_TYPE_DESCRIPTOR_POOL;
+	dscPoolDebug.pObjectName = "Texture Manager Descriptor Pool";
+
+
+	auto* SetDebugObjectName = reinterpret_cast<PFN_vkSetDebugUtilsObjectNameEXT>(vkGetInstanceProcAddr(this->m_instance, "vkSetDebugUtilsObjectNameEXT"));
+
+	VK_CHECK_RESULT(SetDebugObjectName(this->mGraphicsSystem.LogicalDevice(), &dscPoolDebug))*/
 
 	mTime = Timer(SDL_GetPerformanceCounter());
 
@@ -326,43 +338,34 @@ void Application::loop()
 		//sync this up with primary command buffer in graphics system...
 		mGraphicsSystem.Render(this->mWindow, &this->secondaryCmdBuffer, 1);	
 	}
+	
+	//when we're done with the loop, we should make sure the logical device is flushed.
+	mGraphicsSystem.WaitForDevice();
 
 }
 
 
 void Application::exit()
 {
-
-	/*CleanUpGui();*/
-	VK_CHECK_RESULT(vkDeviceWaitIdle(mGraphicsSystem.LogicalDevice()));
-
 	mTextureManager.Destroy(mGraphicsSystem.LogicalDevice());
 	mObjectManager.Destroy(mGraphicsSystem.LogicalDevice());
 
 	mGraphicsSystem.Destroy();
-
-	auto destroyDebugUtils = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(this->m_instance, "vkDestroyDebugUtilsMessengerEXT");
-
-	if (destroyDebugUtils != nullptr)
-	{
-		destroyDebugUtils(this->m_instance, this->debugMessenger, nullptr);
-	}
-
 }
 
 
 Application::~Application()
 {
+
 	if (this->m_instance != VK_NULL_HANDLE) 
 	{
-		if (this->mWindow.surface != VK_NULL_HANDLE)
+		if (this->mWindow.surface != nullptr) 
 		{
 			vkDestroySurfaceKHR(this->m_instance, this->mWindow.surface, nullptr);
 		}
 
 		vkDestroyInstance(this->m_instance, nullptr);
 	}
-	
 }
 
 

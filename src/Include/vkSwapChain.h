@@ -12,10 +12,10 @@ namespace vk
 			VkSwapchainKHR handle = VK_NULL_HANDLE;
 			uint32_t imageCount = 0;
 			
-			VkImage* images = nullptr;
-			VkImageView* imageViews = nullptr;
+			std::vector<VkImage> images;
+			std::vector<VkImageView> imageViews;
 			
-			VkFramebuffer* frameBuffers = nullptr;
+			std::vector<VkFramebuffer> frameBuffers;
 
 		public:
 			inline SwapChain& operator=(const SwapChain& other)
@@ -32,6 +32,7 @@ namespace vk
 
 				return *this;
 			}
+
 			SwapChain() = default;
 			SwapChain(const SwapChain&) = delete;
 			~SwapChain() = default;
@@ -50,10 +51,6 @@ namespace vk
 					vkDestroyImageView(l_device, this->imageViews[i], nullptr);
 					vkDestroyFramebuffer(l_device, this->frameBuffers[i], nullptr);
 				}
-
-				delete[] frameBuffers;
-				delete[] images;
-				delete[] imageViews;
 
 				vkDestroySwapchainKHR(l_device, this->handle, nullptr);
 			}

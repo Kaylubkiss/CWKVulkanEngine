@@ -21,7 +21,7 @@ ApplicationManager::~ApplicationManager()
 {
 	if (--s_count == 0)
 	{
-		mApp->~Application();
+		delete mApp;
 	}
 }
 

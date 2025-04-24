@@ -29,7 +29,16 @@ namespace vk
 			void UpdateDescriptorSets(const VkDevice l_device, const VkDescriptorBufferInfo* pUniformDescriptorBuffers, size_t uniformDescriptorCount);
 
 			void BindTextureToObject(const std::string& fileName, GraphicsSystem& graphicsSystem, Object& obj);
+
+			VkDescriptorPool DescriptorPool() 
+			{
+				return this->descriptorPool;
+			}
+
 		private:
+
+			bool isInitialized = false;
+
 			VkDescriptorPool descriptorPool = VK_NULL_HANDLE;
 
 			std::vector<vk::Texture> mTextures;

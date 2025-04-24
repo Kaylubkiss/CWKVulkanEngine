@@ -11,7 +11,7 @@ namespace vk
 			VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
 			VkDebugUtilsMessageTypeFlagsEXT messageType,
 			const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
-			void* pUserData)
+			void* pUserData)	
 		{
 			if (messageSeverity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT || 
 				messageType >= VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT)

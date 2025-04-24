@@ -9,7 +9,11 @@ namespace vk
 	
 	void TextureManager::Init(const VkDevice l_device) 
 	{
+	
 		this->descriptorPool = vk::init::DescriptorPool(l_device);
+
+
+		this->isInitialized = true;
 	}
 
 	//Inefficient. Look into a way to individually write descriptor sets. Shouldn't be hard. Later.
@@ -65,12 +69,15 @@ namespace vk
 
 	void TextureManager::Destroy(const VkDevice l_device) 
 	{
-		for (size_t i = 0; i < mTextures.size(); ++i) 
+		if (this->isInitialized) 
 		{
-			mTextures[i].Destroy(l_device);
-		}
+			for (size_t i = 0; i < mTextures.size(); ++i)
+			{
+				mTextures[i].Destroy(l_device);
+			}
 
-		vkDestroyDescriptorPool(l_device, this->descriptorPool, nullptr);
+			vkDestroyDescriptorPool(l_device, this->descriptorPool, nullptr);
+		}
 
 	}
 

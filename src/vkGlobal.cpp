@@ -46,13 +46,5 @@ namespace vk
 		vkFreeCommandBuffers(l_device, cmdPool, 1, &commandBuffer);
 
 	}
-
-
-	/*void UpdateUniformViewMatrix(const glm::mat4& viewMat)
-	{
-		global::uTransform.view = viewMat;
-
-		memcpy(global::uTransformBuffer.mappedMemory, (void*)&global::uTransform, (size_t)(sizeof(uTransformObject)));
-	}*/
 }
 

@@ -130,6 +130,7 @@ namespace vk
 			appInfo.apiVersion = VK_API_VERSION_1_3;
 			appInfo.pApplicationName = "Caleb Vulkan Engine";
 			appInfo.engineVersion = 1;
+			appInfo.pNext = nullptr;
 
 			createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
 			createInfo.flags = 0;
@@ -174,9 +175,6 @@ namespace vk
 				}
 			}
 
-			createInfo.enabledExtensionCount = extensionNames.size();
-			createInfo.ppEnabledExtensionNames = extensionNames.data();
-
 
 			//this could be useful for logging, profiling, debugging, whatever.
 			//it intercepts the API
@@ -186,7 +184,10 @@ namespace vk
 				createInfo.enabledLayerCount = 1;
 			}
 
-			createInfo.pNext = (VkDebugUtilsMessengerCreateInfoEXT*)&debugCreateInfo;
+			createInfo.enabledExtensionCount = extensionNames.size();
+			createInfo.ppEnabledExtensionNames = extensionNames.data();
+
+			createInfo.pNext = &debugCreateInfo;
 			createInfo.pApplicationInfo = &appInfo;
 
 			//create instance.
@@ -361,7 +362,8 @@ namespace vk
 
 		VkDescriptorPool DescriptorPool(const VkDevice l_device) 
 		{
-			VkDescriptorPoolSize poolSize[2] = {};
+			const uint32_t poolSizeCount = 2;
+			VkDescriptorPoolSize poolSize[poolSizeCount] = {};
 			poolSize[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 			poolSize[0].descriptorCount = 2; //max numbers of frames in flight.
 
@@ -372,7 +374,7 @@ namespace vk
 			VkDescriptorPoolCreateInfo poolInfo{};
 			poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
 			poolInfo.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
-			poolInfo.poolSizeCount = (uint32_t)2;
+			poolInfo.poolSizeCount = poolSizeCount;
 			poolInfo.pPoolSizes = poolSize;
 			poolInfo.maxSets = 1000; //how many descriptor sets in this pool?
 

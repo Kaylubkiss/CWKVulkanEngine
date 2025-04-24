@@ -19,8 +19,7 @@ set(SOURCE_FILES src/Application.cpp
 				   src/ObjectManager.cpp
 				   src/ApplicationGlobal.cpp
 				   src/CameraController.cpp
-				   src/HotReloader.cpp
-				   )
+				   src/HotReloader.cpp)
 							
 set(VULKAN_ENGINE_SRC src/vkDebug.cpp
 					  src/vkUtility.cpp
@@ -165,6 +164,9 @@ elseif (UNIX)
 
 	#~/libraries contains reactphysics3d and shaderc_combined
 	target_link_directories("${PROJECT_NAME}" PRIVATE Vulkan::Vulkan ~/libraries/)
+
+	target_compile_options(${PROJECT_NAME} PRIVATE -fsanitize=address)
+	target_link_options(${PROJECT_NAME} PRIVATE -fsanitize=address)
 endif()
 
 

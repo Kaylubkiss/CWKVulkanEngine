@@ -10,15 +10,18 @@ namespace vk
 {	
 	void GraphicsSystem::Destroy() 
 	{
-		mPipeline.Destroy(this->logicalGpu);
-		swapChain.Destroy(this->logicalGpu);
-		renderResources.Destroy(this->logicalGpu);
+		if (this->isInitialized) 
+		{
+			mPipeline.Destroy(this->logicalGpu);
+			swapChain.Destroy(this->logicalGpu);
+			renderResources.Destroy(this->logicalGpu);
 
-		//buffers
-		vkDestroyBuffer(this->logicalGpu, uTransformBuffer.handle, nullptr);
-		vkFreeMemory(this->logicalGpu, uTransformBuffer.memory, nullptr);
-	
-		vkDestroyDevice(this->logicalGpu, nullptr);
+			//buffers
+			vkDestroyBuffer(this->logicalGpu, uTransformBuffer.handle, nullptr);
+			vkFreeMemory(this->logicalGpu, uTransformBuffer.memory, nullptr);
+
+			vkDestroyDevice(this->logicalGpu, nullptr);
+		}
 
 	}
 
@@ -70,6 +73,9 @@ namespace vk
 //#endif
 
 		this->mPipeline.Finalize(this->logicalGpu, this->renderResources.renderPass, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
+
+
+		this->isInitialized = true;
 	}
 	
 	const VkPhysicalDevice GraphicsSystem::PhysicalDevice() const
@@ -168,10 +174,9 @@ namespace vk
 		//vulkan will ignor whatever was set in physicalDeviceCount and overwrite max_devices 
 		VK_CHECK_RESULT(vkEnumeratePhysicalDevices(vkInstance, &max_devices, nullptr))
 
-		if (max_devices <= 0)
+		if (!max_devices)
 		{
 			throw std::runtime_error("could not find any GPUs to use!\n");
-			return;
 		}
 
 		this->gpus.resize(max_devices);
@@ -192,6 +197,8 @@ namespace vk
 			properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_CPU) && 
 			features.geometryShader && features.samplerAnisotropy)
 			{
+				std::cout << "picked device " << i << '\n';
+
 				g_index = i;
 				break;
 			}
@@ -312,6 +319,15 @@ namespace vk
 		VK_CHECK_RESULT(vkWaitForFences(this->logicalGpu, 1, &this->renderResources.inFlightFence, VK_TRUE, UINT64_MAX))
 
 		VK_CHECK_RESULT(vkResetFences(this->logicalGpu, 1, &this->renderResources.inFlightFence))
+	}
+
+	void GraphicsSystem::WaitForDevice() 
+	{
+		if (this->isInitialized) 
+		{
+			VK_CHECK_RESULT(vkDeviceWaitIdle(this->logicalGpu));
+		}
+
 	}
 
 	void GraphicsSystem::UpdateUniformViewMatrix(const glm::mat4& viewMat)

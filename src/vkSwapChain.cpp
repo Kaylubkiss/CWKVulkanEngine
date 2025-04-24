@@ -13,42 +13,32 @@ namespace vk
 
 
 		uint32_t surfaceFormatCount = 0;
-		VkSurfaceFormatKHR* surfaceFormats = nullptr;
+		std::vector<VkSurfaceFormatKHR> surfaceFormats;
 
 		VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceFormatsKHR(p_device, windowSurface, &surfaceFormatCount, nullptr));
 
 		//surfaceFormatCount now filled..
-		if (surfaceFormatCount <= 0)
+		if (!surfaceFormatCount)
 		{
 			throw std::runtime_error("no surface formats available...");
 		}
 
-		surfaceFormats = new VkSurfaceFormatKHR[surfaceFormatCount];
+		surfaceFormats.resize(surfaceFormatCount);
 
-		if (surfaceFormats == nullptr)
-		{
-			throw std::runtime_error("failed to allocate surfaceFormats");
-			return;
-		}
-
-		VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceFormatsKHR(p_device, windowSurface, &surfaceFormatCount, surfaceFormats));
+		VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceFormatsKHR(p_device, windowSurface, &surfaceFormatCount, surfaceFormats.data()));
 
 
 		//choose suitable format
 		int surfaceIndex = -1;
 
-		for (size_t i = 0; i < surfaceFormatCount; ++i)
+		for (size_t i = 0; i < surfaceFormats.size(); ++i)
 		{
-			if ((*(surfaceFormats + i)).format == VK_FORMAT_B8G8R8A8_SRGB && (*(surfaceFormats + i)).colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
+			if (surfaceFormats[i].format == VK_FORMAT_B8G8R8A8_SRGB && 
+				surfaceFormats[i].colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
 			{
 				surfaceIndex = i;
 				break;
 			}
-		}
-
-		if (surfaceIndex < 0)
-		{
-			surfaceIndex = 0;
 		}
 
 		if (surfaceIndex < 0)
@@ -68,11 +58,13 @@ namespace vk
 		}
 
 		swapChainInfo.minImageCount = this->imageCount;
-		swapChainInfo.imageColorSpace = (*(surfaceFormats + surfaceIndex)).colorSpace;
-		swapChainInfo.imageFormat = (*(surfaceFormats + surfaceIndex)).format;
+		swapChainInfo.imageColorSpace = surfaceFormats[surfaceIndex].colorSpace;
+		swapChainInfo.imageFormat = surfaceFormats[surfaceIndex].format;
 		swapChainInfo.imageExtent = deviceCapabilities.currentExtent;
 		swapChainInfo.imageArrayLayers = 1;
 		swapChainInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+
+		uint32_t queueFamilyIndices[2] = { graphicsFamily, presentFamily };
 
 		if (graphicsFamily == presentFamily)
 		{
@@ -82,8 +74,6 @@ namespace vk
 		}
 		else
 		{
-			uint32_t queueFamilyIndices[2] = { graphicsFamily, presentFamily };
-
 			swapChainInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
 			swapChainInfo.queueFamilyIndexCount = 2;
 			swapChainInfo.pQueueFamilyIndices = queueFamilyIndices;
@@ -99,18 +89,21 @@ namespace vk
 
 		VK_CHECK_RESULT(vkCreateSwapchainKHR(l_device, &swapChainInfo, nullptr, &this->handle));
 
-		delete[] surfaceFormats;
+		this->images.resize(this->imageCount);
 
-		this->images = new VkImage[this->imageCount];
-		VK_CHECK_RESULT(vkGetSwapchainImagesKHR(l_device, this->handle, &this->imageCount, this->images));
+		VK_CHECK_RESULT(vkGetSwapchainImagesKHR(l_device, this->handle, &this->imageCount, this->images.data()));
 
-		SwapChain::CreateImageViews(l_device, this->images, this->imageCount);
+		SwapChain::CreateImageViews(l_device, this->images.data(), this->imageCount);
 	}
 	
 	void SwapChain::Recreate(const VkPhysicalDevice p_device, const VkDevice l_device, uint32_t graphicsFamily, uint32_t presentFamily, vk::rsc::DepthResources& depthResources, const VkRenderPass renderPass, const vk::Window& appWindow)
 	{
 
 		SwapChain::Destroy(l_device);
+
+		this->frameBuffers.clear();
+		this->images.clear();
+		this->imageViews.clear();
 
 		*this = SwapChain(l_device, p_device, graphicsFamily, presentFamily, appWindow.surface);
 		
@@ -124,7 +117,7 @@ namespace vk
 	{
 
 		//create imageview --> allow image to be seen in a different format.
-		this->imageViews = new VkImageView[imageCount];
+		this->imageViews.resize(imageCount);
 
 		for (unsigned i = 0; i < imageCount; ++i) 
 		{
@@ -177,7 +170,7 @@ namespace vk
 			throw std::runtime_error("have 0 swap chain images available. Did you allocate the swap chain?");
 		}
 		
-		this->frameBuffers = new VkFramebuffer[this->imageCount];
+		this->frameBuffers.resize(this->imageCount);
 
 		for (unsigned i = 0; i < this->imageCount; ++i) {
 

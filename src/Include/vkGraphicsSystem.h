@@ -12,6 +12,7 @@ namespace vk
 	class GraphicsSystem
 	{
 		private:
+			bool isInitialized = false;
 
 			uTransformObject uTransform;
 			vk::Buffer uTransformBuffer;
@@ -38,25 +39,6 @@ namespace vk
 
 		public:
 			GraphicsSystem(const VkInstance vkInstance, const vk::Window& appWindow);
-			inline GraphicsSystem& operator=(const GraphicsSystem& other) 
-			{
-				if (this == &other) {
-					return *this;
-				}
-
-				uTransform = other.uTransform;
-				uTransformBuffer = other.uTransformBuffer;
-				renderResources = other.renderResources;
-				mPipeline = other.mPipeline;
-				swapChain = other.swapChain;
-				gpus = other.gpus;
-				g_index = other.g_index;
-				logicalGpu = other.logicalGpu;
-				graphicsQueue = other.graphicsQueue;
-				presentQueue = other.presentQueue;
-
-				return *this;
-			}
 
 			GraphicsSystem() = default;
 			GraphicsSystem(const GraphicsSystem&) = delete;
@@ -78,6 +60,7 @@ namespace vk
 			void ResizeWindow();
 
 			void WaitForQueueSubmission();
+			void WaitForDevice();
 
 			void Render(const vk::Window& appWindow, VkCommandBuffer* secondCmdBuffers, size_t secondCmdCount);
 
