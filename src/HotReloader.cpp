@@ -9,6 +9,7 @@
 
 namespace vk 
 {
+	
 	HotReloader::HotReloader(VkDevice* l_device, vk::Pipeline& pipeline, VkRenderPass* renderPass)
 	{
 		if (l_device == nullptr) 
@@ -27,6 +28,7 @@ namespace vk
 		AddPipeline(pipeline);
 	}
 
+	
 	void HotReloader::AddPipeline(vk::Pipeline& pipeline) 
 	{
 
@@ -60,8 +62,7 @@ namespace vk
 
 		
 	}
-
-
+	
 	void HotReloader::HotReload() 
 	{
 		bool somethingChanged = false;
@@ -111,20 +112,4 @@ namespace vk
 		}
 	}
 
-
-	HotReloader& HotReloader::operator=(const HotReloader& other)
-	{
-		if (this == &other) 
-		{
-			return *this;
-		}
-
-		appDevicePtr = other.appDevicePtr;
-		renderPassPtr = other.renderPassPtr;
-		shaderInfos = other.shaderInfos;
-
-		pipelinePtr = other.pipelinePtr;
-
-		return *this;
-	}
 }
