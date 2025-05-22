@@ -1,7 +1,8 @@
+/*
+	* filename: HotReloader.h
+	* author: Caleb Kissinger
+*/
 #pragma once
-
-
-
 #include <sys/stat.h>
 #include <vkPipeline.h>
 

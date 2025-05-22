@@ -26,7 +26,6 @@ namespace vk
 		AddPipeline(pipeline);
 	}
 
-	
 	void HotReloader::AddPipeline(vk::Pipeline& pipeline) 
 	{
 

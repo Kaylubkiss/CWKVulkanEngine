@@ -6,9 +6,6 @@
 
 namespace vk 
 {
-
-	//Initializers for shaderModule changes depending on debug and release!
-	// This is to help reduce the size of the application and its objects.
 	void Pipeline::AddModule(const VkDevice l_device, const std::string& filename, VkShaderStageFlagBits shaderFlags, shaderc_shader_kind shader_kind)
 	{
 	

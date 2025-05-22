@@ -1,5 +1,8 @@
+/*
+	* filename: VkPipeline.h
+	* author: Caleb Kissinger
+*/
 #pragma once
-
 #include <vulkan/vulkan.h>
 #include <vector>
 #include <string>
@@ -14,7 +17,6 @@ namespace vk
 		shaderc_shader_kind shaderc_kind;
 		VkShaderModule handle = VK_NULL_HANDLE;
 		VkShaderStageFlagBits flags;
-
 	};
 
 	class Pipeline 
