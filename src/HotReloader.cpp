@@ -5,8 +5,6 @@
 #include "vkInit.h"
 #include "ApplicationGlobal.h"
 
-#define NUM_MODULES 5
-
 namespace vk 
 {
 	
@@ -34,29 +32,22 @@ namespace vk
 
 		this->pipelinePtr = (&pipeline);
 
-		struct stat fileStat[NUM_MODULES];
-
 		std::vector<vk::ShaderModuleInfo>& shaderModules = pipeline.ShaderModules();
-
 		
-		if (NUM_MODULES < shaderModules.size())
-		{
-			throw std::runtime_error(
-				"[ERROR] Could overrun array in hot reloader Add() function I should probably fix that.\n"
-			);
-		}
 
 		for (size_t i = 0; i < shaderModules.size(); ++i)
 		{
+			struct stat fileStat;
+			
 			std::string filePath = SHADER_PATH + shaderModules[i].filename;
 
-			if (stat(filePath.c_str(), &fileStat[i]) != 0)
+			if (stat(filePath.c_str(), &fileStat) != 0)
 			{
 				std::cerr << "[ERROR] Can't open file: " << filePath.c_str() << '\n';
 			}
 			else
 			{
-				shaderInfos.push_back({ i, fileStat[i].st_mtime});
+				shaderInfos.push_back({ i, fileStat.st_mtime});
 			}
 		}
 
