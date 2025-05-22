@@ -9,12 +9,11 @@ namespace vk
 {
 	class HotReloader
 	{
-
 		
-		VkDevice appDevicePtr = VK_NULL_HANDLE;
-		VkRenderPass renderPassPtr = VK_NULL_HANDLE;
+		VkDevice appDevicePtr = VK_NULL_HANDLE; /* pointer to application's logical device */
+		VkRenderPass renderPassPtr = VK_NULL_HANDLE; /* pointer to pipeline's renderpass */
 
-		vk::Pipeline* pipelinePtr = nullptr;
+		vk::Pipeline* pipelinePtr = nullptr;  /* pointer to pipeline with edited shaders */
 
 
 		struct ShaderFileInfo
@@ -22,7 +21,7 @@ namespace vk
 			size_t module_i = -1;
 			time_t last_modification = 0;
 		};
-		std::vector<ShaderFileInfo> shaderInfos;
+		std::vector<ShaderFileInfo> shaderInfos;  /* file status info on shaders from pipeline */
 
 		
 		public:
