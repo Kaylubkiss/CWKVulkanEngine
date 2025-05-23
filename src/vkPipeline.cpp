@@ -28,9 +28,9 @@ namespace vk
 
 	Pipeline& Pipeline::AddModule(const ShaderModuleInfo& shaderModuleInfo)
 	{
-			shaderModules.push_back(shaderModuleInfo);
+		shaderModules.push_back(shaderModuleInfo);
 
-			return *this;
+		return *this;
 	}
 
 	void Pipeline::Recreate(const VkDevice l_device, const VkRenderPass renderPass) 

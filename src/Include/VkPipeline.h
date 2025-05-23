@@ -22,6 +22,14 @@ namespace vk
 
 		shaderc_shader_kind mShaderKind; /*arguments in runtime shader compilation */
 
+		/*
+			*@brief intializer list for a ShaderModuleInfo object. Compiles the specified shader source to sprv and also sets the shader stage flags.
+			
+			*@param l_device: logical device associated with the application's vulkan instance.
+			*@param filename: the name of the shader source.
+			*@param shaderFlags: specifies what shader stage the source file is working in.
+			*@param shaderc_kind: similar to shaderFlags, argument needed for shader compilation to sprv.
+		*/
 		ShaderModuleInfo(const VkDevice l_device, std::string filename, VkShaderStageFlagBits shaderFlags, shaderc_shader_kind shaderc_kind = shaderc_vertex_shader);
 	};
 
@@ -44,11 +52,10 @@ namespace vk
 		public:
 			/*
 				*@brief Compiles a shader file to sprv, creates a shader module and puts it into a vector.
-				*@param l_device: logical device associated with the application's vulkan instance.
-				*@param filename: name to the uncompiled shader source.
-				*@param shaderFlags: specifies what shader stage the source is working in.
-				*@param shader_kind: shaderc's shader stage flag, used for compiling to sprv. 
-				Defaults to shaderc_vertex_shader.
+				
+				*@param shaderModuleInfo: added to list of module infos, which describe the shader source a part of the pipeline.
+				
+				*@return pointer to this, which allows chaining of this method on one line.
 			*/
 			vk::Pipeline& AddModule(const ShaderModuleInfo& shaderModuleInfo);
 
@@ -59,6 +66,7 @@ namespace vk
 
 			/*
 				*@brief Creates the pipeline handle with the user provided shader modules.
+				
 				*@param l_device: logical device associated with the application's vulkan instance.
 				*@param renderPass: the thing rendering into the framebuffer after shader processing, argument needed for pipeline creation.
 				*@param topology: the geometric shape of a rendered object.
@@ -67,12 +75,14 @@ namespace vk
 
 			/*
 				*@brief Destroys the pipeline handle and all the vulkan objects (shaders, descriptory layout) created under it.
+				
 				*@param l_device: logical device associated with the application's vulkan instance.
 			*/
 			void Destroy(const VkDevice l_device);
 
 			/*
 				*@brief Destroys the current pipeline handle, and creates a new one. 
+				
 				*@param l_device: logical device associated with the application's vulkan instance.
 			*/
 			void Recreate(const VkDevice l_device, const VkRenderPass renderPass);
