@@ -93,8 +93,8 @@ src/Include/vkPipeline.h)
 source_group("Header Files/VulkanHeaders" FILES ${VULKAN_ENGINE_HEADERS})	
 list(APPEND HEADER_FILES ${VULKAN_ENGINE_HEADERS})
 
-set(SHADER_FILES src/Shaders/blinn.frag
-src/Shaders/blinn.vert)	
+set(SHADER_FILES src/Shaders/color.frag
+src/Shaders/color.vert)	
 								 
 #-----COMPILATION OPTIONS DEPENDING ON PLATFORM---------
 if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")

@@ -65,9 +65,9 @@ namespace vk
 		this->swapChain.AllocateFrameBuffers(this->logicalGpu, appWindow.viewport, this->renderResources.depthInfo, this->renderResources.renderPass);
 
 //#ifdef _DEBUG
-		ShaderModuleInfo vertColorInfo(this->logicalGpu, "blinn.vert", VK_SHADER_STAGE_VERTEX_BIT);
+		ShaderModuleInfo vertColorInfo(this->logicalGpu, "color.vert", VK_SHADER_STAGE_VERTEX_BIT);
 
-		ShaderModuleInfo fragColorInfo(this->logicalGpu, "blinn.frag", VK_SHADER_STAGE_FRAGMENT_BIT, shaderc_fragment_shader);
+		ShaderModuleInfo fragColorInfo(this->logicalGpu, "color.frag", VK_SHADER_STAGE_FRAGMENT_BIT, shaderc_fragment_shader);
 
 		this->mPipeline.AddModule(vertColorInfo);
 		this->mPipeline.AddModule(fragColorInfo);
