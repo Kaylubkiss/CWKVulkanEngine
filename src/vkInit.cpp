@@ -399,7 +399,7 @@ namespace vk
 			return nDescriptorSet;
 		}
 
-		VkPipeline CreatePipeline(const VkDevice l_device, const VkPipelineLayout pipelineLayout, const VkRenderPass renderPass, VkPipelineShaderStageCreateInfo* pStages, int numStages, VkPrimitiveTopology primitiveTopology)
+		VkPipeline CreateGraphicsPipeline(const VkDevice l_device, const VkPipelineLayout pipelineLayout, const VkRenderPass renderPass, VkPipelineShaderStageCreateInfo* pStages, int numStages, VkPrimitiveTopology primitiveTopology)
 		{
 			auto vAttribs = vk::init::VertexAttributeDescriptions();
 

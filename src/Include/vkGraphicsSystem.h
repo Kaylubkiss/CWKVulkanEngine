@@ -26,8 +26,6 @@ namespace vk
 
 			vk::SwapChain swapChain;
 
-	
-
 			std::vector<VkPhysicalDevice> gpus;
 			int g_index = -1;
 

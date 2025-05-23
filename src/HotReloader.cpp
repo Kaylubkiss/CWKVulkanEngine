@@ -25,7 +25,7 @@ namespace vk
 		appDevicePtr = *l_device; 
 		renderPassPtr = *renderPass;
 
-		AddPipeline(pipeline);
+		HotReloader::AddPipeline(pipeline);
 	}
 
 	void HotReloader::AddPipeline(vk::Pipeline& pipeline) 
@@ -40,7 +40,7 @@ namespace vk
 		{
 			struct stat fileStat;
 			
-			std::string filePath = SHADER_PATH + shaderModules[i].filename;
+			std::string filePath = SHADER_PATH + shaderModules[i].mFilename;
 
 			if (stat(filePath.c_str(), &fileStat) != 0)
 			{
@@ -67,7 +67,7 @@ namespace vk
 			
 			std::vector<vk::ShaderModuleInfo>& shaderModuleVector = pipelinePtr->ShaderModules();
 			vk::ShaderModuleInfo& shaderModule = shaderModuleVector[shaderInfos[i].module_i];
-			std::string filePath = SHADER_PATH + shaderModule.filename;
+			std::string filePath = SHADER_PATH + shaderModule.mFilename;
 
 			if (stat(filePath.c_str(), &fileStat) != 0)
 			{
@@ -78,11 +78,11 @@ namespace vk
 			if (fileStat.st_mtime != shaderInfos[i].last_modification)
 			{
 				std::string shaderPath = 
-					vk::util::ReadSourceAndWriteToSprv(filePath, shaderModule.shaderc_kind);
+					vk::util::ReadSourceAndWriteToSprv(filePath, shaderModule.mShaderKind);
 
 				if (shaderPath.empty())
 				{
-					std::cerr << "[ERROR] Couldn't successfully write to file " << shaderModule.filename << '\n';
+					std::cerr << "[ERROR] Couldn't successfully write to file " << shaderModule.mFilename << '\n';
 					continue;
 				}
 
@@ -90,8 +90,8 @@ namespace vk
 
 				VK_CHECK_RESULT(vkDeviceWaitIdle(appDevicePtr))
 
-				vkDestroyShaderModule(appDevice, shaderModule.handle, nullptr);
-				shaderModule.handle = vk::init::ShaderModule(appDevice, shaderPath.data());
+				vkDestroyShaderModule(appDevice, shaderModule.mHandle, nullptr);
+				shaderModule.mHandle = vk::init::ShaderModule(appDevice, shaderPath.data());
 
 				shaderInfos[i].last_modification = fileStat.st_mtime;
 			}

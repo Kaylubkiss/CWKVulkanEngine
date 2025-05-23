@@ -16,10 +16,13 @@ namespace vk
 	*/
 	struct ShaderModuleInfo
 	{
-		std::string filename; /*used by hot reloader to detect file status */
-		shaderc_shader_kind shaderc_kind; /*arguments in runtime shader compilation */
-		VkShaderModule handle = VK_NULL_HANDLE;
-		VkShaderStageFlagBits flags;
+		std::string mFilename; /*used by hot reloader to detect file status */
+		VkShaderModule mHandle = VK_NULL_HANDLE;
+		VkShaderStageFlagBits mFlags;
+
+		shaderc_shader_kind mShaderKind; /*arguments in runtime shader compilation */
+
+		ShaderModuleInfo(const VkDevice l_device, std::string filename, VkShaderStageFlagBits shaderFlags, shaderc_shader_kind shaderc_kind = shaderc_vertex_shader);
 	};
 
 	/*
@@ -33,6 +36,9 @@ namespace vk
 		VkPipelineLayout layout = VK_NULL_HANDLE; 
 		VkPrimitiveTopology mTopology = {};
 
+		vk::rsc::DepthResources mRenderDepthInfo;
+		VkRenderPass mRenderPass = VK_NULL_HANDLE;
+
 		std::vector<ShaderModuleInfo> shaderModules;
 
 		public:
@@ -44,7 +50,12 @@ namespace vk
 				*@param shader_kind: shaderc's shader stage flag, used for compiling to sprv. 
 				Defaults to shaderc_vertex_shader.
 			*/
-			void AddModule(const VkDevice l_device, const std::string& filename, VkShaderStageFlagBits shaderFlags, shaderc_shader_kind shader_kind = shaderc_vertex_shader);
+			vk::Pipeline& AddModule(const ShaderModuleInfo& shaderModuleInfo);
+
+
+			/*void InitRenderDepthInformation(const VkDevice l_device, const VkFormat& depthFormat);
+
+			void InitRenderPass(const VkDevice l_device, const VkFormat& depthFormat);*/
 
 			/*
 				*@brief Creates the pipeline handle with the user provided shader modules.
@@ -72,6 +83,7 @@ namespace vk
 			const VkPipeline Handle() const;
 			const VkPipelineLayout Layout() const;
 			std::vector<ShaderModuleInfo>& ShaderModules();
+			const VkRenderPass RenderPass();
 
 	};
 
