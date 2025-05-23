@@ -1,3 +1,7 @@
+/*
+	* filename: VkPipeline.cpp
+	* author: Caleb Kissinger
+*/
 #include "vkPipeline.h"
 #include "vkUtility.h"
 #include "vkInit.h"
@@ -8,8 +12,6 @@ namespace vk
 {
 	void Pipeline::AddModule(const VkDevice l_device, const std::string& filename, VkShaderStageFlagBits shaderFlags, shaderc_shader_kind shader_kind)
 	{
-	
-		
 			std::string shaderPath = vk::util::ReadSourceAndWriteToSprv(SHADER_PATH + filename, shader_kind);
 			
 			if (shaderPath.empty())
@@ -56,7 +58,8 @@ namespace vk
 		}
 
 		this->handle = vk::init::CreatePipeline(l_device, this->layout, renderPass,
-												shaderStageCreateInfo.data(), shaderStageCreateInfo.size(), 
+												shaderStageCreateInfo.data(), 
+												shaderStageCreateInfo.size(), 
 												this->mTopology);
 	}
 

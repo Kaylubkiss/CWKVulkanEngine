@@ -1,4 +1,7 @@
-
+/*
+	* filename: HotReloader.cpp
+	* author: Caleb Kissinger
+*/
 #include "HotReloader.h"
 #include "vkUtility.h"
 #include <iostream>
@@ -7,7 +10,6 @@
 
 namespace vk 
 {
-	
 	HotReloader::HotReloader(VkDevice* l_device, vk::Pipeline& pipeline, VkRenderPass* renderPass)
 	{
 		if (l_device == nullptr) 

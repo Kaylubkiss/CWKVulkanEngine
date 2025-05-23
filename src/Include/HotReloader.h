@@ -16,13 +16,13 @@ namespace vk
 
 		vk::Pipeline* pipelinePtr = nullptr;  /* pointer to pipeline with edited shaders */
 
-
+		/* file status info on shaders from pipeline */
 		struct ShaderFileInfo
 		{
 			size_t module_i = -1;
 			time_t last_modification = 0;
 		};
-		std::vector<ShaderFileInfo> shaderInfos;  /* file status info on shaders from pipeline */
+		std::vector<ShaderFileInfo> shaderInfos;  
 
 		
 		public:
