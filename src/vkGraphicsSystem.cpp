@@ -60,10 +60,7 @@ namespace vk
 
 		this->renderResources.Allocate(this->gpus[g_index], this->logicalGpu, appWindow);
 
-		this->swapChain = SwapChain(this->logicalGpu, this->gpus[g_index], graphicsQueue.family, presentQueue.family, appWindow.surface);
-
-		this->swapChain.AllocateFrameBuffers(this->logicalGpu, appWindow.viewport, this->renderResources.depthInfo, this->renderResources.renderPass);
-
+	
 //#ifdef _DEBUG
 		ShaderModuleInfo vertColorInfo(this->logicalGpu, "color.vert", VK_SHADER_STAGE_VERTEX_BIT);
 
@@ -71,13 +68,13 @@ namespace vk
 
 		this->mPipeline.AddModule(vertColorInfo);
 		this->mPipeline.AddModule(fragColorInfo);
-//#else
-//		this->mPipeline.AddModule(this->logicalGpu, "blinnvert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-//		this->mPipeline.AddModule(this->logicalGpu, "blinnfrag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
-//#endif
 
-		this->mPipeline.Finalize(this->logicalGpu, this->renderResources.renderPass, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
+		this->mPipeline.Finalize(this->logicalGpu, this->gpus[g_index], appWindow, VkRenderPass(), VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
 
+		/* NOTE: a bit jank, as swapchain relies on Finalize method of mPipeline to finish */
+		this->swapChain = SwapChain(this->logicalGpu, this->gpus[g_index], graphicsQueue.family, presentQueue.family, appWindow.surface);
+
+		this->swapChain.AllocateFrameBuffers(this->logicalGpu, appWindow.viewport, this->mPipeline.RenderDepthInfo(), this->mPipeline.RenderPass());
 
 		this->isInitialized = true;
 	}
@@ -97,9 +94,9 @@ namespace vk
 		return this->graphicsQueue;
 	}
 
-	const VkRenderPass GraphicsSystem::RenderPass() const 
+	VkRenderPass GraphicsSystem::RenderPass() 
 	{
-		return this->renderResources.renderPass;
+		return this->mPipeline.RenderPass();
 	}
 
 	const VkPipeline GraphicsSystem::Pipeline() const 
@@ -303,7 +300,7 @@ namespace vk
 		
 		memcpy(uTransformBuffer.mappedMemory, (void*)&uTransform, uTransformBuffer.size);
 
-		this->swapChain.Recreate(this->gpus[g_index], this->logicalGpu, this->graphicsQueue.family, this->presentQueue.family, this->renderResources.depthInfo, this->renderResources.renderPass, appWindow);
+		this->swapChain.Recreate(this->gpus[g_index], this->logicalGpu, this->graphicsQueue.family, this->presentQueue.family, mPipeline.RenderDepthInfo(), this->mPipeline.RenderPass(), appWindow);
 
 
 	}
@@ -371,7 +368,7 @@ namespace vk
 
 		VkRenderPassBeginInfo renderPassInfo = {};
 		renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-		renderPassInfo.renderPass = this->renderResources.renderPass;
+		renderPassInfo.renderPass = this->mPipeline.RenderPass();
 		renderPassInfo.framebuffer = this->swapChain.frameBuffers[imageIndex];
 		renderPassInfo.renderArea.offset = { 0,0 };
 		renderPassInfo.renderArea.extent = this->renderResources.currentExtent;

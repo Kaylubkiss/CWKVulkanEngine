@@ -4,6 +4,7 @@
 */
 #pragma once
 #include <vulkan/vulkan.h>
+#include "vkResource.h"
 #include <vector>
 #include <string>
 #include <list>
@@ -71,7 +72,8 @@ namespace vk
 				*@param renderPass: the thing rendering into the framebuffer after shader processing, argument needed for pipeline creation.
 				*@param topology: the geometric shape of a rendered object.
 			*/
-			void Finalize(const VkDevice l_device, const VkRenderPass renderPass, VkPrimitiveTopology topology);
+			void Finalize(const VkDevice l_device, const VkPhysicalDevice p_device, 
+				const vk::Window& appWindow, const VkRenderPass renderPass, VkPrimitiveTopology topology);
 
 			/*
 				*@brief Destroys the pipeline handle and all the vulkan objects (shaders, descriptory layout) created under it.
@@ -93,7 +95,8 @@ namespace vk
 			const VkPipeline Handle() const;
 			const VkPipelineLayout Layout() const;
 			std::vector<ShaderModuleInfo>& ShaderModules();
-			const VkRenderPass RenderPass();
+			VkRenderPass RenderPass();
+			vk::rsc::DepthResources& RenderDepthInfo();
 
 	};
 

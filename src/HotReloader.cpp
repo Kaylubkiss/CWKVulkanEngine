@@ -10,7 +10,7 @@
 
 namespace vk 
 {
-	HotReloader::HotReloader(VkDevice* l_device, vk::Pipeline& pipeline, VkRenderPass* renderPass)
+	HotReloader::HotReloader(VkDevice l_device, vk::Pipeline& pipeline, VkRenderPass renderPass)
 	{
 		if (l_device == nullptr) 
 		{
@@ -22,8 +22,8 @@ namespace vk
 			throw std::runtime_error("[ERROR] Passed in invalid renderpass to hot reloader\n");
 		}
 
-		appDevicePtr = *l_device; 
-		renderPassPtr = *renderPass;
+		appDevicePtr = l_device; 
+		renderPassPtr = renderPass;
 
 		HotReloader::AddPipeline(pipeline);
 	}

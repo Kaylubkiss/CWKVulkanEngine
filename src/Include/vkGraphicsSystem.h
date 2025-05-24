@@ -49,7 +49,7 @@ namespace vk
 			const VkDevice LogicalDevice() const;
 			vk::Queue GraphicsQueue();
 			const VkDescriptorSetLayout DescriptorSetLayout() const;
-			const VkRenderPass RenderPass() const;
+			VkRenderPass RenderPass();
 			const VkPipeline Pipeline() const;
 			VkCommandPool CommandPool();
 			const VkBuffer UniformTransformBuffer();
@@ -66,7 +66,7 @@ namespace vk
 
 			void AttachHotReloader(HotReloader& hotReloader) 
 			{
-				hotReloader = HotReloader(&this->logicalGpu, this->mPipeline, &this->renderResources.renderPass);
+				hotReloader = HotReloader(this->logicalGpu, this->mPipeline, mPipeline.RenderPass());
 			}
 
 		private:

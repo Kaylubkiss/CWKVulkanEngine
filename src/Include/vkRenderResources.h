@@ -3,7 +3,6 @@
 #include <vulkan/vulkan.h>
 #include "vkGlobal.h"
 #include "vkBuffer.h"
-#include "vkResource.h"
 
 
 namespace vk 
@@ -19,8 +18,8 @@ namespace vk
 		VkSemaphore imageAvailableSemaphore = VK_NULL_HANDLE;
 		VkSemaphore renderFinishedSemaphore = VK_NULL_HANDLE;
 
-		vk::rsc::DepthResources depthInfo;
-		VkRenderPass renderPass = VK_NULL_HANDLE;
+		/*vk::rsc::DepthResources depthInfo;
+		VkRenderPass renderPass = VK_NULL_HANDLE;*/
 
 		//for window size information;
 		VkExtent2D currentExtent = {0,0};

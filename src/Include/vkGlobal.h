@@ -38,12 +38,4 @@ namespace vk
 	VkCommandBuffer beginSingleTimeCommand(const VkDevice l_device, const VkCommandPool cmdPool);
 
 	void endSingleTimeCommand(const VkDevice l_device, VkCommandBuffer commandBuffer, const VkCommandPool cmdPool, const VkQueue gfxQueue);
-
-	/*namespace global
-	{
-		extern uTransformObject uTransform;
-		extern vk::Buffer uTransformBuffer;
-	}
-
-	void UpdateUniformViewMatrix(const glm::mat4& viewMat);*/
 }

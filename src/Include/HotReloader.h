@@ -35,7 +35,7 @@ namespace vk
 				* @param pipeline: the pipeline which has the shader stages associated.
 				* @param renderPass: information that describes a frame in the pipeline.
 			*/
-			HotReloader(VkDevice* l_device, vk::Pipeline& pipeline, VkRenderPass* renderPass);
+			HotReloader(VkDevice l_device, vk::Pipeline& pipeline, VkRenderPass renderPass);
 			
 			/*
 				* @brief Called every frame to check the file status of a shader, and recreates

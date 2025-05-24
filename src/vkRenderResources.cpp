@@ -25,9 +25,9 @@ namespace vk
 		//fence(s)
 		this->inFlightFence = vk::init::CreateFence(l_device);
 
-		this->depthInfo = vk::rsc::CreateDepthResources(p_device, l_device, appWindow.viewport);
+		/*this->depthInfo = vk::rsc::CreateDepthResources(p_device, l_device, appWindow.viewport);
 
-		this->renderPass = vk::init::RenderPass(l_device, this->depthInfo.depthFormat);
+		this->renderPass = vk::init::RenderPass(l_device, this->depthInfo.depthFormat);*/
 
 		//window sizing...
 		VkSurfaceCapabilitiesKHR deviceCapabilities;
@@ -39,10 +39,6 @@ namespace vk
 	void RenderResources::Destroy(const VkDevice l_device)
 	{
 		//pipeline info...
-
-		vkDestroyRenderPass(l_device, this->renderPass, nullptr);
-
-		this->depthInfo.Destroy(l_device);
 
 		vkDestroyFence(l_device, this->inFlightFence, nullptr);
 

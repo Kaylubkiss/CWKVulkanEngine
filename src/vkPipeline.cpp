@@ -51,9 +51,13 @@ namespace vk
 			this->mTopology);
 	}
 
-	void Pipeline::Finalize(const VkDevice l_device, const VkRenderPass renderPass, VkPrimitiveTopology topology) 
+	void Pipeline::Finalize(const VkDevice l_device, const VkPhysicalDevice p_device, const vk::Window& appWindow, const VkRenderPass renderPass, VkPrimitiveTopology topology)
 	{
-		
+		this->mRenderDepthInfo = vk::rsc::CreateDepthResources(p_device, l_device, appWindow.viewport);
+
+		this->mRenderPass = vk::init::RenderPass(l_device, this->mRenderDepthInfo.depthFormat);
+
+
 		this->descriptorSetLayout = vk::init::DescriptorSetLayout(l_device);
 
 		this->layout = vk::init::CreatePipelineLayout(l_device, this->descriptorSetLayout);
@@ -66,7 +70,7 @@ namespace vk
 			shaderStageCreateInfo.push_back(vk::init::PipelineShaderStageCreateInfo(shaderModules[i].mHandle, shaderModules[i].mFlags));
 		}
 
-		this->handle = vk::init::CreateGraphicsPipeline(l_device, this->layout, renderPass,
+		this->handle = vk::init::CreateGraphicsPipeline(l_device, this->layout, this->mRenderPass,
 												shaderStageCreateInfo.data(), 
 												shaderStageCreateInfo.size(), 
 												this->mTopology);
@@ -74,6 +78,9 @@ namespace vk
 
 	void Pipeline::Destroy(const VkDevice l_device) 
 	{
+		vkDestroyRenderPass(l_device, this->mRenderPass, nullptr);
+
+		this->mRenderDepthInfo.Destroy(l_device);
 
 		vkDestroyDescriptorSetLayout(l_device, this->descriptorSetLayout, nullptr);
 		vkDestroyPipelineLayout(l_device, this->layout, nullptr);
@@ -103,9 +110,14 @@ namespace vk
 		return this->shaderModules;
 	}
 
-	const VkRenderPass Pipeline::RenderPass() 
+	VkRenderPass Pipeline::RenderPass()
 	{
 		return mRenderPass;
+	}
+
+	vk::rsc::DepthResources& Pipeline::RenderDepthInfo() 
+	{
+		return this->mRenderDepthInfo;
 	}
 
 
