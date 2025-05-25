@@ -23,7 +23,6 @@ namespace vk
 		}
 
 		appDevicePtr = l_device; 
-		renderPassPtr = renderPass;
 
 		HotReloader::AddPipeline(pipeline);
 	}
@@ -100,7 +99,7 @@ namespace vk
 
 		if (somethingChanged) 
 		{
-			pipelinePtr->Recreate(appDevice, this->renderPassPtr);
+			pipelinePtr->Recreate(appDevice);
 		}
 	}
 

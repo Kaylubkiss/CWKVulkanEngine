@@ -33,7 +33,7 @@ namespace vk
 		return *this;
 	}
 
-	void Pipeline::Recreate(const VkDevice l_device, const VkRenderPass renderPass) 
+	void Pipeline::Recreate(const VkDevice l_device) 
 	{
 		//NOTE: globals, i.e. descriptor set layout 
 		// cannot be edited in the shader during runtime!!
@@ -46,12 +46,12 @@ namespace vk
 			shaderStageCreateInfo.push_back(vk::init::PipelineShaderStageCreateInfo(shaderModules[i].mHandle, shaderModules[i].mFlags));
 		}
 
-		this->handle = vk::init::CreateGraphicsPipeline(l_device, this->layout, renderPass,
+		this->handle = vk::init::CreateGraphicsPipeline(l_device, this->layout, this->mRenderPass,
 			shaderStageCreateInfo.data(), shaderStageCreateInfo.size(),
 			this->mTopology);
 	}
 
-	void Pipeline::Finalize(const VkDevice l_device, const VkPhysicalDevice p_device, const vk::Window& appWindow, const VkRenderPass renderPass, VkPrimitiveTopology topology)
+	vk::Pipeline& Pipeline::Finalize(const VkDevice l_device, const VkPhysicalDevice p_device, const vk::Window& appWindow, VkPrimitiveTopology topology)
 	{
 		this->mRenderDepthInfo = vk::rsc::CreateDepthResources(p_device, l_device, appWindow.viewport);
 
@@ -74,6 +74,8 @@ namespace vk
 												shaderStageCreateInfo.data(), 
 												shaderStageCreateInfo.size(), 
 												this->mTopology);
+
+		return *this;
 	}
 
 	void Pipeline::Destroy(const VkDevice l_device) 

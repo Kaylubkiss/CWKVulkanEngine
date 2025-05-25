@@ -66,10 +66,10 @@ namespace vk
 
 		ShaderModuleInfo fragColorInfo(this->logicalGpu, "color.frag", VK_SHADER_STAGE_FRAGMENT_BIT, shaderc_fragment_shader);
 
-		this->mPipeline.AddModule(vertColorInfo);
-		this->mPipeline.AddModule(fragColorInfo);
-
-		this->mPipeline.Finalize(this->logicalGpu, this->gpus[g_index], appWindow, VkRenderPass(), VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
+		this->mPipeline.AddModule(vertColorInfo).
+						AddModule(fragColorInfo).
+						Finalize(this->logicalGpu, this->gpus[g_index],						 appWindow,													 VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST
+						);
 
 		/* NOTE: a bit jank, as swapchain relies on Finalize method of mPipeline to finish */
 		this->swapChain = SwapChain(this->logicalGpu, this->gpus[g_index], graphicsQueue.family, presentQueue.family, appWindow.surface);

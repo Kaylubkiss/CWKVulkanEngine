@@ -67,13 +67,14 @@ namespace vk
 
 			/*
 				*@brief Creates the pipeline handle with the user provided shader modules.
-				
+				*
 				*@param l_device: logical device associated with the application's vulkan instance.
 				*@param renderPass: the thing rendering into the framebuffer after shader processing, argument needed for pipeline creation.
 				*@param topology: the geometric shape of a rendered object.
+				*
+				* @return this pointer to pipeline, for chaining commands on one line.
 			*/
-			void Finalize(const VkDevice l_device, const VkPhysicalDevice p_device, 
-				const vk::Window& appWindow, const VkRenderPass renderPass, VkPrimitiveTopology topology);
+			vk::Pipeline& Finalize(const VkDevice l_device, const VkPhysicalDevice p_device, const vk::Window& appWindow, VkPrimitiveTopology topology);
 
 			/*
 				*@brief Destroys the pipeline handle and all the vulkan objects (shaders, descriptory layout) created under it.
@@ -87,7 +88,7 @@ namespace vk
 				
 				*@param l_device: logical device associated with the application's vulkan instance.
 			*/
-			void Recreate(const VkDevice l_device, const VkRenderPass renderPass);
+			void Recreate(const VkDevice l_device);
 			
 			/* getters */
 

@@ -12,7 +12,6 @@ namespace vk
 	{
 		
 		VkDevice appDevicePtr = VK_NULL_HANDLE; /* pointer to application's logical device */
-		VkRenderPass renderPassPtr = VK_NULL_HANDLE; /* pointer to pipeline's renderpass */
 
 		vk::Pipeline* pipelinePtr = nullptr;  /* pointer to pipeline with edited shaders */
 
