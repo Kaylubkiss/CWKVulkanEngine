@@ -41,8 +41,6 @@ namespace vk
 			descriptorWrite[0].pImageInfo = nullptr; // Optional
 			descriptorWrite[0].pTexelBufferView = nullptr; // Optional
 
-
-
 			//writing the texture sampler.
 			descriptorWrite[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 			descriptorWrite[1].dstSet = this->mTextures[i].mDescriptorSet;

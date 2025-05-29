@@ -192,11 +192,16 @@ void Object::Draw(VkCommandBuffer cmdBuffer)
 {  
     if (debugDraw == false) 
     {
-        vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->mPipelineLayout, 0, 1, &this->mTextureDescriptor, 0, nullptr);
+        if (this->mTextureDescriptor != VK_NULL_HANDLE) 
+        {
+            vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->mPipelineLayout, 0, 1, &this->mTextureDescriptor, 0, nullptr);
+        }
 
         VkDeviceSize offsets[1] = { 0 };
 
         vkCmdBindVertexBuffers(cmdBuffer, 0, 1, &mMesh.buffer.vertex.handle, offsets);
+
+
         vkCmdBindIndexBuffer(cmdBuffer, mMesh.buffer.index.handle, 0, VK_INDEX_TYPE_UINT16);
 
         vkCmdPushConstants(cmdBuffer, this->mPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::mat4), (void*)(&this->mMesh.modelTransform));

@@ -17,8 +17,8 @@ namespace vk
 			renderResources.Destroy(this->logicalGpu);
 
 			//buffers
-			vkDestroyBuffer(this->logicalGpu, uTransformBuffer.handle, nullptr);
-			vkFreeMemory(this->logicalGpu, uTransformBuffer.memory, nullptr);
+			uTransformBuffer.Destroy(this->logicalGpu);
+			uLightBuffer.Destroy(this->logicalGpu);
 
 			vkDestroyDevice(this->logicalGpu, nullptr);
 		}
@@ -53,10 +53,17 @@ namespace vk
 
 		this->uTransform.proj[1][1] *= -1.f;
 
+		this->uTransform.camPosition = appCamera.Position();
+
 		//uniform(s)
 		this->uTransformBuffer = vk::Buffer(gpus[g_index], logicalGpu, sizeof(uTransformObject), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, (void*)&this->uTransform);
 
+		this->uLight.pos = {};
 		this->uLight.albedo = { 1.0, 1.0, 1.0 };
+		this->uLight.ambient = this->uLight.albedo * 0.1f;
+		this->uLight.specular = { 0.5f, 0.5f, 0.5f };
+		this->uLight.shininess = 32.f;
+
 
 		this->uLightBuffer = vk::Buffer(gpus[g_index], logicalGpu, sizeof(uLightObject), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, (void*)(&this->uLight));
 
@@ -65,9 +72,9 @@ namespace vk
 
 
 		//#ifdef _DEBUG
-		ShaderModuleInfo vertColorInfo(this->logicalGpu, "blinn.vert", VK_SHADER_STAGE_VERTEX_BIT);
+		ShaderModuleInfo vertColorInfo(this->logicalGpu, "blinnForward.vert", VK_SHADER_STAGE_VERTEX_BIT);
 
-		ShaderModuleInfo fragColorInfo(this->logicalGpu, "blinn.frag", VK_SHADER_STAGE_FRAGMENT_BIT, shaderc_fragment_shader);
+		ShaderModuleInfo fragColorInfo(this->logicalGpu, "blinnForward.frag", VK_SHADER_STAGE_FRAGMENT_BIT, shaderc_fragment_shader);
 
 
 		VkDescriptorSetLayoutBinding uTransformBinding{};
@@ -379,6 +386,7 @@ namespace vk
 	void GraphicsSystem::UpdateUniformViewMatrix(const glm::mat4& viewMat)
 	{
 		uTransform.view = viewMat;
+		uTransform.camPosition = _Application->GetCamera().Position();
 
 		memcpy(uTransformBuffer.mappedMemory, (void*)&uTransform, static_cast<VkDeviceSize>(sizeof(uTransformObject)));
 	}

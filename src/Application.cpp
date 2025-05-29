@@ -146,7 +146,7 @@ bool Application::init()
 	this->mObjectManager.AttachSystems(&this->mTextureManager, &this->mGraphicsSystem);
 	
 	glm::mat4 modelTransform = glm::mat4(5.f);
-	modelTransform[3] = glm::vec4(1.f, 0, -20.f, 1);
+	modelTransform[3] = glm::vec4(1.0f, 0, 5.f, 1);
 
 	mObjectManager.LoadObject(mGraphicsSystem.PhysicalDevice(), mGraphicsSystem.LogicalDevice(), "freddy.obj", modelTransform, "texture.jpg", nullptr, false, "freddy");
 

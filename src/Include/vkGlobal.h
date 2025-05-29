@@ -26,12 +26,17 @@ namespace vk
 	{
 		glm::mat4 view = glm::mat4(1.f);
 		glm::mat4 proj = glm::mat4(1.f);
+		glm::vec3 camPosition = glm::vec3(0.f);
 	};
 
 
 	struct uLightObject 
 	{
+		glm::vec3 pos;
 		glm::vec3 albedo;
+		glm::vec3 ambient;
+		glm::vec3 specular;
+		float shininess;
 	};
 
 	struct Queue 

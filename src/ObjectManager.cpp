@@ -31,7 +31,12 @@ namespace vk
 
 		objectUpdateQueue.push_back({ nPhysics, texturename, name});
 
-		std::function<void()> func = [this, p_device, l_device, modelTransform, name, filename, willDebugDraw] { ObjectManager::LoadObjParallel(p_device, l_device, name, (std::string(filename)).c_str(), willDebugDraw, modelTransform); };
+		std::function<void()> func = [this, p_device, l_device, modelTransform, name, filename, willDebugDraw] 
+		{ 
+			
+			ObjectManager::LoadObjParallel(p_device, l_device, name, (std::string(filename)).c_str(), willDebugDraw, modelTransform); 
+			
+		};
 
 		mThreadWorkers.EnqueueTask(func);
 
@@ -64,6 +69,7 @@ namespace vk
 				Object* curr_obj = pair.second;
 
 				this->textureSys->BindTextureToObject(it->textureName, *this->gfxSys, *curr_obj);
+
 				this->gfxSys->BindPipelineLayoutToObject(*curr_obj);
 
 				if (it->physComp != nullptr)
