@@ -58,27 +58,13 @@ namespace vk
 		}
 
 
-		VkDescriptorSetLayout DescriptorSetLayout(VkDevice logicalDevice)
+		VkDescriptorSetLayout DescriptorSetLayout(VkDevice logicalDevice, std::vector<VkDescriptorSetLayoutBinding>& bindings)
 		{
-			VkDescriptorSetLayoutBinding uTransformBinding{};
-			uTransformBinding.binding = 0;
-			uTransformBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-			uTransformBinding.descriptorCount = 1; //one uniform struct.
-			uTransformBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT; //we are going to use the transforms in the vertex shader.
-
-			VkDescriptorSetLayoutBinding samplerBinding = {};
-			samplerBinding.binding = 1;
-			samplerBinding.descriptorCount = 1;
-			samplerBinding.pImmutableSamplers = nullptr;
-			samplerBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-			samplerBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT; //we are going to use the sampler in the fragment shader.
-
-			VkDescriptorSetLayoutBinding bindings[2] = { uTransformBinding, samplerBinding };
 
 			VkDescriptorSetLayoutCreateInfo layoutInfo = {};
 			layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-			layoutInfo.bindingCount = 2;
-			layoutInfo.pBindings = bindings;
+			layoutInfo.bindingCount = bindings.size();
+			layoutInfo.pBindings = bindings.data();
 
 
 			VkDescriptorSetLayout layout;
@@ -332,24 +318,17 @@ namespace vk
 			return nShaderStageInfo;
 		}
 
-		VkPipelineLayout CreatePipelineLayout(const VkDevice l_device, const VkDescriptorSetLayout descriptorSetLayout)
+		VkPipelineLayout CreatePipelineLayout(const VkDevice l_device, const VkDescriptorSetLayout descriptorSetLayout, std::vector<VkPushConstantRange>& pushConstantRanges)
 		{
 			//TODO: check if the amount of set layouts exceed the physical limit!!!
-
-			//this is for an object's model transformation.
-			VkPushConstantRange pushConstants[1];
-			pushConstants[0].offset = 0;
-			pushConstants[0].size = sizeof(glm::mat4);
-			pushConstants[0].stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-
-			VkPipelineLayoutCreateInfo				pipelineLayoutCreateInfo = {};
+			VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = {};
 			pipelineLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
 			pipelineLayoutCreateInfo.pNext = nullptr;
 			pipelineLayoutCreateInfo.flags = 0;
 			pipelineLayoutCreateInfo.setLayoutCount = 1;
 			pipelineLayoutCreateInfo.pSetLayouts = &descriptorSetLayout;
-			pipelineLayoutCreateInfo.pushConstantRangeCount = 1;
-			pipelineLayoutCreateInfo.pPushConstantRanges = pushConstants;
+			pipelineLayoutCreateInfo.pushConstantRangeCount = pushConstantRanges.size();
+			pipelineLayoutCreateInfo.pPushConstantRanges = pushConstantRanges.data();
 
 			VkPipelineLayout nPipelineLayout;
 			VK_CHECK_RESULT(vkCreatePipelineLayout(l_device, &pipelineLayoutCreateInfo, nullptr, &nPipelineLayout));
@@ -365,7 +344,7 @@ namespace vk
 			const uint32_t poolSizeCount = 2;
 			VkDescriptorPoolSize poolSize[poolSizeCount] = {};
 			poolSize[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-			poolSize[0].descriptorCount = 2; //max numbers of frames in flight.
+			poolSize[0].descriptorCount = 2 * 2; //max numbers of frames in flight.
 
 			//we are concerned about the fragment stage, so we double the descriptor count here.
 			poolSize[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;

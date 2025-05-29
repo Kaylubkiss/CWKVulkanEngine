@@ -11,10 +11,12 @@
 namespace vk 
 {
 
-	ShaderModuleInfo::ShaderModuleInfo(const VkDevice l_device, std::string filename, VkShaderStageFlagBits shaderFlags, shaderc_shader_kind shaderc_kind) : mFilename(filename), mFlags(shaderFlags), mShaderKind(shaderc_kind)
+	ShaderModuleInfo::ShaderModuleInfo(const VkDevice l_device, std::string filename, VkShaderStageFlagBits shaderFlags, shaderc_shader_kind shaderc_kind) : mFileName(filename), mFlags(shaderFlags), mShaderKind(shaderc_kind)
 	{
 
 		std::string shaderPath = vk::util::ReadSourceAndWriteToSprv(SHADER_PATH + filename, shaderc_kind);
+
+		mFilePath = shaderPath;
 
 		if (shaderPath.empty())
 		{
@@ -51,16 +53,25 @@ namespace vk
 			this->mTopology);
 	}
 
+	vk::Pipeline& Pipeline::AddPipelineLayout(const VkPipelineLayout& pipelineLayout) 
+	{
+		this->layout = pipelineLayout;
+
+		return *this;
+	}
+
+	vk::Pipeline& Pipeline::AddDescriptorSetLayout(const VkDescriptorSetLayout& dscSetLayout)
+	{
+		this->descriptorSetLayout = dscSetLayout;
+
+		return *this;
+	}
+
 	vk::Pipeline& Pipeline::Finalize(const VkDevice l_device, const VkPhysicalDevice p_device, const vk::Window& appWindow, VkPrimitiveTopology topology)
 	{
 		this->mRenderDepthInfo = vk::rsc::CreateDepthResources(p_device, l_device, appWindow.viewport);
 
 		this->mRenderPass = vk::init::RenderPass(l_device, this->mRenderDepthInfo.depthFormat);
-
-
-		this->descriptorSetLayout = vk::init::DescriptorSetLayout(l_device);
-
-		this->layout = vk::init::CreatePipelineLayout(l_device, this->descriptorSetLayout);
 
 		this->mTopology = topology;
 
@@ -107,11 +118,21 @@ namespace vk
 		return this->layout;
 	}
 
-	std::vector<ShaderModuleInfo>& Pipeline::ShaderModules() 
+	ShaderModuleInfo& Pipeline::ShaderModule(size_t index)
+	{
+		if (index < 0 || index >= shaderModules.size()) 
+		{
+			std::cerr << "could not index into pipeline's shader modules!\n";
+		}
+
+		return this->shaderModules[index];
+	}
+
+	const std::vector<vk::ShaderModuleInfo>& Pipeline::ShaderModules() const 
 	{
 		return this->shaderModules;
 	}
-
+	 
 	VkRenderPass Pipeline::RenderPass()
 	{
 		return mRenderPass;

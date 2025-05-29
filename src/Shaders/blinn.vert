@@ -5,7 +5,7 @@
 layout(binding = 0) uniform uTransformObject {
     mat4 view;
     mat4 proj;
-} uTransform;
+} ubo;
 
 
 
@@ -24,9 +24,9 @@ layout(location = 1) out vec2 fragTexCoord;
 void main ()
 {
 
-	vec4 posVF = uTransform.view * modelMatrix * vec4(aPos, 1);
+	vec4 posVF = ubo.view * modelMatrix * vec4(aPos, 1);
 
-	gl_Position = uTransform.proj * posVF; 
+	gl_Position = ubo.proj * posVF; 
 
 	fragTexCoord =  aUv;
 }

@@ -30,16 +30,18 @@ namespace vk
 			imageInfo.sampler = this->mTextures[i].mTextureSampler;
 
 			//writing the uniform transforms.
-			VkWriteDescriptorSet descriptorWrite[2] = {};
+			VkWriteDescriptorSet descriptorWrite[3] = {};
 			descriptorWrite[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 			descriptorWrite[0].dstSet = this->mTextures[i].mDescriptorSet;
 			descriptorWrite[0].dstBinding = 0;
 			descriptorWrite[0].dstArrayElement = 0;
 			descriptorWrite[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-			descriptorWrite[0].descriptorCount = uniformDescriptorCount; //how many buffers
-			descriptorWrite[0].pBufferInfo = pUniformDescriptorBuffers;
+			descriptorWrite[0].descriptorCount = 1; //how many buffers
+			descriptorWrite[0].pBufferInfo = &pUniformDescriptorBuffers[0];
 			descriptorWrite[0].pImageInfo = nullptr; // Optional
 			descriptorWrite[0].pTexelBufferView = nullptr; // Optional
+
+
 
 			//writing the texture sampler.
 			descriptorWrite[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
@@ -51,7 +53,17 @@ namespace vk
 			descriptorWrite[1].pImageInfo = &imageInfo;
 			descriptorWrite[1].pTexelBufferView = nullptr; // Optional
 
-			vkUpdateDescriptorSets(l_device, 2, descriptorWrite, 0, nullptr);
+			descriptorWrite[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+			descriptorWrite[2].dstSet = this->mTextures[i].mDescriptorSet;
+			descriptorWrite[2].dstBinding = 2;
+			descriptorWrite[2].dstArrayElement = 0;
+			descriptorWrite[2].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+			descriptorWrite[2].descriptorCount = 1; //how many buffers
+			descriptorWrite[2].pBufferInfo = &pUniformDescriptorBuffers[1];
+			descriptorWrite[2].pImageInfo = nullptr; // Optional
+			descriptorWrite[2].pTexelBufferView = nullptr; // Optional
+
+			vkUpdateDescriptorSets(l_device, 3, descriptorWrite, 0, nullptr);
 		}
 
 	}
@@ -125,13 +137,20 @@ namespace vk
 								fileName);
 
 			VkDescriptorBufferInfo uTransformbufferInfo = {};
-			uTransformbufferInfo.buffer = graphicsSystem.UniformTransformBuffer();
+			uTransformbufferInfo.buffer = graphicsSystem.UTransformBuffer().handle;
 			uTransformbufferInfo.offset = 0;
 			uTransformbufferInfo.range = sizeof(uTransformObject);
 
-			VkDescriptorBufferInfo bufferInfo[1] = { uTransformbufferInfo };
 
-			TextureManager::UpdateDescriptorSets(graphicsSystem.LogicalDevice(), bufferInfo, 1);
+			VkDescriptorBufferInfo uLightBufferInfo = {};
+			uLightBufferInfo.buffer = graphicsSystem.ULightBuffer().handle;
+			uLightBufferInfo.offset = 0;
+			uLightBufferInfo.range = sizeof(uLightObject);
+
+
+			VkDescriptorBufferInfo bufferInfo[2] = { uTransformbufferInfo, uLightBufferInfo };
+
+			TextureManager::UpdateDescriptorSets(graphicsSystem.LogicalDevice(), bufferInfo, 2);
 
 			index = TextureManager::GetTextureIndexByName(fileName.c_str());
 		}

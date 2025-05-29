@@ -13,12 +13,13 @@ namespace vk
 		
 		VkDevice appDevicePtr = VK_NULL_HANDLE; /* pointer to application's logical device */
 
-		vk::Pipeline* pipelinePtr = nullptr;  /* pointer to pipeline with edited shaders */
+		vk::Pipeline* pipelinePtr = nullptr;  /* pointer to pipeline with edited shaders.
+		Could be edited to hold multiple pipelinePtrs*/
 
 		/* file status info on shaders from pipeline */
 		struct ShaderFileInfo
 		{
-			size_t module_i = -1;
+			size_t module_i = -1; /*If there are multiple pipelinePtrs, might need an index into their respective shaderModule lists. */
 			time_t last_modification = 0;
 		};
 		std::vector<ShaderFileInfo> shaderInfos;  
@@ -28,26 +29,16 @@ namespace vk
 			HotReloader() = default;
 			~HotReloader() = default;
 
-			/*
-				* @brief Initializes the hot reloader object.
-				* @param l_device: logical device which owns the pipeline associated.
-				* @param pipeline: the pipeline which has the shader stages associated.
-				* @param renderPass: information that describes a frame in the pipeline.
-			*/
-			HotReloader(VkDevice l_device, vk::Pipeline& pipeline, VkRenderPass renderPass);
+			/* Initializer for the hot reloader */
+			HotReloader(VkDevice l_device, vk::Pipeline& pipeline);
 			
-			/*
-				* @brief Called every frame to check the file status of a shader, and recreates
-				* the pipeline's shader modules if any change occurs.
-			*/
+			/* Analyze the assigned files for changes, and then recreate the pipeline
+			with the new shaders */
 			void HotReload();
 
 		private:
-			/*
-				* @brief Adds a pipeline which the hot reloader can edit if changes occur
-				in its associated shaders.
-				* @param pipeline: the pipeline which has the shader stages associated.
-			*/
+			
+			/* Assigns pipeline pipelinePtr. */
 			void AddPipeline(vk::Pipeline& pipeline);
 			
 	};

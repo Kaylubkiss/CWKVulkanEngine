@@ -14,7 +14,7 @@ namespace vk
 
 		VkPipelineInputAssemblyStateCreateInfo AssemblyInputStateCreateInfo(VkPrimitiveTopology primitiveTopology);
 
-		VkDescriptorSetLayout DescriptorSetLayout(VkDevice logicalDevice);
+		VkDescriptorSetLayout DescriptorSetLayout(VkDevice logicalDevice, std::vector<VkDescriptorSetLayoutBinding>& bindings);
 
 		std::array<VkVertexInputAttributeDescription, 3> VertexAttributeDescriptions();
 
@@ -31,7 +31,7 @@ namespace vk
 
 		VkFence CreateFence(const VkDevice l_device);
 
-		VkPipelineLayout CreatePipelineLayout(const VkDevice l_device, const VkDescriptorSetLayout descriptorSetLayout);
+		VkPipelineLayout CreatePipelineLayout(const VkDevice l_device, const VkDescriptorSetLayout descriptorSetLayout, std::vector<VkPushConstantRange>& pushConstantRanges);
 
 		VkPipeline CreateGraphicsPipeline(const VkDevice l_device, const VkPipelineLayout pipelineLayout, const VkRenderPass renderPass, VkPipelineShaderStageCreateInfo* pStages, int numStages, VkPrimitiveTopology primitiveTopology);
 

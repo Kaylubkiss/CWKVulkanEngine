@@ -17,6 +17,9 @@ namespace vk
 			uTransformObject uTransform;
 			vk::Buffer uTransformBuffer;
 
+			vk::uLightObject uLight;
+			vk::Buffer uLightBuffer;
+
 			//may need to create array system out of this.
 			//for now, just keep it to one logical and physical device.
 			vk::RenderResources renderResources;
@@ -52,7 +55,8 @@ namespace vk
 			VkRenderPass RenderPass();
 			const VkPipeline Pipeline() const;
 			VkCommandPool CommandPool();
-			const VkBuffer UniformTransformBuffer();
+			const vk::Buffer& UTransformBuffer();
+			const vk::Buffer& ULightBuffer();
 			void UpdateUniformViewMatrix(const glm::mat4& viewMat);
 
 			void ResizeWindow();
@@ -66,7 +70,7 @@ namespace vk
 
 			void AttachHotReloader(HotReloader& hotReloader) 
 			{
-				hotReloader = HotReloader(this->logicalGpu, this->mPipeline, mPipeline.RenderPass());
+				hotReloader = HotReloader(this->logicalGpu, this->mPipeline);
 			}
 
 		private:

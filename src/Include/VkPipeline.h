@@ -17,7 +17,8 @@ namespace vk
 	*/
 	struct ShaderModuleInfo
 	{
-		std::string mFilename; /*used by hot reloader to detect file status */
+		std::string mFilePath;
+		std::string mFileName; /*used by hot reloader to detect file status */
 		VkShaderModule mHandle = VK_NULL_HANDLE;
 		VkShaderStageFlagBits mFlags;
 
@@ -32,6 +33,8 @@ namespace vk
 			*@param shaderc_kind: similar to shaderFlags, argument needed for shader compilation to sprv.
 		*/
 		ShaderModuleInfo(const VkDevice l_device, std::string filename, VkShaderStageFlagBits shaderFlags, shaderc_shader_kind shaderc_kind = shaderc_vertex_shader);
+
+
 	};
 
 	/*
@@ -40,15 +43,16 @@ namespace vk
 	*/
 	class Pipeline 
 	{
-		VkPipeline handle = VK_NULL_HANDLE;
-		VkDescriptorSetLayout descriptorSetLayout = VK_NULL_HANDLE;
-		VkPipelineLayout layout = VK_NULL_HANDLE; 
-		VkPrimitiveTopology mTopology = {};
+		private:
+			VkPipeline handle = VK_NULL_HANDLE;
+			VkDescriptorSetLayout descriptorSetLayout = VK_NULL_HANDLE;
+			VkPipelineLayout layout = VK_NULL_HANDLE; 
+			VkPrimitiveTopology mTopology = {};
 
-		vk::rsc::DepthResources mRenderDepthInfo;
-		VkRenderPass mRenderPass = VK_NULL_HANDLE;
+			vk::rsc::DepthResources mRenderDepthInfo;
+			VkRenderPass mRenderPass = VK_NULL_HANDLE;
 
-		std::vector<ShaderModuleInfo> shaderModules;
+			std::vector<ShaderModuleInfo> shaderModules;
 
 		public:
 			/*
@@ -59,6 +63,10 @@ namespace vk
 				*@return pointer to this, which allows chaining of this method on one line.
 			*/
 			vk::Pipeline& AddModule(const ShaderModuleInfo& shaderModuleInfo);
+
+			vk::Pipeline& AddPipelineLayout(const VkPipelineLayout& pipelineLayout);
+
+			vk::Pipeline& AddDescriptorSetLayout(const VkDescriptorSetLayout& dscSetLayout);
 
 
 			/*void InitRenderDepthInformation(const VkDevice l_device, const VkFormat& depthFormat);
@@ -75,6 +83,8 @@ namespace vk
 				* @return this pointer to pipeline, for chaining commands on one line.
 			*/
 			vk::Pipeline& Finalize(const VkDevice l_device, const VkPhysicalDevice p_device, const vk::Window& appWindow, VkPrimitiveTopology topology);
+
+			
 
 			/*
 				*@brief Destroys the pipeline handle and all the vulkan objects (shaders, descriptory layout) created under it.
@@ -95,7 +105,8 @@ namespace vk
 			const VkDescriptorSetLayout DescriptorSetLayout() const;
 			const VkPipeline Handle() const;
 			const VkPipelineLayout Layout() const;
-			std::vector<ShaderModuleInfo>& ShaderModules();
+			vk::ShaderModuleInfo& ShaderModule(size_t index);
+			const std::vector<vk::ShaderModuleInfo>& ShaderModules() const;
 			VkRenderPass RenderPass();
 			vk::rsc::DepthResources& RenderDepthInfo();
 

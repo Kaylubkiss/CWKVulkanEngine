@@ -29,6 +29,11 @@ namespace vk
 	};
 
 
+	struct uLightObject 
+	{
+		glm::vec3 albedo;
+	};
+
 	struct Queue 
 	{
 		VkQueue handle = VK_NULL_HANDLE;

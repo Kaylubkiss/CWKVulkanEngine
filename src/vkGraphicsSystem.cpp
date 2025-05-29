@@ -43,8 +43,6 @@ namespace vk
 		vkGetDeviceQueue(this->logicalGpu, graphicsQueue.family, 0, &graphicsQueue.handle);
 		vkGetDeviceQueue(this->logicalGpu, presentQueue.family, 0, &presentQueue.handle);
 
-
-	
 		Camera& appCamera = _Application->GetCamera();
 
 		//uniform transform for objects of default pipeline.
@@ -58,16 +56,59 @@ namespace vk
 		//uniform(s)
 		this->uTransformBuffer = vk::Buffer(gpus[g_index], logicalGpu, sizeof(uTransformObject), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, (void*)&this->uTransform);
 
+		this->uLight.albedo = { 1.0, 1.0, 1.0 };
+
+		this->uLightBuffer = vk::Buffer(gpus[g_index], logicalGpu, sizeof(uLightObject), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, (void*)(&this->uLight));
+
+
 		this->renderResources.Allocate(this->gpus[g_index], this->logicalGpu, appWindow);
 
-	
-//#ifdef _DEBUG
-		ShaderModuleInfo vertColorInfo(this->logicalGpu, "color.vert", VK_SHADER_STAGE_VERTEX_BIT);
 
-		ShaderModuleInfo fragColorInfo(this->logicalGpu, "color.frag", VK_SHADER_STAGE_FRAGMENT_BIT, shaderc_fragment_shader);
+		//#ifdef _DEBUG
+		ShaderModuleInfo vertColorInfo(this->logicalGpu, "blinn.vert", VK_SHADER_STAGE_VERTEX_BIT);
+
+		ShaderModuleInfo fragColorInfo(this->logicalGpu, "blinn.frag", VK_SHADER_STAGE_FRAGMENT_BIT, shaderc_fragment_shader);
+
+
+		VkDescriptorSetLayoutBinding uTransformBinding{};
+		uTransformBinding.binding = 0;
+		uTransformBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		uTransformBinding.descriptorCount = 1; //one uniform struct.
+		uTransformBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT; //we are going to use the transforms in the vertex shader.
+
+		VkDescriptorSetLayoutBinding samplerBinding = {};
+		samplerBinding.binding = 1;
+		samplerBinding.descriptorCount = 1;
+		samplerBinding.pImmutableSamplers = nullptr;
+		samplerBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		samplerBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT; //we are going to use the sampler in the fragment shader.
+
+		VkDescriptorSetLayoutBinding uLightBinding = {};
+		uLightBinding.binding = 2;
+		uLightBinding.descriptorCount = 1;
+		uLightBinding.pImmutableSamplers = nullptr;
+		uLightBinding.descriptorCount = 1;
+		uLightBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		uLightBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+
+		std::vector<VkDescriptorSetLayoutBinding> dscSetLayoutBindings = { uTransformBinding, samplerBinding, uLightBinding };
+
+		VkDescriptorSetLayout colorSetLayout = vk::init::DescriptorSetLayout(this->logicalGpu, dscSetLayoutBindings);
+
+
+		//this is for an object's model transformation.
+		std::vector<VkPushConstantRange> pushConstants(1);
+		pushConstants[0].offset = 0;
+		pushConstants[0].size = sizeof(glm::mat4);
+		pushConstants[0].stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+
+
+		VkPipelineLayout colorPipelineLayout = vk::init::CreatePipelineLayout(this->logicalGpu, colorSetLayout, pushConstants);
 
 		this->mPipeline.AddModule(vertColorInfo).
 						AddModule(fragColorInfo).
+						AddDescriptorSetLayout(colorSetLayout).
+						AddPipelineLayout(colorPipelineLayout).
 						Finalize(this->logicalGpu, this->gpus[g_index],						 appWindow,													 VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST
 						);
 
@@ -110,9 +151,14 @@ namespace vk
 		return this->mPipeline.DescriptorSetLayout();
 	}
 	
-	const VkBuffer GraphicsSystem::UniformTransformBuffer() 
+	const vk::Buffer& GraphicsSystem::UTransformBuffer() 
 	{
-		return this->uTransformBuffer.handle;
+		return this->uTransformBuffer;
+	}
+
+	const vk::Buffer& GraphicsSystem::ULightBuffer() 
+	{
+		return this->uLightBuffer;
 	}
 
 	void GraphicsSystem::FindQueueFamilies(const VkPhysicalDevice& physicalDevice, const VkSurfaceKHR& windowSurface)
@@ -344,7 +390,7 @@ namespace vk
 		VkResult result = vkAcquireNextImageKHR(this->logicalGpu, this->swapChain.handle, UINT64_MAX, this->renderResources.imageAvailableSemaphore, VK_NULL_HANDLE, &imageIndex);
 
 
-		if (result == VK_ERROR_OUT_OF_DATE_KHR)
+		if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
 		{
 			GraphicsSystem::ResizeWindow();
 			return;
