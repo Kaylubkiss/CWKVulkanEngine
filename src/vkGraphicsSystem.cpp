@@ -428,7 +428,7 @@ namespace vk
 		{
 			VkCommandBufferBeginInfo cmdBufferBeginInfo = {};
 			cmdBufferBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-			/*cmdBufferBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_;*/
+			cmdBufferBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
 			//everything else is default...
 
 			//resetting command buffer should be implicit with reset flag set on this.

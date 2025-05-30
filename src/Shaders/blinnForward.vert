@@ -5,7 +5,7 @@
 layout(std140, binding = 0) uniform uTransformObject {
     mat4 view;
     mat4 proj;
-	vec4 camPosition;
+	vec3 camPosition;
 } ubo;
 
 layout(std140, binding = 2) uniform uLight 
@@ -46,7 +46,7 @@ void main ()
 	
 	lightPos = light.pos;
 
-	viewPos = vec3(ubo.camPosition);
+	viewPos = vec3(0.f);
 	
 	fragTexCoord = aUv;
 }
