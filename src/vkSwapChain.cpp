@@ -147,7 +147,7 @@ namespace vk
 				0, //flags
 				images[i], //the created image above
 				VK_IMAGE_VIEW_TYPE_2D, //view image type
-				VK_FORMAT_B8G8R8A8_SRGB, //as long as the same bits per pixel, the parent and view will be	compatible.
+				VK_FORMAT_B8G8R8A8_UNORM, //as long as the same bits per pixel, the parent and view will compatible.
 				componentMapping,
 				subresourceRange
 			};

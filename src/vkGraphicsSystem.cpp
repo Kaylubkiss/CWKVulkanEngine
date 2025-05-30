@@ -2,12 +2,18 @@
 #include "vkUtility.h"
 #include "vkInit.h"
 #include <stdexcept>
-#include "ObjectManager.h"
 #include "ApplicationGlobal.h"
+#include "ObjectManager.h"
 
 
 namespace vk
 {	
+
+	//extern variables!!!
+	RenderingSemaphores semaphores = {};
+	VkSubmitInfo submitInfo = {};
+	VkPipelineStageFlags pipelineWaitStages = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+
 	void GraphicsSystem::Destroy() 
 	{
 		if (this->isInitialized) 
@@ -19,6 +25,10 @@ namespace vk
 			//buffers
 			uTransformBuffer.Destroy(this->logicalGpu);
 			uLightBuffer.Destroy(this->logicalGpu);
+
+			//semaphores
+			vkDestroySemaphore(this->logicalGpu, semaphores.presentComplete, nullptr);
+			vkDestroySemaphore(this->logicalGpu, semaphores.presentComplete, nullptr);
 
 			vkDestroyDevice(this->logicalGpu, nullptr);
 		}
@@ -43,85 +53,25 @@ namespace vk
 		vkGetDeviceQueue(this->logicalGpu, graphicsQueue.family, 0, &graphicsQueue.handle);
 		vkGetDeviceQueue(this->logicalGpu, presentQueue.family, 0, &presentQueue.handle);
 
-		Camera& appCamera = _Application->GetCamera();
+		semaphores.presentComplete = vk::init::CreateSemaphore(this->logicalGpu);
+		semaphores.renderComplete = vk::init::CreateSemaphore(this->logicalGpu);
 
-		//uniform transform for objects of default pipeline.
-		this->uTransform = {
-			appCamera.LookAt(), //view
-			glm::perspective(glm::radians(45.f), (float)appWindow.viewport.width / appWindow.viewport.height, 0.1f, 1000.f) //proj
-		};
-
-		this->uTransform.proj[1][1] *= -1.f;
-
-		this->uTransform.camPosition = appCamera.Position();
-
-		//uniform(s)
-		this->uTransformBuffer = vk::Buffer(gpus[g_index], logicalGpu, sizeof(uTransformObject), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, (void*)&this->uTransform);
-
-		this->uLight.pos = {};
-		this->uLight.albedo = { 1.0, 1.0, 1.0 };
-		this->uLight.ambient = this->uLight.albedo * 0.1f;
-		this->uLight.specular = { 0.5f, 0.5f, 0.5f };
-		this->uLight.shininess = 32.f;
-
-
-		this->uLightBuffer = vk::Buffer(gpus[g_index], logicalGpu, sizeof(uLightObject), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, (void*)(&this->uLight));
-
+		submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+		submitInfo.pWaitDstStageMask = &pipelineWaitStages;
+		submitInfo.waitSemaphoreCount = 1;
+		submitInfo.pWaitSemaphores = &semaphores.presentComplete;
+		submitInfo.signalSemaphoreCount = 1;
+		submitInfo.pSignalSemaphores = &semaphores.renderComplete;
 
 		this->renderResources.Allocate(this->gpus[g_index], this->logicalGpu, appWindow);
 
+		GraphicsSystem::InitializedUniforms(appWindow);
 
-		//#ifdef _DEBUG
-		ShaderModuleInfo vertColorInfo(this->logicalGpu, "blinnForward.vert", VK_SHADER_STAGE_VERTEX_BIT);
+		GraphicsSystem::InitializePipeline(appWindow);
 
-		ShaderModuleInfo fragColorInfo(this->logicalGpu, "blinnForward.frag", VK_SHADER_STAGE_FRAGMENT_BIT, shaderc_fragment_shader);
-
-
-		VkDescriptorSetLayoutBinding uTransformBinding{};
-		uTransformBinding.binding = 0;
-		uTransformBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		uTransformBinding.descriptorCount = 1; //one uniform struct.
-		uTransformBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT; //we are going to use the transforms in the vertex shader.
-
-		VkDescriptorSetLayoutBinding samplerBinding = {};
-		samplerBinding.binding = 1;
-		samplerBinding.descriptorCount = 1;
-		samplerBinding.pImmutableSamplers = nullptr;
-		samplerBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		samplerBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT; //we are going to use the sampler in the fragment shader.
-
-		VkDescriptorSetLayoutBinding uLightBinding = {};
-		uLightBinding.binding = 2;
-		uLightBinding.descriptorCount = 1;
-		uLightBinding.pImmutableSamplers = nullptr;
-		uLightBinding.descriptorCount = 1;
-		uLightBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		uLightBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
-
-		std::vector<VkDescriptorSetLayoutBinding> dscSetLayoutBindings = { uTransformBinding, samplerBinding, uLightBinding };
-
-		VkDescriptorSetLayout colorSetLayout = vk::init::DescriptorSetLayout(this->logicalGpu, dscSetLayoutBindings);
-
-
-		//this is for an object's model transformation.
-		std::vector<VkPushConstantRange> pushConstants(1);
-		pushConstants[0].offset = 0;
-		pushConstants[0].size = sizeof(glm::mat4);
-		pushConstants[0].stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-
-
-		VkPipelineLayout colorPipelineLayout = vk::init::CreatePipelineLayout(this->logicalGpu, colorSetLayout, pushConstants);
-
-		this->mPipeline.AddModule(vertColorInfo).
-						AddModule(fragColorInfo).
-						AddDescriptorSetLayout(colorSetLayout).
-						AddPipelineLayout(colorPipelineLayout).
-						Finalize(this->logicalGpu, this->gpus[g_index],						 appWindow,													 VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST
-						);
-
-		/* NOTE: a bit jank, as swapchain relies on Finalize method of mPipeline to finish */
 		this->swapChain = SwapChain(this->logicalGpu, this->gpus[g_index], graphicsQueue.family, presentQueue.family, appWindow.surface);
 
+		/* NOTE: a bit jank, as swapchain relies on Finalize method of mPipeline to finish */
 		this->swapChain.AllocateFrameBuffers(this->logicalGpu, appWindow.viewport, this->mPipeline.RenderDepthInfo(), this->mPipeline.RenderPass());
 
 		this->isInitialized = true;
@@ -358,6 +308,86 @@ namespace vk
 
 	}
 
+	void GraphicsSystem::InitializedUniforms(const vk::Window& appWindow)
+	{
+		Camera& appCamera = _Application->GetCamera();
+
+		//uniform transform for objects of default pipeline.
+		this->uTransform = {
+			appCamera.LookAt(), //view
+			glm::perspective(glm::radians(45.f), (float)appWindow.viewport.width / appWindow.viewport.height, 0.1f, 1000.f) //proj
+		};
+
+		this->uTransform.proj[1][1] *= -1.f;
+
+		this->uTransform.camPosition = appCamera.Position();
+
+		//uniform(s)
+		this->uTransformBuffer = vk::Buffer(gpus[g_index], logicalGpu, sizeof(uTransformObject), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, (void*)&this->uTransform);
+
+		this->uLight.pos = {};
+		this->uLight.albedo = { 1.0, 1.0, 1.0 };
+		this->uLight.ambient = this->uLight.albedo * 0.1f;
+		this->uLight.specular = { 0.5f, 0.5f, 0.5f };
+		this->uLight.shininess = 16.f;
+
+
+		this->uLightBuffer = vk::Buffer(this->gpus[g_index], this->logicalGpu, sizeof(uLightObject), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, (void*)(&this->uLight));
+
+	}
+
+	void GraphicsSystem::InitializePipeline(const vk::Window& appWindow) 
+	{
+		ShaderModuleInfo vertColorInfo(this->logicalGpu, "blinnForward.vert", VK_SHADER_STAGE_VERTEX_BIT);
+
+		ShaderModuleInfo fragColorInfo(this->logicalGpu, "blinnForward.frag", VK_SHADER_STAGE_FRAGMENT_BIT, shaderc_fragment_shader);
+
+
+		VkDescriptorSetLayoutBinding uTransformBinding{};
+		uTransformBinding.binding = 0;
+		uTransformBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		uTransformBinding.descriptorCount = 1; //one uniform struct.
+		uTransformBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT; //we are going to use the transforms in the vertex shader.
+
+		VkDescriptorSetLayoutBinding samplerBinding = {};
+		samplerBinding.binding = 1;
+		samplerBinding.descriptorCount = 1;
+		samplerBinding.pImmutableSamplers = nullptr;
+		samplerBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		samplerBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT; //we are going to use the sampler in the fragment shader.
+
+		VkDescriptorSetLayoutBinding uLightBinding = {};
+		uLightBinding.binding = 2;
+		uLightBinding.descriptorCount = 1;
+		uLightBinding.pImmutableSamplers = nullptr;
+		uLightBinding.descriptorCount = 1;
+		uLightBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		uLightBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+
+		std::vector<VkDescriptorSetLayoutBinding> dscSetLayoutBindings = { uTransformBinding, samplerBinding, uLightBinding };
+
+		VkDescriptorSetLayout colorSetLayout = vk::init::DescriptorSetLayout(this->logicalGpu, dscSetLayoutBindings);
+
+
+		//this is for an object's model transformation.
+		std::vector<VkPushConstantRange> pushConstants(1);
+		pushConstants[0].offset = 0;
+		pushConstants[0].size = sizeof(glm::mat4);
+		pushConstants[0].stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+
+
+		VkPipelineLayout colorPipelineLayout = vk::init::CreatePipelineLayout(this->logicalGpu, colorSetLayout, pushConstants);
+
+		this->mPipeline.AddModule(vertColorInfo).
+			AddModule(fragColorInfo).
+			AddDescriptorSetLayout(colorSetLayout).
+			AddPipelineLayout(colorPipelineLayout).
+			Finalize(this->logicalGpu, this->gpus[g_index], appWindow, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST
+			);
+
+	}
+
+
 	VkCommandPool GraphicsSystem::CommandPool() 
 	{
 		return this->renderResources.commandPool;
@@ -370,9 +400,9 @@ namespace vk
 
 	void GraphicsSystem::WaitForQueueSubmission()
 	{
-		VK_CHECK_RESULT(vkWaitForFences(this->logicalGpu, 1, &this->renderResources.inFlightFence, VK_TRUE, UINT64_MAX))
+		/*VK_CHECK_RESULT(vkWaitForFences(this->logicalGpu, 1, &this->renderResources.inFlightFence, VK_TRUE, UINT64_MAX))
 
-		VK_CHECK_RESULT(vkResetFences(this->logicalGpu, 1, &this->renderResources.inFlightFence))
+		VK_CHECK_RESULT(vkResetFences(this->logicalGpu, 1, &this->renderResources.inFlightFence))*/
 	}
 
 	void GraphicsSystem::WaitForDevice() 
@@ -391,11 +421,56 @@ namespace vk
 		memcpy(uTransformBuffer.mappedMemory, (void*)&uTransform, static_cast<VkDeviceSize>(sizeof(uTransformObject)));
 	}
 
+
+	void GraphicsSystem::BuildCommandBuffers(ObjectManager& objManager)
+	{
+		for (size_t i = 0; i < this->renderResources.commandBuffers.size(); ++i)
+		{
+			VkCommandBufferBeginInfo cmdBufferBeginInfo = {};
+			cmdBufferBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+			/*cmdBufferBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_;*/
+			//everything else is default...
+
+			//resetting command buffer should be implicit with reset flag set on this.
+			VK_CHECK_RESULT(vkBeginCommandBuffer(this->renderResources.commandBuffers[i], &cmdBufferBeginInfo))
+
+			VkRenderPassBeginInfo renderPassInfo = {};
+			renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+			renderPassInfo.renderPass = this->mPipeline.RenderPass();
+			renderPassInfo.framebuffer = this->swapChain.frameBuffers[i];
+			renderPassInfo.renderArea.offset = { 0,0 };
+			renderPassInfo.renderArea.extent = this->renderResources.currentExtent;
+
+			VkClearValue clearColors[2] = {};
+			clearColors[0].color = { {0.5f, 0.5f, 0.5f, 1.f} };
+			clearColors[1].depthStencil = { 1.f, 0 };
+
+			renderPassInfo.clearValueCount = 2;
+			renderPassInfo.pClearValues = clearColors;
+
+			vkCmdBeginRenderPass(this->renderResources.commandBuffers[i], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+			vkCmdBindPipeline(this->renderResources.commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, this->mPipeline.Handle());
+
+			const vk::Window& appWindow = _Application->GetWindow();
+
+			vkCmdSetViewport(this->renderResources.commandBuffers[i], 0, 1, &appWindow.viewport);
+			vkCmdSetScissor(this->renderResources.commandBuffers[i], 0, 1, &appWindow.scissor);
+
+			objManager.DrawObjects(this->renderResources.commandBuffers[i]);
+
+			vkCmdEndRenderPass(this->renderResources.commandBuffers[i]);
+
+			VK_CHECK_RESULT(vkEndCommandBuffer(this->renderResources.commandBuffers[i]));
+		}
+
+	}
+
 	void GraphicsSystem::Render(const vk::Window& appWindow, VkCommandBuffer* secondCmdBuffers, size_t secondCmdCount)
 	{
 		//wait for queue submission..
 		uint32_t imageIndex;
-		VkResult result = vkAcquireNextImageKHR(this->logicalGpu, this->swapChain.handle, UINT64_MAX, this->renderResources.imageAvailableSemaphore, VK_NULL_HANDLE, &imageIndex);
+		VkResult result = vkAcquireNextImageKHR(this->logicalGpu, this->swapChain.handle, UINT64_MAX, semaphores.presentComplete, (VkFence)nullptr, &imageIndex);
 
 
 		if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
@@ -408,67 +483,22 @@ namespace vk
 			assert(result == VK_SUCCESS);
 		}
 
-	
-		VK_CHECK_RESULT(vkResetCommandBuffer(this->renderResources.commandBuffer, 0))
-
-			////always begin recording command buffers by calling vkBeginCommandBuffer --> just tells vulkan about the usage of a particular command buffer.
-			VkCommandBufferBeginInfo cmdBufferBeginInfo = {};
-		cmdBufferBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-		cmdBufferBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-		//everything else is default...
-
-		//resetting command buffer should be implicit with reset flag set on this.
-		VK_CHECK_RESULT(vkBeginCommandBuffer(this->renderResources.commandBuffer, &cmdBufferBeginInfo))
-
-		VkRenderPassBeginInfo renderPassInfo = {};
-		renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-		renderPassInfo.renderPass = this->mPipeline.RenderPass();
-		renderPassInfo.framebuffer = this->swapChain.frameBuffers[imageIndex];
-		renderPassInfo.renderArea.offset = { 0,0 };
-		renderPassInfo.renderArea.extent = this->renderResources.currentExtent;
-
-		VkClearValue clearColors[2] = {};
-		clearColors[0].color = { {0.f, 0.f, 5.f, 1.f} };
-		clearColors[1].depthStencil = { 1.f, 0 };
-
-		renderPassInfo.clearValueCount = 2;
-		renderPassInfo.pClearValues = clearColors;
-
-		vkCmdBeginRenderPass(this->renderResources.commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS);
-
-		vkCmdExecuteCommands(this->renderResources.commandBuffer, secondCmdCount, secondCmdBuffers);
-
-		vkCmdEndRenderPass(this->renderResources.commandBuffer);
-
-		VK_CHECK_RESULT(vkEndCommandBuffer(this->renderResources.commandBuffer));
-
-		VkSubmitInfo submitInfo{};
-		submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-
-		VkSemaphore waitSemaphores[1] = { this->renderResources.imageAvailableSemaphore };
-		VkPipelineStageFlags waitStages[1] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
-		submitInfo.waitSemaphoreCount = 1;
-		submitInfo.pWaitSemaphores = waitSemaphores;
-		submitInfo.pWaitDstStageMask = waitStages;
-
 		submitInfo.commandBufferCount = 1;
-		submitInfo.pCommandBuffers = &this->renderResources.commandBuffer;
 
-		VkSemaphore signalSemaphores[1] = { this->renderResources.renderFinishedSemaphore };
-		submitInfo.signalSemaphoreCount = 1;
-		submitInfo.pSignalSemaphores = signalSemaphores;
 
-		VK_CHECK_RESULT(vkQueueSubmit(this->graphicsQueue.handle, 1, &submitInfo, this->renderResources.inFlightFence))
+		submitInfo.pCommandBuffers = &this->renderResources.commandBuffers[imageIndex];
+
+		VK_CHECK_RESULT(vkQueueSubmit(this->graphicsQueue.handle, 1, &submitInfo, VK_NULL_HANDLE))
 
 		VkPresentInfoKHR presentInfo{};
 		presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
-		presentInfo.waitSemaphoreCount = 1;
-		presentInfo.pWaitSemaphores = signalSemaphores;
-
-		VkSwapchainKHR swapChains[1] = { this->swapChain.handle };
+		
 		presentInfo.swapchainCount = 1;
-		presentInfo.pSwapchains = swapChains;
+		presentInfo.pSwapchains = &this->swapChain.handle;
 		presentInfo.pImageIndices = &imageIndex;
+
+		presentInfo.waitSemaphoreCount = 1;
+		presentInfo.pWaitSemaphores = &semaphores.renderComplete;
 
 		result = vkQueuePresentKHR(this->presentQueue.handle, &presentInfo);
 
@@ -481,6 +511,8 @@ namespace vk
 		{
 			assert(result == VK_SUCCESS);
 		}
+
+		VK_CHECK_RESULT(vkQueueWaitIdle(this->presentQueue.handle));
 	}
 
 }

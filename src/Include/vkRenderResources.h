@@ -2,7 +2,6 @@
 
 #include <vulkan/vulkan.h>
 #include "vkGlobal.h"
-#include "vkBuffer.h"
 
 
 namespace vk 
@@ -10,16 +9,10 @@ namespace vk
 
 	struct RenderResources
 	{
-		VkFence inFlightFence = VK_NULL_HANDLE;
+		VkFence inFlightFence = VK_NULL_HANDLE; //not used!
 
 		VkCommandPool commandPool = VK_NULL_HANDLE;
-		VkCommandBuffer commandBuffer = VK_NULL_HANDLE;
-
-		VkSemaphore imageAvailableSemaphore = VK_NULL_HANDLE;
-		VkSemaphore renderFinishedSemaphore = VK_NULL_HANDLE;
-
-		/*vk::rsc::DepthResources depthInfo;
-		VkRenderPass renderPass = VK_NULL_HANDLE;*/
+		std::vector<VkCommandBuffer> commandBuffers;
 
 		//for window size information;
 		VkExtent2D currentExtent = {0,0};

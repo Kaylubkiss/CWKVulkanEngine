@@ -201,7 +201,6 @@ void Object::Draw(VkCommandBuffer cmdBuffer)
 
         vkCmdBindVertexBuffers(cmdBuffer, 0, 1, &mMesh.buffer.vertex.handle, offsets);
 
-
         vkCmdBindIndexBuffer(cmdBuffer, mMesh.buffer.index.handle, 0, VK_INDEX_TYPE_UINT16);
 
         vkCmdPushConstants(cmdBuffer, this->mPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::mat4), (void*)(&this->mMesh.modelTransform));

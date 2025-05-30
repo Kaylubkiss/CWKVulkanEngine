@@ -552,7 +552,7 @@ namespace vk
 				// we can tell vulkan not to do anything 
 				// that may make the data in this attachment inconsistent
 				0,
-				VK_FORMAT_B8G8R8A8_SRGB, //normalized format --> 0-1 unsigned float.
+				VK_FORMAT_B8G8R8A8_UNORM, //normalized format --> 0-1 unsigned float.
 				VK_SAMPLE_COUNT_1_BIT, //samples -> no multisampling, so make it 1_bit.
 				VK_ATTACHMENT_LOAD_OP_CLEAR, //load operation --> clear everything when the renderpass begins.
 				VK_ATTACHMENT_STORE_OP_STORE, //store operation --> store resources to memory for later use.

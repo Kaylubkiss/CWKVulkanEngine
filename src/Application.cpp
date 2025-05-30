@@ -172,17 +172,10 @@ bool Application::init()
 
 	mPhysics.Init();
 
-	/*VkDebugUtilsObjectNameInfoEXT dscPoolDebug = {};
-	dscPoolDebug.objectHandle = (uint64_t)(this->mTextureManager.DescriptorPool());
-	dscPoolDebug.objectType = VK_OBJECT_TYPE_DESCRIPTOR_POOL;
-	dscPoolDebug.pObjectName = "Texture Manager Descriptor Pool";
-
-
-	auto* SetDebugObjectName = reinterpret_cast<PFN_vkSetDebugUtilsObjectNameEXT>(vkGetInstanceProcAddr(this->m_instance, "vkSetDebugUtilsObjectNameEXT"));
-
-	VK_CHECK_RESULT(SetDebugObjectName(this->mGraphicsSystem.LogicalDevice(), &dscPoolDebug))*/
+	mGraphicsSystem.BuildCommandBuffers(this->mObjectManager);
 
 	mTime = Timer(SDL_GetPerformanceCounter());
+
 
 	return true;
 
@@ -311,27 +304,9 @@ void Application::loop()
 
 		mHotReloader.HotReload();
 
-		//draw objects using secondary command buffer
-		VkCommandBufferInheritanceInfo inheritanceInfo = {};
-		inheritanceInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_INFO;
-		inheritanceInfo.renderPass = mGraphicsSystem.RenderPass();
-		inheritanceInfo.subpass = 0;
+		result = this->mObjectManager.Update(mPhysics.InterpFactor(), this->secondaryCmdBuffer);
 
-		VkCommandBufferBeginInfo beginInfo = {};
-		beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-		beginInfo.flags = VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT;
-		beginInfo.pInheritanceInfo = &inheritanceInfo;
-
-		VK_CHECK_RESULT(vkBeginCommandBuffer(this->secondaryCmdBuffer, &beginInfo))
-		
-		vkCmdBindPipeline(this->secondaryCmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->mGraphicsSystem.Pipeline());
-
-		vkCmdSetViewport(this->secondaryCmdBuffer, 0, 1, &mWindow.viewport);
-		vkCmdSetScissor(this->secondaryCmdBuffer, 0, 1, &mWindow.scissor);
-
-		this->mObjectManager.Update(mPhysics.InterpFactor(), this->secondaryCmdBuffer);
-
-		VK_CHECK_RESULT(vkEndCommandBuffer(this->secondaryCmdBuffer))
+		if (result) { mGraphicsSystem.BuildCommandBuffers(this->mObjectManager); }
 
 		//sync this up with primary command buffer in graphics system...
 		mGraphicsSystem.Render(this->mWindow, &this->secondaryCmdBuffer, 1);	

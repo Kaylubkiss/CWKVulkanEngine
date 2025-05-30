@@ -34,14 +34,17 @@ namespace vk
 	class ObjectManager
 	{
 	public:
+
+
 		ObjectManager();
+
 		void Destroy(const VkDevice l_device) 
 		{
 			this->mThreadWorkers.Terminate();
 
 			for (auto& obj : objects) 
 			{
-				Object* curr_obj = obj.second.second;
+				Object* curr_obj = obj.second.obj;
 
 				if (curr_obj != nullptr)
 				{
@@ -59,7 +62,7 @@ namespace vk
 
 			if (objects.count(name) > 0)
 			{
-				return objects[name].second;
+				return objects[name].obj;
 			}
 			else
 			{
@@ -67,10 +70,30 @@ namespace vk
 			}
 		}
 
+
+		size_t size()
+		{
+			return this->objects.size();
+		}
+
+
+		void DrawObjects(VkCommandBuffer cmdBuffer) 
+		{
+			for (auto& obj : objects) 
+			{
+				auto pair = obj.second;
+				if (pair.isDoneLoading) 
+				{
+					Object* curr_obj = pair.obj;
+					curr_obj->Draw(cmdBuffer);
+				}
+			}
+		}
+
 		void Init();
 
-		void FinalizeObjects();
-		void Update(float dt, VkCommandBuffer cmdBuffer);
+		bool FinalizeObjects();
+		bool Update(float dt, VkCommandBuffer cmdBuffer);
 
 		void AttachSystems(TextureManager* textureManager, GraphicsSystem* graphicsSystem);
 	private:
@@ -80,8 +103,13 @@ namespace vk
 		ThreadPool mThreadWorkers;
 		std::mutex map_mutex;
 
-		typedef bool doneLoading;
-		std::map<const char*, std::pair<doneLoading, Object*>, str_cmp> objects;
+		struct ObjectInfo 
+		{
+			bool isDoneLoading;
+			Object* obj;
+		};
+
+		std::map<const char*, ObjectInfo, str_cmp> objects;
 		std::list<AsyncObjectInitInfo> objectUpdateQueue;
 		
 		TextureManager* textureSys = nullptr;

@@ -9,8 +9,8 @@ namespace vk
 
 	void ObjectManager::LoadObjParallel(const VkPhysicalDevice p_device, const VkDevice l_device, const char* name, const char* filename, bool willDebugDraw, const glm::mat4& modelTransform)
 	{
-		objects[name].second  = new Object(p_device, l_device, filename, willDebugDraw, modelTransform);
-		objects[name].first = true;
+		objects[name].obj  = new Object(p_device, l_device, filename, willDebugDraw, modelTransform);
+		objects[name].isDoneLoading = true;
 
 	}
 
@@ -55,18 +55,20 @@ namespace vk
 		this->gfxSys = graphicsSystem;
 	}
 
-	void ObjectManager::FinalizeObjects() 
+	bool ObjectManager::FinalizeObjects() 
 	{
+
+		bool objectFinished = false;
 		//warning: can be very slow. Don't update object textures often at this point in development though.
 		auto it = objectUpdateQueue.begin();
 
 		while (it != objectUpdateQueue.end())
 		{
-			std::pair<doneLoading, Object*>& pair = objects[it->objName];
+			auto& objectInfo = objects[it->objName];
 
-			if (pair.first)
+			if (objectInfo.isDoneLoading)
 			{
-				Object* curr_obj = pair.second;
+				Object* curr_obj = objectInfo.obj;
 
 				this->textureSys->BindTextureToObject(it->textureName, *this->gfxSys, *curr_obj);
 
@@ -80,6 +82,7 @@ namespace vk
 
 				objectUpdateQueue.erase(it++);
 				
+				objectFinished = true;
 			}
 			else 
 			{
@@ -87,26 +90,32 @@ namespace vk
 			}
 		}
 
+		return objectFinished;
+
 	}
 
-	void ObjectManager::Update(float dt, VkCommandBuffer cmdBuffer) 
+	bool ObjectManager::Update(float dt, VkCommandBuffer cmdBuffer) 
 	{
-		if (!objectUpdateQueue.empty()) 
+		bool updated = false;
+
+		if (!objectUpdateQueue.empty())
 		{
-			ObjectManager::FinalizeObjects();		
+			updated = ObjectManager::FinalizeObjects();
 		}
 
 		for (auto& obj : objects) 
 		{
-			auto pair = obj.second;
-			if (pair.first) 
+			auto& pair = obj.second;
+			if (pair.isDoneLoading) 
 			{
-				Object* curr_obj = pair.second;
+				Object* curr_obj = pair.obj;
 				curr_obj->Update(dt);
-				curr_obj->Draw(cmdBuffer);
+
+				updated = true;
 			}
 		}
 
+		return updated;
 	}
 
 
