@@ -12,29 +12,7 @@ namespace vk
 	//JANK FORWARD DECLARATION, BECAUSE OF A DOUBLE INCLUDE PROBABLY
 	class ObjectManager;
 
-	struct RenderingSemaphores
-	{
-		VkSemaphore presentComplete;
-		VkSemaphore renderComplete;
 
-		RenderingSemaphores& operator=(const RenderingSemaphores& other) {
-			if (this != &other)
-			{
-				this->presentComplete = other.presentComplete;
-				this->renderComplete = other.renderComplete;
-
-			}
-
-			return *this;
-		}
-
-	} extern semaphores;
-
-	extern VkPipelineStageFlags pipelineWaitStages;
-
-	extern VkSubmitInfo submitInfo;
-
-	//END OF JANK (MOSTLY)!!!
 	class GraphicsSystem
 	{
 	private:
@@ -43,16 +21,26 @@ namespace vk
 		uTransformObject uTransform;
 		vk::Buffer uTransformBuffer;
 
-		vk::uLightObject uLight;
+		uLightObject uLight;
 		vk::Buffer uLightBuffer;
 
 		//may need to create array system out of this.
 		//for now, just keep it to one logical and physical device.
 		vk::RenderResources renderResources;
-
 	
 		//maybe one day make a map of pipelines??
 		vk::Pipeline mPipeline;
+
+		struct RenderingSemaphores
+		{
+			VkSemaphore presentComplete;
+			VkSemaphore renderComplete;
+
+		} semaphores{};
+
+		VkPipelineStageFlags pipelineWaitStages = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+
+		VkSubmitInfo submitInfo = {};
 
 		vk::SwapChain swapChain;
 
@@ -84,11 +72,13 @@ namespace vk
 			VkCommandPool CommandPool();
 			const vk::Buffer& UTransformBuffer();
 			const vk::Buffer& ULightBuffer();
+
+
 			void UpdateUniformViewMatrix(const glm::mat4& viewMat);
+			void UpdateUniformModelMatrix(const glm::mat4& modelMat);
 
 			void ResizeWindow();
 
-			void WaitForQueueSubmission();
 			void WaitForDevice();
 
 			void Render(const vk::Window& appWindow, VkCommandBuffer* secondCmdBuffers, size_t secondCmdCount);

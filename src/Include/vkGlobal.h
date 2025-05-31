@@ -26,7 +26,6 @@ namespace vk
 	{
 		glm::mat4 view = glm::mat4(1.f);
 		glm::mat4 proj = glm::mat4(1.f);
-		glm::vec3 camPosition = glm::vec3(0.f);
 	};
 
 

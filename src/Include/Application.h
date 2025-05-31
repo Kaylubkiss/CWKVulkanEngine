@@ -45,7 +45,9 @@ private:
 
 	PhysicsSystem mPhysics;
 	vk::HotReloader mHotReloader;
-	vk::GraphicsSystem mGraphicsSystem;
+
+	//POINTER
+	vk::GraphicsSystem* mGraphicsSystem = nullptr;
 
 	bool exitApplication = false;
 

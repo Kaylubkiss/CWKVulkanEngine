@@ -41,8 +41,6 @@ namespace vk
 
 	void RenderResources::Destroy(const VkDevice l_device)
 	{
-		//pipeline info...
-
 		vkDestroyFence(l_device, this->inFlightFence, nullptr);
 
 		//command pools and the buffers allocated.

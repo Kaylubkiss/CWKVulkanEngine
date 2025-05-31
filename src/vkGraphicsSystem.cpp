@@ -10,9 +10,6 @@ namespace vk
 {	
 
 	//extern variables!!!
-	RenderingSemaphores semaphores = {};
-	VkSubmitInfo submitInfo = {};
-	VkPipelineStageFlags pipelineWaitStages = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
 
 	void GraphicsSystem::Destroy() 
 	{
@@ -28,7 +25,7 @@ namespace vk
 
 			//semaphores
 			vkDestroySemaphore(this->logicalGpu, semaphores.presentComplete, nullptr);
-			vkDestroySemaphore(this->logicalGpu, semaphores.presentComplete, nullptr);
+			vkDestroySemaphore(this->logicalGpu, semaphores.renderComplete, nullptr);
 
 			vkDestroyDevice(this->logicalGpu, nullptr);
 		}
@@ -320,8 +317,6 @@ namespace vk
 
 		this->uTransform.proj[1][1] *= -1.f;
 
-		this->uTransform.camPosition = appCamera.Position();
-
 		//uniform(s)
 		this->uTransformBuffer = vk::Buffer(gpus[g_index], logicalGpu, sizeof(uTransformObject), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, (void*)&this->uTransform);
 
@@ -398,13 +393,6 @@ namespace vk
 		obj.UpdatePipelineLayout(this->mPipeline.Layout());
 	}
 
-	void GraphicsSystem::WaitForQueueSubmission()
-	{
-		/*VK_CHECK_RESULT(vkWaitForFences(this->logicalGpu, 1, &this->renderResources.inFlightFence, VK_TRUE, UINT64_MAX))
-
-		VK_CHECK_RESULT(vkResetFences(this->logicalGpu, 1, &this->renderResources.inFlightFence))*/
-	}
-
 	void GraphicsSystem::WaitForDevice() 
 	{
 		if (this->isInitialized) 
@@ -416,11 +404,9 @@ namespace vk
 	void GraphicsSystem::UpdateUniformViewMatrix(const glm::mat4& viewMat)
 	{
 		uTransform.view = viewMat;
-		uTransform.camPosition = _Application->GetCamera().Position();
 
 		memcpy(uTransformBuffer.mappedMemory, (void*)&uTransform, static_cast<VkDeviceSize>(sizeof(uTransformObject)));
 	}
-
 
 	void GraphicsSystem::BuildCommandBuffers(ObjectManager& objManager)
 	{

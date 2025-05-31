@@ -110,8 +110,6 @@ namespace vk
 			{
 				Object* curr_obj = pair.obj;
 				curr_obj->Update(dt);
-
-				updated = true;
 			}
 		}
 
