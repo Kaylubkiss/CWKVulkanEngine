@@ -9,9 +9,8 @@
 namespace vk
 {
 
-	//JANK FORWARD DECLARATION, BECAUSE OF A DOUBLE INCLUDE PROBABLY
+	/* NOTE: JANK FORWARD DECLARATION, BECAUSE OF A DOUBLE INCLUDE PROBABLY */
 	class ObjectManager;
-
 
 	class GraphicsSystem
 	{
@@ -19,9 +18,9 @@ namespace vk
 		bool isInitialized = false;
 
 		uTransformObject uTransform;
-		vk::Buffer uTransformBuffer;
+		uLightObject uLight; /* NOTE: weird place to put light! */
 
-		uLightObject uLight;
+		vk::Buffer uTransformBuffer;
 		vk::Buffer uLightBuffer;
 
 		//may need to create array system out of this.
@@ -73,9 +72,7 @@ namespace vk
 			const vk::Buffer& UTransformBuffer();
 			const vk::Buffer& ULightBuffer();
 
-
 			void UpdateUniformViewMatrix(const glm::mat4& viewMat);
-			void UpdateUniformModelMatrix(const glm::mat4& modelMat);
 
 			void ResizeWindow();
 
@@ -94,7 +91,7 @@ namespace vk
 
 		private:
 
-			void InitializePipeline(const vk::Window& appWindow);
+			void InitializePipeline(const vk::Window& appWindow, std::string vsFile, std::string fsFile);
 			void InitializedUniforms(const vk::Window& appWindow);
 
 			VkDevice CreateLogicalDevice(const VkPhysicalDevice& p_device, uint32_t graphicsFamily, uint32_t presentFamily);

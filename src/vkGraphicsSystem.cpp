@@ -64,7 +64,7 @@ namespace vk
 
 		GraphicsSystem::InitializedUniforms(appWindow);
 
-		GraphicsSystem::InitializePipeline(appWindow);
+		GraphicsSystem::InitializePipeline(appWindow, "shadowMapForward.vert", "shadowMapForward.frag");
 
 		this->swapChain = SwapChain(this->logicalGpu, this->gpus[g_index], graphicsQueue.family, presentQueue.family, appWindow.surface);
 
@@ -331,11 +331,11 @@ namespace vk
 
 	}
 
-	void GraphicsSystem::InitializePipeline(const vk::Window& appWindow) 
+	void GraphicsSystem::InitializePipeline(const vk::Window& appWindow, std::string vsFile, std::string fsFile)
 	{
-		ShaderModuleInfo vertColorInfo(this->logicalGpu, "blinnForward.vert", VK_SHADER_STAGE_VERTEX_BIT);
+		ShaderModuleInfo vertColorInfo(this->logicalGpu, vsFile, VK_SHADER_STAGE_VERTEX_BIT);
 
-		ShaderModuleInfo fragColorInfo(this->logicalGpu, "blinnForward.frag", VK_SHADER_STAGE_FRAGMENT_BIT, shaderc_fragment_shader);
+		ShaderModuleInfo fragColorInfo(this->logicalGpu, fsFile, VK_SHADER_STAGE_FRAGMENT_BIT, shaderc_fragment_shader);
 
 
 		VkDescriptorSetLayoutBinding uTransformBinding{};

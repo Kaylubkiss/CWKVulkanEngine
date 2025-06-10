@@ -71,7 +71,8 @@ src/Include/TextureManager.h
 src/Include/ApplicationGlobal.h
 src/Include/Controller.h
 src/Include/SpirvHelper.h
-src/Include/HotReloader.h)
+src/Include/HotReloader.h
+src/Include/vkShadowMap.h)
 				 
 
 set(VULKAN_ENGINE_HEADERS 
@@ -93,10 +94,16 @@ src/Include/vkPipeline.h)
 source_group("Header Files/VulkanHeaders" FILES ${VULKAN_ENGINE_HEADERS})	
 list(APPEND HEADER_FILES ${VULKAN_ENGINE_HEADERS})
 
-set(SHADER_FILES src/Shaders/color.frag
+set(SHADER_FILES
+#color 
+src/Shaders/color.frag
 src/Shaders/color.vert
+#blinn-phong
 src/Shaders/blinnForward.frag	
-src/Shaders/blinnForward.vert)
+src/Shaders/blinnForward.vert
+#blinn-phong with shadow mapping
+src/Shaders/shadowMapForward.frag
+src/Shaders/shadowMapForward.vert)
 								 
 #-----COMPILATION OPTIONS DEPENDING ON PLATFORM---------
 if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")

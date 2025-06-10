@@ -31,11 +31,11 @@ namespace vk
 
 	struct uLightObject 
 	{
-		glm::vec3 pos;
-		glm::vec3 albedo;
-		glm::vec3 ambient;
-		glm::vec3 specular;
-		float shininess;
+		glm::vec3 pos; /* position of light */
+		glm::vec3 ambient; /* scene color */
+		glm::vec3 albedo; /* base color of light */
+		glm::vec3 specular; /* reflectivity of the light */
+		float shininess; /* exponent value */
 	};
 
 	struct Queue 
