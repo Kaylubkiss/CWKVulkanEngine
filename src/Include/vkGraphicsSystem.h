@@ -37,9 +37,9 @@ namespace vk
 
 		} semaphores{};
 
-		VkPipelineStageFlags pipelineWaitStages = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-
 		VkSubmitInfo submitInfo = {};
+
+		VkPipelineStageFlags pipelineWaitStages = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
 
 		vk::SwapChain swapChain;
 
@@ -78,7 +78,7 @@ namespace vk
 
 			void WaitForDevice();
 
-			void Render(const vk::Window& appWindow, VkCommandBuffer* secondCmdBuffers, size_t secondCmdCount);
+			void Render();
 
 			void BindPipelineLayoutToObject(Object& obj);
 
@@ -87,7 +87,7 @@ namespace vk
 				hotReloader = HotReloader(this->logicalGpu, this->mPipeline);
 			}
 
-			void BuildCommandBuffers(vk::ObjectManager& objManager);
+			void RecordCommandBuffers(vk::ObjectManager& objManager);
 
 		private:
 

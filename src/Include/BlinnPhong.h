@@ -21,7 +21,6 @@ struct LightInfoObject
 	vk::Buffer mBuffer;
 
 private:
-	/*void AddDirection(const glm::vec3& dir);*/
 	void AddPosition(const glm::vec3& pos);
 
 public:

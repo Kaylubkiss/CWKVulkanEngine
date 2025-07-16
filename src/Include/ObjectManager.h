@@ -93,7 +93,7 @@ namespace vk
 		void Init();
 
 		bool FinalizeObjects();
-		bool Update(float dt, VkCommandBuffer cmdBuffer);
+		void Update(float dt);
 
 		void AttachSystems(TextureManager* textureManager, GraphicsSystem* graphicsSystem);
 	private:

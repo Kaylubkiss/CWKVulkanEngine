@@ -15,6 +15,7 @@ class Application
 private:	
 	vk::Window mWindow;
 	bool guiWindowIsFocused = false;
+	bool exitApplication = false;
 
 public:
 	void run();
@@ -36,22 +37,14 @@ private:
 
 	Timer mTime;
 	Camera mCamera;
-
-	VkInstance m_instance = VK_NULL_HANDLE;
-	VkCommandBuffer secondaryCmdBuffer = VK_NULL_HANDLE;
-
-	vk::TextureManager mTextureManager;
-	vk::ObjectManager mObjectManager;
-
 	PhysicsSystem mPhysics;
 	vk::HotReloader mHotReloader;
 
-	//POINTER
-	vk::GraphicsSystem* mGraphicsSystem = nullptr;
+	VkInstance mInstance = VK_NULL_HANDLE;
 
-	bool exitApplication = false;
-
-	VkDebugUtilsMessengerEXT debugMessenger = VK_NULL_HANDLE;
+	vk::TextureManager mTextureManager;
+	vk::ObjectManager mObjectManager;
+	vk::GraphicsSystem mGraphicsSystem;
 
 	void CreateWindow(vk::Window& appWindow);
 	void CreateWindowSurface(const VkInstance& vkInstance, vk::Window& appWindow);

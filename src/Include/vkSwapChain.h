@@ -10,7 +10,6 @@ namespace vk
 	{
 		private:
 			VkSwapchainKHR handle = VK_NULL_HANDLE;
-			uint32_t imageCount = 0;
 			
 			std::vector<VkImage> images;
 			std::vector<VkImageView> imageViews;
@@ -25,7 +24,6 @@ namespace vk
 				}
 
 				handle = other.handle;
-				imageCount = other.imageCount;
 				images = other.images;
 				imageViews = other.imageViews;
 				frameBuffers = other.frameBuffers;
@@ -46,7 +44,7 @@ namespace vk
 
 			void Destroy(VkDevice l_device)
 			{
-				for (unsigned i = 0; i < imageCount; ++i)
+				for (unsigned i = 0; i < this->images.size(); ++i)
 				{
 					vkDestroyImageView(l_device, this->imageViews[i], nullptr);
 					vkDestroyFramebuffer(l_device, this->frameBuffers[i], nullptr);

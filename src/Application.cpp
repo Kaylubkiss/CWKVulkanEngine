@@ -128,27 +128,27 @@ bool Application::init()
 {
 	this->mCamera = Camera({ 0.f, 0.f, 10.f }, { 0.f, 0.f, -1.f } , { 0,1,0 });
 
-	CreateWindow(this->mWindow);
+	Application::CreateWindow(this->mWindow);
 
-	this->m_instance = vk::init::CreateInstance(this->mWindow.sdl_ptr);
+	this->mInstance = vk::init::CreateInstance(this->mWindow.sdl_ptr);
 	
-	CreateWindowSurface(this->m_instance, this->mWindow);
+	Application::CreateWindowSurface(this->mInstance, this->mWindow);
 
-	this->mGraphicsSystem = new vk::GraphicsSystem(this->m_instance, this->mWindow);
+	this->mGraphicsSystem = vk::GraphicsSystem(this->mInstance, this->mWindow);
 
-	this->mGraphicsSystem->AttachHotReloader(this->mHotReloader);
+	mGraphicsSystem.AttachHotReloader(this->mHotReloader);
 
-	this->secondaryCmdBuffer = vk::init::CommandBuffer(this->mGraphicsSystem->LogicalDevice(), this->mGraphicsSystem->CommandPool(), VK_COMMAND_BUFFER_LEVEL_SECONDARY);
-
-	this->mTextureManager.Init(this->mGraphicsSystem->LogicalDevice());
-	
+	this->mTextureManager.Init(this->mGraphicsSystem.LogicalDevice());
 	this->mObjectManager.Init();
-	this->mObjectManager.AttachSystems(&this->mTextureManager, this->mGraphicsSystem);
+	this->mPhysics.Init();
+
+	
+	this->mObjectManager.AttachSystems(&this->mTextureManager, &this->mGraphicsSystem);
 	
 	glm::mat4 modelTransform = glm::mat4(5.f);
 	modelTransform[3] = glm::vec4(1.0f, 0, 5.f, 1);
 
-	mObjectManager.LoadObject(mGraphicsSystem->PhysicalDevice(), mGraphicsSystem->LogicalDevice(), "freddy.obj", modelTransform, "texture.jpg", nullptr, false, "freddy");
+	mObjectManager.LoadObject(mGraphicsSystem.PhysicalDevice(), mGraphicsSystem.LogicalDevice(), "freddy.obj", modelTransform, "texture.jpg", nullptr, false, "freddy");
 
 	//object 2
 	modelTransform = glm::mat4(1.f);
@@ -158,7 +158,7 @@ bool Application::init()
 	physicsComponent.bodyType = BodyType::DYNAMIC;
 	physicsComponent.colliderType = PhysicsComponent::ColliderType::CUBE;
 
-	mObjectManager.LoadObject(mGraphicsSystem->PhysicalDevice(), mGraphicsSystem->LogicalDevice(), "cube.obj", modelTransform, "puppy1.bmp", &physicsComponent, true, "cube");
+	mObjectManager.LoadObject(mGraphicsSystem.PhysicalDevice(), mGraphicsSystem.LogicalDevice(), "cube.obj", modelTransform, "puppy1.bmp", &physicsComponent, true, "cube");
 
 	//object 3
 	const float dbScale = 30.f;
@@ -166,14 +166,11 @@ bool Application::init()
 	modelTransform[3] = { 0.f, -5.f, 0.f, 1 };
 	
 	physicsComponent.bodyType = reactphysics3d::BodyType::STATIC;
-	mObjectManager.LoadObject(mGraphicsSystem->PhysicalDevice(), mGraphicsSystem->LogicalDevice(), "base.obj", modelTransform, "puppy1.bmp", &physicsComponent, true, "base");
+	mObjectManager.LoadObject(mGraphicsSystem.PhysicalDevice(), mGraphicsSystem.LogicalDevice(), "base.obj", modelTransform, "puppy1.bmp", &physicsComponent, true, "base");
 	
 	//InitGui();
 
-	mPhysics.Init();
-
-	mGraphicsSystem->BuildCommandBuffers(this->mObjectManager);
-
+	
 	mTime = Timer(SDL_GetPerformanceCounter());
 
 
@@ -292,52 +289,51 @@ void Application::loop()
 	//render graphics.
 	while (exitApplication == false)
 	{	
-		mTime.Update();
+		double dt = mTime.CalculateDeltaTime();
 
-		bool result = Controller::MoveCamera(mCamera, mTime.DeltaTime());
-		if (result) { mGraphicsSystem->UpdateUniformViewMatrix(mCamera.LookAt()); }
-		/*SelectWorldObjects(this->mWindow, this->mCamera, vk::global::uTransform, this->mPhysics);*/
+		if (Controller::MoveCamera(mCamera, dt))
+		{
+			mGraphicsSystem.UpdateUniformViewMatrix(mCamera.LookAt()); 
+		}
 
-		mPhysics.Update(mTime.DeltaTime());
+		mPhysics.Update(dt);
 
 		mHotReloader.HotReload();
 
-		result = this->mObjectManager.Update(mPhysics.InterpFactor(), this->secondaryCmdBuffer);
+		this->mObjectManager.Update(mPhysics.InterpFactor());
 
-		mGraphicsSystem->BuildCommandBuffers(this->mObjectManager);
+		mGraphicsSystem.RecordCommandBuffers(this->mObjectManager);
 
 		//sync this up with primary command buffer in graphics system...
-		mGraphicsSystem->Render(this->mWindow, &this->secondaryCmdBuffer, 1);	
+		mGraphicsSystem.Render();	
 	}
 	
 	//when we're done with the loop, we should make sure the logical device is flushed.
-	mGraphicsSystem->WaitForDevice();
+	mGraphicsSystem.WaitForDevice();
 
 }
 
 
 void Application::exit()
 {
-	mTextureManager.Destroy(mGraphicsSystem->LogicalDevice());
-	mObjectManager.Destroy(mGraphicsSystem->LogicalDevice());
+	mTextureManager.Destroy(mGraphicsSystem.LogicalDevice());
+	mObjectManager.Destroy(mGraphicsSystem.LogicalDevice());
 
-	mGraphicsSystem->Destroy();
-
-	delete mGraphicsSystem;
+	mGraphicsSystem.Destroy();
 }
 
 
 Application::~Application()
 {
 
-	if (this->m_instance != VK_NULL_HANDLE) 
+	if (this->mInstance != VK_NULL_HANDLE)
 	{
 		if (this->mWindow.surface != nullptr) 
 		{
-			vkDestroySurfaceKHR(this->m_instance, this->mWindow.surface, nullptr);
+			vkDestroySurfaceKHR(this->mInstance, this->mWindow.surface, nullptr);
 		}
 
-		vkDestroyInstance(this->m_instance, nullptr);
+		vkDestroyInstance(this->mInstance, nullptr);
 	}
 }
 

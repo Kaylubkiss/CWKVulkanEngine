@@ -58,13 +58,13 @@ namespace vk
 		}
 
 
-		VkDescriptorSetLayout DescriptorSetLayout(VkDevice logicalDevice, std::vector<VkDescriptorSetLayoutBinding>& bindings)
+		VkDescriptorSetLayout DescriptorSetLayout(VkDevice logicalDevice, VkDescriptorSetLayoutBinding* bindings, uint32_t sizeOfBindings)
 		{
 
 			VkDescriptorSetLayoutCreateInfo layoutInfo = {};
 			layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-			layoutInfo.bindingCount = bindings.size();
-			layoutInfo.pBindings = bindings.data();
+			layoutInfo.bindingCount = sizeOfBindings;
+			layoutInfo.pBindings = bindings;
 
 
 			VkDescriptorSetLayout layout;

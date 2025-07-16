@@ -25,16 +25,8 @@ namespace vk
 			this->commandBuffers.push_back(vk::init::CommandBuffer(l_device, this->commandPool, VK_COMMAND_BUFFER_LEVEL_PRIMARY));
 		}
 
-		//semaphores
-		/*this->imageAvailableSemaphore = vk::init::CreateSemaphore(l_device);
-		this->renderFinishedSemaphore = vk::init::CreateSemaphore(l_device);*/
-
 		//fence(s)
 		this->inFlightFence = vk::init::CreateFence(l_device);
-
-		/*this->depthInfo = vk::rsc::CreateDepthResources(p_device, l_device, appWindow.viewport);
-
-		this->renderPass = vk::init::RenderPass(l_device, this->depthInfo.depthFormat);*/
 
 		this->currentExtent = deviceCapabilities.currentExtent;
 	}

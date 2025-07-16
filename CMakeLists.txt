@@ -89,7 +89,8 @@ src/Include/vkSwapChain.h
 src/Include/vkResource.h
 src/Include/vkMesh.h
 src/Include/vkRenderResources.h
-src/Include/vkPipeline.h)
+src/Include/vkPipeline.h
+src/Include/vkDevice.h)
 								 
 source_group("Header Files/VulkanHeaders" FILES ${VULKAN_ENGINE_HEADERS})	
 list(APPEND HEADER_FILES ${VULKAN_ENGINE_HEADERS})

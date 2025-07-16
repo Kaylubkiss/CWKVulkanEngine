@@ -50,14 +50,14 @@ namespace vk
 		VkSurfaceCapabilitiesKHR deviceCapabilities;
 		VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(p_device, windowSurface, &deviceCapabilities));
 
-		this->imageCount = deviceCapabilities.minImageCount + 1;
+		uint32_t imageCount = deviceCapabilities.minImageCount + 1;
 
-		if (deviceCapabilities.maxImageCount > 0 && this->imageCount > deviceCapabilities.maxImageCount)
+		if (deviceCapabilities.maxImageCount > 0 && imageCount > deviceCapabilities.maxImageCount)
 		{
-			this->imageCount = deviceCapabilities.maxImageCount;
+			imageCount = deviceCapabilities.maxImageCount;
 		}
 
-		swapChainInfo.minImageCount = this->imageCount;
+		swapChainInfo.minImageCount = imageCount;
 		swapChainInfo.imageColorSpace = surfaceFormats[surfaceIndex].colorSpace;
 		swapChainInfo.imageFormat = surfaceFormats[surfaceIndex].format;
 		swapChainInfo.imageExtent = deviceCapabilities.currentExtent;
@@ -89,11 +89,11 @@ namespace vk
 
 		VK_CHECK_RESULT(vkCreateSwapchainKHR(l_device, &swapChainInfo, nullptr, &this->handle));
 
-		this->images.resize(this->imageCount);
+		this->images.resize(imageCount);
 
-		VK_CHECK_RESULT(vkGetSwapchainImagesKHR(l_device, this->handle, &this->imageCount, this->images.data()));
+		VK_CHECK_RESULT(vkGetSwapchainImagesKHR(l_device, this->handle, &imageCount, this->images.data()));
 
-		SwapChain::CreateImageViews(l_device, this->images.data(), this->imageCount);
+		SwapChain::CreateImageViews(l_device, this->images.data(), (uint32_t)this->images.size());
 	}
 	
 	void SwapChain::Recreate(const VkPhysicalDevice p_device, const VkDevice l_device, uint32_t graphicsFamily, uint32_t presentFamily, vk::rsc::DepthResources& depthResources, const VkRenderPass renderPass, const vk::Window& appWindow)
@@ -165,14 +165,14 @@ namespace vk
 	void SwapChain::AllocateFrameBuffers(const VkDevice l_device, const VkViewport& vp, const vk::rsc::DepthResources& depthResources, const VkRenderPass renderPass)
 	{
 
-		if (this->imageCount <= 0) 
+		if (this->images.size() <= 0) 
 		{
 			throw std::runtime_error("have 0 swap chain images available. Did you allocate the swap chain?");
 		}
 		
-		this->frameBuffers.resize(this->imageCount);
+		this->frameBuffers.resize(this->images.size());
 
-		for (unsigned i = 0; i < this->imageCount; ++i) {
+		for (unsigned i = 0; i < this->images.size(); ++i) {
 
 			VkImageView attachments[2] = { imageViews[i], depthResources.depthImageView };
 

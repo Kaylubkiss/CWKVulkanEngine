@@ -4,7 +4,6 @@ layout(location = 1) in vec2 fragTexCoord;
 layout(location = 2) in vec3 Normal;
 layout(location = 3) in vec3 worldPos;
 layout(location = 4) in vec3 viewPos;
-layout(location = 5) in vec3 lightPos;
 
 
 layout(std140, binding = 2) uniform uLight 
@@ -18,16 +17,13 @@ layout(std140, binding = 2) uniform uLight
 
 layout(binding = 1) uniform sampler2D texSampler;
 
-
-
-
 layout(location = 0) out vec4 outColor;
 
 void main()
 {
 
 	vec3 norm = normalize(Normal);
-	vec3 lightDir = normalize(lightPos - worldPos);
+	vec3 lightDir = normalize(light.pos - worldPos);
 	
 	vec3 viewDir = normalize(viewPos - worldPos);
 	vec3 halfwayDir = normalize(lightDir + viewDir);

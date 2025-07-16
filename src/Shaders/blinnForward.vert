@@ -7,15 +7,6 @@ layout(std140, binding = 0) uniform uTransformObject {
     mat4 proj;
 } ubo;
 
-layout(std140, binding = 2) uniform uLight 
-{
-    vec3 pos;
-	vec3 albedo;
-	vec3 ambient;
-	vec3 specular;
-	vec3 shininess; //for data alignment, made a float vec3
-} light;
-
 layout (push_constant) uniform pc
 {
 	mat4 modelMatrix;
@@ -33,7 +24,6 @@ layout(location = 1) out vec2 fragTexCoord;
 layout(location = 2) out vec3 Normal;
 layout(location = 3) out vec3 worldPos;
 layout(location = 4) out vec3 viewPos;
-layout(location = 5) out vec3 lightPos;
 
 void main ()
 {
@@ -42,8 +32,6 @@ void main ()
 	worldPos = vec3(modelMatrix * vec4(aPos, 1.0));
 
 	Normal = mat3(transpose(inverse(modelMatrix))) * aNorm;
-	
-	lightPos = light.pos;
 
 	viewPos = vec3(0.f);
 	

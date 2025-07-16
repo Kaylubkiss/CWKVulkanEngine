@@ -139,19 +139,13 @@ void Object::InitPhysics(PhysicsSystem& appPhysics)
         this->mPhysicsComponent.collider = this->mPhysicsComponent.rigidBody->addCollider(this->mPhysicsComponent.shape, Transform::identity());
     }
 
-
     this->mPhysicsComponent.prevTransform = this->mPhysicsComponent.rigidBody->getTransform();
-
-
-    //std::cout << "Broad Phase ID, Init Physics: " << this->mPhysicsComponent.collider->getBroadPhaseId() << '\n';
-
 }
 
 
 void Object::Destroy(const VkDevice l_device) 
 {
     this->mMesh.Destroy(l_device);
-   //this->debugDrawObject.DestroyResources();
 }
 
 void Object::Update(const float& interpFactor)
@@ -179,14 +173,8 @@ void Object::Update(const float& interpFactor)
         this->mMesh.modelTransform = nModel;
     }
 
-    //this->debugDrawObject.Update();
 
 }
-
-//void Object::SetLinesArrayOffset(uint32_t index) 
-//{
-//    this->debugDrawObject.SetArrayOffset(index);
-//}
 
 void Object::Draw(VkCommandBuffer cmdBuffer) 
 {  

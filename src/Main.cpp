@@ -20,7 +20,6 @@ int main(int argc, char* argv[])
 {
     Locatecwd();
 
-
 	_Application->run();
 
 	return 0;

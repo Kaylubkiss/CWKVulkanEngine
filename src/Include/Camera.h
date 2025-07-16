@@ -32,13 +32,6 @@ class Camera
 
 			assert(mCamera != NULL);
 
-			// Display the world hit point coordinates
-		/*	std::cout << "Hit point : " <<
-				info.worldPoint.x <<
-				info.worldPoint.y <<
-				info.worldPoint.z <<
-				std::endl;*/
-
 			glm::vec3 cmPosition = mCamera->Position();
 			reactphysics3d::Vector3 cam_position = mCamera->mPhysicsComponent.rigidBody->getTransform().getPosition();
 

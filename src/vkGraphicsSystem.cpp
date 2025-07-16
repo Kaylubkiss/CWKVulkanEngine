@@ -8,9 +8,6 @@
 
 namespace vk
 {	
-
-	//extern variables!!!
-
 	void GraphicsSystem::Destroy() 
 	{
 		if (this->isInitialized) 
@@ -294,7 +291,7 @@ namespace vk
 		this->renderResources.currentExtent = deviceCapabilities.currentExtent;
 
 		//updating the uniform projection matrix after updating the viewport size
-		uTransform.proj = glm::perspective(glm::radians(45.f), (float)appWindow.viewport.width / appWindow.viewport.height, 0.1f, 1000.f); //proj
+		uTransform.proj = glm::perspective(glm::radians(45.f), (float)appWindow.viewport.width / appWindow.viewport.height, 0.1f, 100.f); //proj
 		
 		uTransform.proj[1][1] *= -1.f;		
 		
@@ -325,7 +322,6 @@ namespace vk
 		this->uLight.ambient = this->uLight.albedo * 0.1f;
 		this->uLight.specular = { 0.5f, 0.5f, 0.5f };
 		this->uLight.shininess = 16.f;
-
 
 		this->uLightBuffer = vk::Buffer(this->gpus[g_index], this->logicalGpu, sizeof(uLightObject), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, (void*)(&this->uLight));
 
@@ -361,7 +357,7 @@ namespace vk
 
 		std::vector<VkDescriptorSetLayoutBinding> dscSetLayoutBindings = { uTransformBinding, samplerBinding, uLightBinding };
 
-		VkDescriptorSetLayout colorSetLayout = vk::init::DescriptorSetLayout(this->logicalGpu, dscSetLayoutBindings);
+		VkDescriptorSetLayout colorSetLayout = vk::init::DescriptorSetLayout(this->logicalGpu, dscSetLayoutBindings.data(), (uint32_t)dscSetLayoutBindings.size());
 
 
 		//this is for an object's model transformation.
@@ -373,11 +369,13 @@ namespace vk
 
 		VkPipelineLayout colorPipelineLayout = vk::init::CreatePipelineLayout(this->logicalGpu, colorSetLayout, pushConstants);
 
-		this->mPipeline.AddModule(vertColorInfo).
+		this->mPipeline.
+			AddModule(vertColorInfo).
 			AddModule(fragColorInfo).
 			AddDescriptorSetLayout(colorSetLayout).
 			AddPipelineLayout(colorPipelineLayout).
-			Finalize(this->logicalGpu, this->gpus[g_index], appWindow, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST
+			Finalize(this->logicalGpu, this->gpus[g_index], 
+				appWindow, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST
 			);
 
 	}
@@ -408,7 +406,7 @@ namespace vk
 		memcpy(uTransformBuffer.mappedMemory, (void*)&uTransform, static_cast<VkDeviceSize>(sizeof(uTransformObject)));
 	}
 
-	void GraphicsSystem::BuildCommandBuffers(ObjectManager& objManager)
+	void GraphicsSystem::RecordCommandBuffers(ObjectManager& objManager)
 	{
 		for (size_t i = 0; i < this->renderResources.commandBuffers.size(); ++i)
 		{
@@ -428,7 +426,7 @@ namespace vk
 			renderPassInfo.renderArea.extent = this->renderResources.currentExtent;
 
 			VkClearValue clearColors[2] = {};
-			clearColors[0].color = { {0.5f, 0.5f, 0.5f, 1.f} };
+			clearColors[0].color = { uLight.ambient.x, uLight.ambient.y, uLight.ambient.z, 1.f };
 			clearColors[1].depthStencil = { 1.f, 0 };
 
 			renderPassInfo.clearValueCount = 2;
@@ -452,7 +450,7 @@ namespace vk
 
 	}
 
-	void GraphicsSystem::Render(const vk::Window& appWindow, VkCommandBuffer* secondCmdBuffers, size_t secondCmdCount)
+	void GraphicsSystem::Render()
 	{
 		//wait for queue submission..
 		uint32_t imageIndex;
@@ -470,8 +468,6 @@ namespace vk
 		}
 
 		submitInfo.commandBufferCount = 1;
-
-
 		submitInfo.pCommandBuffers = &this->renderResources.commandBuffers[imageIndex];
 
 		VK_CHECK_RESULT(vkQueueSubmit(this->graphicsQueue.handle, 1, &submitInfo, VK_NULL_HANDLE))

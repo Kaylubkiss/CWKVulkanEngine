@@ -10,7 +10,6 @@ class Timer
 public:
 	Timer() = default;
 	Timer(uint64_t currentTime);
-	double DeltaTime() const;
-	void Update();
+	double CalculateDeltaTime();
 
 };

@@ -46,7 +46,7 @@ namespace vk
 
 	void ObjectManager::Init()
 	{
-		this->mThreadWorkers.Init(1);
+		this->mThreadWorkers.Init(2);
 	}
 
 	void ObjectManager::AttachSystems(TextureManager* textureManager, GraphicsSystem* graphicsSystem) 
@@ -94,13 +94,12 @@ namespace vk
 
 	}
 
-	bool ObjectManager::Update(float dt, VkCommandBuffer cmdBuffer) 
+	void ObjectManager::Update(float dt) 
 	{
-		bool updated = false;
 
 		if (!objectUpdateQueue.empty())
 		{
-			updated = ObjectManager::FinalizeObjects();
+			ObjectManager::FinalizeObjects();
 		}
 
 		for (auto& obj : objects) 
@@ -112,8 +111,6 @@ namespace vk
 				curr_obj->Update(dt);
 			}
 		}
-
-		return updated;
 	}
 
 

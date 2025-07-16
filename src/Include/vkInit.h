@@ -14,7 +14,7 @@ namespace vk
 
 		VkPipelineInputAssemblyStateCreateInfo AssemblyInputStateCreateInfo(VkPrimitiveTopology primitiveTopology);
 
-		VkDescriptorSetLayout DescriptorSetLayout(VkDevice logicalDevice, std::vector<VkDescriptorSetLayoutBinding>& bindings);
+		VkDescriptorSetLayout DescriptorSetLayout(VkDevice logicalDevice, VkDescriptorSetLayoutBinding* bindings, uint32_t sizeOfBindings);
 
 		std::array<VkVertexInputAttributeDescription, 3> VertexAttributeDescriptions();
 
