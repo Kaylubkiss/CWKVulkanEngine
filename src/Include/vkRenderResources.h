@@ -9,8 +9,6 @@ namespace vk
 
 	struct RenderResources
 	{
-		VkFence inFlightFence = VK_NULL_HANDLE; //not used!
-
 		VkCommandPool commandPool = VK_NULL_HANDLE;
 		std::vector<VkCommandBuffer> commandBuffers;
 

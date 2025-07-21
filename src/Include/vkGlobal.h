@@ -22,21 +22,7 @@ namespace vk
 		"VK_KHR_swapchain"
 	};
 
-	struct uTransformObject
-	{
-		glm::mat4 view = glm::mat4(1.f);
-		glm::mat4 proj = glm::mat4(1.f);
-	};
-
-
-	struct uLightObject 
-	{
-		glm::vec3 pos; /* position of light */
-		glm::vec3 ambient; /* scene color */
-		glm::vec3 albedo; /* base color of light */
-		glm::vec3 specular; /* reflectivity of the light */
-		float shininess; /* exponent value */
-	};
+	
 
 	struct Queue 
 	{
@@ -48,3 +34,20 @@ namespace vk
 
 	void endSingleTimeCommand(const VkDevice l_device, VkCommandBuffer commandBuffer, const VkCommandPool cmdPool, const VkQueue gfxQueue);
 }
+
+//these don't need to be tied to the vulkan API!!!
+struct uTransformObject
+{
+	glm::mat4 view = glm::mat4(1.f);
+	glm::mat4 proj = glm::mat4(1.f);
+};
+
+
+struct uLightObject
+{
+	glm::vec3 pos; /* position of light */
+	glm::vec3 ambient; /* scene color */
+	glm::vec3 albedo; /* base color of light */
+	glm::vec3 specular; /* reflectivity of the light */
+	float shininess; /* exponent value */
+};

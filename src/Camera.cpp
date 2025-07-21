@@ -58,17 +58,32 @@ void Camera::Update(const float& dt)
 	if (this->isUpdate)
 	{
 
-		this->UpdatePosition(this->accumulatedVelocity, dt);
+		Camera::UpdatePosition(this->accumulatedVelocity, dt);
 
 		reactphysics3d::Vector3 currTransform = this->mMovementTransform.getPosition();
 		this->mEye = glm::vec3(-currTransform.x, -(currTransform.y + .5f * mCapsule.mHeight), -currTransform.z);
 
 		this->accumulatedVelocity = reactphysics3d::Vector3::zero();
 
+		//update the uniforms
+		transformData->view = Camera::LookAt();
+
+		memcpy(transformBuffer->mappedMemory, (void*)transformData, static_cast<VkDeviceSize>(sizeof(uTransformObject)));
+
 		this->isUpdate = false;
 	}
 
 	
+}
+
+
+void Camera::AddUniform(uTransformObject* transform, vk::Buffer* buffer)
+{
+	assert(transform != nullptr);
+	assert(buffer != nullptr);
+
+	this->transformData = transform;
+	this->transformBuffer = buffer;
 }
 
 void Camera::MoveLeft() 

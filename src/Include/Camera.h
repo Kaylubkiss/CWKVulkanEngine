@@ -1,17 +1,17 @@
 #pragma once
+#include "vkGlobal.h"
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEFAULT_ALIGNED_GENTYPES
 #include <glm/glm.hpp>
 #include <reactphysics3d/reactphysics3d.h>
 using namespace reactphysics3d;
 
+
 struct Capsule 
 {
 	float mRadius;
 	float mHeight;
 };
-
-class CamRayCastCallBack : public RaycastCallback {};
 
 class Camera 
 {
@@ -46,17 +46,19 @@ class Camera
 			return decimal(0.0);
 		}
 	};
-	
+		
+		uTransformObject* transformData = nullptr;
+		vk::Buffer* transformBuffer = nullptr;
+
 		glm::vec3 mEye;
 		glm::vec3 mUpVector;
 		glm::vec3 mLookDir = glm::vec3(0, 0, -1);
-	
+		
 		float mPitch = 0.f;
 		float mYaw = 0.f;
 	
 		bool isUpdate = false;
-		
-		
+			
 		float constant_velocity = 15.f;
 
 		Capsule mCapsule;
@@ -68,9 +70,7 @@ class Camera
 		void UpdatePosition(reactphysics3d::Vector3& velocity, const float& dt);
 	
 	public:
-		Camera() : mEye(0.f), mUpVector(0.f), mCapsule()
-		{
-		}
+		Camera() : mEye(0.f), mUpVector(0.f), mCapsule() {}
 	
 		Camera(const glm::vec3& eye, const glm::vec3& lookDirection, const	glm::vec3& up);
 		
@@ -82,6 +82,8 @@ class Camera
 	
 		void Update(const float& dt);
 		void Rotate(const int& mouseX, const int& mouseY);
+
+		void AddUniform(uTransformObject* data, vk::Buffer* buffer);
 		
 		//getter functions.
 		glm::mat4 LookAt(); 

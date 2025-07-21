@@ -18,8 +18,6 @@ namespace vk
 
 		std::array<VkVertexInputAttributeDescription, 3> VertexAttributeDescriptions();
 
-		VkInstance CreateInstance(SDL_Window* window);	
-
 
 		VkRenderPass RenderPass(const VkDevice l_device, const VkFormat& depthFormat);
 

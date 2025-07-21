@@ -92,18 +92,13 @@ void Object::SetDebugDraw(bool option)
 
 void Object::UpdatePhysicsComponent(PhysicsComponent* physComp) 
 {
-   
-    if (physComp != nullptr) 
-    {
-
+        assert(_Application != NULL);
+        
         mPhysicsComponent = *physComp;
         
-        assert(_Application != NULL);
         PhysicsSystem& appPhysics = _Application->GetPhysics();
 
         Object::InitPhysics(appPhysics);        
-    }
-
 }
 
 void Object::InitPhysics(PhysicsSystem& appPhysics)

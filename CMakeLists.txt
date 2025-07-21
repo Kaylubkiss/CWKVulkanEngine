@@ -25,7 +25,7 @@ set(VULKAN_ENGINE_SRC src/vkDebug.cpp
 					  src/vkUtility.cpp
 					  src/vkInit.cpp
                       src/vkGlobal.cpp
-                      src/vkGraphicsSystem.cpp
+                      src/vkContextBase.cpp
 					  src/vkSwapChain.cpp
 					  src/vkBuffer.cpp
 					  src/vkResource.cpp
@@ -33,7 +33,8 @@ set(VULKAN_ENGINE_SRC src/vkDebug.cpp
 					  src/vkTexture.cpp
 					  src/vkCubemap.cpp
 					  src/vkPipeline.cpp
-	)
+					  src/vkFreddyHeadContext.cpp
+)
 
 
 source_group("Source Files/VulkanSources" FILES ${VULKAN_ENGINE_SRC})			
@@ -72,7 +73,7 @@ src/Include/ApplicationGlobal.h
 src/Include/Controller.h
 src/Include/SpirvHelper.h
 src/Include/HotReloader.h
-src/Include/vkShadowMap.h)
+)
 				 
 
 set(VULKAN_ENGINE_HEADERS 
@@ -81,7 +82,7 @@ src/Include/vkDebug.h
 src/Include/vkGlobal.h
 src/Include/vkInit.h
 src/Include/vkWindow.h
-src/Include/vkGraphicsSystem.h
+src/Include/vkContextBase.h
 src/Include/vkCubemap.h
 src/Include/vkBuffer.h
 src/Include/vkTexture.h
@@ -90,7 +91,10 @@ src/Include/vkResource.h
 src/Include/vkMesh.h
 src/Include/vkRenderResources.h
 src/Include/vkPipeline.h
-src/Include/vkDevice.h)
+src/Include/vkDevice.h
+src/Include/vkShadowMap.h
+src/Include/vkFreddyHeadContext.h
+)
 								 
 source_group("Header Files/VulkanHeaders" FILES ${VULKAN_ENGINE_HEADERS})	
 list(APPEND HEADER_FILES ${VULKAN_ENGINE_HEADERS})

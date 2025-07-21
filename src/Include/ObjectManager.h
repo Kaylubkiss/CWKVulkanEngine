@@ -1,10 +1,9 @@
 #pragma once
 
-
-#include "Object.h"
-#include "vkGraphicsSystem.h"
 #include <map>
 #include <thread>
+#include "Object.h"
+#include "vkContextBase.h"
 #include "Threadpool.h"
 #include "TextureManager.h"
 
@@ -15,7 +14,6 @@ struct str_cmp
 	{
 		return std::strcmp(a, b) < 0;
 	}
-
 };
 
 namespace vk 
@@ -92,10 +90,10 @@ namespace vk
 
 		void Init();
 
-		bool FinalizeObjects();
+		void FinalizeObjects();
 		void Update(float dt);
 
-		void AttachSystems(TextureManager* textureManager, GraphicsSystem* graphicsSystem);
+		void AttachSystems(TextureManager* textureManager, ContextBase* graphicsSystem);
 	private:
 		void LoadObjParallel(const VkPhysicalDevice p_device, const VkDevice l_device, const char* name = nullptr, const char* filename = nullptr, bool willDebugDraw = false, const glm::mat4& modelTransform = glm::mat4(1.f));
 
@@ -113,6 +111,6 @@ namespace vk
 		std::list<AsyncObjectInitInfo> objectUpdateQueue;
 		
 		TextureManager* textureSys = nullptr;
-		GraphicsSystem* gfxSys = nullptr;
+		ContextBase* gfxSys = nullptr;
 	};
 }

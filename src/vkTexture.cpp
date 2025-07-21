@@ -4,6 +4,7 @@
 #include "vkBuffer.h"
 #include "vkResource.h"
 #include <stb_image.h>
+#include "ApplicationGlobal.h"
 
 namespace vk {
 
@@ -96,9 +97,7 @@ namespace vk {
 
 		vk::util::GenerateMipMaps(p_device, l_device, cmdPool, gfxQueue, this->mTextureImage, VK_FORMAT_R8G8B8A8_SRGB, (uint32_t)textureWidth, (uint32_t)textureHeight, mipLevels);
 
-
-		vkDestroyBuffer(l_device, stagingBuffer.handle, nullptr);
-		vkFreeMemory(l_device, stagingBuffer.memory, nullptr);
+		stagingBuffer.Destroy(l_device);
 
 		vkDestroyCommandPool(l_device, cmdPool, nullptr);
 

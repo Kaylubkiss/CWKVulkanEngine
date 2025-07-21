@@ -1,7 +1,8 @@
 #include "Controller.h"
 #include <SDL2/SDL.h>
 #include "ApplicationGlobal.h"
-#include "vkGraphicsSystem.h"
+
+
 enum keys {
 
 	W = 0, A, S, D

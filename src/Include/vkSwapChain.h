@@ -6,9 +6,8 @@
 
 namespace vk 
 {
-	class SwapChain
+	struct SwapChain
 	{
-		private:
 			VkSwapchainKHR handle = VK_NULL_HANDLE;
 			
 			std::vector<VkImage> images;
@@ -16,7 +15,6 @@ namespace vk
 			
 			std::vector<VkFramebuffer> frameBuffers;
 
-		public:
 			inline SwapChain& operator=(const SwapChain& other)
 			{
 				if (this == &other) {
@@ -41,6 +39,10 @@ namespace vk
 
 			void AllocateFrameBuffers(const VkDevice l_device, const VkViewport& vp, const vk::rsc::DepthResources& depthResources, const VkRenderPass renderPass);
 
+			VkFramebuffer FrameBuffer(int i) 
+			{
+				return this->frameBuffers[i];
+			}
 
 			void Destroy(VkDevice l_device)
 			{
@@ -58,7 +60,6 @@ namespace vk
 		private:
 			void CreateImageViews(const VkDevice l_device, VkImage* images, uint32_t imageCount);
 
-		friend class GraphicsSystem;
 	};
 
 	

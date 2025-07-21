@@ -4,7 +4,7 @@
 #include <vulkan/vulkan.h>
 #include "vkTexture.h"
 #include <vector>
-#include "vkGraphicsSystem.h"
+#include "vkContextBase.h"
 
 namespace vk 
 {
@@ -28,12 +28,7 @@ namespace vk
 
 			void UpdateDescriptorSets(const VkDevice l_device, const VkDescriptorBufferInfo* pUniformDescriptorBuffers, size_t uniformDescriptorCount);
 
-			void BindTextureToObject(const std::string& fileName, GraphicsSystem& graphicsSystem, Object& obj);
-
-			VkDescriptorPool DescriptorPool() 
-			{
-				return this->descriptorPool;
-			}
+			void BindTextureToObject(const std::string& fileName, ContextBase& graphicsSystem, Object& obj);
 
 		private:
 

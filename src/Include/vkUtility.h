@@ -1,11 +1,12 @@
 #pragma once
 
-#include "Common.h"
+#include <vulkan/vulkan.h>
 #include <array>
 #include <cassert>
 #include <iostream>
 #include <cmath>
 #include <string>
+#include "shaderc/shaderc.h"
 
 #define VK_CHECK_RESULT(function) {VkResult check = function; assert(check == VK_SUCCESS); if (check != VK_SUCCESS) {std::cout << check << '\n';}}
 

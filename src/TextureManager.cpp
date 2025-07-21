@@ -3,16 +3,16 @@
 #include "vkBuffer.h"
 #include "vkResource.h"
 #include "vkInit.h"
+#include "ApplicationGlobal.h"
 
 namespace vk 
 {
 	
 	void TextureManager::Init(const VkDevice l_device) 
 	{
-	
+		assert(_Application != nullptr);
+
 		this->descriptorPool = vk::init::DescriptorPool(l_device);
-
-
 		this->isInitialized = true;
 	}
 
@@ -119,7 +119,7 @@ namespace vk
 	}
 
 
-	void TextureManager::BindTextureToObject(const std::string& fileName, GraphicsSystem& graphicsSystem, Object& obj)
+	void TextureManager::BindTextureToObject(const std::string& fileName, ContextBase& graphicsSystem, Object& obj)
 	{
 		int index = TextureManager::GetTextureIndexByName(fileName.c_str());
 
@@ -134,21 +134,9 @@ namespace vk
 								graphicsSystem.DescriptorSetLayout(),
 								fileName);
 
-			VkDescriptorBufferInfo uTransformbufferInfo = {};
-			uTransformbufferInfo.buffer = graphicsSystem.UTransformBuffer().handle;
-			uTransformbufferInfo.offset = 0;
-			uTransformbufferInfo.range = sizeof(uTransformObject);
+			std::vector<VkDescriptorBufferInfo> bufferInfo = graphicsSystem.DescriptorBuffers();
 
-
-			VkDescriptorBufferInfo uLightBufferInfo = {};
-			uLightBufferInfo.buffer = graphicsSystem.ULightBuffer().handle;
-			uLightBufferInfo.offset = 0;
-			uLightBufferInfo.range = sizeof(uLightObject);
-
-
-			VkDescriptorBufferInfo bufferInfo[2] = { uTransformbufferInfo, uLightBufferInfo };
-
-			TextureManager::UpdateDescriptorSets(graphicsSystem.LogicalDevice(), bufferInfo, 2);
+			TextureManager::UpdateDescriptorSets(graphicsSystem.LogicalDevice(), bufferInfo.data(), bufferInfo.size());
 
 			index = TextureManager::GetTextureIndexByName(fileName.c_str());
 		}

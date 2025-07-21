@@ -68,6 +68,8 @@ namespace vk
 
 			vk::Pipeline& AddDescriptorSetLayout(const VkDescriptorSetLayout& dscSetLayout);
 
+			vk::Pipeline& AddRenderPass(const VkRenderPass& renderPass);
+
 
 			/*void InitRenderDepthInformation(const VkDevice l_device, const VkFormat& depthFormat);
 

@@ -27,6 +27,12 @@ namespace vk
 		this->mHandle = vk::init::ShaderModule(l_device, shaderPath.data());
 	}
 
+	vk::Pipeline& Pipeline::AddRenderPass(const VkRenderPass& renderPass) 
+	{
+		this->mRenderPass = renderPass;
+
+		return *this;
+	}
 
 	Pipeline& Pipeline::AddModule(const ShaderModuleInfo& shaderModuleInfo)
 	{
@@ -70,8 +76,12 @@ namespace vk
 	vk::Pipeline& Pipeline::Finalize(const VkDevice l_device, const VkPhysicalDevice p_device, const vk::Window& appWindow, VkPrimitiveTopology topology)
 	{
 		this->mRenderDepthInfo = vk::rsc::CreateDepthResources(p_device, l_device, appWindow.viewport);
-
-		this->mRenderPass = vk::init::RenderPass(l_device, this->mRenderDepthInfo.depthFormat);
+		
+		//just in-case, we'll use the default if nothing's been specified.
+		if (this->mRenderPass == VK_NULL_HANDLE) 
+		{
+			this->mRenderPass = vk::init::RenderPass(l_device, this->mRenderDepthInfo.depthFormat);
+		}
 
 		this->mTopology = topology;
 

@@ -50,10 +50,8 @@ void ThreadPool::ThreadLoop()
 				return;
 			}
 
-
 			func = std::move(tasks.front());
 			tasks.pop();
-
 		}
 
 		func();
@@ -73,7 +71,6 @@ void ThreadPool::Terminate() {
 	for (std::thread& active_thread : threads) {
 		active_thread.join();
 	}
-
 
 	threads.clear();
 }

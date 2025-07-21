@@ -25,16 +25,11 @@ namespace vk
 			this->commandBuffers.push_back(vk::init::CommandBuffer(l_device, this->commandPool, VK_COMMAND_BUFFER_LEVEL_PRIMARY));
 		}
 
-		//fence(s)
-		this->inFlightFence = vk::init::CreateFence(l_device);
-
 		this->currentExtent = deviceCapabilities.currentExtent;
 	}
 
 	void RenderResources::Destroy(const VkDevice l_device)
 	{
-		vkDestroyFence(l_device, this->inFlightFence, nullptr);
-
 		//command pools and the buffers allocated.
 		vkFreeCommandBuffers(l_device, this->commandPool, this->commandBuffers.size(), this->commandBuffers.data());
 

@@ -11,7 +11,6 @@ namespace vk
 	{
 		objects[name].obj  = new Object(p_device, l_device, filename, willDebugDraw, modelTransform);
 		objects[name].isDoneLoading = true;
-
 	}
 
 	void ObjectManager::LoadObject(const VkPhysicalDevice p_device, const VkDevice l_device, const char* filename, const glm::mat4& modelTransform, const char* texturename, const PhysicsComponent* physComp, bool willDebugDraw, const char* name)
@@ -31,34 +30,27 @@ namespace vk
 
 		objectUpdateQueue.push_back({ nPhysics, texturename, name});
 
-		std::function<void()> func = [this, p_device, l_device, modelTransform, name, filename, willDebugDraw] 
-		{ 
+		std::function<void()> func = [this, p_device, l_device, modelTransform, name, filename, willDebugDraw] { 
 			
-			ObjectManager::LoadObjParallel(p_device, l_device, name, (std::string(filename)).c_str(), willDebugDraw, modelTransform); 
-			
+			ObjectManager::LoadObjParallel(p_device, l_device, name, (std::string(filename)).c_str(), willDebugDraw, modelTransform); 	
 		};
 
 		mThreadWorkers.EnqueueTask(func);
-
-		//objects[name] = new Object(p_device, l_device, filename, willDebugDraw, modelTransform);
-
 	}
 
 	void ObjectManager::Init()
 	{
-		this->mThreadWorkers.Init(2);
+		this->mThreadWorkers.Init(3);
 	}
 
-	void ObjectManager::AttachSystems(TextureManager* textureManager, GraphicsSystem* graphicsSystem) 
+	void ObjectManager::AttachSystems(TextureManager* textureManager, ContextBase* graphicsSystem) 
 	{
 		this->textureSys = textureManager;
 		this->gfxSys = graphicsSystem;
 	}
 
-	bool ObjectManager::FinalizeObjects() 
+	void ObjectManager::FinalizeObjects() 
 	{
-
-		bool objectFinished = false;
 		//warning: can be very slow. Don't update object textures often at this point in development though.
 		auto it = objectUpdateQueue.begin();
 
@@ -79,18 +71,16 @@ namespace vk
 					curr_obj->UpdatePhysicsComponent(it->physComp);
 					delete it->physComp;
 				}
+				
 
 				objectUpdateQueue.erase(it++);
-				
-				objectFinished = true;
+		
 			}
 			else 
 			{
 				++it;
 			}
 		}
-
-		return objectFinished;
 
 	}
 
@@ -101,13 +91,13 @@ namespace vk
 		{
 			ObjectManager::FinalizeObjects();
 		}
-
-		for (auto& obj : objects) 
+		else 
 		{
-			auto& pair = obj.second;
-			if (pair.isDoneLoading) 
+			for (auto& obj : objects)
 			{
+				auto& pair = obj.second;
 				Object* curr_obj = pair.obj;
+				
 				curr_obj->Update(dt);
 			}
 		}

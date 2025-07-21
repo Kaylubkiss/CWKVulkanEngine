@@ -2,6 +2,7 @@
 
 
 #include "vkBuffer.h"
+#include "Vertex.h"
 
 namespace vk 
 {
