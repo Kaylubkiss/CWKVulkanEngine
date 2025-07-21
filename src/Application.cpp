@@ -86,7 +86,7 @@ void Application::init()
 	this->graphicsContext = std::make_unique<vk::FreddyHeadScene>();
 
 	vk::FreddyHeadScene* freddyScene = static_cast<vk::FreddyHeadScene*>(graphicsContext.get());
-	this->mCamera.AddUniform(&freddyScene->GetUniformTransform(), &freddyScene->GetUniformTransformBuffer());
+	this->mCamera.AddUniform(&freddyScene->SceneTransform());
 
 	this->mTextureManager.Init(graphicsContext->LogicalDevice());
 	this->mPhysics.Init();
@@ -95,9 +95,6 @@ void Application::init()
 	this->mObjectManager.AttachSystems(&this->mTextureManager, graphicsContext.get());
 	
 	graphicsContext->InitializeScene(mObjectManager);
-	
-	//InitGui();
-
 	
 	mTime = Timer(SDL_GetPerformanceCounter());
 }

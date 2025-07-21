@@ -12,9 +12,9 @@ namespace vk
 	ContextBase::~ContextBase()
 	{
 		swapChain.Destroy(this->device.logical);
+		uTransform.buffer.Destroy(device.logical);
 
 		vkFreeCommandBuffers(device.logical, this->commandPool, this->commandBuffers.size(), this->commandBuffers.data());
-
 		vkDestroyCommandPool(device.logical, this->commandPool, nullptr);
 
 		//semaphores
@@ -384,7 +384,11 @@ namespace vk
 		return this->mPipeline.DescriptorSetLayout();
 	}
 
-	
+	vk::UniformTransform& ContextBase::SceneTransform() 
+	{
+		return this->uTransform;
+	}
+
 	//update(s)
 	void ContextBase::BindPipelineLayoutToObject(Object& obj)
 	{

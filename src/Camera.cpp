@@ -66,9 +66,9 @@ void Camera::Update(const float& dt)
 		this->accumulatedVelocity = reactphysics3d::Vector3::zero();
 
 		//update the uniforms
-		transformData->view = Camera::LookAt();
+		sceneTransform->data.view = Camera::LookAt();
 
-		memcpy(transformBuffer->mappedMemory, (void*)transformData, static_cast<VkDeviceSize>(sizeof(uTransformObject)));
+		memcpy(sceneTransform->buffer.mappedMemory, (void*)&sceneTransform->data, static_cast<VkDeviceSize>(sizeof(uTransformObject)));
 
 		this->isUpdate = false;
 	}
@@ -77,13 +77,11 @@ void Camera::Update(const float& dt)
 }
 
 
-void Camera::AddUniform(uTransformObject* transform, vk::Buffer* buffer)
+void Camera::AddUniform(vk::UniformTransform* transform)
 {
 	assert(transform != nullptr);
-	assert(buffer != nullptr);
-
-	this->transformData = transform;
-	this->transformBuffer = buffer;
+	
+	this->sceneTransform = transform;
 }
 
 void Camera::MoveLeft() 

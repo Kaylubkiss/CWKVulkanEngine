@@ -12,8 +12,6 @@ namespace vk
 
 		void* mappedMemory = NULL;
 
-		bool isAllocated = false;  
-
 		//shallow copy
 		void operator=(const Buffer& rhs)
 		{

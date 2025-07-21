@@ -47,8 +47,7 @@ class Camera
 		}
 	};
 		
-		uTransformObject* transformData = nullptr;
-		vk::Buffer* transformBuffer = nullptr;
+		vk::UniformTransform* sceneTransform = nullptr;
 
 		glm::vec3 mEye;
 		glm::vec3 mUpVector;
@@ -83,7 +82,7 @@ class Camera
 		void Update(const float& dt);
 		void Rotate(const int& mouseX, const int& mouseY);
 
-		void AddUniform(uTransformObject* data, vk::Buffer* buffer);
+		void AddUniform(vk::UniformTransform* transform);
 		
 		//getter functions.
 		glm::mat4 LookAt(); 

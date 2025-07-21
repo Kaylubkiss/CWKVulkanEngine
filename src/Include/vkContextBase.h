@@ -19,6 +19,8 @@ namespace vk
 
 			VkInstance instance = VK_NULL_HANDLE;
 
+			vk::UniformTransform uTransform;
+
 			vk::HotReloader mHotReloader;
 
 			bool isInitialized = false;
@@ -72,7 +74,7 @@ namespace vk
 			const VkPipeline Pipeline() const;
 			const VkPhysicalDevice PhysicalDevice() const;
 			const VkDevice LogicalDevice() const;
-
+			vk::UniformTransform& SceneTransform();
 
 			void WaitForDevice();
 

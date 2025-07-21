@@ -16,15 +16,15 @@ namespace vk
 		Camera& appCamera = _Application->GetCamera();
 
 		//uniform transform for objects of default pipeline.
-		this->uTransform = {
+		this->uTransform.data = {
 			appCamera.LookAt(), //view
 			glm::perspective(glm::radians(45.f), (float)window.viewport.width / window.viewport.height, 0.1f, 1000.f) //proj
 		};
 
-		this->uTransform.proj[1][1] *= -1.f;
+		this->uTransform.data.proj[1][1] *= -1.f;
 
 		//uniform(s)
-		this->uTransformBuffer = vk::Buffer(device.physical, device.logical, sizeof(uTransformObject), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, (void*)&this->uTransform);
+		this->uTransform.buffer = vk::Buffer(device.physical, device.logical, sizeof(uTransformObject), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, (void*)&this->uTransform);
 
 		this->uLight.pos = {};
 		this->uLight.albedo = { 1.0, 1.0, 1.0 };
@@ -43,19 +43,7 @@ namespace vk
 	FreddyHeadScene::~FreddyHeadScene()
 	{
 		mPipeline.Destroy(this->device.logical);
-
-		uTransformBuffer.Destroy(device.logical);
 		uLightBuffer.Destroy(device.logical);
-	}
-
-	uTransformObject& FreddyHeadScene::GetUniformTransform()
-	{
-		return this->uTransform;
-	}
-
-	vk::Buffer& FreddyHeadScene::GetUniformTransformBuffer() 
-	{
-		return this->uTransformBuffer;
 	}
 
 	void FreddyHeadScene::InitializeScene(ObjectManager& objManager) 
@@ -88,7 +76,7 @@ namespace vk
 	std::vector<VkDescriptorBufferInfo> FreddyHeadScene::DescriptorBuffers() 
 	{
 		VkDescriptorBufferInfo uTransformbufferInfo = {};
-		uTransformbufferInfo.buffer = uTransformBuffer.handle;
+		uTransformbufferInfo.buffer = uTransform.buffer.handle;
 		uTransformbufferInfo.offset = 0;
 		uTransformbufferInfo.range = sizeof(uTransformObject);
 
@@ -157,11 +145,11 @@ namespace vk
 		window.UpdateExtents(currentExtent);
 
 		//updating the uniform projection matrix after updating the viewport size
-		uTransform.proj = glm::perspective(glm::radians(45.f), (float)window.viewport.width / window.viewport.height, 0.1f, 100.f); //proj
+		uTransform.data.proj = glm::perspective(glm::radians(45.f), (float)window.viewport.width / window.viewport.height, 0.1f, 100.f); //proj
 		
-		uTransform.proj[1][1] *= -1.f;		
+		uTransform.data.proj[1][1] *= -1.f;		
 		
-		memcpy(uTransformBuffer.mappedMemory, (void*)&uTransform, uTransformBuffer.size);
+		memcpy(uTransform.buffer.mappedMemory, (void*)&uTransform, uTransform.buffer.size);
 
 		this->swapChain.Recreate(this->device.physical, this->device.logical, this->graphicsQueue.family, this->presentQueue.family, mPipeline.RenderDepthInfo(), this->mPipeline.RenderPass(), window);
 
