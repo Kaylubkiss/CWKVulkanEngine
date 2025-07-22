@@ -88,6 +88,9 @@ class Camera
 		glm::mat4 LookAt(); 
 		glm::vec3 Position();
 		glm::vec3 ViewDirection();
+
+	private:
+		void UpdateUniform();
 	
 };
 
