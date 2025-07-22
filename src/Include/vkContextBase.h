@@ -25,6 +25,8 @@ namespace vk
 
 			bool isInitialized = false;
 
+			std::shared_ptr<VkDescriptorPool> descriptorPool;
+			
 			VkCommandPool commandPool = VK_NULL_HANDLE;
 			std::vector<VkCommandBuffer> commandBuffers;
 
@@ -75,6 +77,7 @@ namespace vk
 			const VkPhysicalDevice PhysicalDevice() const;
 			const VkDevice LogicalDevice() const;
 			vk::UniformTransform& SceneTransform();
+			std::shared_ptr<VkDescriptorPool> DescriptorPool() const;
 
 			void WaitForDevice();
 
@@ -84,6 +87,7 @@ namespace vk
 
 		protected:
 			virtual void InitializePipeline(std::string vsFile, std::string fsFile) = 0;
+			virtual void InitializeDescriptorPool() = 0;
 
 		private:
 			VkDevice CreateLogicalDevice(const VkPhysicalDevice& p_device, uint32_t graphicsFamily, uint32_t presentFamily);

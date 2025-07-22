@@ -14,6 +14,8 @@ namespace vk
 		swapChain.Destroy(this->device.logical);
 		uTransform.buffer.Destroy(device.logical);
 
+		vkDestroyDescriptorPool(device.logical, *this->descriptorPool.get(), nullptr);
+
 		vkFreeCommandBuffers(device.logical, this->commandPool, this->commandBuffers.size(), this->commandBuffers.data());
 		vkDestroyCommandPool(device.logical, this->commandPool, nullptr);
 
@@ -354,6 +356,8 @@ namespace vk
 		this->mHotReloader.appDevicePtr = this->device.logical;
 		this->mHotReloader.AddPipeline(this->mPipeline); 
 
+		descriptorPool = std::make_shared<VkDescriptorPool>();
+
 		this->isInitialized = true;
 	}
 
@@ -387,6 +391,11 @@ namespace vk
 	vk::UniformTransform& ContextBase::SceneTransform() 
 	{
 		return this->uTransform;
+	}
+
+	std::shared_ptr<VkDescriptorPool> ContextBase::DescriptorPool() const 
+	{
+		return this->descriptorPool;
 	}
 
 	//update(s)

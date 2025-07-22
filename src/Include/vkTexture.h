@@ -21,7 +21,7 @@ namespace vk
 			VkDescriptorSet mDescriptorSet = VK_NULL_HANDLE;
 
 		//static methods for public use.
-		public:
+		private:
 			static VkImageView CreateTextureView(const VkDevice l_device, const VkImage& textureImage, uint32_t mipLevels);
 			static VkSampler CreateTextureSampler(const VkPhysicalDevice p_device, const VkDevice l_device, uint32_t mipLevels);
 

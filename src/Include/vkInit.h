@@ -31,14 +31,21 @@ namespace vk
 
 		VkPipelineLayout CreatePipelineLayout(const VkDevice l_device, const VkDescriptorSetLayout descriptorSetLayout, std::vector<VkPushConstantRange>& pushConstantRanges);
 
+		VkPushConstantRange PushConstantRange(uint32_t offset, uint32_t size, VkShaderStageFlags shaderStages);
+
+		VkDescriptorSetLayoutBinding DescriptorLayoutBinding(uint32_t binding, uint32_t descriptorCount, VkDescriptorType descriptorType, VkShaderStageFlags shaderStage);
+
 		VkPipeline CreateGraphicsPipeline(const VkDevice l_device, const VkPipelineLayout pipelineLayout, const VkRenderPass renderPass, VkPipelineShaderStageCreateInfo* pStages, int numStages, VkPrimitiveTopology primitiveTopology);
 
 		VkPipelineShaderStageCreateInfo PipelineShaderStageCreateInfo(const VkShaderModule& shaderModule, VkShaderStageFlagBits stage);
 
 		VkShaderModule ShaderModule(const VkDevice& l_device, const char* filename);
 
+		VkDescriptorPoolCreateInfo DescriptorPoolCreateInfo(const std::vector<VkDescriptorPoolSize>& poolSizes, uint32_t maxSets);
 
-		VkDescriptorPool DescriptorPool(const VkDevice l_device);
+		VkDescriptorPoolSize DescriptorPoolSize(VkDescriptorType type, uint32_t dscCount);
+
+		VkDescriptorPool DescriptorPool(const VkDevice l_device, const VkDescriptorPoolCreateInfo& poolInfo);
 
 		VkDescriptorSet DescriptorSet(const VkDevice l_device, const VkDescriptorPool dscPool, const VkDescriptorSetLayout dscLayout);
 	}

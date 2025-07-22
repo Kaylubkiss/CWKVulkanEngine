@@ -80,15 +80,13 @@ void Application::InitGui()
 
 void Application::init() 
 {
-	this->mCamera = Camera({ 0.f, 0.f, 10.f }, { 0.f, 0.f, -1.f } , { 0,1,0 });
-
-
 	this->graphicsContext = std::make_unique<vk::FreddyHeadScene>();
 
 	vk::FreddyHeadScene* freddyScene = static_cast<vk::FreddyHeadScene*>(graphicsContext.get());
+	this->mCamera = Camera({ 0.f, 0.f, 10.f }, { 0.f, 0.f, -1.f } , { 0,1,0 });
 	this->mCamera.AddUniform(&freddyScene->SceneTransform());
 
-	this->mTextureManager.Init(graphicsContext->LogicalDevice());
+	this->mTextureManager.Init(graphicsContext.get());
 	this->mPhysics.Init();
 
 	this->mObjectManager.Init();

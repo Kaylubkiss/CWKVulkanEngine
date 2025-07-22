@@ -10,7 +10,6 @@ namespace vk
 	void ObjectManager::LoadObjParallel(const VkPhysicalDevice p_device, const VkDevice l_device, const char* name, const char* filename, bool willDebugDraw, const glm::mat4& modelTransform)
 	{
 		objects[name].obj  = new Object(p_device, l_device, filename, willDebugDraw, modelTransform);
-		objects[name].isDoneLoading = true;
 	}
 
 	void ObjectManager::LoadObject(const VkPhysicalDevice p_device, const VkDevice l_device, const char* filename, const glm::mat4& modelTransform, const char* texturename, const PhysicsComponent* physComp, bool willDebugDraw, const char* name)
@@ -40,7 +39,7 @@ namespace vk
 
 	void ObjectManager::Init()
 	{
-		this->mThreadWorkers.Init(3);
+		this->mThreadWorkers.Init(2);
 	}
 
 	void ObjectManager::AttachSystems(TextureManager* textureManager, ContextBase* graphicsSystem) 
@@ -58,7 +57,7 @@ namespace vk
 		{
 			auto& objectInfo = objects[it->objName];
 
-			if (objectInfo.isDoneLoading)
+			if (objectInfo.obj != nullptr)
 			{
 				Object* curr_obj = objectInfo.obj;
 
@@ -72,9 +71,9 @@ namespace vk
 					delete it->physComp;
 				}
 				
+				objectInfo.isDoneLoading = true;
 
-				objectUpdateQueue.erase(it++);
-		
+				it = objectUpdateQueue.erase(it);
 			}
 			else 
 			{
@@ -91,13 +90,13 @@ namespace vk
 		{
 			ObjectManager::FinalizeObjects();
 		}
-		else 
+
+		for (auto& obj : objects)
 		{
-			for (auto& obj : objects)
+			auto& pair = obj.second;
+			if (pair.isDoneLoading) 
 			{
-				auto& pair = obj.second;
 				Object* curr_obj = pair.obj;
-				
 				curr_obj->Update(dt);
 			}
 		}

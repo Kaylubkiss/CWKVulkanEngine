@@ -16,7 +16,7 @@ namespace vk
 
 			void Destroy(const VkDevice l_device);
 
-			void Init(const VkDevice l_device);
+			void Init(const ContextBase* graphicsContext);
 
 			void Add(const VkPhysicalDevice p_device, const VkDevice l_device, const VkQueue gfxQueue, const VkDescriptorSetLayout dscSetLayout, const std::string& fileName);
 
@@ -32,9 +32,7 @@ namespace vk
 
 		private:
 
-			bool isInitialized = false;
-
-			VkDescriptorPool descriptorPool = VK_NULL_HANDLE;
+			std::shared_ptr<VkDescriptorPool> contextDescriptorPool;
 
 			std::vector<vk::Texture> mTextures;
 	};

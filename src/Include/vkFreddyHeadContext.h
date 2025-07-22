@@ -24,6 +24,7 @@ namespace vk
 
 		protected:
 			virtual void InitializePipeline(std::string vsFile, std::string fsFile) override;
+			virtual void InitializeDescriptorPool() override ;
 	};
 
 

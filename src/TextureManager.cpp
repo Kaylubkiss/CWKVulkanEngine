@@ -8,12 +8,11 @@
 namespace vk 
 {
 	
-	void TextureManager::Init(const VkDevice l_device) 
+	void TextureManager::Init(const ContextBase* graphicsContext)
 	{
 		assert(_Application != nullptr);
 
-		this->descriptorPool = vk::init::DescriptorPool(l_device);
-		this->isInitialized = true;
+		this->contextDescriptorPool = graphicsContext->DescriptorPool();
 	}
 
 	//Inefficient. Look into a way to individually write descriptor sets. Shouldn't be hard. Later.
@@ -68,7 +67,7 @@ namespace vk
 
 	void TextureManager::Add(const VkPhysicalDevice p_device, const VkDevice l_device, const VkQueue gfxQueue, const VkDescriptorSetLayout dscSetLayout, const std::string& fileName)
 	{
-		this->mTextures.emplace_back(p_device, l_device, gfxQueue, this->descriptorPool, dscSetLayout, fileName);
+		this->mTextures.emplace_back(p_device, l_device, gfxQueue, *this->contextDescriptorPool.get(), dscSetLayout, fileName);
 	}
 
 	void TextureManager::Add(const Texture& nTexture) 
@@ -79,16 +78,10 @@ namespace vk
 
 	void TextureManager::Destroy(const VkDevice l_device) 
 	{
-		if (this->isInitialized) 
+		for (size_t i = 0; i < mTextures.size(); ++i)
 		{
-			for (size_t i = 0; i < mTextures.size(); ++i)
-			{
-				mTextures[i].Destroy(l_device);
-			}
-
-			vkDestroyDescriptorPool(l_device, this->descriptorPool, nullptr);
+			mTextures[i].Destroy(l_device);
 		}
-
 	}
 
 	const Texture& TextureManager::GetTextureObject(size_t index) const
@@ -138,7 +131,7 @@ namespace vk
 
 			TextureManager::UpdateDescriptorSets(graphicsSystem.LogicalDevice(), bufferInfo.data(), bufferInfo.size());
 
-			index = TextureManager::GetTextureIndexByName(fileName.c_str());
+			index = mTextures.size() - 1;
 		}
 
 		obj.UpdateTexture(this->mTextures[index].mDescriptorSet);

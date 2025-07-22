@@ -66,10 +66,8 @@ namespace vk
 			layoutInfo.bindingCount = sizeOfBindings;
 			layoutInfo.pBindings = bindings;
 
-
 			VkDescriptorSetLayout layout;
 			VK_CHECK_RESULT(vkCreateDescriptorSetLayout(logicalDevice, &layoutInfo, nullptr, &layout));
-
 
 			return layout;
 		}
@@ -105,7 +103,6 @@ namespace vk
 			return { vInputAttribute[0], vInputAttribute[1], vInputAttribute[2] };
 		}
 
-	
 		inline VkSampler CreateTextureSampler(const VkPhysicalDevice p_device, const VkDevice l_device, uint32_t mipLevels)
 		{
 			VkSamplerCreateInfo createInfo = {};
@@ -250,25 +247,31 @@ namespace vk
 
 		}
 
-
-		VkDescriptorPool DescriptorPool(const VkDevice l_device) 
+		VkDescriptorPoolCreateInfo DescriptorPoolCreateInfo(const std::vector<VkDescriptorPoolSize>& poolSizes, uint32_t maxSets) 
 		{
-			const uint32_t poolSizeCount = 2;
-			VkDescriptorPoolSize poolSize[poolSizeCount] = {};
-			poolSize[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-			poolSize[0].descriptorCount = 2 * 2; //max numbers of frames in flight.
+			VkDescriptorPoolCreateInfo poolInfo = {};
 
-			//we are concerned about the fragment stage, so we double the descriptor count here.
-			poolSize[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-			poolSize[1].descriptorCount = 1 * 2; //max numbers of frames in flight times two to accomodate the gui.
-
-			VkDescriptorPoolCreateInfo poolInfo{};
 			poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
 			poolInfo.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
-			poolInfo.poolSizeCount = poolSizeCount;
-			poolInfo.pPoolSizes = poolSize;
-			poolInfo.maxSets = 1000; //how many descriptor sets in this pool?
+			poolInfo.poolSizeCount = (uint32_t)(poolSizes.size());
+			poolInfo.pPoolSizes = poolSizes.data();
+			poolInfo.maxSets = maxSets;
 
+			return poolInfo;
+		}
+
+		VkDescriptorPoolSize DescriptorPoolSize(VkDescriptorType type, uint32_t dscCount) 
+		{
+			VkDescriptorPoolSize nPoolSize = {};
+
+			nPoolSize.type = type;
+			nPoolSize.descriptorCount = dscCount;
+
+			return nPoolSize;
+		}
+
+		VkDescriptorPool DescriptorPool(const VkDevice l_device, const VkDescriptorPoolCreateInfo& poolInfo) 
+		{
 			VkDescriptorPool nDescriptorPool;
 			VK_CHECK_RESULT(vkCreateDescriptorPool(l_device, &poolInfo, nullptr, &nDescriptorPool));
 
@@ -290,6 +293,27 @@ namespace vk
 			return nDescriptorSet;
 		}
 
+		VkDescriptorSetLayoutBinding DescriptorLayoutBinding(uint32_t binding, uint32_t descriptorCount, VkDescriptorType descriptorType, VkShaderStageFlags shaderStage)
+		{
+			VkDescriptorSetLayoutBinding dscSetLayoutBinding = {};
+
+			dscSetLayoutBinding.binding = binding;
+			dscSetLayoutBinding.descriptorCount = descriptorCount;
+			dscSetLayoutBinding.descriptorType = descriptorType;
+			dscSetLayoutBinding.stageFlags = shaderStage;
+
+			return dscSetLayoutBinding;
+		}
+
+		VkPushConstantRange PushConstantRange(uint32_t offset, uint32_t size, VkShaderStageFlags shaderStages)
+		{
+			VkPushConstantRange nPushConstant = {};
+			nPushConstant.offset = offset;
+			nPushConstant.size = size;
+			nPushConstant.stageFlags = shaderStages;
+
+			return nPushConstant;
+		}
 		VkPipeline CreateGraphicsPipeline(const VkDevice l_device, const VkPipelineLayout pipelineLayout, const VkRenderPass renderPass, VkPipelineShaderStageCreateInfo* pStages, int numStages, VkPrimitiveTopology primitiveTopology)
 		{
 			auto vAttribs = vk::init::VertexAttributeDescriptions();

@@ -67,7 +67,6 @@ void Camera::Update(const float& dt)
 
 		//update the uniforms
 		sceneTransform->data.view = Camera::LookAt();
-
 		memcpy(sceneTransform->buffer.mappedMemory, (void*)&sceneTransform->data, static_cast<VkDeviceSize>(sizeof(uTransformObject)));
 
 		this->isUpdate = false;
@@ -82,6 +81,9 @@ void Camera::AddUniform(vk::UniformTransform* transform)
 	assert(transform != nullptr);
 	
 	this->sceneTransform = transform;
+
+	sceneTransform->data.view = Camera::LookAt();
+	memcpy(sceneTransform->buffer.mappedMemory, (void*)&sceneTransform->data, static_cast<VkDeviceSize>(sizeof(uTransformObject)));
 }
 
 void Camera::MoveLeft() 

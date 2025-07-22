@@ -35,9 +35,11 @@ namespace vk
 		this->uLightBuffer = vk::Buffer(device.physical, device.logical, sizeof(uLightObject), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, (void*)(&this->uLight));
 
 		FreddyHeadScene::InitializePipeline("blinnForward.vert", "blinnForward.frag");
+		FreddyHeadScene::InitializeDescriptorPool();
 
 		/* NOTE: a bit jank, as swapchain relies on Finalize method of mPipeline to finish */
 		this->swapChain.AllocateFrameBuffers(device.logical, window.viewport, this->mPipeline.RenderDepthInfo(), this->mPipeline.RenderPass());
+
 	}
 
 	FreddyHeadScene::~FreddyHeadScene()
@@ -71,6 +73,19 @@ namespace vk
 		physicsComponent.bodyType = reactphysics3d::BodyType::STATIC;
 		objManager.LoadObject(device.physical, device.logical, "base.obj", modelTransform, "puppy1.bmp", &physicsComponent, true, "base");
 
+	}
+
+	void FreddyHeadScene::InitializeDescriptorPool() 
+	{
+		std::vector<VkDescriptorPoolSize> poolSizes = {
+			vk::init::DescriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 2*2),
+			//we are concerned about the fragment stage, so we double the descriptor count here.
+			vk::init::DescriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1 * 2) //max numbers of frames in flight times two to accomodate the gui.
+		};
+
+		VkDescriptorPoolCreateInfo poolInfo = vk::init::DescriptorPoolCreateInfo(poolSizes, 4);
+
+		*this->descriptorPool.get() = vk::init::DescriptorPool(device.logical, poolInfo);
 	}
 
 	std::vector<VkDescriptorBufferInfo> FreddyHeadScene::DescriptorBuffers() 
@@ -151,7 +166,8 @@ namespace vk
 		
 		memcpy(uTransform.buffer.mappedMemory, (void*)&uTransform, uTransform.buffer.size);
 
-		this->swapChain.Recreate(this->device.physical, this->device.logical, this->graphicsQueue.family, this->presentQueue.family, mPipeline.RenderDepthInfo(), this->mPipeline.RenderPass(), window);
+		this->swapChain.Recreate(this->device.physical, this->device.logical, this->graphicsQueue.family, 
+			this->presentQueue.family, mPipeline.RenderDepthInfo(), this->mPipeline.RenderPass(), window);
 
 	}
 
@@ -162,38 +178,21 @@ namespace vk
 		ShaderModuleInfo fragColorInfo(this->device.logical, fsFile, VK_SHADER_STAGE_FRAGMENT_BIT, shaderc_fragment_shader);
 
 
-		VkDescriptorSetLayoutBinding uTransformBinding{};
-		uTransformBinding.binding = 0;
-		uTransformBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		uTransformBinding.descriptorCount = 1; //one uniform struct.
-		uTransformBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT; //we are going to use the transforms in the vertex shader.
-
-		VkDescriptorSetLayoutBinding samplerBinding = {};
-		samplerBinding.binding = 1;
-		samplerBinding.descriptorCount = 1;
-		samplerBinding.pImmutableSamplers = nullptr;
-		samplerBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		samplerBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT; //we are going to use the sampler in the fragment shader.
-
-		VkDescriptorSetLayoutBinding uLightBinding = {};
-		uLightBinding.binding = 2;
-		uLightBinding.descriptorCount = 1;
-		uLightBinding.pImmutableSamplers = nullptr;
-		uLightBinding.descriptorCount = 1;
-		uLightBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		uLightBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
-
-		std::vector<VkDescriptorSetLayoutBinding> dscSetLayoutBindings = { uTransformBinding, samplerBinding, uLightBinding };
+		std::vector<VkDescriptorSetLayoutBinding> dscSetLayoutBindings = {
+			//for the scene transform
+			vk::init::DescriptorLayoutBinding(0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT),
+			//for the texture sampler
+			vk::init::DescriptorLayoutBinding(1, 1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT),
+			//for scene light
+			vk::init::DescriptorLayoutBinding(2, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT)
+		};
 
 		VkDescriptorSetLayout colorSetLayout = vk::init::DescriptorSetLayout(this->device.logical, dscSetLayoutBindings.data(), (uint32_t)dscSetLayoutBindings.size());
 
-
 		//this is for an object's model transformation.
-		std::vector<VkPushConstantRange> pushConstants(1);
-		pushConstants[0].offset = 0;
-		pushConstants[0].size = sizeof(glm::mat4);
-		pushConstants[0].stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-
+		std::vector<VkPushConstantRange> pushConstants = {
+			vk::init::PushConstantRange(0, sizeof(glm::mat4), VK_SHADER_STAGE_VERTEX_BIT)
+		};
 
 		VkPipelineLayout colorPipelineLayout = vk::init::CreatePipelineLayout(this->device.logical, colorSetLayout, pushConstants);
 

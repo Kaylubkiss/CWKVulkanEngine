@@ -72,7 +72,7 @@ namespace vk {
 		int textureWidth, textureHeight, textureChannels;
 		stbi_uc* pixels = stbi_load((TEXTURE_PATH + fileName).c_str(), &textureWidth, &textureHeight, &textureChannels, STBI_rgb_alpha);
 
-		VkDeviceSize imageSize = textureWidth * textureHeight * 4;
+		VkDeviceSize imageSize = (uint64_t)textureWidth * (uint64_t)textureHeight * 4;
 
 		if (pixels == NULL)
 		{
