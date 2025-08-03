@@ -75,16 +75,6 @@ Object::Object(const VkPhysicalDevice p_device, const VkDevice l_device,
     std::cout << numVertices << " vertices loaded in." << std::endl << std::endl;    
 }
 
-void Object::UpdateTexture(const VkDescriptorSet textureDescriptor)
-{
-    this->mTextureDescriptor = textureDescriptor;
-}
-
-void Object::UpdatePipelineLayout(const VkPipelineLayout pipelineLayout)
-{
-    this->mPipelineLayout = pipelineLayout;
-}
-
 void Object::SetDebugDraw(bool option) 
 {
     this->debugDraw = option;
@@ -171,22 +161,22 @@ void Object::Update(const float& interpFactor)
 
 }
 
-void Object::Draw(VkCommandBuffer cmdBuffer) 
+void Object::Draw(VkCommandBuffer cmdBuffer, VkPipelineLayout pipelineLayout)
 {  
-    if (debugDraw == false) 
+    if (debugDraw == false)
     {
-        if (this->mTextureDescriptor != VK_NULL_HANDLE) 
+        if (pipelineLayout != VK_NULL_HANDLE)
         {
-            vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->mPipelineLayout, 0, 1, &this->mTextureDescriptor, 0, nullptr);
+            vkCmdPushConstants(cmdBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::mat4), (void*)(&this->mMesh.modelTransform));
         }
 
+        vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &this->textureDescriptorSet, 0, nullptr);
+ 
         VkDeviceSize offsets[1] = { 0 };
 
         vkCmdBindVertexBuffers(cmdBuffer, 0, 1, &mMesh.buffer.vertex.handle, offsets);
 
         vkCmdBindIndexBuffer(cmdBuffer, mMesh.buffer.index.handle, 0, VK_INDEX_TYPE_UINT16);
-
-        vkCmdPushConstants(cmdBuffer, this->mPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::mat4), (void*)(&this->mMesh.modelTransform));
 
         vkCmdDrawIndexed(cmdBuffer, static_cast<uint32_t>(this->mMesh.data.indices.size()), 1, 0, 0, 0);
 
@@ -258,6 +248,12 @@ void Object::ComputeVertexNormals()
         vertexBufferData[i].nrm = glm::normalize(total_vec); //point + vector equals another point
 
     } //calculate the normals
+}
+
+
+void Object::AddTextureDescriptor(VkDescriptorSet tDescriptorSet) 
+{
+    this->textureDescriptorSet = tDescriptorSet;
 }
 
 void LoadMeshOBJ(const std::string& path, Object& obj)

@@ -55,39 +55,16 @@ glm::vec3 Camera::ViewDirection()
 
 void Camera::Update(const float& dt) 
 {
-	if (this->isUpdate)
-	{
-
-		Camera::UpdatePosition(this->accumulatedVelocity, dt);
-
-		reactphysics3d::Vector3 currTransform = this->mMovementTransform.getPosition();
-		this->mEye = glm::vec3(-currTransform.x, -(currTransform.y + .5f * mCapsule.mHeight), -currTransform.z);
-
-		this->accumulatedVelocity = reactphysics3d::Vector3::zero();
-
-		//update the uniforms
-		UpdateUniform();
-
-		this->isUpdate = false;
-	}
-
+	Camera::UpdatePosition(this->accumulatedVelocity, dt);
+	
+	reactphysics3d::Vector3 currTransform = this->mMovementTransform.getPosition();
+	this->mEye = glm::vec3(-currTransform.x, -(currTransform.y + .5f * mCapsule.mHeight), -currTransform.z);
+	
+	this->accumulatedVelocity = reactphysics3d::Vector3::zero();
+	
 	
 }
 
-void Camera::UpdateUniform() 
-{
-	sceneTransform->data.view = Camera::LookAt();
-	memcpy(sceneTransform->buffer.mappedMemory, (void*)&sceneTransform->data, static_cast<VkDeviceSize>(sizeof(uTransformObject)));
-}
-
-void Camera::AddUniform(vk::UniformTransform* transform)
-{
-	assert(transform != nullptr);
-	
-	this->sceneTransform = transform;
-
-	UpdateUniform();
-}
 
 void Camera::MoveLeft() 
 {

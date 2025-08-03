@@ -1,14 +1,16 @@
 #include "Physics.h"
 
-void PhysicsSystem::Init() 
+
+PhysicsSystem::PhysicsSystem() 
 {
-	if (this->mPhysicsWorld == nullptr) 
+	if (this->mPhysicsWorld == nullptr)
 	{
 		this->mPhysicsWorld = this->mPhysicsCommon.createPhysicsWorld();
 
 		//empty rigidbody..trick so it doesn't crash when closing the application.
 		this->mPhysicsWorld->createRigidBody(reactphysics3d::Transform::identity());
 	}
+
 }
 
 PhysicsSystem::~PhysicsSystem()

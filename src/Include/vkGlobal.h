@@ -14,11 +14,11 @@ struct uTransformObject
 
 struct uLightObject
 {
-	glm::vec3 pos; /* position of light */
-	glm::vec3 ambient; /* scene color */
-	glm::vec3 albedo; /* base color of light */
-	glm::vec3 specular; /* reflectivity of the light */
-	float shininess; /* exponent value */
+	glm::vec3 pos = glm::vec3(0.f); /* position of light */
+	glm::vec3 ambient = glm::vec3(0.f); /* scene color */
+	glm::vec3 albedo = glm::vec3(0.f); /* base color of light */
+	glm::vec3 specular = glm::vec3(0.f); /* reflectivity of the light */
+	float shininess = 0.f; /* exponent value */
 };
 
 namespace vk

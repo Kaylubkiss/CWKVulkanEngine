@@ -6,28 +6,29 @@ namespace vk
 {
 	struct Buffer
 	{
-		VkBuffer handle;
-		VkDeviceMemory memory;
-		VkDeviceSize size;
+
+		VkDevice logicalDevice = VK_NULL_HANDLE;
+
+		VkBuffer handle = VK_NULL_HANDLE;
+		VkDeviceMemory memory = VK_NULL_HANDLE;
+		VkDeviceSize size = 0;
+
+		VkDescriptorBufferInfo descriptor = {};
 
 		void* mappedMemory = NULL;
 
-		//shallow copy
-		void operator=(const Buffer& rhs)
-		{
-			//note: these are pointers!!!
-			this->handle = rhs.handle;
-			this->memory = rhs.memory;
-
-			this->size = rhs.size;
-			this->mappedMemory = rhs.mappedMemory;
-		}
-
 		//assume that build info is shared among all buffers.
-		Buffer(VkPhysicalDevice p_device, VkDevice l_device, size_t size, VkBufferUsageFlags usage, VkMemoryPropertyFlags flags, void* data);
-		Buffer() : handle(VK_NULL_HANDLE), memory(VK_NULL_HANDLE), size(0), mappedMemory(NULL) {};
+		Buffer() = default;
+		~Buffer() = default;
 
-		void Destroy(const VkDevice l_device);
+		Buffer(VkPhysicalDevice p_device, VkDevice l_device, size_t size, VkBufferUsageFlags usage, VkMemoryPropertyFlags flags, void* data);
+
+		void Destroy();
+
+		void SetDescriptor(VkDeviceSize size = VK_WHOLE_SIZE, VkDeviceSize offset = 0);
+
+		//TODO: void Map();
+
 	};
 }
 

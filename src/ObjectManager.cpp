@@ -37,15 +37,15 @@ namespace vk
 		mThreadWorkers.EnqueueTask(func);
 	}
 
-	void ObjectManager::Init()
+	ObjectManager::ObjectManager() 
 	{
 		this->mThreadWorkers.Init(2);
 	}
 
-	void ObjectManager::AttachSystems(TextureManager* textureManager, ContextBase* graphicsSystem) 
+	void ObjectManager::Init(TextureManager* textureManager) 
 	{
+		assert(textureManager != nullptr);
 		this->textureSys = textureManager;
-		this->gfxSys = graphicsSystem;
 	}
 
 	void ObjectManager::FinalizeObjects() 
@@ -61,9 +61,7 @@ namespace vk
 			{
 				Object* curr_obj = objectInfo.obj;
 
-				this->textureSys->BindTextureToObject(it->textureName, *this->gfxSys, *curr_obj);
-
-				this->gfxSys->BindPipelineLayoutToObject(*curr_obj);
+				this->textureSys->BindTextureToObject(it->textureName, *curr_obj);
 
 				if (it->physComp != nullptr)
 				{
@@ -103,8 +101,16 @@ namespace vk
 	}
 
 
-	ObjectManager::ObjectManager()
+	void ObjectManager::DrawObjects(VkCommandBuffer cmdBuffer, VkPipelineLayout pipelineLayout)
 	{
-		//keep it to one thread.
+		for (auto& obj : objects)
+		{
+			auto pair = obj.second;
+			if (pair.isDoneLoading)
+			{
+				Object* curr_obj = pair.obj;
+				curr_obj->Draw(cmdBuffer, pipelineLayout);
+			}
+		}
 	}
 }

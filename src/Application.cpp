@@ -25,6 +25,11 @@ PhysicsSystem& Application::GetPhysics()
 	return this->mPhysics;
 }
 
+vk::TextureManager& Application::TextureManager() 
+{
+	return this->mTextureManager;
+}
+
 vk::ContextBase* Application::Context() {
 
 	return graphicsContext.get();
@@ -84,13 +89,10 @@ void Application::init()
 
 	vk::FreddyHeadScene* freddyScene = static_cast<vk::FreddyHeadScene*>(graphicsContext.get());
 	this->mCamera = Camera({ 0.f, 0.f, 10.f }, { 0.f, 0.f, -1.f } , { 0,1,0 });
-	this->mCamera.AddUniform(&freddyScene->SceneTransform());
 
-	this->mTextureManager.Init(graphicsContext.get());
-	this->mPhysics.Init();
+	this->mTextureManager.Init(this->graphicsContext.get());
 
-	this->mObjectManager.Init();
-	this->mObjectManager.AttachSystems(&this->mTextureManager, graphicsContext.get());
+	this->mObjectManager.Init(&this->mTextureManager);
 	
 	graphicsContext->InitializeScene(mObjectManager);
 	

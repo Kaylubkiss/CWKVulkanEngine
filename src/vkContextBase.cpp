@@ -11,10 +11,13 @@ namespace vk
 	//destructor
 	ContextBase::~ContextBase()
 	{
-		swapChain.Destroy(this->device.logical);
-		uTransform.buffer.Destroy(device.logical);
+		mPipeline.Destroy(this->device.logical);
+		swapChain.Destroy();
+		uTransform.buffer.Destroy();
 
-		vkDestroyDescriptorPool(device.logical, *this->descriptorPool.get(), nullptr);
+		depthStencil.Destroy(device.logical);
+
+		vkDestroyDescriptorPool(device.logical, this->descriptorPool, nullptr);
 
 		vkFreeCommandBuffers(device.logical, this->commandPool, this->commandBuffers.size(), this->commandBuffers.data());
 		vkDestroyCommandPool(device.logical, this->commandPool, nullptr);
@@ -26,7 +29,6 @@ namespace vk
 		vkDestroyDevice(this->device.logical, nullptr);
 		
 		vkDestroySurfaceKHR(this->instance, this->window.surface, nullptr);
-
 		vkDestroyInstance(this->instance, nullptr);
 	}
 
@@ -139,8 +141,25 @@ namespace vk
 		}
 	}
 	
-	void ContextBase::FindQueueFamilies(const VkPhysicalDevice& physicalDevice, const VkSurfaceKHR& windowSurface)
+	void ContextBase::ResizeWindow() 
 	{
+		assert(_Application != NULL);
+
+		VK_CHECK_RESULT(vkDeviceWaitIdle(this->device.logical));
+
+		VkSurfaceCapabilitiesKHR deviceCapabilities;
+		VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(this->device.physical, window.surface, &deviceCapabilities));
+
+		currentExtent = deviceCapabilities.currentExtent;
+		window.UpdateExtents(currentExtent);
+
+		this->swapChain.Recreate(this->device.graphicsQueue.family,
+			this->device.presentQueue.family, this->depthStencil, this->mPipeline.RenderPass(), window);
+	}
+
+	void ContextBase::FindQueueFamilies(const VkSurfaceKHR& windowSurface)
+	{
+		assert(device.physical);
 
 		uint32_t queueFamilyPropertyCount;
 		std::vector<VkQueueFamilyProperties> queueFamilies;
@@ -148,10 +167,10 @@ namespace vk
 		//no use for memory properties right now.
 		VkPhysicalDeviceMemoryProperties physicalDeviceMemoryProperties;
 
-		vkGetPhysicalDeviceMemoryProperties(physicalDevice, &physicalDeviceMemoryProperties);
+		vkGetPhysicalDeviceMemoryProperties(device.physical, &physicalDeviceMemoryProperties);
 
 		//similar maneuver to vkEnumeratePhysicalDevices
-		vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamilyPropertyCount, nullptr);
+		vkGetPhysicalDeviceQueueFamilyProperties(device.physical, &queueFamilyPropertyCount, nullptr);
 
 		if (queueFamilyPropertyCount == 0)
 		{
@@ -160,7 +179,7 @@ namespace vk
 
 		queueFamilies.resize(queueFamilyPropertyCount);
 
-		vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamilyPropertyCount, queueFamilies.data());
+		vkGetPhysicalDeviceQueueFamilyProperties(device.physical, &queueFamilyPropertyCount, queueFamilies.data());
 
 		bool setGraphicsQueue = false;
 		bool setPresentQueue = false;
@@ -169,17 +188,17 @@ namespace vk
 		{
 			if ((queueFamilies[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) != 0)
 			{
-				graphicsQueue.family = i;
+				device.graphicsQueue.family = i;
 				setGraphicsQueue = true;
 			}
 
 
 			VkBool32 presentSupport = false;
-			VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceSupportKHR(physicalDevice, i, windowSurface, &presentSupport));
+			VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceSupportKHR(device.physical, i, windowSurface, &presentSupport));
 
 			if (presentSupport)
 			{
-				presentQueue.family = i;
+				device.presentQueue.family = i;
 				setPresentQueue = true;
 			}
 
@@ -204,35 +223,35 @@ namespace vk
 		//vulkan will ignor whatever was set in physicalDeviceCount and overwrite max_devices 
 		VK_CHECK_RESULT(vkEnumeratePhysicalDevices(this->instance, &max_devices, nullptr))
 
-			if (!max_devices)
-			{
-				throw std::runtime_error("could not find any GPUs to use!\n");
-			}
+		if (!max_devices)
+		{
+			throw std::runtime_error("could not find any GPUs to use!\n");
+		}
 
 		gpus.resize(max_devices);
 
 		VK_CHECK_RESULT(vkEnumeratePhysicalDevices(this->instance, &max_devices, gpus.data()))
 
-			for (size_t i = 0; i < max_devices; ++i)
+		for (size_t i = 0; i < max_devices; ++i)
+		{
+
+			VkPhysicalDeviceProperties properties;
+			VkPhysicalDeviceFeatures features;
+
+			vkGetPhysicalDeviceProperties(gpus[i], &properties);
+			vkGetPhysicalDeviceFeatures(gpus[i], &features);
+
+
+			if ((properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU || properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU ||
+				properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_CPU) &&
+				features.geometryShader && features.samplerAnisotropy)
 			{
+				std::cout << "picked device " << i << '\n';
 
-				VkPhysicalDeviceProperties properties;
-				VkPhysicalDeviceFeatures features;
-
-				vkGetPhysicalDeviceProperties(gpus[i], &properties);
-				vkGetPhysicalDeviceFeatures(gpus[i], &features);
-
-
-				if ((properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU || properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU ||
-					properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_CPU) &&
-					features.geometryShader && features.samplerAnisotropy)
-				{
-					std::cout << "picked device " << i << '\n';
-
-					g_index = i;
-					break;
-				}
+				g_index = i;
+				break;
 			}
+		}
 
 		if (g_index < 0)
 		{
@@ -307,6 +326,85 @@ namespace vk
 		return nLogicalDevice;
 	}
 
+	//initializers
+	
+	void ContextBase::InitializeDepthStencil() 
+	{
+		this->depthStencil = vk::rsc::CreateDepthResources(device.physical, device.logical, window.viewport);
+	}
+
+	void ContextBase::InitializeRenderPass() 
+	{
+		assert(swapChain.handle != VK_NULL_HANDLE);
+
+		std::array<VkAttachmentDescription, 2> attachments = {};
+
+		//color attachment
+		attachments[0].format = swapChain.createInfo.imageFormat;
+		attachments[0].samples = VK_SAMPLE_COUNT_1_BIT;
+		attachments[0].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+		attachments[0].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+		attachments[0].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+		attachments[0].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+		attachments[0].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+		attachments[0].finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+
+		//depth attachment
+		attachments[1].format = depthStencil.format;
+		attachments[1].samples = VK_SAMPLE_COUNT_1_BIT;
+		attachments[1].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+		attachments[1].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+		attachments[1].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+		attachments[1].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+		attachments[1].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+		attachments[1].finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+		VkAttachmentReference colorReference = {};
+		colorReference.attachment = 0;
+		colorReference.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+		VkAttachmentReference depthReference = {};
+		depthReference.attachment = 1;
+		depthReference.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+		VkSubpassDescription subpassDescription = {};
+		subpassDescription.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+		subpassDescription.colorAttachmentCount = 1;
+		subpassDescription.pColorAttachments = &colorReference;
+		subpassDescription.pDepthStencilAttachment = &depthReference;
+
+		//for layout transitions
+		std::array<VkSubpassDependency, 2> dependencies{};
+
+
+		dependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL;
+		dependencies[0].dstSubpass = 0;
+		dependencies[0].srcStageMask = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
+		dependencies[0].dstStageMask = dependencies[0].srcStageMask;
+		dependencies[0].srcAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+		dependencies[0].dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT;
+		dependencies[0].dependencyFlags = 0;
+
+		dependencies[1].srcSubpass = VK_SUBPASS_EXTERNAL;
+		dependencies[1].dstSubpass = 0;
+		dependencies[1].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+		dependencies[1].dstStageMask = dependencies[1].srcStageMask;
+		dependencies[1].srcAccessMask = 0;
+		dependencies[1].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_COLOR_ATTACHMENT_READ_BIT;
+		dependencies[1].dependencyFlags = 0;
+
+		VkRenderPassCreateInfo renderPassCI = {};
+		renderPassCI.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+		renderPassCI.attachmentCount = attachments.size();
+		renderPassCI.pAttachments = attachments.data();
+		renderPassCI.subpassCount = 1;
+		renderPassCI.pSubpasses = &subpassDescription;
+		renderPassCI.dependencyCount = dependencies.size();
+		renderPassCI.pDependencies = dependencies.data();
+
+		VK_CHECK_RESULT(vkCreateRenderPass(device.logical, &renderPassCI, nullptr, &this->mPipeline.mRenderPass));
+	}
+
 	//constructor
 	ContextBase::ContextBase()
 	{
@@ -321,12 +419,14 @@ namespace vk
 		}
 		
 		ContextBase::EnumeratePhysicalDevices();
-		ContextBase::FindQueueFamilies(this->device.physical, window.surface);
+		vkGetPhysicalDeviceMemoryProperties(device.physical, &device.memoryProperties);
 
-		this->device.logical = ContextBase::CreateLogicalDevice(this->device.physical, graphicsQueue.family, presentQueue.family);
+		ContextBase::FindQueueFamilies(window.surface);
 
-		vkGetDeviceQueue(this->device.logical, graphicsQueue.family, 0, &graphicsQueue.handle);
-		vkGetDeviceQueue(this->device.logical, presentQueue.family, 0, &presentQueue.handle);
+		this->device.logical = ContextBase::CreateLogicalDevice(this->device.physical, device.graphicsQueue.family, device.presentQueue.family);
+
+		vkGetDeviceQueue(device.logical, device.graphicsQueue.family, 0, &device.graphicsQueue.handle);
+		vkGetDeviceQueue(device.logical, device.presentQueue.family, 0, &device.presentQueue.handle);
 
 		semaphores.presentComplete = vk::init::CreateSemaphore(this->device.logical);
 		semaphores.renderComplete = vk::init::CreateSemaphore(this->device.logical);
@@ -338,7 +438,10 @@ namespace vk
 		submitInfo.signalSemaphoreCount = 1;
 		submitInfo.pSignalSemaphores = &semaphores.renderComplete;
 
-		this->swapChain = SwapChain(this->device.logical, this->device.physical, graphicsQueue.family, presentQueue.family, window.surface);
+		this->swapChain = SwapChain(&this->device, device.graphicsQueue.family, device.presentQueue.family, window.surface);
+		
+		ContextBase::InitializeDepthStencil();
+		ContextBase::InitializeRenderPass();
 
 		this->commandPool = vk::init::CommandPool(device.logical, VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
 
@@ -354,17 +457,16 @@ namespace vk
 		this->currentExtent = deviceCapabilities.currentExtent;
 
 		this->mHotReloader.appDevicePtr = this->device.logical;
-		this->mHotReloader.AddPipeline(this->mPipeline); 
-
-		descriptorPool = std::make_shared<VkDescriptorPool>();
+		this->mHotReloader.AddPipeline(this->mPipeline);
 
 		this->isInitialized = true;
+
 	}
 
 	//getter(s)
 	vk::Queue ContextBase::GraphicsQueue()
 	{
-		return this->graphicsQueue;
+		return this->device.graphicsQueue;
 	}
 
 	const VkPipeline ContextBase::Pipeline() const
@@ -382,26 +484,14 @@ namespace vk
 		return this->device.logical;
 	}
 
-	const VkDescriptorSetLayout ContextBase::DescriptorSetLayout() const
-	{
-		//TODO: support different descriptorsetlayouts.
-		return this->mPipeline.DescriptorSetLayout();
-	}
-
 	vk::UniformTransform& ContextBase::SceneTransform() 
 	{
 		return this->uTransform;
 	}
 
-	std::shared_ptr<VkDescriptorPool> ContextBase::DescriptorPool() const 
+	VkDescriptorPool ContextBase::DescriptorPool() const 
 	{
 		return this->descriptorPool;
-	}
-
-	//update(s)
-	void ContextBase::BindPipelineLayoutToObject(Object& obj)
-	{
-		obj.UpdatePipelineLayout(this->mPipeline.Layout());
 	}
 
 	void ContextBase::WaitForDevice()
@@ -431,7 +521,7 @@ namespace vk
 		submitInfo.commandBufferCount = 1;
 		submitInfo.pCommandBuffers = &this->commandBuffers[imageIndex];
 
-		VK_CHECK_RESULT(vkQueueSubmit(this->graphicsQueue.handle, 1, &submitInfo, VK_NULL_HANDLE))
+		VK_CHECK_RESULT(vkQueueSubmit(this->device.graphicsQueue.handle, 1, &submitInfo, VK_NULL_HANDLE))
 
 		VkPresentInfoKHR presentInfo{};
 		presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
@@ -443,7 +533,7 @@ namespace vk
 		presentInfo.waitSemaphoreCount = 1;
 		presentInfo.pWaitSemaphores = &semaphores.renderComplete;
 
-		result = vkQueuePresentKHR(this->presentQueue.handle, &presentInfo);
+		result = vkQueuePresentKHR(this->device.presentQueue.handle, &presentInfo);
 
 		if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
 		{
@@ -456,7 +546,7 @@ namespace vk
 		}
 
 		//so we wait a bit here on the CPU for every submission. This is inefficient, but good enough for now.
-		VK_CHECK_RESULT(vkQueueWaitIdle(this->presentQueue.handle));
+		VK_CHECK_RESULT(vkQueueWaitIdle(this->device.presentQueue.handle));
 	}
 
 }

@@ -14,35 +14,22 @@ namespace vk
 			VkImageUsageFlags usage, VkMemoryPropertyFlags flags, VkDeviceMemory& imageMemory, uint32_t arrayLayerCount
 		);
 
-		struct DepthResources
+		struct DepthStencil
 		{
-			VkImage depthImage = VK_NULL_HANDLE;
-			VkDeviceMemory depthImageMemory = VK_NULL_HANDLE;
-			VkImageView depthImageView = VK_NULL_HANDLE;
-			VkFormat depthFormat = {};
-
-			inline DepthResources& operator=(const DepthResources& other)
-			{
-				if (this != &other)
-				{
-					this->depthImage = other.depthImage;
-					this->depthImageMemory = other.depthImageMemory;
-					this->depthImageView = other.depthImageView;
-					this->depthFormat = other.depthFormat;
-				}
-
-				return *this;
-			}
+			VkImage image = VK_NULL_HANDLE;
+			VkDeviceMemory imageMemory = VK_NULL_HANDLE;
+			VkImageView imageView = VK_NULL_HANDLE;
+			VkFormat format = {};
 
 			void Destroy(VkDevice l_device)
 			{
-				vkDestroyImageView(l_device, this->depthImageView, nullptr);
-				vkDestroyImage(l_device, this->depthImage, nullptr);
-				vkFreeMemory(l_device, this->depthImageMemory, nullptr);
+				vkDestroyImageView(l_device, this->imageView, nullptr);
+				vkDestroyImage(l_device, this->image, nullptr);
+				vkFreeMemory(l_device, this->imageMemory, nullptr);
 			}
 		};
 
-		DepthResources CreateDepthResources(const VkPhysicalDevice& p_device, const VkDevice& l_device, const VkViewport& viewport);
+		DepthStencil CreateDepthResources(const VkPhysicalDevice& p_device, const VkDevice& l_device, const VkViewport& viewport);
 
 
 

@@ -2,6 +2,7 @@
 
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/hash.hpp>
+#include <vulkan/vulkan.h>
 
 struct Vertex
 {
@@ -11,6 +12,37 @@ struct Vertex
 
 	bool operator==(const Vertex& other) const {
 		return pos == other.pos && nrm == other.nrm && uv == other.uv;
+	}
+
+	static inline std::array<VkVertexInputAttributeDescription, 3> InputAttributeDescriptions() 
+	{
+		//TODO: check VkPhysicalDeviceLimits!!! 
+			// binding -> maxVertexInputBindings, 
+			// location -> maxVertexInputAttributes
+			// offset -> maxVertexInputAttributeOffset
+			//
+		VkVertexInputAttributeDescription vInputAttribute[3] = {};
+
+		//position	
+		vInputAttribute[0].format = VK_FORMAT_R32G32B32_SFLOAT;
+		vInputAttribute[0].location = 0;
+		vInputAttribute[0].binding = 0;
+		vInputAttribute[0].offset = offsetof(struct Vertex, pos);
+
+		//normal
+		vInputAttribute[1].format = vInputAttribute[0].format;
+		vInputAttribute[1].location = 1;
+		vInputAttribute[1].binding = 0;
+		vInputAttribute[1].offset = offsetof(struct Vertex, nrm);
+
+		//texture 
+		vInputAttribute[2].format = VK_FORMAT_R32G32_SFLOAT;
+		vInputAttribute[2].location = 2;
+		vInputAttribute[2].binding = 0;
+		vInputAttribute[2].offset = offsetof(struct Vertex, uv);
+
+		return { vInputAttribute[0], vInputAttribute[1], vInputAttribute[2] };
+
 	}
 };
 

@@ -15,6 +15,10 @@ struct Capsule
 
 class Camera 
 {
+
+	public:
+		bool isUpdate = false;
+
 	protected:
 		class CamRayCastCallback : public RaycastCallback {
 
@@ -47,8 +51,6 @@ class Camera
 		}
 	};
 		
-		vk::UniformTransform* sceneTransform = nullptr;
-
 		glm::vec3 mEye;
 		glm::vec3 mUpVector;
 		glm::vec3 mLookDir = glm::vec3(0, 0, -1);
@@ -56,7 +58,7 @@ class Camera
 		float mPitch = 0.f;
 		float mYaw = 0.f;
 	
-		bool isUpdate = false;
+		
 			
 		float constant_velocity = 15.f;
 
@@ -72,17 +74,14 @@ class Camera
 		Camera() : mEye(0.f), mUpVector(0.f), mCapsule() {}
 	
 		Camera(const glm::vec3& eye, const glm::vec3& lookDirection, const	glm::vec3& up);
-		
+
+		void Update(const float& dt);
 		void MoveLeft();
 		void MoveRight();
 		void MoveBack();
 		void MoveForward();
 		void MoveDown();
-	
-		void Update(const float& dt);
 		void Rotate(const int& mouseX, const int& mouseY);
-
-		void AddUniform(vk::UniformTransform* transform);
 		
 		//getter functions.
 		glm::mat4 LookAt(); 
@@ -90,6 +89,10 @@ class Camera
 		glm::vec3 ViewDirection();
 
 	private:
+
+
+		
+
 		void UpdateUniform();
 	
 };

@@ -34,7 +34,7 @@ struct Mesh
 
 	void Destroy(const VkDevice l_device) 
 	{
-		this->buffer.vertex.Destroy(l_device);
-		this->buffer.index.Destroy(l_device);
+		this->buffer.vertex.Destroy();
+		this->buffer.index.Destroy();
 	}
 };

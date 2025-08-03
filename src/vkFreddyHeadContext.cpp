@@ -6,25 +6,16 @@
 #define GLM_FORCE_DEFAULT_ALIGNED_GENTYPES
 #include <glm/gtc/matrix_transform.hpp>
 
-namespace vk 
+namespace vk
 {
 
 	FreddyHeadScene::FreddyHeadScene()
 	{
 
 		//initialized uniforms...
-		Camera& appCamera = _Application->GetCamera();
-
-		//uniform transform for objects of default pipeline.
-		this->uTransform.data = {
-			appCamera.LookAt(), //view
-			glm::perspective(glm::radians(45.f), (float)window.viewport.width / window.viewport.height, 0.1f, 1000.f) //proj
-		};
-
-		this->uTransform.data.proj[1][1] *= -1.f;
-
+		
 		//uniform(s)
-		this->uTransform.buffer = vk::Buffer(device.physical, device.logical, sizeof(uTransformObject), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, (void*)&this->uTransform);
+		this->uTransform.buffer = device.CreateBuffer(sizeof(uTransformObject), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, (void*)&this->uTransform);
 
 		this->uLight.pos = {};
 		this->uLight.albedo = { 1.0, 1.0, 1.0 };
@@ -32,23 +23,28 @@ namespace vk
 		this->uLight.specular = { 0.5f, 0.5f, 0.5f };
 		this->uLight.shininess = 16.f;
 
-		this->uLightBuffer = vk::Buffer(device.physical, device.logical, sizeof(uLightObject), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, (void*)(&this->uLight));
+		this->uLightBuffer = device.CreateBuffer(sizeof(uLightObject), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, (void*)(&this->uLight));
 
+		FreddyHeadScene::UpdateUniforms();
+
+		FreddyHeadScene::InitializeDescriptors();
 		FreddyHeadScene::InitializePipeline("blinnForward.vert", "blinnForward.frag");
-		FreddyHeadScene::InitializeDescriptorPool();
 
 		/* NOTE: a bit jank, as swapchain relies on Finalize method of mPipeline to finish */
-		this->swapChain.AllocateFrameBuffers(device.logical, window.viewport, this->mPipeline.RenderDepthInfo(), this->mPipeline.RenderPass());
+		this->swapChain.AllocateFrameBuffers(window.viewport, this->depthStencil, this->mPipeline.RenderPass());
 
 	}
 
 	FreddyHeadScene::~FreddyHeadScene()
 	{
-		mPipeline.Destroy(this->device.logical);
-		uLightBuffer.Destroy(device.logical);
+		uLightBuffer.Destroy();
+
+		vkDestroyDescriptorSetLayout(this->device.logical, this->descriptorSetLayout, nullptr);
 	}
 
-	void FreddyHeadScene::InitializeScene(ObjectManager& objManager) 
+
+
+	void FreddyHeadScene::InitializeScene(ObjectManager& objManager)
 	{
 		glm::mat4 modelTransform = glm::mat4(5.f);
 		modelTransform[3] = glm::vec4(1.0f, 0, 5.f, 1);
@@ -75,34 +71,52 @@ namespace vk
 
 	}
 
-	void FreddyHeadScene::InitializeDescriptorPool() 
+	void FreddyHeadScene::InitializeDescriptors()
 	{
+
 		std::vector<VkDescriptorPoolSize> poolSizes = {
-			vk::init::DescriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 2*2),
+			vk::init::DescriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 2 * 2),
 			//we are concerned about the fragment stage, so we double the descriptor count here.
 			vk::init::DescriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1 * 2) //max numbers of frames in flight times two to accomodate the gui.
 		};
 
 		VkDescriptorPoolCreateInfo poolInfo = vk::init::DescriptorPoolCreateInfo(poolSizes, 4);
+		descriptorPool = vk::init::DescriptorPool(device.logical, poolInfo);
 
-		*this->descriptorPool.get() = vk::init::DescriptorPool(device.logical, poolInfo);
+
+		std::vector<VkDescriptorSetLayoutBinding> dscSetLayoutBindings = {
+			//for the scene transform
+			vk::init::DescriptorLayoutBinding(0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT),
+			//for the texture sampler
+			vk::init::DescriptorLayoutBinding(1, 1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT),
+			//for scene light
+			vk::init::DescriptorLayoutBinding(2, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT)
+		};
+
+		this->descriptorSetLayout = vk::init::DescriptorSetLayout(device.logical, dscSetLayoutBindings.data(), (uint32_t)dscSetLayoutBindings.size());
 	}
 
-	std::vector<VkDescriptorBufferInfo> FreddyHeadScene::DescriptorBuffers() 
+	std::vector<VkWriteDescriptorSet> FreddyHeadScene::WriteDescriptorBuffers(VkDescriptorSet descriptorSet) 
 	{
-		VkDescriptorBufferInfo uTransformbufferInfo = {};
-		uTransformbufferInfo.buffer = uTransform.buffer.handle;
-		uTransformbufferInfo.offset = 0;
-		uTransformbufferInfo.range = sizeof(uTransformObject);
+		std::vector<VkWriteDescriptorSet> writeDescriptorSets =
+		{
+			//uniform buffers
+			vk::init::WriteDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &uTransform.buffer.descriptor),
+			//lighting uniforms
+			vk::init::WriteDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 2, &uLightBuffer.descriptor)
+		};
 
+		return writeDescriptorSets;	
+	}
 
-		VkDescriptorBufferInfo uLightBufferInfo = {};
-		uLightBufferInfo.buffer = uLightBuffer.handle;
-		uLightBufferInfo.offset = 0;
-		uLightBufferInfo.range = sizeof(uLightObject);
+	uint32_t FreddyHeadScene::SamplerDescriptorSetBinding() 
+	{
+		return 1;
+	}
 
-		return { uTransformbufferInfo, uLightBufferInfo };
-
+	const VkDescriptorSetLayout FreddyHeadScene::DescriptorSetLayout() const 
+	{
+		return this->descriptorSetLayout;
 	}
 
 	void FreddyHeadScene::RecordCommandBuffers(vk::ObjectManager& objManager)
@@ -138,7 +152,7 @@ namespace vk
 			vkCmdSetViewport(this->commandBuffers[i], 0, 1, &window.viewport);
 			vkCmdSetScissor(this->commandBuffers[i], 0, 1, &window.scissor);
 
-			objManager.DrawObjects(this->commandBuffers[i]);
+			objManager.DrawObjects(this->commandBuffers[i], this->mPipeline.Layout());
 
 			vkCmdEndRenderPass(this->commandBuffers[i]);
 
@@ -147,60 +161,42 @@ namespace vk
 
 	}
 
-	void FreddyHeadScene::ResizeWindow()
+	void FreddyHeadScene::UpdateUniforms() 
 	{
-		assert(_Application != NULL);
+		Camera& appCamera = _Application->GetCamera();
+		//uniform transform for objects of default pipeline.
+		this->uTransform.data = {
+			appCamera.LookAt(), //view
+			glm::perspective(glm::radians(45.f), (float)window.viewport.width / window.viewport.height, 0.1f, 1000.f) //proj
+		};
 
-		VK_CHECK_RESULT(vkDeviceWaitIdle(this->device.logical));
+		this->uTransform.data.proj[1][1] *= -1.f;
 
-		VkSurfaceCapabilitiesKHR deviceCapabilities;
-		VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(this->device.physical, window.surface, &deviceCapabilities));
+		memcpy(this->uTransform.buffer.mappedMemory, &this->uTransform.data, sizeof(uTransform.data));
+	}
 
-		currentExtent = deviceCapabilities.currentExtent;
-		window.UpdateExtents(currentExtent);
-
-		//updating the uniform projection matrix after updating the viewport size
-		uTransform.data.proj = glm::perspective(glm::radians(45.f), (float)window.viewport.width / window.viewport.height, 0.1f, 100.f); //proj
-		
-		uTransform.data.proj[1][1] *= -1.f;		
-		
-		memcpy(uTransform.buffer.mappedMemory, (void*)&uTransform, uTransform.buffer.size);
-
-		this->swapChain.Recreate(this->device.physical, this->device.logical, this->graphicsQueue.family, 
-			this->presentQueue.family, mPipeline.RenderDepthInfo(), this->mPipeline.RenderPass(), window);
-
+	void FreddyHeadScene::Render() 
+	{
+		UpdateUniforms();
+		ContextBase::Render();
 	}
 
 	void FreddyHeadScene::InitializePipeline(std::string vsFile, std::string fsFile)
 	{
-		ShaderModuleInfo vertColorInfo(this->device.logical, vsFile, VK_SHADER_STAGE_VERTEX_BIT);
-
-		ShaderModuleInfo fragColorInfo(this->device.logical, fsFile, VK_SHADER_STAGE_FRAGMENT_BIT, shaderc_fragment_shader);
-
-
-		std::vector<VkDescriptorSetLayoutBinding> dscSetLayoutBindings = {
-			//for the scene transform
-			vk::init::DescriptorLayoutBinding(0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT),
-			//for the texture sampler
-			vk::init::DescriptorLayoutBinding(1, 1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT),
-			//for scene light
-			vk::init::DescriptorLayoutBinding(2, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT)
-		};
-
-		VkDescriptorSetLayout colorSetLayout = vk::init::DescriptorSetLayout(this->device.logical, dscSetLayoutBindings.data(), (uint32_t)dscSetLayoutBindings.size());
+		ShaderModuleInfo vertShaderInfo(this->device.logical, vsFile, VK_SHADER_STAGE_VERTEX_BIT);
+		ShaderModuleInfo fragShaderInfo(this->device.logical, fsFile, VK_SHADER_STAGE_FRAGMENT_BIT, shaderc_fragment_shader);
 
 		//this is for an object's model transformation.
 		std::vector<VkPushConstantRange> pushConstants = {
 			vk::init::PushConstantRange(0, sizeof(glm::mat4), VK_SHADER_STAGE_VERTEX_BIT)
 		};
 
-		VkPipelineLayout colorPipelineLayout = vk::init::CreatePipelineLayout(this->device.logical, colorSetLayout, pushConstants);
+		VkPipelineLayout pipelineLayout = vk::init::CreatePipelineLayout(this->device.logical, descriptorSetLayout, pushConstants);
 
 		this->mPipeline.
-			AddModule(vertColorInfo).
-			AddModule(fragColorInfo).
-			AddDescriptorSetLayout(colorSetLayout).
-			AddPipelineLayout(colorPipelineLayout).
+			AddModule(vertShaderInfo).
+			AddModule(fragShaderInfo).
+			AddPipelineLayout(pipelineLayout).
 			Finalize(this->device.logical, this->device.physical,
 				window, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST
 			);

@@ -63,6 +63,24 @@ namespace vk {
 			throw std::runtime_error("couldn't find a suitable format supported on the physical device.");
 		}
 
+		bool FormatIsFilterable(const VkPhysicalDevice p_device, VkFormat format, VkImageTiling tiling) 
+		{
+			VkFormatProperties formatProperties;
+			vkGetPhysicalDeviceFormatProperties(p_device, format, &formatProperties);
+
+			if (tiling == VK_IMAGE_TILING_OPTIMAL) 
+			{
+				return formatProperties.optimalTilingFeatures & VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT;
+			}
+
+			if (tiling == VK_IMAGE_TILING_LINEAR) {
+
+				return formatProperties.linearTilingFeatures & VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT;
+			}
+
+			return false;
+		}
+
 		void TransitionImageLayout(const VkDevice l_device, const VkCommandPool cmdPool, const VkQueue& gfxQueue, VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, uint32_t mipLevels)
 		{
 			VkCommandBuffer cmdBuffer = beginSingleTimeCommand(l_device, cmdPool);

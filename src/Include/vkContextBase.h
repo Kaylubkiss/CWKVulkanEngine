@@ -1,10 +1,9 @@
 #pragma once
 
 #include "vkSwapChain.h"
-#include "vkRenderResources.h"
 #include "VkPipeline.h"
 #include "HotReloader.h"
-
+#include "vkDevice.h"
 
 namespace vk
 {
@@ -19,19 +18,20 @@ namespace vk
 
 			VkInstance instance = VK_NULL_HANDLE;
 
+			Device device;
+
 			vk::UniformTransform uTransform;
 
 			vk::HotReloader mHotReloader;
 
 			bool isInitialized = false;
 
-			std::shared_ptr<VkDescriptorPool> descriptorPool;
+			VkDescriptorPool descriptorPool = VK_NULL_HANDLE;
 			
 			VkCommandPool commandPool = VK_NULL_HANDLE;
 			std::vector<VkCommandBuffer> commandBuffers;
 
 			VkExtent2D currentExtent = { 0,0 };
-
 
 			struct RenderingSemaphores
 			{
@@ -46,53 +46,52 @@ namespace vk
 
 			vk::SwapChain swapChain;
 
-			struct Device
-			{
-				VkPhysicalDevice physical = VK_NULL_HANDLE;
-				VkDevice logical = VK_NULL_HANDLE;
-			} device{};
-
-			vk::Queue graphicsQueue;
-			vk::Queue presentQueue;
+			vk::rsc::DepthStencil depthStencil;
 
 			vk::Pipeline mPipeline;
 
 		public: 
 
 			ContextBase(); /* expect this to be derived from */
-			ContextBase(const ContextBase&) = delete;
-
 			~ContextBase();
 
 			//pure virtual function(s)
 			virtual void RecordCommandBuffers(vk::ObjectManager& objManager) = 0;
-			virtual void ResizeWindow() = 0;
-			virtual std::vector<VkDescriptorBufferInfo> DescriptorBuffers() = 0;
+			virtual void ResizeWindow();
+			virtual std::vector<VkWriteDescriptorSet> WriteDescriptorBuffers(VkDescriptorSet descriptorSet) = 0;
+			virtual uint32_t SamplerDescriptorSetBinding() = 0;
+			virtual const VkDescriptorSetLayout DescriptorSetLayout() const = 0;
 			virtual void InitializeScene(ObjectManager& objManager) = 0;
+
+			//virtual function(s)
+			virtual vk::UniformTransform& SceneTransform();
+			virtual void Render();
 
 			//getter(s)
 			vk::Queue GraphicsQueue();
-			const VkDescriptorSetLayout DescriptorSetLayout() const;
 			const VkPipeline Pipeline() const;
 			const VkPhysicalDevice PhysicalDevice() const;
 			const VkDevice LogicalDevice() const;
-			vk::UniformTransform& SceneTransform();
-			std::shared_ptr<VkDescriptorPool> DescriptorPool() const;
+			VkDescriptorPool DescriptorPool() const;
 
+			//operations
 			void WaitForDevice();
 
-			void Render();
-
-			void BindPipelineLayoutToObject(Object& obj);
-
 		protected:
-			virtual void InitializePipeline(std::string vsFile, std::string fsFile) = 0;
-			virtual void InitializeDescriptorPool() = 0;
+			//more pure virtual function(s)
+			virtual void InitializePipeline(std::string vsFile = "", std::string fsFile = "") = 0;
+			virtual void InitializeDescriptors() = 0;
+
+			//non-pure virtual functions
+			virtual void InitializeRenderPass();
+
+			//non virtual function
+			virtual void InitializeDepthStencil();
 
 		private:
 			VkDevice CreateLogicalDevice(const VkPhysicalDevice& p_device, uint32_t graphicsFamily, uint32_t presentFamily);
 
-			void FindQueueFamilies(const VkPhysicalDevice& physicalDevice, const VkSurfaceKHR& windowSurface);
+			void FindQueueFamilies(const VkSurfaceKHR& windowSurface);
 
 			void EnumeratePhysicalDevices();
 

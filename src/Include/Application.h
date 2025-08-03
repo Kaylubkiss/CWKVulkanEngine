@@ -27,6 +27,7 @@ public:
 
 	Camera& GetCamera();
 	PhysicsSystem& GetPhysics();
+	vk::TextureManager& TextureManager();
 
 	vk::ContextBase* Context();
 
@@ -37,9 +38,8 @@ private:
 	PhysicsSystem mPhysics;
 
 	vk::TextureManager mTextureManager;
-
-	//TODO: move objectmanager into the graphics context...?
 	vk::ObjectManager mObjectManager;
+
 	std::unique_ptr<vk::ContextBase> graphicsContext;
 
 	void DrawGui(VkCommandBuffer cmdBuffer);

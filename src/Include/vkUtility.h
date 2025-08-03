@@ -30,17 +30,18 @@ namespace vk
 
 		bool CheckValidationSupport();
 
-		/* IDEA:
-		VkPipelineShaderStageCreateInfo PipelineStageCreateInfo(VkShaderStageFlagBits stage, VkShaderModule shaderModule);*/
-
 		VkFormat findSupportedFormat(const VkPhysicalDevice p_device, const std::vector<VkFormat>& possibleFormats,
 			VkImageTiling tiling, VkFormatFeatureFlags features);
 
+		//TODO: move this into a device-specific class.
 		void TransitionImageLayout(const VkDevice l_device, const VkCommandPool cmdPool, const VkQueue& gfxQueue, VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, uint32_t mipLevels);
 
 		void copyBufferToImage(const VkDevice l_device, const VkCommandPool cmdPool, VkBuffer buffer, const VkQueue gfxQueue, VkImage image, uint32_t width, uint32_t height);
 
 		void GenerateMipMaps(const VkPhysicalDevice p_device, const VkDevice l_device, const VkCommandPool& cmdPool, const VkQueue gfxQueue, VkImage image, VkFormat imgFormat, uint32_t textureWidth, uint32_t textureHeight, uint32_t mipLevels);
+		//...END OF TODO
+
+		bool FormatIsFilterable(const VkPhysicalDevice p_device, VkFormat format, VkImageTiling tiling);
 
 		uint32_t CalculateMipLevels(const uint32_t& imageWidth, const uint32_t& imageHeight);
 
@@ -49,5 +50,7 @@ namespace vk
 		void WriteSpirvFile(const char* filename, const std::vector<uint32_t>& data);
 
 		std::string ReadSourceAndWriteToSprv(std::string fileName, shaderc_shader_kind shader_kind);
+
+		uint32_t GetMemoryType(uint32_t typeBits, VkMemoryPropertyFlags properties);
 	}
 }

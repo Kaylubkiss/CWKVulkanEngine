@@ -19,7 +19,8 @@ set(SOURCE_FILES src/Application.cpp
 				   src/ObjectManager.cpp
 				   src/ApplicationGlobal.cpp
 				   src/CameraController.cpp
-				   src/HotReloader.cpp)
+				   src/HotReloader.cpp
+)
 							
 set(VULKAN_ENGINE_SRC src/vkDebug.cpp
 					  src/vkUtility.cpp
@@ -29,13 +30,12 @@ set(VULKAN_ENGINE_SRC src/vkDebug.cpp
 					  src/vkSwapChain.cpp
 					  src/vkBuffer.cpp
 					  src/vkResource.cpp
-					  src/vkRenderResources.cpp
 					  src/vkTexture.cpp
-					  src/vkCubemap.cpp
 					  src/vkPipeline.cpp
 					  src/vkFreddyHeadContext.cpp
+					  src/vkDevice.cpp
+					  src/vkShadowMapContext.cpp
 )
-
 
 source_group("Source Files/VulkanSources" FILES ${VULKAN_ENGINE_SRC})			
 list(APPEND SOURCE_FILES ${VULKAN_ENGINE_SRC})		
@@ -64,6 +64,7 @@ src/Include/Camera.h
 src/Include/Common.h
 src/Include/Debug.h
 src/Include/Object.h
+src/Include/Vertex.h
 src/Include/Physics.h
 src/Include/Timer.h
 src/Include/ThreadPool.h
@@ -83,32 +84,31 @@ src/Include/vkGlobal.h
 src/Include/vkInit.h
 src/Include/vkWindow.h
 src/Include/vkContextBase.h
-src/Include/vkCubemap.h
 src/Include/vkBuffer.h
 src/Include/vkTexture.h
 src/Include/vkSwapChain.h
 src/Include/vkResource.h
 src/Include/vkMesh.h
-src/Include/vkRenderResources.h
 src/Include/vkPipeline.h
 src/Include/vkDevice.h
 src/Include/vkShadowMap.h
 src/Include/vkFreddyHeadContext.h
+src/Include/vkDevice.h
+src/Include/vkShadowMapContext.h
 )
-								 
+
 source_group("Header Files/VulkanHeaders" FILES ${VULKAN_ENGINE_HEADERS})	
 list(APPEND HEADER_FILES ${VULKAN_ENGINE_HEADERS})
 
 set(SHADER_FILES
-#color 
-src/Shaders/color.frag
-src/Shaders/color.vert
 #blinn-phong
 src/Shaders/blinnForward.frag	
 src/Shaders/blinnForward.vert
-#blinn-phong with shadow mapping
-src/Shaders/shadowMapForward.frag
-src/Shaders/shadowMapForward.vert)
+#shadow mapping
+src/Shaders/offscreenShadowMap.frag
+src/Shaders/offscreenShadowMap.vert
+src/Shaders/sceneShadowMap.frag
+src/Shaders/sceneShadowMap.vert)
 								 
 #-----COMPILATION OPTIONS DEPENDING ON PLATFORM---------
 if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")

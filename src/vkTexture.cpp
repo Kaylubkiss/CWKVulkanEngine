@@ -63,7 +63,7 @@ namespace vk {
 		return nTextureSampler;
 	}
 		
-	Texture::Texture(const VkPhysicalDevice p_device, const VkDevice l_device, const VkQueue gfxQueue, const VkDescriptorPool dscPool, const VkDescriptorSetLayout dscSetLayout, const std::string& fileName)
+	Texture::Texture(const VkPhysicalDevice p_device, const VkDevice l_device, const VkQueue gfxQueue, const std::string& fileName)
 	{
 		//Might want to make command pool a member variable.
 		VkCommandPool cmdPool = vk::init::CommandPool(l_device, VK_COMMAND_POOL_CREATE_TRANSIENT_BIT);
@@ -97,7 +97,7 @@ namespace vk {
 
 		vk::util::GenerateMipMaps(p_device, l_device, cmdPool, gfxQueue, this->mTextureImage, VK_FORMAT_R8G8B8A8_SRGB, (uint32_t)textureWidth, (uint32_t)textureHeight, mipLevels);
 
-		stagingBuffer.Destroy(l_device);
+		stagingBuffer.Destroy();
 
 		vkDestroyCommandPool(l_device, cmdPool, nullptr);
 
@@ -107,23 +107,12 @@ namespace vk {
 
 		this->mTextureSampler = CreateTextureSampler(p_device, l_device, mipLevels);
 
-		this->mName = fileName;
-
-		this->mDescriptorSet = vk::init::DescriptorSet(l_device, dscPool, dscSetLayout);
-	}
-
-	Texture::Texture(const Texture& other) 
-	{
-
-		mName = other.mName;
+		this->descriptor.sampler = this->mTextureSampler;
+		this->descriptor.imageView = this->mTextureImageView;
+		this->descriptor.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 		
-		mTextureImage = other.mTextureImage;
-		mTextureMemory = other.mTextureMemory;
-		mTextureImageView = other.mTextureImageView;
-		mTextureSampler = other.mTextureSampler;
-
-		mDescriptorSet = other.mDescriptorSet;
-
+		this->mName = fileName;
 	}
+
 
 }

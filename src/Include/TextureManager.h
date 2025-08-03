@@ -16,9 +16,9 @@ namespace vk
 
 			void Destroy(const VkDevice l_device);
 
-			void Init(const ContextBase* graphicsContext);
+			void Init(ContextBase* context);
 
-			void Add(const VkPhysicalDevice p_device, const VkDevice l_device, const VkQueue gfxQueue, const VkDescriptorSetLayout dscSetLayout, const std::string& fileName);
+			void Add(const VkPhysicalDevice p_device, const VkDevice l_device, const VkQueue gfxQueue, const std::string& fileName);
 
 			void Add(const Texture& nTexture);
 			
@@ -26,14 +26,11 @@ namespace vk
 			
 			const Texture& GetTextureObject(size_t index) const;
 
-			void UpdateDescriptorSets(const VkDevice l_device, const VkDescriptorBufferInfo* pUniformDescriptorBuffers, size_t uniformDescriptorCount);
-
-			void BindTextureToObject(const std::string& fileName, ContextBase& graphicsSystem, Object& obj);
+			void BindTextureToObject(const std::string& fileName, Object& obj);
 
 		private:
 
-			std::shared_ptr<VkDescriptorPool> contextDescriptorPool;
-
+			ContextBase* graphicsContext = nullptr;
 			std::vector<vk::Texture> mTextures;
 	};
 

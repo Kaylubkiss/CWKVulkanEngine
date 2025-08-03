@@ -42,7 +42,7 @@ namespace vk
 			memAllocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
 			memAllocInfo.allocationSize = memRequirements.size;
 
-			for (unsigned int i = 0; i < vpdmp.memoryTypeCount; i++)
+			for (uint32_t i = 0; i < vpdmp.memoryTypeCount; i++)
 			{
 				VkMemoryType vmt = vpdmp.memoryTypes[i];
 				VkMemoryPropertyFlags vmpf = vmt.propertyFlags;
@@ -58,7 +58,6 @@ namespace vk
 
 			VK_CHECK_RESULT(vkAllocateMemory(l_device, &memAllocInfo, nullptr, &imageMemory));
 
-
 			VK_CHECK_RESULT(vkBindImageMemory(l_device, nImage, imageMemory, 0));
 
 			return nImage;
@@ -66,32 +65,28 @@ namespace vk
 		}
 
 
-		DepthResources CreateDepthResources(const VkPhysicalDevice& p_device, const VkDevice& l_device, const VkViewport& viewport)
+		DepthStencil CreateDepthResources(const VkPhysicalDevice& p_device, const VkDevice& l_device, const VkViewport& viewport)
 		{
-			DepthResources nDepthResources = {};
+			DepthStencil nDepthResources = {};
 
-			nDepthResources.depthFormat = vk::util::findSupportedFormat(p_device,
+			nDepthResources.format = vk::util::findSupportedFormat(p_device,
 				{ VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT },
 				VK_IMAGE_TILING_OPTIMAL, VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
 
 			//create depth image
-			nDepthResources.depthImage = vk::rsc::CreateImage(p_device, l_device, (uint32_t)viewport.width, (uint32_t)viewport.height, 1, nDepthResources.depthFormat, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
+			nDepthResources.image = vk::rsc::CreateImage(p_device, l_device, (uint32_t)viewport.width, (uint32_t)viewport.height, 1, nDepthResources.format, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
 				VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-				nDepthResources.depthImageMemory, 1);
+				nDepthResources.imageMemory, 1);
 
 			//create depth image view 
 			VkImageViewCreateInfo viewInfo = {};
 			viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-			viewInfo.image = nDepthResources.depthImage;
+			viewInfo.image = nDepthResources.image;
 			viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-			viewInfo.format = nDepthResources.depthFormat;
-			viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
-			viewInfo.subresourceRange.baseMipLevel = 0;
-			viewInfo.subresourceRange.levelCount = 1;
-			viewInfo.subresourceRange.baseArrayLayer = 0;
-			viewInfo.subresourceRange.layerCount = 1;
+			viewInfo.format = nDepthResources.format;
+			viewInfo.subresourceRange = { VK_IMAGE_ASPECT_DEPTH_BIT, 0, 1, 0, 1 };
 
-			VK_CHECK_RESULT(vkCreateImageView(l_device, &viewInfo, nullptr, &nDepthResources.depthImageView));
+			VK_CHECK_RESULT(vkCreateImageView(l_device, &viewInfo, nullptr, &nDepthResources.imageView));
 
 			return nDepthResources;
 		}

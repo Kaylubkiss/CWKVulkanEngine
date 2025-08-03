@@ -17,10 +17,7 @@ class Object
 		
 		PhysicsComponent mPhysicsComponent;
 
-		int textureIndex = -1;
-
-		VkDescriptorSet mTextureDescriptor = VK_NULL_HANDLE;
-		VkPipelineLayout mPipelineLayout = VK_NULL_HANDLE;
+		VkDescriptorSet textureDescriptorSet;
 
 		bool debugDraw = false;
 	
@@ -29,8 +26,6 @@ class Object
 			const char* fileName, bool willDebugDraw,
 			const glm::mat4& modelTransform);
 	
-		void UpdateTexture(const VkDescriptorSet textureDescriptor);
-		void UpdatePipelineLayout(const VkPipelineLayout pipelineLayout = nullptr);
 		void UpdatePhysicsComponent(PhysicsComponent* physComp);
 		void SetDebugDraw(bool option);
 
@@ -39,10 +34,12 @@ class Object
 		void Destroy(const VkDevice l_device);
 
 		void Update(const float& interpFactor);
-		void Draw(VkCommandBuffer cmdBuffer);
+		void Draw(VkCommandBuffer cmdBuffer, VkPipelineLayout pipelineLayout = VK_NULL_HANDLE);
 		void InitPhysics(PhysicsSystem& appPhysics);
 		/*void SetLinesArrayOffset(uint32_t index);*/
 		void ComputeVertexNormals();
+
+		void AddTextureDescriptor(VkDescriptorSet tDescriptorSet);
 
 		friend void LoadMeshOBJ(const std::string& path, Object& obj);
 };

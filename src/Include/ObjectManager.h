@@ -3,10 +3,8 @@
 #include <map>
 #include <thread>
 #include "Object.h"
-#include "vkContextBase.h"
 #include "Threadpool.h"
 #include "TextureManager.h"
-
 
 struct str_cmp 
 {
@@ -33,8 +31,9 @@ namespace vk
 	{
 	public:
 
-
 		ObjectManager();
+		void Init(TextureManager* textureManager);
+		~ObjectManager() = default;
 
 		void Destroy(const VkDevice l_device) 
 		{
@@ -50,7 +49,6 @@ namespace vk
 				}
 			}
 		}
-		~ObjectManager() = default;
 
 		void LoadObject(const VkPhysicalDevice p_device, const VkDevice l_device, const char* filename = nullptr, const glm::mat4& modelTransform = glm::mat4(1.f), const char* texturename = nullptr, const PhysicsComponent* physComp = nullptr, bool willDebugDraw = false, const char* name = nullptr);
 
@@ -75,25 +73,11 @@ namespace vk
 		}
 
 
-		void DrawObjects(VkCommandBuffer cmdBuffer) 
-		{
-			for (auto& obj : objects) 
-			{
-				auto pair = obj.second;
-				if (pair.isDoneLoading) 
-				{
-					Object* curr_obj = pair.obj;
-					curr_obj->Draw(cmdBuffer);
-				}
-			}
-		}
-
-		void Init();
+		void DrawObjects(VkCommandBuffer cmdBuffer, VkPipelineLayout pipelineLayout = VK_NULL_HANDLE);
 
 		void FinalizeObjects();
 		void Update(float dt);
 
-		void AttachSystems(TextureManager* textureManager, ContextBase* graphicsSystem);
 	private:
 		void LoadObjParallel(const VkPhysicalDevice p_device, const VkDevice l_device, const char* name = nullptr, const char* filename = nullptr, bool willDebugDraw = false, const glm::mat4& modelTransform = glm::mat4(1.f));
 
@@ -111,6 +95,5 @@ namespace vk
 		std::list<AsyncObjectInitInfo> objectUpdateQueue;
 		
 		TextureManager* textureSys = nullptr;
-		ContextBase* gfxSys = nullptr;
 	};
 }
