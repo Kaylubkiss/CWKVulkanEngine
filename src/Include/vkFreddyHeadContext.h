@@ -10,10 +10,18 @@ namespace vk
 		private:
 
 			//uniform(s)		
-			uLightObject uLight; /* NOTE: weird place to put light! */
-			vk::Buffer uLightBuffer;
+			struct UniformData {
+				uTransformObject transform;
+				glm::vec3 camPos = glm::vec3(0.0);
+				uLightObject light;
+			} sceneUniformData;
+
+			vk::Buffer sceneUniformBuffer;
 
 			//descriptors...
+			Texture defaultTexture;
+
+			VkDescriptorSet sceneDescriptorSet = VK_NULL_HANDLE;
 			VkDescriptorSetLayout descriptorSetLayout = VK_NULL_HANDLE;
 
 		public:

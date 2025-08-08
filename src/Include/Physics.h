@@ -90,6 +90,7 @@ public:
 	reactphysics3d::PhysicsWorld* World();
 	reactphysics3d::RigidBody* AddRigidBody(const reactphysics3d::Transform& transform);
 	reactphysics3d::BoxShape* CreateBoxShape(const reactphysics3d::Vector3& extent);
+	reactphysics3d::BoxShape* CreatePlaneShape(const reactphysics3d::Vector2 extent);
 	reactphysics3d::CapsuleShape* CreateCapsuleShape(float radius, float height);
 
 };

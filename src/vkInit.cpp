@@ -371,6 +371,8 @@ namespace vk
 			nInfo.cullMode = cullMode;
 			nInfo.frontFace = frontFace;
 			nInfo.flags = flags;
+			nInfo.depthClampEnable = VK_FALSE;
+			nInfo.lineWidth = 1.0f;
 
 			return nInfo;
 		}
@@ -660,6 +662,34 @@ namespace vk
 
 		}
 
+		VkRenderPassBeginInfo RenderPassBeginInfo() 
+		{
+			VkRenderPassBeginInfo nInfo = {};
+			nInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+			return nInfo;
+		}
+
+
+		VkViewport Viewport(uint32_t width, uint32_t height, float minDepth, float maxDepth) 
+		{
+			VkViewport nViewPort = {};
+			nViewPort.width = (float)width;
+			nViewPort.height = (float)height;
+			nViewPort.minDepth = minDepth;
+			nViewPort.maxDepth = maxDepth;
+			return nViewPort;
+		}
+
+		VkRect2D Rect2D(uint32_t width, uint32_t height, int32_t offset_x, int32_t offset_y) 
+		{
+			VkRect2D nRect = {};
+
+			nRect.extent = { width, height };
+			nRect.offset = { offset_x, offset_y };
+
+			return nRect;
+
+		}
 
 		VkBufferCreateInfo BufferCreateInfo(VkBufferUsageFlags usageFlags, VkDeviceSize size) {
 

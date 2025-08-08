@@ -13,7 +13,6 @@ namespace vk
 	{
 		mPipeline.Destroy(this->device.logical);
 		swapChain.Destroy();
-		uTransform.buffer.Destroy();
 
 		depthStencil.Destroy(device.logical);
 
@@ -443,6 +442,8 @@ namespace vk
 		ContextBase::InitializeDepthStencil();
 		ContextBase::InitializeRenderPass();
 
+		this->swapChain.AllocateFrameBuffers(window.viewport, this->depthStencil, this->mPipeline.RenderPass());
+
 		this->commandPool = vk::init::CommandPool(device.logical, VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
 
 		VkSurfaceCapabilitiesKHR deviceCapabilities;
@@ -482,11 +483,6 @@ namespace vk
 	const VkDevice ContextBase::LogicalDevice() const 
 	{
 		return this->device.logical;
-	}
-
-	vk::UniformTransform& ContextBase::SceneTransform() 
-	{
-		return this->uTransform;
 	}
 
 	VkDescriptorPool ContextBase::DescriptorPool() const 

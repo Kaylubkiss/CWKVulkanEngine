@@ -12,7 +12,7 @@ namespace vk
 		this->logicalDevice = l_device;
 		this->size = static_cast<VkDeviceSize>(size);
 
-		VkBufferCreateInfo bufferCreateInfo = vk::init::BufferCreateInfo(usage, size);
+		VkBufferCreateInfo bufferCreateInfo = vk::init::BufferCreateInfo(usage, this->size);
 		bufferCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;	// can only use CONCURRENT if .queueFamilyIndexCount > 0
 
 		result = vkCreateBuffer(l_device, &bufferCreateInfo, nullptr, &this->handle);
@@ -53,7 +53,7 @@ namespace vk
 		//fill data buffer --> THIS COULD BE ITS OWN MODULE...
 		if (data != NULL)
 		{
-			vkMapMemory(l_device, this->memory, 0, this->size, 0, &this->mappedMemory);
+			VK_CHECK_RESULT(vkMapMemory(l_device, this->memory, 0, memoryRequirments.size, 0, &this->mappedMemory));
 			memcpy(this->mappedMemory, data, this->size);
 
 			if ((flags & VK_MEMORY_PROPERTY_HOST_COHERENT_BIT) == 0)

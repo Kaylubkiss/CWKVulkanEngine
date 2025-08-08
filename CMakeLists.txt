@@ -35,6 +35,7 @@ set(VULKAN_ENGINE_SRC src/vkDebug.cpp
 					  src/vkFreddyHeadContext.cpp
 					  src/vkDevice.cpp
 					  src/vkShadowMapContext.cpp
+					  src/vkMesh.cpp
 )
 
 source_group("Source Files/VulkanSources" FILES ${VULKAN_ENGINE_SRC})			

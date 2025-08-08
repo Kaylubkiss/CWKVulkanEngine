@@ -20,8 +20,6 @@ namespace vk
 
 			Device device;
 
-			vk::UniformTransform uTransform;
-
 			vk::HotReloader mHotReloader;
 
 			bool isInitialized = false;
@@ -53,7 +51,7 @@ namespace vk
 		public: 
 
 			ContextBase(); /* expect this to be derived from */
-			~ContextBase();
+			virtual ~ContextBase();
 
 			//pure virtual function(s)
 			virtual void RecordCommandBuffers(vk::ObjectManager& objManager) = 0;
@@ -64,7 +62,6 @@ namespace vk
 			virtual void InitializeScene(ObjectManager& objManager) = 0;
 
 			//virtual function(s)
-			virtual vk::UniformTransform& SceneTransform();
 			virtual void Render();
 
 			//getter(s)

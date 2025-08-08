@@ -66,22 +66,45 @@ namespace vk {
 	Texture::Texture(const VkPhysicalDevice p_device, const VkDevice l_device, const VkQueue gfxQueue, const std::string& fileName)
 	{
 		//Might want to make command pool a member variable.
-		VkCommandPool cmdPool = vk::init::CommandPool(l_device, VK_COMMAND_POOL_CREATE_TRANSIENT_BIT);
-
+	
 		uint32_t arrayLayerCount = 1;
 		int textureWidth, textureHeight, textureChannels;
-		stbi_uc* pixels = stbi_load((TEXTURE_PATH + fileName).c_str(), &textureWidth, &textureHeight, &textureChannels, STBI_rgb_alpha);
+		stbi_uc* pixels = fileName == "" ? nullptr : stbi_load((TEXTURE_PATH + fileName).c_str(), &textureWidth, &textureHeight, &textureChannels, STBI_rgb_alpha);
+
+		//TODO: this code segment does not working!!!
+		if (!pixels)
+		{
+			textureWidth = 128;
+			textureHeight = textureWidth;
+			int divisions = textureWidth / 4;
+
+			pixels = new stbi_uc[textureWidth * textureHeight];
+
+			//generate default texture
+			for (size_t i = 0; i < textureHeight; ++i)
+			{
+				size_t pixelCol = i * textureWidth;
+
+				for (size_t i = 0; i < textureWidth; ++i) 
+				{
+					if (i % divisions == 0) 
+					{
+						pixels[pixelCol + i] = 255;
+					}
+					else {
+						pixels[pixelCol + i] = 0;
+					}
+				}
+
+			}
+
+		}
 
 		VkDeviceSize imageSize = (uint64_t)textureWidth * (uint64_t)textureHeight * 4;
 
-		if (pixels == NULL)
-		{
-			throw std::runtime_error("failed to load texture image!");
-		}
-
 		uint32_t mipLevels = vk::util::CalculateMipLevels(textureWidth, textureHeight);
 
-		vk::Buffer stagingBuffer = vk::Buffer(p_device, l_device, static_cast<size_t>(imageSize), VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, pixels);
+		vk::Buffer stagingBuffer = vk::Buffer(p_device, l_device, static_cast<size_t>(imageSize), VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, (void*)pixels);
 
 		stbi_image_free(pixels);
 
@@ -89,6 +112,7 @@ namespace vk {
 			VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
 			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, this->mTextureMemory, arrayLayerCount);
 
+		VkCommandPool cmdPool = vk::init::CommandPool(l_device, VK_COMMAND_POOL_CREATE_TRANSIENT_BIT);
 
 		//creating mipmaps
 		vk::util::TransitionImageLayout(l_device, cmdPool, gfxQueue, this->mTextureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, mipLevels);

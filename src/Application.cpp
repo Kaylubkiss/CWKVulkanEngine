@@ -5,6 +5,7 @@
 #include "Controller.h"
 #include "Physics.h"
 #include "vkFreddyHeadContext.h"
+#include "vkShadowMapContext.h"
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEFAULT_ALIGNED_GENTYPES
 #include <glm/gtc/matrix_transform.hpp>
@@ -85,14 +86,18 @@ void Application::InitGui()
 
 void Application::init() 
 {
-	this->graphicsContext = std::make_unique<vk::FreddyHeadScene>();
+	this->graphicsContext = std::make_unique<vk::ShadowMapScene>();
 
-	vk::FreddyHeadScene* freddyScene = static_cast<vk::FreddyHeadScene*>(graphicsContext.get());
+	vk::ShadowMapScene* freddyScene = static_cast<vk::ShadowMapScene*>(graphicsContext.get());
 	this->mCamera = Camera({ 0.f, 0.f, 10.f }, { 0.f, 0.f, -1.f } , { 0,1,0 });
 
 	this->mTextureManager.Init(this->graphicsContext.get());
 
-	this->mObjectManager.Init(&this->mTextureManager);
+	this->mObjectManager.Init(
+		&this->mTextureManager, 
+		graphicsContext.get()->PhysicalDevice(), 
+		graphicsContext.get()->LogicalDevice()
+	);
 	
 	graphicsContext->InitializeScene(mObjectManager);
 	
@@ -233,7 +238,6 @@ void Application::exit()
 
 Application::~Application()
 {
-	//~graphicsContext()
 }
 
 

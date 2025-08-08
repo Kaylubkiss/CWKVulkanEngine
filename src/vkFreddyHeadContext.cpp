@@ -11,19 +11,20 @@ namespace vk
 
 	FreddyHeadScene::FreddyHeadScene()
 	{
+		
 
 		//initialized uniforms...
 		
 		//uniform(s)
-		this->uTransform.buffer = device.CreateBuffer(sizeof(uTransformObject), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, (void*)&this->uTransform);
+		this->sceneUniformBuffer = device.CreateBuffer(sizeof(sceneUniformData), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, (void*)&sceneUniformData);
 
-		this->uLight.pos = {};
-		this->uLight.albedo = { 1.0, 1.0, 1.0 };
-		this->uLight.ambient = this->uLight.albedo * 0.1f;
-		this->uLight.specular = { 0.5f, 0.5f, 0.5f };
-		this->uLight.shininess = 16.f;
+		sceneUniformData.light.pos = {};
+		sceneUniformData.light.albedo = { 1.0, 1.0, 1.0 };
+		sceneUniformData.light.ambient = sceneUniformData.light.albedo * 0.01f;
+		sceneUniformData.light.specular = { 0.5f, 0.5f, 0.5f };
+		sceneUniformData.light.shininess = 32.f;
 
-		this->uLightBuffer = device.CreateBuffer(sizeof(uLightObject), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, (void*)(&this->uLight));
+		defaultTexture = Texture(device.physical, device.logical, device.graphicsQueue.handle, "puppy1.bmp");
 
 		FreddyHeadScene::UpdateUniforms();
 
@@ -31,13 +32,15 @@ namespace vk
 		FreddyHeadScene::InitializePipeline("blinnForward.vert", "blinnForward.frag");
 
 		/* NOTE: a bit jank, as swapchain relies on Finalize method of mPipeline to finish */
-		this->swapChain.AllocateFrameBuffers(window.viewport, this->depthStencil, this->mPipeline.RenderPass());
+		
 
 	}
 
 	FreddyHeadScene::~FreddyHeadScene()
 	{
-		uLightBuffer.Destroy();
+		defaultTexture.Destroy(device.logical);
+
+		sceneUniformBuffer.Destroy();
 
 		vkDestroyDescriptorSetLayout(this->device.logical, this->descriptorSetLayout, nullptr);
 	}
@@ -49,7 +52,13 @@ namespace vk
 		glm::mat4 modelTransform = glm::mat4(5.f);
 		modelTransform[3] = glm::vec4(1.0f, 0, 5.f, 1);
 
-		objManager.LoadObject(device.physical, device.logical, "freddy.obj", modelTransform, "texture.jpg", nullptr, false, "freddy");
+
+		ObjectCreateInfo objectCI = {};
+		objectCI.objName = "freddy.obj";
+		objectCI.textureFileName = "";
+		objectCI.pModelTransform = &modelTransform;
+
+		objManager.LoadObject(&objectCI);
 
 		//object 2
 		modelTransform = glm::mat4(1.f);
@@ -59,7 +68,13 @@ namespace vk
 		physicsComponent.bodyType = BodyType::DYNAMIC;
 		physicsComponent.colliderType = PhysicsComponent::ColliderType::CUBE;
 
-		objManager.LoadObject(device.physical, device.logical, "cube.obj", modelTransform, "puppy1.bmp", &physicsComponent, true, "cube");
+		objectCI = {};
+		objectCI.objName = "cube.obj";
+		objectCI.textureFileName = "";
+		objectCI.pPhysicsComponent = &physicsComponent;
+		objectCI.pModelTransform = &modelTransform;
+
+		objManager.LoadObject(&objectCI);
 
 		//object 3
 		const float dbScale = 30.f;
@@ -67,7 +82,15 @@ namespace vk
 		modelTransform[3] = { 0.f, -5.f, 0.f, 1 };
 
 		physicsComponent.bodyType = reactphysics3d::BodyType::STATIC;
-		objManager.LoadObject(device.physical, device.logical, "base.obj", modelTransform, "puppy1.bmp", &physicsComponent, true, "base");
+
+		
+		objectCI = {};
+		objectCI.objName = "base.obj";
+		objectCI.textureFileName = "";
+		objectCI.pPhysicsComponent = &physicsComponent;
+		objectCI.pModelTransform = &modelTransform;
+
+		objManager.LoadObject(&objectCI);
 
 	}
 
@@ -85,25 +108,39 @@ namespace vk
 
 
 		std::vector<VkDescriptorSetLayoutBinding> dscSetLayoutBindings = {
-			//for the scene transform
-			vk::init::DescriptorLayoutBinding(0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT),
+			//for the scene transform and kight transform
+			vk::init::DescriptorLayoutBinding(0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT),
 			//for the texture sampler
 			vk::init::DescriptorLayoutBinding(1, 1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT),
-			//for scene light
-			vk::init::DescriptorLayoutBinding(2, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT)
 		};
 
 		this->descriptorSetLayout = vk::init::DescriptorSetLayout(device.logical, dscSetLayoutBindings.data(), (uint32_t)dscSetLayoutBindings.size());
+
+		sceneDescriptorSet = vk::init::DescriptorSet(device.logical, descriptorPool, descriptorSetLayout);
+
+		
+		
+		VkDescriptorImageInfo defaultTextureDescriptor = {};
+		defaultTextureDescriptor.imageLayout = VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL;
+		defaultTextureDescriptor.imageView = defaultTexture.mTextureImageView;
+		defaultTextureDescriptor.sampler = defaultTexture.mTextureSampler;
+
+		std::vector<VkWriteDescriptorSet> writeDescriptorSets =
+		{
+			//uniform transforms
+			vk::init::WriteDescriptorSet(sceneDescriptorSet, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &sceneUniformBuffer.descriptor),
+			vk::init::WriteDescriptorSet(sceneDescriptorSet, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, &defaultTextureDescriptor)
+		};
+
+		vkUpdateDescriptorSets(device.logical, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, nullptr);
 	}
 
 	std::vector<VkWriteDescriptorSet> FreddyHeadScene::WriteDescriptorBuffers(VkDescriptorSet descriptorSet) 
 	{
 		std::vector<VkWriteDescriptorSet> writeDescriptorSets =
 		{
-			//uniform buffers
-			vk::init::WriteDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &uTransform.buffer.descriptor),
-			//lighting uniforms
-			vk::init::WriteDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 2, &uLightBuffer.descriptor)
+			//uniform transforms
+			vk::init::WriteDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &sceneUniformBuffer.descriptor),
 		};
 
 		return writeDescriptorSets;	
@@ -139,13 +176,18 @@ namespace vk
 			renderPassInfo.renderArea.extent = this->currentExtent;
 
 			VkClearValue clearColors[2] = {};
-			clearColors[0].color = { uLight.ambient.x, uLight.ambient.y, uLight.ambient.z, 1.f };
+
+			uLightObject& sceneLight = sceneUniformData.light;
+			clearColors[0].color = { sceneLight.ambient.x, sceneLight.ambient.y, sceneLight.ambient.z, 1.f };
 			clearColors[1].depthStencil = { 1.f, 0 };
 
 			renderPassInfo.clearValueCount = 2;
 			renderPassInfo.pClearValues = clearColors;
 
 			vkCmdBeginRenderPass(this->commandBuffers[i], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+			//this could be overwritten with the descriptor set of an object with a texture.
+			vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, mPipeline.layout, 0, 1, &sceneDescriptorSet, 0, nullptr);
 
 			vkCmdBindPipeline(this->commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, this->mPipeline.Handle());
 
@@ -165,14 +207,16 @@ namespace vk
 	{
 		Camera& appCamera = _Application->GetCamera();
 		//uniform transform for objects of default pipeline.
-		this->uTransform.data = {
+		this->sceneUniformData.transform = {
 			appCamera.LookAt(), //view
 			glm::perspective(glm::radians(45.f), (float)window.viewport.width / window.viewport.height, 0.1f, 1000.f) //proj
 		};
 
-		this->uTransform.data.proj[1][1] *= -1.f;
+		this->sceneUniformData.transform.proj[1][1] *= -1.f;
 
-		memcpy(this->uTransform.buffer.mappedMemory, &this->uTransform.data, sizeof(uTransform.data));
+		this->sceneUniformData.camPos = appCamera.Position();
+
+		memcpy(this->sceneUniformBuffer.mappedMemory, &this->sceneUniformData, sizeof(sceneUniformData));
 	}
 
 	void FreddyHeadScene::Render() 

@@ -11,7 +11,7 @@ namespace vk
 		private:
 
 
-			float zNear = 1.f;
+			float zNear = 1.0f;
 			float zFar = 96.f;
 
 			float lightFOV = 45.f;
@@ -23,21 +23,19 @@ namespace vk
 			struct UniformDataScene 
 			{
 				uTransformObject transform = {};
-				glm::mat4 depthBiasMVP = glm::mat4(0.f);
+				glm::mat4 depthBiasMVP = glm::mat4(1.f);
+				glm::vec3 camPos;
 				uLightObject light = {};
-
-				float zNear = 0.f;
-				float zFar = 0.f;
 			} uniformDataScene{};
 
 			struct UniformDataOffscreen 
 			{
-				glm::mat4 depthMVP = glm::mat4(0.f);
+				glm::mat4 depthVP = glm::mat4(0.f);
 			} uniformDataOffscreen{};
 
 			struct {
-				vk::Buffer scene;
-				vk::Buffer offscreen;
+				vk::Buffer scene = {};
+				vk::Buffer offscreen = {};
 			} uniformBuffers{};
 
 			struct {
@@ -55,8 +53,8 @@ namespace vk
 			VkDescriptorSetLayout sceneDescriptorLayout = VK_NULL_HANDLE;
 			
 			struct {
-				VkDescriptorSet offscreen;
-				VkDescriptorSet scene;
+				VkDescriptorSet offscreen = VK_NULL_HANDLE;
+				VkDescriptorSet scene = VK_NULL_HANDLE;
 			} descriptorSets{};
 
 			const uint32_t shadowMapSize = 2048;
@@ -66,13 +64,15 @@ namespace vk
 			~ShadowMapScene();
 
 			virtual void RecordCommandBuffers(vk::ObjectManager& objManager) override;
-			virtual void ResizeWindow() override;
 			virtual void InitializeScene(ObjectManager& objManager) override;
+			virtual uint32_t SamplerDescriptorSetBinding() override;
+			virtual const VkDescriptorSetLayout DescriptorSetLayout() const override;
+			virtual std::vector<VkWriteDescriptorSet> WriteDescriptorBuffers(VkDescriptorSet descriptorSet) override;
 
 			virtual void Render();
 
 		protected:
-			virtual void InitializePipeline(std::string vsFile, std::string fsFile) override;
+			virtual void InitializePipeline(std::string vsFile = "", std::string fsFile = "") override;
 			virtual void InitializeDescriptors() override;
 
 			//class-specific methods.

@@ -12,23 +12,28 @@ namespace vk
 
 		uLightObject& light = uniformDataScene.light;
 
-		light.pos = {};
+		light.pos = {0, 50, -10};
 		light.albedo = { 1.0, 1.0, 1.0 };
 		light.ambient = light.albedo * 0.1f;
 		light.specular = { 0.5f, 0.5f, 0.5f };
-		light.shininess = 16.f;
+		light.shininess = 32.f;
 
 		this->uniformBuffers.scene = device.CreateBuffer(sizeof(UniformDataScene), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, (void*)(&this->uniformDataScene));
 
 
 		this->uniformBuffers.offscreen = device.CreateBuffer(sizeof(UniformDataOffscreen), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, (void*)(&this->uniformDataOffscreen));
 
-		ShadowMapScene::UpdateOffscreenUniforms();
-		ShadowMapScene::UpdateSceneUniforms();
+		
 		
 		offscreenPass.depth.format = VK_FORMAT_D16_UNORM;
 
+		ShadowMapScene::UpdateOffscreenUniforms();
+		ShadowMapScene::UpdateSceneUniforms();
 		//TODO: map the uniforms??
+
+		InitializeOffscreenFramebuffer();
+		InitializeDescriptors();
+		InitializePipeline();
 	}
 
 	ShadowMapScene::~ShadowMapScene() 
@@ -41,12 +46,6 @@ namespace vk
 		vkDestroyPipeline(device.logical, offscreenPipeline, nullptr);
 	}
 
-	void ShadowMapScene::ResizeWindow() 
-	{
-
-
-	}
-
 	void ShadowMapScene::UpdateSceneUniforms() 
 	{
 		uniformDataScene.light.pos = {};//no updating the position of the light, yet.
@@ -55,37 +54,97 @@ namespace vk
 			_Application->GetCamera().LookAt(),
 			glm::perspective(glm::radians(45.f), (float)window.viewport.width / window.viewport.height, 0.1f, 1000.f) 
 		};
-		this->uTransform.data.proj[1][1] *= -1.f;
-		uniformDataScene.zNear = zNear;
-		uniformDataScene.zFar = zFar;
-		uniformDataScene.depthBiasMVP = uniformDataOffscreen.depthMVP;
+		uniformDataScene.transform.proj[1][1] *= -1.f;
+		uniformDataScene.depthBiasMVP = uniformDataOffscreen.depthVP;
+
+		uniformDataScene.camPos = _Application->GetCamera().Position();
 		memcpy(uniformBuffers.scene.mappedMemory, (void*)(&uniformDataScene), sizeof(uniformDataScene));
 	}
 
 	void ShadowMapScene::UpdateOffscreenUniforms() 
 	{
-		glm::mat4 depthProjectionMatrix = glm::perspective(45.f, 1.f, zNear, zFar);
+		glm::mat4 depthProjectionMatrix = glm::perspective(glm::radians(45.f), 1.f, zNear, zFar);
+		depthProjectionMatrix[1][1] *= -1;
 		glm::mat4 depthViewMatrix = glm::lookAt(uniformDataScene.light.pos, glm::vec3(0.f), glm::vec3(0, 1, 0));
-		glm::mat4 depthModelMatrix = glm::mat4(1.f);
+		/*glm::mat4 depthViewMatrix = _Application->GetCamera().LookAt();*/
+		uniformDataOffscreen.depthVP = depthProjectionMatrix * depthViewMatrix;
 
-		uniformDataOffscreen.depthMVP = depthProjectionMatrix * depthViewMatrix * depthModelMatrix;
-
-		memcpy(uniformBuffers.offscreen.mappedMemory, &uniformDataOffscreen, sizeof(UniformDataOffscreen));
+		memcpy(uniformBuffers.offscreen.mappedMemory, &uniformDataOffscreen, sizeof(uniformDataOffscreen));
 	}
 
 	void ShadowMapScene::RecordCommandBuffers(vk::ObjectManager& objManager) 
 	{
 		VkCommandBufferBeginInfo cmdBeginInfo = vk::init::CommandBufferBeginInfo();
-		cmdBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+		//cmdBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
 
-		std::array<VkClearValue, 2> clearValues;
+		VkClearValue clearValue[2];
 		VkViewport viewport;
 		VkRect2D scissor;
 
 		for (size_t i = 0; i < commandBuffers.size(); ++i) 
 		{
+			VK_CHECK_RESULT(vkBeginCommandBuffer(commandBuffers[i], &cmdBeginInfo));
 
+			{
+				clearValue[0].depthStencil = {1, 0};
 
+				VkRenderPassBeginInfo offscreenRenderPassInfo = vk::init::RenderPassBeginInfo();
+				offscreenRenderPassInfo.framebuffer = offscreenPass.frameBuffer;
+				offscreenRenderPassInfo.renderPass = offscreenPass.renderPass;
+				offscreenRenderPassInfo.renderArea.extent = {offscreenPass.width, offscreenPass.height};
+				offscreenRenderPassInfo.clearValueCount = 1;
+				offscreenRenderPassInfo.pClearValues = clearValue;
+
+				vkCmdBeginRenderPass(commandBuffers[i], &offscreenRenderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+				VkViewport offscreenViewport = vk::init::Viewport(offscreenPass.width, offscreenPass.height);
+				vkCmdSetViewport(commandBuffers[i], 0, 1, &offscreenViewport);
+
+				VkRect2D offscreenScissor = vk::init::Rect2D(offscreenPass.width, offscreenPass.height);
+				vkCmdSetScissor(commandBuffers[i], 0, 1, &offscreenScissor);
+
+				vkCmdSetDepthBias(commandBuffers[i], 
+					depthBiasConstant, 0.f, 
+					depthBiasSlope);
+
+				vkCmdBindPipeline(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, offscreenPipeline);
+
+				vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, mPipeline.layout, 0, 1, &descriptorSets.offscreen, 0, nullptr);
+
+				objManager.DrawObjects(commandBuffers[i], mPipeline.layout);
+
+				vkCmdEndRenderPass(commandBuffers[i]);
+
+			}
+
+			{
+
+				clearValue[0].color = {{0.025, 0.025, 0.025, 1.f}};
+				clearValue[1].depthStencil = {1.f, 0};
+
+				VkRenderPassBeginInfo sceneRenderPassInfo = vk::init::RenderPassBeginInfo();
+				sceneRenderPassInfo.framebuffer = swapChain.frameBuffers[i];
+				sceneRenderPassInfo.renderPass = mPipeline.mRenderPass;
+				sceneRenderPassInfo.renderArea.extent = currentExtent;
+				sceneRenderPassInfo.clearValueCount = 2;
+				sceneRenderPassInfo.pClearValues = clearValue;
+
+				vkCmdBeginRenderPass(commandBuffers[i], &sceneRenderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+				VkViewport sceneViewport = vk::init::Viewport(currentExtent.width, currentExtent.height);
+				vkCmdSetViewport(commandBuffers[i], 0, 1, &sceneViewport);
+
+				VkRect2D sceneScissor = vk::init::Rect2D(currentExtent.width, currentExtent.height);
+				vkCmdSetScissor(commandBuffers[i], 0, 1, &sceneScissor);
+
+				vkCmdBindPipeline(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, mPipeline.handle);
+				vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, mPipeline.layout, 0, 1, &descriptorSets.scene, 0, nullptr);
+				objManager.DrawObjects(commandBuffers[i], mPipeline.layout);
+
+				vkCmdEndRenderPass(commandBuffers[i]);
+			}
+
+			VK_CHECK_RESULT(vkEndCommandBuffer(commandBuffers[i]));
 		}
 
 	}
@@ -93,22 +152,41 @@ namespace vk
 	void ShadowMapScene::InitializeScene(ObjectManager& objManager) 
 	{
 		glm::mat4 modelTransform = glm::mat4(1.f);
+		float dbScale = 10.f;
+		modelTransform = glm::mat4(dbScale);
 		modelTransform[3] = glm::vec4(0, 20, -5.f, 1);
+
+
+		Mesh cubeMesh = Mesh::GenerateCube(1, 1);
 
 		PhysicsComponent physicsComponent;
 		physicsComponent.bodyType = BodyType::DYNAMIC;
 		physicsComponent.colliderType = PhysicsComponent::ColliderType::CUBE;
 
-		objManager.LoadObject(device.physical, device.logical, "cube.obj", modelTransform, "puppy1.bmp", &physicsComponent, true, "cube");
+		ObjectCreateInfo objCreateInfo = {};
+		objCreateInfo.objName = "cube.obj";
+		objCreateInfo.pModelTransform = &modelTransform;
+		objCreateInfo.pPhysicsComponent = &physicsComponent;
+		/*objCreateInfo.pMesh = &cubeMesh;*/
+
+		objManager.LoadObject(&objCreateInfo);
+		
 
 		//object 3
-		const float dbScale = 30.f;
-		modelTransform = glm::mat4(dbScale);
-		modelTransform[3] = { 0.f, -5.f, 0.f, 1 };
+		dbScale = 20.f;
+		modelTransform = glm::rotate(glm::mat4(1.0), glm::radians(-90.f), glm::vec3(1, 0, 0)) * glm::mat4(dbScale);
+		modelTransform[3] = { 0.f, -10.f, -10.f, 1 };
 
 		physicsComponent.bodyType = reactphysics3d::BodyType::STATIC;
-		objManager.LoadObject(device.physical, device.logical, "base.obj", modelTransform, "puppy1.bmp", &physicsComponent, true, "base");
+		physicsComponent.colliderType = PhysicsComponent::ColliderType::NONE;
 
+		objCreateInfo = {};
+		objCreateInfo.objName = "plane.obj";
+		objCreateInfo.pModelTransform = &modelTransform;
+		objCreateInfo.pPhysicsComponent = &physicsComponent;
+		/*objCreateInfo.pMesh = nullptr;*/
+
+		objManager.LoadObject(&objCreateInfo);
 
 	}
 
@@ -119,12 +197,14 @@ namespace vk
 		};
 
 		VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = vk::init::PipelineLayoutCreateInfo();
+		pipelineLayoutCreateInfo.pSetLayouts = &sceneDescriptorLayout;
+		pipelineLayoutCreateInfo.setLayoutCount = 1;
 		pipelineLayoutCreateInfo.pushConstantRangeCount = pushConstantRanges.size();
 		pipelineLayoutCreateInfo.pPushConstantRanges = pushConstantRanges.data();
 		VK_CHECK_RESULT(vkCreatePipelineLayout(device.logical, &pipelineLayoutCreateInfo, nullptr, &this->mPipeline.layout));
 
 		VkPipelineInputAssemblyStateCreateInfo inputAssemblyStateCI = vk::init::PipelineInputAssemblyStateCreateInfo(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, 0, VK_FALSE);
-		VkPipelineRasterizationStateCreateInfo rasterizationStateCI = vk::init::PipelineRasterizationStateCreateInfo(VK_POLYGON_MODE_FILL, VK_CULL_MODE_BACK_BIT, VK_FRONT_FACE_CLOCKWISE);
+		VkPipelineRasterizationStateCreateInfo rasterizationStateCI = vk::init::PipelineRasterizationStateCreateInfo(VK_POLYGON_MODE_FILL, VK_CULL_MODE_BACK_BIT, VK_FRONT_FACE_COUNTER_CLOCKWISE);
 		VkPipelineColorBlendAttachmentState blendAttachmentState = vk::init::PipelineColorBlendAttachmentState(0xf, VK_FALSE);
 		VkPipelineColorBlendStateCreateInfo colorBlendStateCI = vk::init::PipelineColorBlendStateCreateInfo(1, &blendAttachmentState);
 		VkPipelineDepthStencilStateCreateInfo depthStencilStateCI = vk::init::PipelineDepthStencilStateCreateInfo(VK_TRUE, VK_TRUE, VK_COMPARE_OP_LESS_OR_EQUAL);
@@ -142,6 +222,7 @@ namespace vk
 		pipelineCI.pDepthStencilState = &depthStencilStateCI;
 		pipelineCI.pMultisampleState = &multiplesampleStateCI;
 		pipelineCI.pDynamicState = &dynamicStateCI;
+		pipelineCI.pViewportState = &viewportStateCI;
 		pipelineCI.stageCount = static_cast<uint32_t>(shaderStages.size());
 		pipelineCI.pStages = shaderStages.data();
 
@@ -153,8 +234,10 @@ namespace vk
 		vertexInputStateCI.pVertexBindingDescriptions = &vertexBindingDescription;
 		vertexInputStateCI.vertexBindingDescriptionCount = 1;
 		vertexInputStateCI.pVertexAttributeDescriptions = vertexInputAttributeDescriptions.data();
-		vertexInputStateCI.vertexAttributeDescriptionCount = 1;
+		vertexInputStateCI.vertexAttributeDescriptionCount = vertexInputAttributeDescriptions.size();
 		
+		pipelineCI.pVertexInputState = &vertexInputStateCI;
+		pipelineCI.renderPass = mPipeline.mRenderPass;
 
 		//pipline #1: scene rendering pipeline with shadows applied, no filter
 		ShaderModuleInfo vertShaderInfo(device.logical, "sceneShadowMap.vert", VK_SHADER_STAGE_VERTEX_BIT);
@@ -268,7 +351,7 @@ namespace vk
 		shadowMapDescriptor.imageView = offscreenPass.depth.imageView;
 		shadowMapDescriptor.sampler = offscreenPass.depthSampler;
 
-
+		//offscreen rendering
 		VkDescriptorSetAllocateInfo allocInfo = vk::init::DescriptorSetAllocateInfo(descriptorPool, &sceneDescriptorLayout, 1);
 		VK_CHECK_RESULT(vkAllocateDescriptorSets(device.logical, &allocInfo, &descriptorSets.offscreen));
 
@@ -276,8 +359,10 @@ namespace vk
 			vk::init::WriteDescriptorSet(descriptorSets.offscreen, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &uniformBuffers.offscreen.descriptor)
 		};
 
-		vkUpdateDescriptorSets(device.logical, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, nullptr);
+		vkUpdateDescriptorSets(device.logical, (uint32_t)writeDescriptorSets.size(), writeDescriptorSets.data(), 0, nullptr);
 
+		//scene descriptor with shadow applied
+		VK_CHECK_RESULT(vkAllocateDescriptorSets(device.logical, &allocInfo, &descriptorSets.scene));
 		writeDescriptorSets = {
 			//uniform transforms...
 			vk::init::WriteDescriptorSet(descriptorSets.scene, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &uniformBuffers.scene.descriptor),
@@ -287,7 +372,7 @@ namespace vk
 		};
 
 
-		vkUpdateDescriptorSets(device.logical, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, nullptr);
+		vkUpdateDescriptorSets(device.logical, (uint32_t)writeDescriptorSets.size(), writeDescriptorSets.data(), 0, nullptr);
 	}
 
 	void ShadowMapScene::InitializeOffscreenFramebuffer() 
@@ -323,7 +408,7 @@ namespace vk
 		imageView.format = offscreenPass.depth.format;
 		imageView.subresourceRange = {};
 		imageView.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
-		imageView.subresourceRange.baseMipLevel = 1;
+		imageView.subresourceRange.baseMipLevel = 0;
 		imageView.subresourceRange.levelCount = 1;
 		imageView.subresourceRange.baseArrayLayer = 0;
 		imageView.subresourceRange.layerCount = 1;
@@ -365,6 +450,28 @@ namespace vk
 		UpdateOffscreenUniforms();
 		UpdateSceneUniforms();
 		ContextBase::Render();
+	}
+
+
+	std::vector<VkWriteDescriptorSet> ShadowMapScene::WriteDescriptorBuffers(VkDescriptorSet descriptorSet) 
+	{
+		std::vector<VkWriteDescriptorSet> writeDescriptorSets =
+		{
+			//uniform transforms
+			vk::init::WriteDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &uniformBuffers.scene.descriptor),
+		};
+
+		return writeDescriptorSets;
+	}
+
+	const VkDescriptorSetLayout ShadowMapScene::DescriptorSetLayout() const 
+	{
+		return this->sceneDescriptorLayout;
+	}
+
+	uint32_t ShadowMapScene::SamplerDescriptorSetBinding() 
+	{
+		return 2; //TODO: there are no textures in this scene..
 	}
 
 	

@@ -13,20 +13,23 @@
 class Object 
 {
 	private:
+		glm::mat4  modelTransform = glm::mat4(1.f);
+
 		Mesh mMesh;
 		
 		PhysicsComponent mPhysicsComponent;
 
-		VkDescriptorSet textureDescriptorSet;
+		VkDescriptorSet textureDescriptorSet = VK_NULL_HANDLE;
 
 		bool debugDraw = false;
 	
 	public:
 		Object(const VkPhysicalDevice p_device, const VkDevice l_device,
-			const char* fileName, bool willDebugDraw,
-			const glm::mat4& modelTransform);
+			const char* fileName, bool willDebugDraw = false);
 	
 		void UpdatePhysicsComponent(PhysicsComponent* physComp);
+		void UpdateModelTransform(const glm::mat4* modelTransform);
+		void UpdateMesh(const Mesh* mesh);
 		void SetDebugDraw(bool option);
 
 		Object() = default;
@@ -41,7 +44,7 @@ class Object
 
 		void AddTextureDescriptor(VkDescriptorSet tDescriptorSet);
 
-		friend void LoadMeshOBJ(const std::string& path, Object& obj);
+		friend bool LoadMeshOBJ(const std::string& path, Object& obj);
 };
 
 

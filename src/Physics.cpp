@@ -70,6 +70,11 @@ reactphysics3d::CapsuleShape* PhysicsSystem::CreateCapsuleShape(float radius, fl
 	return mPhysicsCommon.createCapsuleShape(radius, height);
 }
 
+reactphysics3d::BoxShape* PhysicsSystem::CreatePlaneShape(const reactphysics3d::Vector2 extent)
+{
+	return mPhysicsCommon.createBoxShape({ extent.x, extent.y, 1.0 });
+}
+
 void PhysicsComponent::SetRayCastHit(bool set) 
 {
 	this->rayCastHit = set;	

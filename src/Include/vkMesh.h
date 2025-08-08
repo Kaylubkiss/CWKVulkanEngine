@@ -25,12 +25,13 @@ struct Mesh
 	vk::MeshBuffers buffer;
 	MeshData data;
 
-	glm::mat4  modelTransform = glm::mat4(1.f);
-
 	glm::vec3 center = glm::vec3(0.f);
 
 	glm::vec3 maxLocalPoints = glm::vec3(0.f);
 	glm::vec3 minLocalPoints = glm::vec3(0.f);
+
+	static Mesh GenerateCube(int stacks, int slices);
+	static Mesh GeneratePlane(int stacks, int slices);
 
 	void Destroy(const VkDevice l_device) 
 	{

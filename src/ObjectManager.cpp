@@ -7,31 +7,38 @@
 namespace vk 
 {
 
-	void ObjectManager::LoadObjParallel(const VkPhysicalDevice p_device, const VkDevice l_device, const char* name, const char* filename, bool willDebugDraw, const glm::mat4& modelTransform)
+	void ObjectManager::LoadObjParallel(const ObjectCreateInfo& objInfo)
 	{
-		objects[name].obj  = new Object(p_device, l_device, filename, willDebugDraw, modelTransform);
+		Object* newObject  = new Object(physicalDevice, logicalDevice, objInfo.objName, objInfo.debugWillDraw);
+		newObject->UpdateModelTransform(objInfo.pModelTransform);
+		newObject->UpdateMesh(objInfo.pMesh);
+		newObject->UpdatePhysicsComponent(objInfo.pPhysicsComponent);
+
+		delete objInfo.pModelTransform;
+		delete objInfo.pMesh;
+		delete objInfo.pPhysicsComponent;
+
+		this->textureSys->BindTextureToObject(objInfo.textureFileName, *newObject);
+
+		objects[objInfo.objName].obj = newObject;
 	}
 
-	void ObjectManager::LoadObject(const VkPhysicalDevice p_device, const VkDevice l_device, const char* filename, const glm::mat4& modelTransform, const char* texturename, const PhysicsComponent* physComp, bool willDebugDraw, const char* name)
+	void ObjectManager::LoadObject(const ObjectCreateInfo* objectCI)
 	{
-		PhysicsComponent* nPhysics = nullptr;
+		assert(objectCI);
+		assert(objectCI->pModelTransform);
+		assert(objectCI->objName);
 
-		if (physComp != nullptr) 
-		{
-			//make sure to delete this in the update function when given to the object!!
-			nPhysics = new PhysicsComponent(*physComp);
-		}
+		ObjectCreateInfo objectInfoCopy;
+		objectInfoCopy.pModelTransform = new glm::mat4(*objectCI->pModelTransform);
+		objectInfoCopy.pPhysicsComponent = objectCI->pPhysicsComponent ? new PhysicsComponent(*objectCI->pPhysicsComponent) : nullptr;
+		objectInfoCopy.pMesh = objectCI->pMesh ? new Mesh(*objectCI->pMesh) : nullptr;
+		objectInfoCopy.textureFileName = objectCI->textureFileName;
+		objectInfoCopy.objName = objectCI->objName;
 
-		if (name == nullptr) 
-		{
-			name = filename;
-		}
-
-		objectUpdateQueue.push_back({ nPhysics, texturename, name});
-
-		std::function<void()> func = [this, p_device, l_device, modelTransform, name, filename, willDebugDraw] { 
+		std::function<void()> func = [this, objectInfoCopy] {
 			
-			ObjectManager::LoadObjParallel(p_device, l_device, name, (std::string(filename)).c_str(), willDebugDraw, modelTransform); 	
+			ObjectManager::LoadObjParallel(objectInfoCopy);
 		};
 
 		mThreadWorkers.EnqueueTask(func);
@@ -42,61 +49,23 @@ namespace vk
 		this->mThreadWorkers.Init(2);
 	}
 
-	void ObjectManager::Init(TextureManager* textureManager) 
+	void ObjectManager::Init(TextureManager* textureManager, VkPhysicalDevice physicalDevice, VkDevice device)
 	{
+		assert(physicalDevice != VK_NULL_HANDLE);
+		assert(device != VK_NULL_HANDLE);
 		assert(textureManager != nullptr);
+
 		this->textureSys = textureManager;
-	}
-
-	void ObjectManager::FinalizeObjects() 
-	{
-		//warning: can be very slow. Don't update object textures often at this point in development though.
-		auto it = objectUpdateQueue.begin();
-
-		while (it != objectUpdateQueue.end())
-		{
-			auto& objectInfo = objects[it->objName];
-
-			if (objectInfo.obj != nullptr)
-			{
-				Object* curr_obj = objectInfo.obj;
-
-				this->textureSys->BindTextureToObject(it->textureName, *curr_obj);
-
-				if (it->physComp != nullptr)
-				{
-					curr_obj->UpdatePhysicsComponent(it->physComp);
-					delete it->physComp;
-				}
-				
-				objectInfo.isDoneLoading = true;
-
-				it = objectUpdateQueue.erase(it);
-			}
-			else 
-			{
-				++it;
-			}
-		}
-
+		this->physicalDevice = physicalDevice;
+		this->logicalDevice = device;
 	}
 
 	void ObjectManager::Update(float dt) 
 	{
-
-		if (!objectUpdateQueue.empty())
-		{
-			ObjectManager::FinalizeObjects();
-		}
-
 		for (auto& obj : objects)
 		{
-			auto& pair = obj.second;
-			if (pair.isDoneLoading) 
-			{
-				Object* curr_obj = pair.obj;
-				curr_obj->Update(dt);
-			}
+			Object* curr_obj = obj.second.obj;
+			curr_obj->Update(dt);
 		}
 	}
 
@@ -105,12 +74,9 @@ namespace vk
 	{
 		for (auto& obj : objects)
 		{
-			auto pair = obj.second;
-			if (pair.isDoneLoading)
-			{
-				Object* curr_obj = pair.obj;
-				curr_obj->Draw(cmdBuffer, pipelineLayout);
-			}
+
+			Object* curr_obj = obj.second.obj;
+			curr_obj->Draw(cmdBuffer, pipelineLayout);
 		}
 	}
 }

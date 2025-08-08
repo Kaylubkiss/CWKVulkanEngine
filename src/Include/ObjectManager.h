@@ -14,25 +14,38 @@ struct str_cmp
 	}
 };
 
+
+struct ObjectCreateInfo 
+{
+	//must fill out objName, even if there is no extension.
+	const char* objName = "";
+	const char* textureFileName = "";
+	Mesh* pMesh = nullptr;
+	PhysicsComponent* pPhysicsComponent = nullptr;
+	glm::mat4* pModelTransform = nullptr;
+	bool debugWillDraw = false;
+};
+
 namespace vk 
 {
 
 	typedef const char* ObjectName;
 	typedef std::string TextureFileName;
 
-	struct AsyncObjectInitInfo 
+	/*struct AsyncObjectInitInfo 
 	{
-		PhysicsComponent* physComp = nullptr;
+		PhysicsComponent* pPhysComp = nullptr;
+		Mesh* pMesh;
 		TextureFileName textureName = "";
 		ObjectName objName = "";
-	};
+	};*/
 
 	class ObjectManager
 	{
 	public:
 
 		ObjectManager();
-		void Init(TextureManager* textureManager);
+		void Init(TextureManager* textureManager, VkPhysicalDevice physicalDevice, VkDevice device);
 		~ObjectManager() = default;
 
 		void Destroy(const VkDevice l_device) 
@@ -50,7 +63,7 @@ namespace vk
 			}
 		}
 
-		void LoadObject(const VkPhysicalDevice p_device, const VkDevice l_device, const char* filename = nullptr, const glm::mat4& modelTransform = glm::mat4(1.f), const char* texturename = nullptr, const PhysicsComponent* physComp = nullptr, bool willDebugDraw = false, const char* name = nullptr);
+		void LoadObject(const ObjectCreateInfo* objectCI);
 
 		Object* operator[](const char* name)
 		{
@@ -75,11 +88,10 @@ namespace vk
 
 		void DrawObjects(VkCommandBuffer cmdBuffer, VkPipelineLayout pipelineLayout = VK_NULL_HANDLE);
 
-		void FinalizeObjects();
 		void Update(float dt);
 
 	private:
-		void LoadObjParallel(const VkPhysicalDevice p_device, const VkDevice l_device, const char* name = nullptr, const char* filename = nullptr, bool willDebugDraw = false, const glm::mat4& modelTransform = glm::mat4(1.f));
+		void LoadObjParallel(const ObjectCreateInfo& objectCI);
 
 	//variables.
 		ThreadPool mThreadWorkers;
@@ -92,7 +104,10 @@ namespace vk
 		};
 
 		std::map<const char*, ObjectInfo, str_cmp> objects;
-		std::list<AsyncObjectInitInfo> objectUpdateQueue;
+		/*std::list<AsyncObjectInitInfo> objectUpdateQueue;*/
+
+		VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
+		VkDevice logicalDevice = VK_NULL_HANDLE;
 		
 		TextureManager* textureSys = nullptr;
 	};

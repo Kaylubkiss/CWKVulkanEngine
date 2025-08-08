@@ -92,6 +92,12 @@ namespace vk
 		VkBufferCreateInfo BufferCreateInfo(VkBufferUsageFlags usageFlags, VkDeviceSize size);
 
 		VkCommandBufferBeginInfo CommandBufferBeginInfo();
+
+		VkRenderPassBeginInfo RenderPassBeginInfo();
+
+		VkViewport Viewport(uint32_t width, uint32_t height, float minDepth = 0.f, float maxDepth = 1.f);
+
+		VkRect2D Rect2D(uint32_t width, uint32_t height, int32_t offset_x = 0, int32_t offset_y = 0);
 	}
 
 }

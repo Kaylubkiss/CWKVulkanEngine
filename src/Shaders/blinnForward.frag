@@ -3,17 +3,19 @@
 layout(location = 1) in vec2 fragTexCoord;
 layout(location = 2) in vec3 Normal;
 layout(location = 3) in vec3 worldPos;
-layout(location = 4) in vec3 viewPos;
 
+layout(std140, binding = 0) uniform uTransformObject {
+    mat4 view;
+    mat4 proj;
 
-layout(std140, binding = 2) uniform uLight 
-{
-    vec3 pos;
-	vec3 albedo;
-	vec3 ambient;
-	vec3 specular;
-	vec3 shininess; //for data alignment, made a float vec3
-} light;
+	vec3 camPos;
+
+	vec3 lightPos;
+	vec3 lightAmbient;
+	vec3 lightAlbedo;
+	vec3 lightSpecular;
+	vec3 lightShininess;
+} ubo;
 
 layout(binding = 1) uniform sampler2D texSampler;
 
@@ -23,18 +25,19 @@ void main()
 {
 
 	vec3 norm = normalize(Normal);
-	vec3 lightDir = normalize(light.pos - worldPos);
+	vec3 lightDir = normalize(ubo.lightPos - worldPos);
 	
-	vec3 viewDir = normalize(viewPos - worldPos);
+	vec3 viewDir = normalize(ubo.camPos - worldPos);
 	vec3 halfwayDir = normalize(lightDir + viewDir);
 
-	float spec = pow(max(dot(norm, halfwayDir), 0.0), light.shininess.x);
-	vec3 specular = spec * light.albedo;  
+	float spec = pow(max(dot(norm, halfwayDir), 0.0), ubo.lightShininess.x);
+	vec3 specular = spec * ubo.lightAlbedo;  
 	
 	float diff = max(dot(norm, lightDir), 0.0f);
-	vec3 diffuse = diff * light.albedo;
+	vec3 diffuse = diff * ubo.lightAlbedo;
 	
-	outColor = texture(texSampler, fragTexCoord);
-	outColor.rgb = (light.ambient + diffuse + specular) * outColor.rgb;
+	//outColor = texture(texSampler, fragTexCoord);
+	//outColor.rgb = (ubo.lightAmbient + diffuse + specular) * outColor.rgb;
+	outColor.rgb = ubo.lightAmbient + diffuse + specular;
 	outColor.a = 1;
 }														
