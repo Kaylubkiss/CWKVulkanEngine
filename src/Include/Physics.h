@@ -36,6 +36,7 @@ struct PhysicsComponent
 	{
 		NONE = 0,
 		CUBE,
+		PLANE,
 	};
 	ColliderType colliderType;
 

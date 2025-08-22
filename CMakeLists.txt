@@ -109,7 +109,10 @@ src/Shaders/blinnForward.vert
 src/Shaders/offscreenShadowMap.frag
 src/Shaders/offscreenShadowMap.vert
 src/Shaders/sceneShadowMap.frag
-src/Shaders/sceneShadowMap.vert)
+src/Shaders/sceneShadowMap.vert
+src/Shaders/debugShadowMap.vert
+src/Shaders/debugShadowMap.frag
+)
 								 
 #-----COMPILATION OPTIONS DEPENDING ON PLATFORM---------
 if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")

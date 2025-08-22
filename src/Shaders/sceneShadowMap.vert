@@ -4,7 +4,7 @@ layout(location = 0) in vec3 aPos;
 layout(location = 1) in vec3 aNormal;
 layout(location = 2) in vec3 aUV;
 
-layout(std140, binding = 0) uniform UBO {
+layout(binding = 0) uniform UBO {
 	//standard transformations.
 	mat4 view;
 	mat4 proj;
@@ -30,7 +30,7 @@ layout(push_constant) uniform pc
 };
 
 
-layout(location = 0) out vec3 Normal;
+layout(location = 0) out vec3 worldNormal;
 layout(location = 1) out vec3 lightDir;
 layout(location = 2) out vec3 viewDir;
 layout(location = 3) out vec4 shadowCoord;
@@ -38,8 +38,8 @@ layout(location = 3) out vec4 shadowCoord;
 const mat4 biasMat = mat4(
 	0.5, 0.0, 0.0, 0.0,
 	0.0, 0.5, 0.0, 0.0,
-	0.0, 0.0, 0.5, 0.0,
-	0.5, 0.5, 0.5, 1.0
+	0.0, 0.0, 1.0, 0.0, //don't do anything to the z-coord because we use depth bias
+	0.5, 0.5, 0.0, 1.0
 );
 
 void main()
@@ -50,7 +50,7 @@ void main()
 
 	viewDir = vec3(ubo.camPos - worldPos);
 	lightDir = ubo.lightPos - worldPos;
-	Normal = vec3(inverse(transpose(modelMatrix)) * vec4(aNormal,0));
+	worldNormal = vec3(inverse(transpose(modelMatrix)) * vec4(aNormal,0));
 	
-	shadowCoord = (ubo.depthVP * modelMatrix) * vec4(aPos, 1);
+	shadowCoord = (biasMat * ubo.depthVP * modelMatrix) * vec4(aPos, 1); //need to transform all the projected coords in NDC space to UV space.
 }

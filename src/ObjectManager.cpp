@@ -74,7 +74,6 @@ namespace vk
 	{
 		for (auto& obj : objects)
 		{
-
 			Object* curr_obj = obj.second.obj;
 			curr_obj->Draw(cmdBuffer, pipelineLayout);
 		}

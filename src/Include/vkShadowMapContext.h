@@ -10,7 +10,7 @@ namespace vk
 	{
 		private:
 
-
+			bool showDebug = false;
 			float zNear = 1.0f;
 			float zFar = 96.f;
 
@@ -49,11 +49,13 @@ namespace vk
 
 			//pipeline for scene here...
 			VkPipeline offscreenPipeline = VK_NULL_HANDLE;
+			VkPipeline offscreenDebugPipeline = VK_NULL_HANDLE;
 			
 			VkDescriptorSetLayout sceneDescriptorLayout = VK_NULL_HANDLE;
 			
 			struct {
 				VkDescriptorSet offscreen = VK_NULL_HANDLE;
+				VkDescriptorSet offscreenDebug = VK_NULL_HANDLE;
 				VkDescriptorSet scene = VK_NULL_HANDLE;
 			} descriptorSets{};
 

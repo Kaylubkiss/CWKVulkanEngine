@@ -49,24 +49,10 @@ namespace vk
 		vmai.allocationSize = memoryRequirments.size;
 
 
-
 		VkPhysicalDeviceMemoryProperties	vpdmp;
 		vkGetPhysicalDeviceMemoryProperties(physical, &vpdmp);
 
-		for (unsigned int i = 0; i < vpdmp.memoryTypeCount; i++)
-		{
-			VkMemoryType vmt = vpdmp.memoryTypes[i];
-			VkMemoryPropertyFlags vmpf = vmt.propertyFlags;
-			if ((memoryRequirments.memoryTypeBits & (1 << i)) != 0)
-			{
-				if ((vmpf & flags) != 0)
-				{
-					vmai.memoryTypeIndex = i;
-					break;
-				}
-			}
-		}
-
+		vmai.memoryTypeIndex = Device::GetMemoryType(memoryRequirments.memoryTypeBits, flags);
 
 		result = vkAllocateMemory(logical, &vmai, nullptr, &buffer.memory);
 		assert(result == VK_SUCCESS);

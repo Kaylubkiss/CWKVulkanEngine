@@ -91,7 +91,7 @@ void Object::InitPhysics(PhysicsSystem& appPhysics)
     glm::vec4 worldMinPoints = modelTransform * glm::vec4(mMesh.minLocalPoints, 1);
     glm::vec4 worldMaxPoints = modelTransform * glm::vec4(mMesh.maxLocalPoints, 1);
 
-    const glm::vec4& dc2Position = .5f * (worldMinPoints + worldMaxPoints);
+    const glm::vec4 dc2Position = .5f * (worldMinPoints + worldMaxPoints);
     reactphysics3d::Vector3 position(dc2Position.x, dc2Position.y, dc2Position.z);
     reactphysics3d::Quaternion orientation = Quaternion::identity();
     reactphysics3d::Transform transform(position, orientation);
@@ -99,17 +99,22 @@ void Object::InitPhysics(PhysicsSystem& appPhysics)
    
     this->mPhysicsComponent.rigidBody = appPhysics.AddRigidBody(transform);
 
+    //setting the body type of the rigidbody
     if (this->mPhysicsComponent.bodyType != BodyType::DYNAMIC)
     {
         this->mPhysicsComponent.rigidBody->setType(this->mPhysicsComponent.bodyType);
     }
-
-
+    
+    //creating a collision shape
     if (this->mPhysicsComponent.colliderType == PhysicsComponent::ColliderType::CUBE) 
     {
         glm::vec3 worldHalfExtent = glm::vec3((worldMaxPoints - worldMinPoints) * .5f);
-
         this->mPhysicsComponent.shape = appPhysics.CreateBoxShape({ std::abs(worldHalfExtent.x), std::abs(worldHalfExtent.y), std::abs(worldHalfExtent.z) });
+    }
+    else if (this->mPhysicsComponent.colliderType == PhysicsComponent::ColliderType::PLANE) 
+    {
+        glm::vec3 worldHalfExtent2D = glm::vec3((worldMaxPoints - worldMinPoints) * .5f);
+        this->mPhysicsComponent.shape = appPhysics.CreatePlaneShape({ std::abs(worldHalfExtent2D.x), std::abs(worldHalfExtent2D.z) });
     }
 
     //the collider transform is relative to the rigidbody origin.
