@@ -60,7 +60,8 @@ namespace vk
 			virtual uint32_t SamplerDescriptorSetBinding() = 0;
 			virtual const VkDescriptorSetLayout DescriptorSetLayout() const = 0;
 			virtual void InitializeScene(ObjectManager& objManager) = 0;
-
+			
+			
 			//virtual function(s)
 			virtual void Render();
 
@@ -81,8 +82,6 @@ namespace vk
 
 			//non-pure virtual functions
 			virtual void InitializeRenderPass();
-
-			//non virtual function
 			virtual void InitializeDepthStencil();
 
 		private:

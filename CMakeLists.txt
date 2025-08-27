@@ -35,6 +35,7 @@ set(VULKAN_ENGINE_SRC src/vkDebug.cpp
 					  src/vkFreddyHeadContext.cpp
 					  src/vkDevice.cpp
 					  src/vkShadowMapContext.cpp
+					  src/vkDeferredShadingContext.cpp
 					  src/vkMesh.cpp
 )
 
@@ -96,7 +97,7 @@ src/Include/vkShadowMap.h
 src/Include/vkFreddyHeadContext.h
 src/Include/vkDevice.h
 src/Include/vkShadowMapContext.h
-)
+src/Include/vkDeferredShadingContext.h)
 
 source_group("Header Files/VulkanHeaders" FILES ${VULKAN_ENGINE_HEADERS})	
 list(APPEND HEADER_FILES ${VULKAN_ENGINE_HEADERS})

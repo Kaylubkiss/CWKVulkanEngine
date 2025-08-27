@@ -192,6 +192,10 @@ namespace vk
 
 	void ShadowMapScene::InitializePipeline(std::string vsFile, std::string fsFile)
 	{
+
+		(void)vsFile;
+		(void)fsFile;
+
 		std::vector<VkPushConstantRange> pushConstantRanges = {
 			vk::init::PushConstantRange(0, sizeof(glm::mat4), VK_SHADER_STAGE_VERTEX_BIT)
 		};
@@ -482,6 +486,7 @@ namespace vk
 
 	std::vector<VkWriteDescriptorSet> ShadowMapScene::WriteDescriptorBuffers(VkDescriptorSet descriptorSet) 
 	{
+		//TODO: textures are not in this scene.
 		std::vector<VkWriteDescriptorSet> writeDescriptorSets =
 		{
 			//uniform transforms
