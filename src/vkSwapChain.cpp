@@ -8,8 +8,6 @@ namespace vk
 	SwapChain::SwapChain(const Device* devicePtr, uint32_t graphicsFamily, uint32_t presentFamily, const VkSurfaceKHR windowSurface)
 	{
 		assert(devicePtr);
-		assert(devicePtr->logical);
-		assert(devicePtr->physical);
 
 		this->logicalDevice = devicePtr->logical;
 		this->physicalDevice = devicePtr->physical;
@@ -35,22 +33,18 @@ namespace vk
 		VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, windowSurface, &surfaceFormatCount, surfaceFormats.data()));
 
 
+		
 		//choose suitable format
-		int surfaceIndex = -1;
-
+		int surfaceIndex = 0;
 		for (size_t i = 0; i < surfaceFormats.size(); ++i)
 		{
-			if (surfaceFormats[i].format == VK_FORMAT_B8G8R8A8_SRGB && 
-				surfaceFormats[i].colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
+			if (surfaceFormats[i].format == VK_FORMAT_B8G8R8A8_UNORM ||
+				surfaceFormats[i].format == VK_FORMAT_R8G8B8A8_UNORM ||
+				surfaceFormats[i].format == VK_FORMAT_A8B8G8R8_UNORM_PACK32)
 			{
 				surfaceIndex = i;
 				break;
 			}
-		}
-
-		if (surfaceIndex < 0)
-		{
-			throw std::runtime_error("couldn't find a suitable format for swap chain");
 		}
 
 
@@ -101,10 +95,9 @@ namespace vk
 		VK_CHECK_RESULT(vkGetSwapchainImagesKHR(logicalDevice, this->handle, &imageCount, this->images.data()));
 
 		SwapChain::CreateImageViews(this->images.data(), (uint32_t)this->images.size());
-
 	}
 	
-	void SwapChain::Recreate(uint32_t graphicsFamily, uint32_t presentFamily, vk::rsc::DepthStencil& depthResources, const VkRenderPass renderPass, const vk::Window& appWindow)
+	void SwapChain::Recreate(vk::rsc::DepthStencil& depthResources, const VkRenderPass renderPass, const vk::Window& appWindow)
 	{
 		SwapChain::Destroy();
 
@@ -112,11 +105,9 @@ namespace vk
 		VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice, appWindow.surface, &deviceCapabilities));
 
 		createInfo.imageExtent = deviceCapabilities.currentExtent;
-
 		VK_CHECK_RESULT(vkCreateSwapchainKHR(logicalDevice, &createInfo, nullptr, &this->handle));
 
 		this->images.resize(createInfo.minImageCount);
-
 		VK_CHECK_RESULT(vkGetSwapchainImagesKHR(logicalDevice, this->handle, &createInfo.minImageCount, this->images.data()));
 
 		SwapChain::CreateImageViews(this->images.data(), (uint32_t)this->images.size());
@@ -138,11 +129,6 @@ namespace vk
 		}
 
 		vkDestroySwapchainKHR(logicalDevice, this->handle, nullptr);
-
-		this->frameBuffers.clear();
-		this->images.clear();
-		this->imageViews.clear();
-
 	}
 
 	void SwapChain::CreateImageViews(VkImage* images, uint32_t imageCount)

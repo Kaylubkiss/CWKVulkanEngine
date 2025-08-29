@@ -28,7 +28,7 @@ namespace vk
 			
 			void Destroy();
 
-			void Recreate(uint32_t graphicsFamily, uint32_t presentFamily, vk::rsc::DepthStencil& depthResources, const VkRenderPass renderPass, const vk::Window& appWindow);
+			void Recreate(vk::rsc::DepthStencil& depthResources, const VkRenderPass renderPass, const vk::Window& appWindow);
 
 			void AllocateFrameBuffers(const VkViewport& vp, const vk::rsc::DepthStencil& depthResources, const VkRenderPass renderPass);
 

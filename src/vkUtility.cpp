@@ -8,39 +8,6 @@ namespace vk {
 	namespace util 
 	{
 
-		bool CheckValidationSupport()
-		{
-			uint32_t layerCount = 0;
-			vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
-
-			std::vector<VkLayerProperties> availableLayers(layerCount);
-
-			vkEnumerateInstanceLayerProperties(&layerCount, availableLayers.data());
-
-			for (const char* layerName : vk::instanceLayerExtensions)
-			{
-				bool layerFound = false;
-				for (const VkLayerProperties& layerProperties : availableLayers)
-				{
-					if (strcmp(layerName, layerProperties.layerName) == 0)
-					{
-						layerFound = true;
-						break;
-					}
-				}
-
-				if (layerFound == false)
-				{
-					return false;
-				}
-
-			}
-
-
-			return true;
-
-		}
-
 		VkFormat findSupportedFormat(const VkPhysicalDevice p_device, const std::vector<VkFormat>& possibleFormats,
 			VkImageTiling tiling, VkFormatFeatureFlags features)
 		{

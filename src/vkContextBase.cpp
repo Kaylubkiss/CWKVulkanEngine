@@ -6,6 +6,9 @@
 #include "HotReloader.h"
 #include <SDL2/SDL_vulkan.h>
 
+
+
+
 namespace vk
 {	
 	//destructor
@@ -37,28 +40,20 @@ namespace vk
 		assert(window.sdl_ptr != nullptr);
 
 		//create instance info.
-		VkInstanceCreateInfo createInfo = {};
 		VkApplicationInfo appInfo = {};
 		appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-		appInfo.apiVersion = VK_API_VERSION_1_3;
+		appInfo.apiVersion = VK_API_VERSION_1_4;
 		appInfo.pApplicationName = "Caleb Vulkan Engine";
 		appInfo.engineVersion = 1;
 		appInfo.pNext = nullptr;
 
+		VkInstanceCreateInfo createInfo = {};
 		createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
 		createInfo.flags = 0;
 
-		//linked list of structures to pass to the create instance func.
-		//--> look into it later.
-		createInfo.pNext = nullptr;
+		createInfo.pApplicationInfo = &appInfo;
 
-
-		//we won't be doing any extension for now --> look into it at a later time.
-		//need to get sdl extensionss
 		unsigned int sdl_extensionCount = 0;
-
-		VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo = vk::init::DebugMessengerCreateInfo();
-
 		if (SDL_Vulkan_GetInstanceExtensions(window.sdl_ptr, &sdl_extensionCount, nullptr) != SDL_TRUE)
 		{
 			throw std::runtime_error("could not grab extensions from SDL!");
@@ -71,37 +66,46 @@ namespace vk
 			throw std::runtime_error("could not grab extensions from SDL!");
 		}
 
-
-		//find other instance extensions.
-		uint32_t extensionPropertyCount = 0;
-		vkEnumerateInstanceExtensionProperties(nullptr, &extensionPropertyCount, nullptr);
-
-		std::vector<VkExtensionProperties> extensionProperties(extensionPropertyCount);
-
-		vkEnumerateInstanceExtensionProperties(nullptr, &extensionPropertyCount, extensionProperties.data());
-
-		for (auto& property : extensionProperties)
-		{
-			if (strcmp(property.extensionName, VK_EXT_DEBUG_UTILS_EXTENSION_NAME) == 0) {
-				extensionNames.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
-				break;
-			}
-		}
-
-
-		//this could be useful for logging, profiling, debugging, whatever.
-		//it intercepts the API
-		if (vk::util::CheckValidationSupport())
-		{
-			createInfo.ppEnabledLayerNames = vk::instanceLayerExtensions;
-			createInfo.enabledLayerCount = 1;
-		}
-
 		createInfo.enabledExtensionCount = extensionNames.size();
 		createInfo.ppEnabledExtensionNames = extensionNames.data();
 
-		createInfo.pNext = &debugCreateInfo;
-		createInfo.pApplicationInfo = &appInfo;
+
+		//enabling validation layers
+		const char* layerName = "VK_LAYER_KHRONOS_validation";
+
+		const VkBool32 setting_validate_core = VK_TRUE;
+		const VkBool32 setting_validate_sync = VK_TRUE;
+		const VkBool32 setting_thread_safety = VK_TRUE;
+		const char* setting_debug_action[] = { "VK_DBG_LAYER_ACTION_LOG_MSG" };
+		const char* setting_report_flags[] = { "error"  };
+		const VkBool32 setting_enable_message_limit = VK_TRUE;
+		const int32_t setting_duplicate_message_limit = 3;
+
+		const VkLayerSettingEXT settings[] = {
+			{layerName, "validate_core", VK_LAYER_SETTING_TYPE_BOOL32_EXT, 1, &setting_validate_core},
+			/*{layerName, "validate_sync", VK_LAYER_SETTING_TYPE_BOOL32_EXT, 1, &setting_validate_sync},
+			{layerName, "thread_safety", VK_LAYER_SETTING_TYPE_BOOL32_EXT, 1, &setting_thread_safety},
+			{layerName, "debug_action", VK_LAYER_SETTING_TYPE_STRING_EXT, 1, setting_debug_action},
+			{layerName, "report_flags", VK_LAYER_SETTING_TYPE_STRING_EXT, static_cast<uint32_t>(std::size(setting_report_flags)), setting_report_flags},
+			{layerName, "enable_message_limit", VK_LAYER_SETTING_TYPE_BOOL32_EXT, 1, &setting_enable_message_limit},
+			{layerName, "duplicate_message_limit", VK_LAYER_SETTING_TYPE_INT32_EXT, 1, &setting_duplicate_message_limit} */
+		};
+
+		const VkLayerSettingsCreateInfoEXT layer_settings_create_info = {
+			VK_STRUCTURE_TYPE_LAYER_SETTINGS_CREATE_INFO_EXT, nullptr,
+			static_cast<uint32_t>(std::size(settings)), settings };
+
+
+		createInfo.pNext = &layer_settings_create_info;
+
+		static const char* instanceLayers[] =
+		{
+			layerName
+		};
+
+		createInfo.enabledLayerCount = static_cast<uint32_t>(std::size(instanceLayers));
+		createInfo.ppEnabledLayerNames = instanceLayers;
+	
 
 		//create instance.
 		//this function, if successful, will create a "handle object"
@@ -152,8 +156,7 @@ namespace vk
 		currentExtent = deviceCapabilities.currentExtent;
 		window.UpdateExtents(currentExtent);
 
-		this->swapChain.Recreate(this->device.graphicsQueue.family,
-			this->device.presentQueue.family, this->depthStencil, this->mPipeline.RenderPass(), window);
+		this->swapChain.Recreate(this->depthStencil, this->mPipeline.RenderPass(), window);
 	}
 
 	void ContextBase::FindQueueFamilies(const VkSurfaceKHR& windowSurface)
@@ -287,8 +290,6 @@ namespace vk
 		else {
 			VkDeviceQueueCreateInfo deviceQueueInfo = {}; //to be passed into deviceCreateInfo's struct members.
 			deviceQueueInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-			deviceQueueInfo.flags = 0;
-			deviceQueueInfo.pNext = nullptr;
 			deviceQueueInfo.queueFamilyIndex = graphicsFamily;
 			deviceQueueInfo.queueCount = 1;
 			//THIS IS APPARENTLY REQUIRED --> REFERENCE BOOK DID NOT SHOW THIS...
@@ -298,21 +299,28 @@ namespace vk
 
 		}
 
-		//won't do many other optional features for now.
-		VkPhysicalDeviceFeatures deviceFeatures = {};
-		deviceFeatures.geometryShader = VK_TRUE;
-		/*	deviceFeatures.tessellationShader = VK_TRUE;*/
-		deviceFeatures.samplerAnisotropy = VK_TRUE;
-
+		
 
 		VkDeviceCreateInfo deviceCreateInfo = {};
 		deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
 		deviceCreateInfo.flags = 0;
 		deviceCreateInfo.pNext = nullptr;
 
+
+		static const char* deviceExtensions[1] =
+		{
+			"VK_KHR_swapchain"
+		};
+
 		//maybe don't assume extensions are there!!!!	
-		deviceCreateInfo.enabledExtensionCount = sizeof(deviceExtensions) / sizeof(deviceExtensions[0]);
-		deviceCreateInfo.ppEnabledExtensionNames = vk::deviceExtensions;
+		deviceCreateInfo.enabledExtensionCount = static_cast<uint32_t>(std::size(deviceExtensions));
+		deviceCreateInfo.ppEnabledExtensionNames = deviceExtensions;
+
+		//won't do many other optional features for now.
+		VkPhysicalDeviceFeatures deviceFeatures = {};
+		deviceFeatures.geometryShader = VK_TRUE;
+		/*	deviceFeatures.tessellationShader = VK_TRUE;*/
+		deviceFeatures.samplerAnisotropy = VK_TRUE;
 
 		deviceCreateInfo.pEnabledFeatures = &deviceFeatures; //call vkGetPhysicalDeviceFeatures to set additional features.
 

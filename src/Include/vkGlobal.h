@@ -28,16 +28,6 @@ namespace vk
 		VK_EXT_DEBUG_UTILS_EXTENSION_NAME
 	};
 
-	static const char* instanceLayerExtensions[1] = 
-	{
-		"VK_LAYER_KHRONOS_validation"
-	};
-
-	static const char* deviceExtensions[1] =
-	{
-		"VK_KHR_swapchain"
-	};
-
 	struct Queue 
 	{
 		VkQueue handle = VK_NULL_HANDLE;
@@ -48,6 +38,14 @@ namespace vk
 	{
 		uTransformObject data;
 		vk::Buffer buffer;
+	};
+
+	struct FrameBufferAttachment 
+	{
+		VkImage image;
+		VkImageView imageView;
+		VkDeviceMemory memory;
+		VkFormat format;
 	};
 
 	VkCommandBuffer beginSingleTimeCommand(const VkDevice l_device, const VkCommandPool cmdPool);
