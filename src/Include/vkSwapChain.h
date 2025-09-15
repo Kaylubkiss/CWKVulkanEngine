@@ -2,8 +2,8 @@
 
 #include <vulkan/vulkan.h>
 #include "vkWindow.h"
-#include "vkResource.h"
 #include "vkDevice.h"
+#include "vkGlobal.h"
 
 namespace vk 
 {
@@ -21,20 +21,22 @@ namespace vk
 			std::vector<VkImage> images;
 			std::vector<VkImageView> imageViews;
 			
+			FramebufferAttachment depthAttachment;
 			std::vector<VkFramebuffer> frameBuffers;
 
 			SwapChain() = default;
-			SwapChain(const Device* devicePtr, uint32_t graphicsFamily, uint32_t presentFamily, const VkSurfaceKHR windowSurface);
+			SwapChain(const Device* devicePtr, const std::array<uint32_t, 2>& queueFamilies, const vk::Window& appWindow);
 			
 			void Destroy();
 
-			void Recreate(vk::rsc::DepthStencil& depthResources, const VkRenderPass renderPass, const vk::Window& appWindow);
+			void Recreate(const VkRenderPass renderPass, const vk::Window& appWindow);
 
-			void AllocateFrameBuffers(const VkViewport& vp, const vk::rsc::DepthStencil& depthResources, const VkRenderPass renderPass);
+			void CreateFrameBuffers(const VkViewport& vp, const VkRenderPass renderPass);
+			
 
 
 		private:
-			void CreateImageViews(VkImage* images, uint32_t imageCount);
+			void CreateImageViews();
 
 	};
 

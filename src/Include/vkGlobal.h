@@ -40,12 +40,19 @@ namespace vk
 		vk::Buffer buffer;
 	};
 
-	struct FrameBufferAttachment 
+	struct FramebufferAttachment
 	{
-		VkImage image;
-		VkImageView imageView;
-		VkDeviceMemory memory;
-		VkFormat format;
+		VkImage image = VK_NULL_HANDLE;
+		VkDeviceMemory imageMemory = VK_NULL_HANDLE;
+		VkImageView imageView = VK_NULL_HANDLE;
+		VkFormat format = {};
+
+		void Destroy(VkDevice l_device)
+		{
+			vkDestroyImageView(l_device, this->imageView, nullptr);
+			vkDestroyImage(l_device, this->image, nullptr);
+			vkFreeMemory(l_device, this->imageMemory, nullptr);
+		}
 	};
 
 	VkCommandBuffer beginSingleTimeCommand(const VkDevice l_device, const VkCommandPool cmdPool);

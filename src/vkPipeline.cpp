@@ -5,7 +5,6 @@
 #include "vkPipeline.h"
 #include "vkUtility.h"
 #include "vkInit.h"
-#include "vkResource.h"
 #include <iostream>
 
 namespace vk 

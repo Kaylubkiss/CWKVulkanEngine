@@ -44,8 +44,6 @@ namespace vk
 
 			vk::SwapChain swapChain;
 
-			vk::rsc::DepthStencil depthStencil;
-
 			vk::Pipeline mPipeline;
 
 		public: 
@@ -82,7 +80,6 @@ namespace vk
 
 			//non-pure virtual functions
 			virtual void InitializeRenderPass();
-			virtual void InitializeDepthStencil();
 
 		private:
 			VkDevice CreateLogicalDevice(const VkPhysicalDevice& p_device, uint32_t graphicsFamily, uint32_t presentFamily);

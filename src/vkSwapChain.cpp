@@ -5,7 +5,7 @@
 
 namespace vk 
 {
-	SwapChain::SwapChain(const Device* devicePtr, uint32_t graphicsFamily, uint32_t presentFamily, const VkSurfaceKHR windowSurface)
+	SwapChain::SwapChain(const Device* devicePtr, const std::array<uint32_t, 2>& queueFamilies, const vk::Window& appWindow) 
 	{
 		assert(devicePtr);
 
@@ -14,13 +14,13 @@ namespace vk
 
 		VkSwapchainCreateInfoKHR swapChainInfo = {};
 		swapChainInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-		swapChainInfo.surface = windowSurface;
+		swapChainInfo.surface = appWindow.surface;
 
 
 		uint32_t surfaceFormatCount = 0;
 		std::vector<VkSurfaceFormatKHR> surfaceFormats;
 
-		VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, windowSurface, &surfaceFormatCount, nullptr));
+		VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, appWindow.surface, &surfaceFormatCount, nullptr));
 
 		//surfaceFormatCount now filled..
 		if (!surfaceFormatCount)
@@ -30,7 +30,7 @@ namespace vk
 
 		surfaceFormats.resize(surfaceFormatCount);
 
-		VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, windowSurface, &surfaceFormatCount, surfaceFormats.data()));
+		VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, appWindow.surface, &surfaceFormatCount, surfaceFormats.data()));
 
 
 		
@@ -49,7 +49,7 @@ namespace vk
 
 
 		VkSurfaceCapabilitiesKHR deviceCapabilities;
-		VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice, windowSurface, &deviceCapabilities));
+		VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice, appWindow.surface, &deviceCapabilities));
 
 		uint32_t imageCount = deviceCapabilities.minImageCount + 1;
 
@@ -65,9 +65,8 @@ namespace vk
 		swapChainInfo.imageArrayLayers = 1;
 		swapChainInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
-		uint32_t queueFamilyIndices[2] = { graphicsFamily, presentFamily };
-
-		if (graphicsFamily == presentFamily)
+		//queueFamilies[0] == graphics, queueFamilies[1] == present
+		if (queueFamilies[0] == queueFamilies[1])
 		{
 			swapChainInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE; //present mode and graphics mode are the same.
 			swapChainInfo.queueFamilyIndexCount = 0;
@@ -76,8 +75,8 @@ namespace vk
 		else
 		{
 			swapChainInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
-			swapChainInfo.queueFamilyIndexCount = 2;
-			swapChainInfo.pQueueFamilyIndices = queueFamilyIndices;
+			swapChainInfo.queueFamilyIndexCount = queueFamilies.size();
+			swapChainInfo.pQueueFamilyIndices = queueFamilies.data();
 		}
 
 
@@ -94,10 +93,13 @@ namespace vk
 		this->images.resize(imageCount);
 		VK_CHECK_RESULT(vkGetSwapchainImagesKHR(logicalDevice, this->handle, &imageCount, this->images.data()));
 
-		SwapChain::CreateImageViews(this->images.data(), (uint32_t)this->images.size());
+		SwapChain::CreateImageViews();
+
+		this->depthAttachment = vk::init::CreateDepthAttachment(physicalDevice, logicalDevice, appWindow.viewport);
+
 	}
 	
-	void SwapChain::Recreate(vk::rsc::DepthStencil& depthResources, const VkRenderPass renderPass, const vk::Window& appWindow)
+	void SwapChain::Recreate(const VkRenderPass renderPass, const vk::Window& appWindow)
 	{
 		SwapChain::Destroy();
 
@@ -110,12 +112,11 @@ namespace vk
 		this->images.resize(createInfo.minImageCount);
 		VK_CHECK_RESULT(vkGetSwapchainImagesKHR(logicalDevice, this->handle, &createInfo.minImageCount, this->images.data()));
 
-		SwapChain::CreateImageViews(this->images.data(), (uint32_t)this->images.size());
+		SwapChain::CreateImageViews();
 
-		depthResources.Destroy(logicalDevice);
-		depthResources = vk::rsc::CreateDepthResources(physicalDevice, logicalDevice, appWindow.viewport);
+		this->depthAttachment = vk::init::CreateDepthAttachment(physicalDevice, logicalDevice, appWindow.viewport);
 
-		SwapChain::AllocateFrameBuffers(appWindow.viewport, depthResources, renderPass);
+		SwapChain::CreateFrameBuffers(appWindow.viewport, renderPass);
 	}
 
 	void SwapChain::Destroy() 
@@ -128,14 +129,17 @@ namespace vk
 			vkDestroyFramebuffer(logicalDevice, this->frameBuffers[i], nullptr);
 		}
 
+		depthAttachment.Destroy(logicalDevice);
+
 		vkDestroySwapchainKHR(logicalDevice, this->handle, nullptr);
 	}
 
-	void SwapChain::CreateImageViews(VkImage* images, uint32_t imageCount)
+	void SwapChain::CreateImageViews()
 	{
+		assert(this->images.empty() == false);
 
 		//create imageview --> allow image to be seen in a different format.
-		this->imageViews.resize(imageCount);
+		this->imageViews.resize(this->images.size());
 
 		//this is nothing fancy, we won't be editing the color interpretation.
 		VkComponentMapping componentMapping =
@@ -156,7 +160,7 @@ namespace vk
 			1, //layerCount for image array. 
 		};
 
-		for (unsigned i = 0; i < imageCount; ++i) 
+		for (unsigned i = 0; i < this->images.size(); ++i) 
 		{
 			VkImageViewCreateInfo imageViewCreateInfo =
 			{
@@ -175,8 +179,13 @@ namespace vk
 
 	}
 
-	void SwapChain::AllocateFrameBuffers(const VkViewport& vp, const vk::rsc::DepthStencil& depthResources, const VkRenderPass renderPass)
+	void SwapChain::CreateFrameBuffers(const VkViewport& vp, const VkRenderPass renderPass)
 	{
+
+		assert(this->depthAttachment.imageView != VK_NULL_HANDLE);
+		assert(renderPass != VK_NULL_HANDLE);
+		assert(vp.width != 0.f);
+		assert(vp.height != 0.f);
 
 		if (this->images.size() <= 0) 
 		{
@@ -187,7 +196,7 @@ namespace vk
 
 		for (unsigned i = 0; i < this->images.size(); ++i) {
 
-			VkImageView attachments[2] = { imageViews[i], depthResources.imageView };
+			VkImageView attachments[2] = { imageViews[i], this->depthAttachment.imageView };
 
 			//create framebuffer info
 			VkFramebufferCreateInfo framebufferCreateInfo =

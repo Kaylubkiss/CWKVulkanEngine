@@ -11,13 +11,71 @@
 
 namespace vk
 {	
+
+	//constructor
+	ContextBase::ContextBase()
+	{
+		assert(_Application != NULL);
+
+		ContextBase::CreateWindow();
+		ContextBase::CreateInstance();
+
+		if (SDL_Vulkan_CreateSurface(window.sdl_ptr, instance, &window.surface) != SDL_TRUE)
+		{
+			throw std::runtime_error("could not create window surface! " + std::string(SDL_GetError()));
+		}
+		
+		ContextBase::EnumeratePhysicalDevices();
+		vkGetPhysicalDeviceMemoryProperties(device.physical, &device.memoryProperties);
+
+		ContextBase::FindQueueFamilies(window.surface);
+
+		this->device.logical = ContextBase::CreateLogicalDevice(this->device.physical, device.graphicsQueue.family, device.presentQueue.family);
+
+		vkGetDeviceQueue(device.logical, device.graphicsQueue.family, 0, &device.graphicsQueue.handle);
+		vkGetDeviceQueue(device.logical, device.presentQueue.family, 0, &device.presentQueue.handle);
+
+		semaphores.presentComplete = vk::init::CreateSemaphore(this->device.logical);
+		semaphores.renderComplete = vk::init::CreateSemaphore(this->device.logical);
+
+		submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+		submitInfo.waitSemaphoreCount = 1;
+		submitInfo.pWaitSemaphores = &semaphores.presentComplete;
+		submitInfo.pWaitDstStageMask = &pipelineWaitStages;
+		submitInfo.signalSemaphoreCount = 1;
+		submitInfo.pSignalSemaphores = &semaphores.renderComplete;
+
+		std::array<uint32_t, 2> queueFamilies = { device.graphicsQueue.family, device.presentQueue.family };
+		this->swapChain = SwapChain(&this->device, queueFamilies, window); //need window for its surface and viewport info.
+		ContextBase::InitializeRenderPass();
+		this->swapChain.CreateFrameBuffers(window.viewport, this->mPipeline.mRenderPass);
+
+		this->commandPool = vk::init::CommandPool(device.logical, VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
+
+		VkSurfaceCapabilitiesKHR deviceCapabilities;
+		VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device.physical, window.surface, &deviceCapabilities));
+
+		//size of command buffer array is the same as swap chain image array
+		for (int i = 0; i < deviceCapabilities.minImageCount + 1; ++i)
+		{
+			this->commandBuffers.push_back(vk::init::CommandBuffer(device.logical, this->commandPool, VK_COMMAND_BUFFER_LEVEL_PRIMARY));
+		}
+
+		this->currentExtent = deviceCapabilities.currentExtent;
+
+		this->mHotReloader.appDevicePtr = this->device.logical;
+		this->mHotReloader.AddPipeline(this->mPipeline);
+
+		this->isInitialized = true;
+
+	}
+
+
 	//destructor
 	ContextBase::~ContextBase()
 	{
 		mPipeline.Destroy(this->device.logical);
 		swapChain.Destroy();
-
-		depthStencil.Destroy(device.logical);
 
 		vkDestroyDescriptorPool(device.logical, this->descriptorPool, nullptr);
 
@@ -156,7 +214,7 @@ namespace vk
 		currentExtent = deviceCapabilities.currentExtent;
 		window.UpdateExtents(currentExtent);
 
-		this->swapChain.Recreate(this->depthStencil, this->mPipeline.RenderPass(), window);
+		this->swapChain.Recreate(this->mPipeline.mRenderPass, window);
 	}
 
 	void ContextBase::FindQueueFamilies(const VkSurfaceKHR& windowSurface)
@@ -334,11 +392,6 @@ namespace vk
 	}
 
 	//initializers
-	
-	void ContextBase::InitializeDepthStencil() 
-	{
-		this->depthStencil = vk::rsc::CreateDepthResources(device.physical, device.logical, window.viewport);
-	}
 
 	void ContextBase::InitializeRenderPass() 
 	{
@@ -357,7 +410,7 @@ namespace vk
 		attachments[0].finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 
 		//depth attachment
-		attachments[1].format = depthStencil.format;
+		attachments[1].format = swapChain.depthAttachment.format;
 		attachments[1].samples = VK_SAMPLE_COUNT_1_BIT;
 		attachments[1].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 		attachments[1].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
@@ -383,7 +436,7 @@ namespace vk
 		//for layout transitions
 		std::array<VkSubpassDependency, 2> dependencies{};
 
-
+		//depth writing/reading dependencies
 		dependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL;
 		dependencies[0].dstSubpass = 0;
 		dependencies[0].srcStageMask = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
@@ -392,11 +445,12 @@ namespace vk
 		dependencies[0].dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT;
 		dependencies[0].dependencyFlags = 0;
 
+		//color writing/reading dependencies. This is to ensure that the color attachment read/writes are finished before subpass 0 begins and uses them again for reading/writing.
 		dependencies[1].srcSubpass = VK_SUBPASS_EXTERNAL;
 		dependencies[1].dstSubpass = 0;
 		dependencies[1].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
 		dependencies[1].dstStageMask = dependencies[1].srcStageMask;
-		dependencies[1].srcAccessMask = 0;
+		dependencies[1].srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT; //this can also be 0
 		dependencies[1].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_COLOR_ATTACHMENT_READ_BIT;
 		dependencies[1].dependencyFlags = 0;
 
@@ -412,65 +466,7 @@ namespace vk
 		VK_CHECK_RESULT(vkCreateRenderPass(device.logical, &renderPassCI, nullptr, &this->mPipeline.mRenderPass));
 	}
 
-	//constructor
-	ContextBase::ContextBase()
-	{
-		assert(_Application != NULL);
-
-		ContextBase::CreateWindow();
-		ContextBase::CreateInstance();
-
-		if (SDL_Vulkan_CreateSurface(window.sdl_ptr, instance, &window.surface) != SDL_TRUE)
-		{
-			throw std::runtime_error("could not create window surface! " + std::string(SDL_GetError()));
-		}
-		
-		ContextBase::EnumeratePhysicalDevices();
-		vkGetPhysicalDeviceMemoryProperties(device.physical, &device.memoryProperties);
-
-		ContextBase::FindQueueFamilies(window.surface);
-
-		this->device.logical = ContextBase::CreateLogicalDevice(this->device.physical, device.graphicsQueue.family, device.presentQueue.family);
-
-		vkGetDeviceQueue(device.logical, device.graphicsQueue.family, 0, &device.graphicsQueue.handle);
-		vkGetDeviceQueue(device.logical, device.presentQueue.family, 0, &device.presentQueue.handle);
-
-		semaphores.presentComplete = vk::init::CreateSemaphore(this->device.logical);
-		semaphores.renderComplete = vk::init::CreateSemaphore(this->device.logical);
-
-		submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-		submitInfo.pWaitDstStageMask = &pipelineWaitStages;
-		submitInfo.waitSemaphoreCount = 1;
-		submitInfo.pWaitSemaphores = &semaphores.presentComplete;
-		submitInfo.signalSemaphoreCount = 1;
-		submitInfo.pSignalSemaphores = &semaphores.renderComplete;
-
-		this->swapChain = SwapChain(&this->device, device.graphicsQueue.family, device.presentQueue.family, window.surface);
-		
-		ContextBase::InitializeDepthStencil();
-		ContextBase::InitializeRenderPass();
-
-		this->swapChain.AllocateFrameBuffers(window.viewport, this->depthStencil, this->mPipeline.RenderPass());
-
-		this->commandPool = vk::init::CommandPool(device.logical, VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
-
-		VkSurfaceCapabilitiesKHR deviceCapabilities;
-		VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device.physical, window.surface, &deviceCapabilities));
-
-		//size of command buffer array is the same as swap chain image array
-		for (int i = 0; i < deviceCapabilities.minImageCount + 1; ++i)
-		{
-			this->commandBuffers.push_back(vk::init::CommandBuffer(device.logical, this->commandPool, VK_COMMAND_BUFFER_LEVEL_PRIMARY));
-		}
-
-		this->currentExtent = deviceCapabilities.currentExtent;
-
-		this->mHotReloader.appDevicePtr = this->device.logical;
-		this->mHotReloader.AddPipeline(this->mPipeline);
-
-		this->isInitialized = true;
-
-	}
+	
 
 	//getter(s)
 	vk::Queue ContextBase::GraphicsQueue()

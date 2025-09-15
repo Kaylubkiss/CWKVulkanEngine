@@ -2,7 +2,6 @@
 #include "vkUtility.h"
 #include "vkInit.h"
 #include "vkBuffer.h"
-#include "vkResource.h"
 #include <stb_image.h>
 #include "ApplicationGlobal.h"
 
@@ -108,7 +107,7 @@ namespace vk {
 
 		stbi_image_free(pixels);
 
-		this->mTextureImage = vk::rsc::CreateImage(p_device, l_device, textureWidth, textureHeight, mipLevels, VK_FORMAT_R8G8B8A8_SRGB,
+		this->mTextureImage = vk::init::CreateImage(p_device, l_device, textureWidth, textureHeight, mipLevels, VK_FORMAT_R8G8B8A8_SRGB,
 			VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
 			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, this->mTextureMemory, arrayLayerCount);
 

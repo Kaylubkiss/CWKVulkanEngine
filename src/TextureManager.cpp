@@ -1,7 +1,6 @@
 #include "TextureManager.h"
 #include "vkUtility.h"
 #include "vkBuffer.h"
-#include "vkResource.h"
 #include "vkInit.h"
 #include "ApplicationGlobal.h"
 

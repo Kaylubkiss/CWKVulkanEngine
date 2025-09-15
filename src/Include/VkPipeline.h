@@ -4,7 +4,6 @@
 */
 #pragma once
 #include <vulkan/vulkan.h>
-#include "vkResource.h"
 #include <vector>
 #include <string>
 #include <list>

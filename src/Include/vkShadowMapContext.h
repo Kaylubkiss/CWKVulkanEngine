@@ -2,7 +2,6 @@
 
 #include "vkContextBase.h"
 #include "vkGlobal.h"
-#include "vkResource.h"
 
 namespace vk 
 {
@@ -41,7 +40,7 @@ namespace vk
 			struct {
 				uint32_t width, height = 0;
 				VkFramebuffer frameBuffer = VK_NULL_HANDLE;
-				rsc::DepthStencil depth;
+				FramebufferAttachment depth;
 				VkRenderPass renderPass = VK_NULL_HANDLE;
 				VkSampler depthSampler = VK_NULL_HANDLE;
 			} offscreenPass{};

@@ -8,6 +8,15 @@ namespace vk
 
 		VkDescriptorSetLayout sceneDescriptorSetLayout = VK_NULL_HANDLE;
 
+		//NOTE: this will all be done offscreen because we have a main renderpass from the swapchain we'll 
+		//read the results of this from.
+		VkRenderPass deferredRenderPass = VK_NULL_HANDLE;
+
+		struct Framebuffer {
+			int32_t width, height;
+
+		} deferredFramebuffer;
+
 	public:
 		DeferredContext();
 		~DeferredContext();
@@ -21,6 +30,10 @@ namespace vk
 	protected:
 		virtual void InitializePipeline(std::string vsFile = "", std::string fsFile = "") override;
 		virtual void InitializeDescriptors() override;
+
+
+	private:
+		void InitializeDeferredRenderPass();
 
 	};
 

@@ -29,7 +29,6 @@ set(VULKAN_ENGINE_SRC src/vkDebug.cpp
                       src/vkContextBase.cpp
 					  src/vkSwapChain.cpp
 					  src/vkBuffer.cpp
-					  src/vkResource.cpp
 					  src/vkTexture.cpp
 					  src/vkPipeline.cpp
 					  src/vkFreddyHeadContext.cpp
@@ -89,7 +88,6 @@ src/Include/vkContextBase.h
 src/Include/vkBuffer.h
 src/Include/vkTexture.h
 src/Include/vkSwapChain.h
-src/Include/vkResource.h
 src/Include/vkMesh.h
 src/Include/vkPipeline.h
 src/Include/vkDevice.h
