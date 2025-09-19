@@ -46,6 +46,8 @@ namespace vk
 
 			vk::Pipeline mPipeline;
 
+			float FOV = 45.f;
+
 		public: 
 
 			ContextBase(); /* expect this to be derived from */

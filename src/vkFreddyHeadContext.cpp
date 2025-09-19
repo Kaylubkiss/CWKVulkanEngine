@@ -53,12 +53,12 @@ namespace vk
 		modelTransform[3] = glm::vec4(1.0f, 0, 5.f, 1);
 
 
-		ObjectCreateInfo objectCI = {};
+		ObjectCreateInfo objectCI;
 		objectCI.objName = "freddy.obj";
 		objectCI.textureFileName = "";
 		objectCI.pModelTransform = &modelTransform;
 
-		objManager.LoadObject(&objectCI);
+		objManager.LoadObject(objectCI);
 
 		//object 2
 		modelTransform = glm::mat4(1.f);
@@ -74,7 +74,7 @@ namespace vk
 		objectCI.pPhysicsComponent = &physicsComponent;
 		objectCI.pModelTransform = &modelTransform;
 
-		objManager.LoadObject(&objectCI);
+		objManager.LoadObject(objectCI);
 
 		//object 3
 		const float dbScale = 30.f;
@@ -90,7 +90,7 @@ namespace vk
 		objectCI.pPhysicsComponent = &physicsComponent;
 		objectCI.pModelTransform = &modelTransform;
 
-		objManager.LoadObject(&objectCI);
+		objManager.LoadObject(objectCI);
 
 	}
 

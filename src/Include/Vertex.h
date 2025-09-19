@@ -9,19 +9,20 @@ struct Vertex
 	glm::vec3 pos = { 0,0,0 };
 	glm::vec3 nrm = { .2f,.5f,0 };
 	glm::vec2 uv = { -1.f,-1.f };
+	glm::vec3 color = { 1.f, 1.f, 1.f };
 
 	bool operator==(const Vertex& other) const {
 		return pos == other.pos && nrm == other.nrm && uv == other.uv;
 	}
 
-	static inline std::array<VkVertexInputAttributeDescription, 3> InputAttributeDescriptions() 
+	static inline std::array<VkVertexInputAttributeDescription, 4> InputAttributeDescriptions() 
 	{
 		//TODO: check VkPhysicalDeviceLimits!!! 
 			// binding -> maxVertexInputBindings, 
 			// location -> maxVertexInputAttributes
 			// offset -> maxVertexInputAttributeOffset
 			//
-		VkVertexInputAttributeDescription vInputAttribute[3] = {};
+		std::array<VkVertexInputAttributeDescription, 4> vInputAttribute = {};
 
 		//position	
 		vInputAttribute[0].format = VK_FORMAT_R32G32B32_SFLOAT;
@@ -41,7 +42,13 @@ struct Vertex
 		vInputAttribute[2].binding = 0;
 		vInputAttribute[2].offset = offsetof(struct Vertex, uv);
 
-		return { vInputAttribute[0], vInputAttribute[1], vInputAttribute[2] };
+		//color
+		vInputAttribute[3].format = VK_FORMAT_R16G16B16_UNORM;
+		vInputAttribute[3].location = 3;
+		vInputAttribute[3].offset = offsetof(struct Vertex, color);
+
+
+		return vInputAttribute;
 
 	}
 };

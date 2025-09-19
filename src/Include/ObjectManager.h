@@ -32,14 +32,6 @@ namespace vk
 	typedef const char* ObjectName;
 	typedef std::string TextureFileName;
 
-	/*struct AsyncObjectInitInfo 
-	{
-		PhysicsComponent* pPhysComp = nullptr;
-		Mesh* pMesh;
-		TextureFileName textureName = "";
-		ObjectName objName = "";
-	};*/
-
 	class ObjectManager
 	{
 	public:
@@ -63,7 +55,7 @@ namespace vk
 			}
 		}
 
-		void LoadObject(const ObjectCreateInfo* objectCI);
+		void LoadObject(const ObjectCreateInfo& objectCI);
 
 		Object* operator[](const char* name)
 		{
@@ -91,7 +83,7 @@ namespace vk
 		void Update(float dt);
 
 	private:
-		void LoadObjParallel(const ObjectCreateInfo& objectCI);
+		void LoadObjParallel(const ObjectCreateInfo& objInfo);
 
 	//variables.
 		ThreadPool mThreadWorkers;

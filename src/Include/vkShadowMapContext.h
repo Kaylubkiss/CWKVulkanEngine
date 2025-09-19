@@ -69,6 +69,7 @@ namespace vk
 			virtual uint32_t SamplerDescriptorSetBinding() override;
 			virtual const VkDescriptorSetLayout DescriptorSetLayout() const override;
 			virtual std::vector<VkWriteDescriptorSet> WriteDescriptorBuffers(VkDescriptorSet descriptorSet) override;
+			virtual void ResizeWindow() override;
 
 			virtual void Render();
 

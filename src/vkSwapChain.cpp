@@ -5,12 +5,11 @@
 
 namespace vk 
 {
-	SwapChain::SwapChain(const Device* devicePtr, const std::array<uint32_t, 2>& queueFamilies, const vk::Window& appWindow) 
+	SwapChain::SwapChain(Device* devicePtr, const std::array<uint32_t, 2>& queueFamilies, const vk::Window& appWindow) 
 	{
 		assert(devicePtr);
 
-		this->logicalDevice = devicePtr->logical;
-		this->physicalDevice = devicePtr->physical;
+		this->devicePtr = devicePtr;
 
 		VkSwapchainCreateInfoKHR swapChainInfo = {};
 		swapChainInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
@@ -20,7 +19,7 @@ namespace vk
 		uint32_t surfaceFormatCount = 0;
 		std::vector<VkSurfaceFormatKHR> surfaceFormats;
 
-		VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, appWindow.surface, &surfaceFormatCount, nullptr));
+		VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceFormatsKHR(devicePtr->physical, appWindow.surface, &surfaceFormatCount, nullptr));
 
 		//surfaceFormatCount now filled..
 		if (!surfaceFormatCount)
@@ -30,7 +29,7 @@ namespace vk
 
 		surfaceFormats.resize(surfaceFormatCount);
 
-		VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, appWindow.surface, &surfaceFormatCount, surfaceFormats.data()));
+		VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceFormatsKHR(devicePtr->physical, appWindow.surface, &surfaceFormatCount, surfaceFormats.data()));
 
 
 		
@@ -49,7 +48,7 @@ namespace vk
 
 
 		VkSurfaceCapabilitiesKHR deviceCapabilities;
-		VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice, appWindow.surface, &deviceCapabilities));
+		VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(devicePtr->physical, appWindow.surface, &deviceCapabilities));
 
 		uint32_t imageCount = deviceCapabilities.minImageCount + 1;
 
@@ -88,14 +87,14 @@ namespace vk
 
 
 		this->createInfo = swapChainInfo;
-		VK_CHECK_RESULT(vkCreateSwapchainKHR(logicalDevice, &swapChainInfo, nullptr, &this->handle));
+		VK_CHECK_RESULT(vkCreateSwapchainKHR(devicePtr->logical, &swapChainInfo, nullptr, &this->handle));
 
 		this->images.resize(imageCount);
-		VK_CHECK_RESULT(vkGetSwapchainImagesKHR(logicalDevice, this->handle, &imageCount, this->images.data()));
+		VK_CHECK_RESULT(vkGetSwapchainImagesKHR(devicePtr->logical, this->handle, &imageCount, this->images.data()));
 
 		SwapChain::CreateImageViews();
 
-		this->depthAttachment = vk::init::CreateDepthAttachment(physicalDevice, logicalDevice, appWindow.viewport);
+		this->depthAttachment = devicePtr->CreateFramebufferAttachment(appWindow.viewport, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT);
 
 	}
 	
@@ -104,34 +103,34 @@ namespace vk
 		SwapChain::Destroy();
 
 		VkSurfaceCapabilitiesKHR deviceCapabilities;
-		VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice, appWindow.surface, &deviceCapabilities));
+		VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(devicePtr->physical, appWindow.surface, &deviceCapabilities));
 
 		createInfo.imageExtent = deviceCapabilities.currentExtent;
-		VK_CHECK_RESULT(vkCreateSwapchainKHR(logicalDevice, &createInfo, nullptr, &this->handle));
+		VK_CHECK_RESULT(vkCreateSwapchainKHR(devicePtr->logical, &createInfo, nullptr, &this->handle));
 
 		this->images.resize(createInfo.minImageCount);
-		VK_CHECK_RESULT(vkGetSwapchainImagesKHR(logicalDevice, this->handle, &createInfo.minImageCount, this->images.data()));
+		VK_CHECK_RESULT(vkGetSwapchainImagesKHR(devicePtr->logical, this->handle, &createInfo.minImageCount, this->images.data()));
 
 		SwapChain::CreateImageViews();
 
-		this->depthAttachment = vk::init::CreateDepthAttachment(physicalDevice, logicalDevice, appWindow.viewport);
+		this->depthAttachment = devicePtr->CreateFramebufferAttachment(appWindow.viewport, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, this->depthAttachment.format);
 
 		SwapChain::CreateFrameBuffers(appWindow.viewport, renderPass);
 	}
 
 	void SwapChain::Destroy() 
 	{
-		assert(logicalDevice && physicalDevice);
+		assert(devicePtr);
 
 		for (unsigned i = 0; i < this->images.size(); ++i)
 		{
-			vkDestroyImageView(logicalDevice, this->imageViews[i], nullptr);
-			vkDestroyFramebuffer(logicalDevice, this->frameBuffers[i], nullptr);
+			vkDestroyImageView(devicePtr->logical, this->imageViews[i], nullptr);
+			vkDestroyFramebuffer(devicePtr->logical, this->frameBuffers[i], nullptr);
 		}
 
-		depthAttachment.Destroy(logicalDevice);
+		depthAttachment.Destroy(devicePtr->logical);
 
-		vkDestroySwapchainKHR(logicalDevice, this->handle, nullptr);
+		vkDestroySwapchainKHR(devicePtr->logical, this->handle, nullptr);
 	}
 
 	void SwapChain::CreateImageViews()
@@ -174,7 +173,7 @@ namespace vk
 				subresourceRange
 			};
 
-			VK_CHECK_RESULT(vkCreateImageView(logicalDevice, &imageViewCreateInfo, nullptr, &imageViews[i]));
+			VK_CHECK_RESULT(vkCreateImageView(devicePtr->logical, &imageViewCreateInfo, nullptr, &imageViews[i]));
 		}
 
 	}
@@ -212,7 +211,7 @@ namespace vk
 				1 //1 layer
 			};
 
-			VK_CHECK_RESULT(vkCreateFramebuffer(logicalDevice, &framebufferCreateInfo, nullptr, &this->frameBuffers[i]));
+			VK_CHECK_RESULT(vkCreateFramebuffer(devicePtr->logical, &framebufferCreateInfo, nullptr, &this->frameBuffers[i]));
 		}
 
 	}

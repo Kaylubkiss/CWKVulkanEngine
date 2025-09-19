@@ -27,7 +27,7 @@ class Object
 		Object(const VkPhysicalDevice p_device, const VkDevice l_device,
 			const char* fileName, bool willDebugDraw = false);
 	
-		void UpdatePhysicsComponent(PhysicsComponent* physComp);
+		void UpdatePhysicsComponent(const PhysicsComponent* physComp);
 		void UpdateModelTransform(const glm::mat4* modelTransform);
 		void UpdateMesh(const Mesh* mesh);
 		void SetDebugDraw(bool option);

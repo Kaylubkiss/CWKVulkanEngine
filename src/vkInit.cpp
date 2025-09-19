@@ -710,7 +710,7 @@ namespace vk
 
 		///// ENGINE SPECIFIC RESOURCES ////
 
-		FramebufferAttachment CreateDepthAttachment(const VkPhysicalDevice& p_device, const VkDevice& l_device, const VkViewport& viewport)
+		FramebufferAttachment CreateFramebufferAttachment(const VkPhysicalDevice& p_device, const VkDevice& l_device, const VkViewport& viewport)
 		{
 			FramebufferAttachment nDepthResources = {};
 
@@ -719,9 +719,9 @@ namespace vk
 				VK_IMAGE_TILING_OPTIMAL, VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
 
 			//create depth image
-			nDepthResources.image = vk::init::CreateImage(p_device, l_device, (uint32_t)viewport.width, (uint32_t)viewport.height, 1, nDepthResources.format, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
+			nDepthResources.image = vk::init::CreateImage(p_device, l_device, (uint32_t)viewport.width, (uint32_t)viewport.height, 1, nDepthResources.format, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
 				VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-				nDepthResources.imageMemory, 1);
+				nDepthResources.imageMemory);
 
 			//create depth image view 
 			VkImageViewCreateInfo viewInfo = {};
@@ -740,8 +740,8 @@ namespace vk
 		VkImage CreateImage
 		(
 			const VkPhysicalDevice& p_device, const VkDevice& l_device, uint32_t width, uint32_t height, uint32_t mipLevels,
-			VkFormat format, VkImageTiling tiling,
-			VkImageUsageFlags usage, VkMemoryPropertyFlags flags, VkDeviceMemory& imageMemory, uint32_t arrayLayerCount
+			VkFormat format, VkImageUsageFlags usage, 
+			VkMemoryPropertyFlags flags, VkDeviceMemory& imageMemory
 		)
 		{
 
@@ -755,9 +755,9 @@ namespace vk
 			imageCreateInfo.extent.height = height;
 			imageCreateInfo.extent.depth = 1;
 			imageCreateInfo.mipLevels = mipLevels;
-			imageCreateInfo.arrayLayers = arrayLayerCount;
+			imageCreateInfo.arrayLayers = 1;
 			imageCreateInfo.format = format;
-			imageCreateInfo.tiling = tiling;
+			imageCreateInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
 			imageCreateInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 			imageCreateInfo.usage = usage;
 			imageCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
@@ -774,6 +774,7 @@ namespace vk
 			memAllocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
 			memAllocInfo.allocationSize = memRequirements.size;
 
+			bool foundMemType = false;
 			for (uint32_t i = 0; i < vpdmp.memoryTypeCount; i++)
 			{
 				VkMemoryType vmt = vpdmp.memoryTypes[i];
@@ -783,10 +784,13 @@ namespace vk
 					if ((vmpf & flags) != 0)
 					{
 						memAllocInfo.memoryTypeIndex = i;
+						foundMemType = true;
 						break;
 					}
 				}
 			}
+
+			assert(foundMemType);
 
 			VK_CHECK_RESULT(vkAllocateMemory(l_device, &memAllocInfo, nullptr, &imageMemory));
 

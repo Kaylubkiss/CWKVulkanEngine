@@ -3,7 +3,6 @@
 #include "vkInit.h"
 #include "vkUtility.h"
 
-
 namespace vk 
 {
 
@@ -23,22 +22,18 @@ namespace vk
 		objects[objInfo.objName].obj = newObject;
 	}
 
-	void ObjectManager::LoadObject(const ObjectCreateInfo* objectCI)
+	void ObjectManager::LoadObject(const ObjectCreateInfo& objectCI)
 	{
-		assert(objectCI);
-		assert(objectCI->pModelTransform);
-		assert(objectCI->objName);
 
-		ObjectCreateInfo objectInfoCopy;
-		objectInfoCopy.pModelTransform = new glm::mat4(*objectCI->pModelTransform);
-		objectInfoCopy.pPhysicsComponent = objectCI->pPhysicsComponent ? new PhysicsComponent(*objectCI->pPhysicsComponent) : nullptr;
-		objectInfoCopy.pMesh = objectCI->pMesh ? new Mesh(*objectCI->pMesh) : nullptr;
-		objectInfoCopy.textureFileName = objectCI->textureFileName;
-		objectInfoCopy.objName = objectCI->objName;
+		ObjectCreateInfo deepCopy;
+		deepCopy.pModelTransform = new glm::mat4(*objectCI.pModelTransform);
+		deepCopy.pPhysicsComponent = objectCI.pPhysicsComponent ? new PhysicsComponent(*objectCI.pPhysicsComponent) : nullptr;
+		deepCopy.pMesh = objectCI.pMesh ? new Mesh(*objectCI.pMesh) : nullptr;
+		deepCopy.textureFileName = objectCI.textureFileName;
+		deepCopy.objName = objectCI.objName;
 
-		std::function<void()> func = [this, objectInfoCopy] {
-			
-			ObjectManager::LoadObjParallel(objectInfoCopy);
+		auto func = [this, deepCopy]() {
+			ObjectManager::LoadObjParallel(deepCopy);
 		};
 
 		mThreadWorkers.EnqueueTask(func);

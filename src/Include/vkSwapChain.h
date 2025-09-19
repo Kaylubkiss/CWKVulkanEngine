@@ -10,8 +10,7 @@ namespace vk
 	struct SwapChain
 	{
 		private:
-			VkDevice logicalDevice = VK_NULL_HANDLE;
-			VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
+			Device* devicePtr = nullptr;
 
 		public:
 			VkSwapchainKHR handle = VK_NULL_HANDLE;
@@ -25,7 +24,7 @@ namespace vk
 			std::vector<VkFramebuffer> frameBuffers;
 
 			SwapChain() = default;
-			SwapChain(const Device* devicePtr, const std::array<uint32_t, 2>& queueFamilies, const vk::Window& appWindow);
+			SwapChain(Device* devicePtr, const std::array<uint32_t, 2>& queueFamilies, const vk::Window& appWindow);
 			
 			void Destroy();
 

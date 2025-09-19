@@ -6,9 +6,6 @@ namespace vk
 {
 	ShadowMapScene::ShadowMapScene() 
 	{
-
-		Camera& appCamera = _Application->GetCamera();
-
 		uLightObject& light = uniformDataScene.light;
 
 		light.pos = {0, 20, -10};
@@ -37,6 +34,8 @@ namespace vk
 	ShadowMapScene::~ShadowMapScene() 
 	{
 		offscreenPass.depth.Destroy(device.logical);
+		this->uniformBuffers.offscreen.Destroy();
+		this->uniformBuffers.scene.Destroy();
 
 		vkDestroyRenderPass(device.logical, offscreenPass.renderPass, nullptr);
 		vkDestroyFramebuffer(device.logical, offscreenPass.frameBuffer, nullptr);
@@ -170,7 +169,7 @@ namespace vk
 		objCreateInfo.pModelTransform = &modelTransform;
 		objCreateInfo.pPhysicsComponent = &physicsComponent;
 
-		objManager.LoadObject(&objCreateInfo);
+		objManager.LoadObject(objCreateInfo);
 		
 
 		//object 3
@@ -186,7 +185,7 @@ namespace vk
 		objCreateInfo.pModelTransform = &modelTransform;
 		objCreateInfo.pPhysicsComponent = &physicsComponent;
 
-		objManager.LoadObject(&objCreateInfo);
+		objManager.LoadObject(objCreateInfo);
 
 	}
 
@@ -352,6 +351,7 @@ namespace vk
 	void ShadowMapScene::InitializeDescriptors() 
 	{
 		const uint32_t num_shaders = 3;
+
 		std::vector<VkDescriptorPoolSize> poolSizes = {
 			vk::init::DescriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, num_shaders),
 			vk::init::DescriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, num_shaders)
@@ -483,6 +483,12 @@ namespace vk
 		ContextBase::Render();
 	}
 
+	void ShadowMapScene::ResizeWindow() 
+	{
+		//won't need to resize the framebuffer for the offscreen pass
+		//since it's a fixed size.
+		ContextBase::ResizeWindow();
+	}
 
 	std::vector<VkWriteDescriptorSet> ShadowMapScene::WriteDescriptorBuffers(VkDescriptorSet descriptorSet) 
 	{

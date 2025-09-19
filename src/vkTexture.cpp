@@ -66,7 +66,6 @@ namespace vk {
 	{
 		//Might want to make command pool a member variable.
 	
-		uint32_t arrayLayerCount = 1;
 		int textureWidth, textureHeight, textureChannels;
 		stbi_uc* pixels = fileName == "" ? nullptr : stbi_load((TEXTURE_PATH + fileName).c_str(), &textureWidth, &textureHeight, &textureChannels, STBI_rgb_alpha);
 
@@ -107,9 +106,8 @@ namespace vk {
 
 		stbi_image_free(pixels);
 
-		this->mTextureImage = vk::init::CreateImage(p_device, l_device, textureWidth, textureHeight, mipLevels, VK_FORMAT_R8G8B8A8_SRGB,
-			VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, this->mTextureMemory, arrayLayerCount);
+		this->mTextureImage = vk::init::CreateImage(p_device, l_device, textureWidth, textureHeight, mipLevels, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, this->mTextureMemory);
 
 		VkCommandPool cmdPool = vk::init::CommandPool(l_device, VK_COMMAND_POOL_CREATE_TRANSIENT_BIT);
 

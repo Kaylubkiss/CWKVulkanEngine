@@ -111,6 +111,11 @@ src/Shaders/sceneShadowMap.frag
 src/Shaders/sceneShadowMap.vert
 src/Shaders/debugShadowMap.vert
 src/Shaders/debugShadowMap.frag
+#deferred shading
+src/Shaders/deferredMRT.vert
+src/Shaders/deferredMRT.frag
+src/Shaders/deferredLightPass.vert
+src/Shaders/deferredLightPass.frag
 )
 								 
 #-----COMPILATION OPTIONS DEPENDING ON PLATFORM---------

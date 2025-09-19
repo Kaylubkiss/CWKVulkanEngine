@@ -99,12 +99,13 @@ namespace vk
 		VkRect2D Rect2D(uint32_t width, uint32_t height, int32_t offset_x = 0, int32_t offset_y = 0);
 
 		//special engine-specific resources
-		FramebufferAttachment CreateDepthAttachment(const VkPhysicalDevice& p_device, const VkDevice& l_device, const VkViewport& viewport);
+		FramebufferAttachment CreateFramebufferAttachment(const VkPhysicalDevice& p_device, const VkDevice& l_device, const VkViewport& viewport, VkImageUsageFlagBits usage, VkFormat format);
+		
 		VkImage CreateImage
 		(
 			const VkPhysicalDevice& p_device, const VkDevice& l_device, uint32_t width, uint32_t height, uint32_t mipLevels,
-			VkFormat format, VkImageTiling tiling,
-			VkImageUsageFlags usage, VkMemoryPropertyFlags flags, VkDeviceMemory& imageMemory, uint32_t arrayLayerCount
+			VkFormat format, VkImageUsageFlags usage, 
+			VkMemoryPropertyFlags flags, VkDeviceMemory& imageMemory
 		);
 	}
 

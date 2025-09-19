@@ -252,7 +252,7 @@ void Object::ComputeVertexNormals()
 }
 
 
-void Object::UpdatePhysicsComponent(PhysicsComponent* physComp)
+void Object::UpdatePhysicsComponent(const PhysicsComponent* physComp)
 {
     if (physComp != nullptr) 
     {

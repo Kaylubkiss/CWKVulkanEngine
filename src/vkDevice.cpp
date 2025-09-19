@@ -75,4 +75,64 @@ namespace vk
 		return buffer;
 	}
 
+	FramebufferAttachment Device::CreateFramebufferAttachment(const VkViewport& viewport, VkImageUsageFlagBits usage, VkFormat format) 
+	{
+		VkImageAspectFlags aspectMask = 0;
+
+		if (usage & VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT) 
+		{
+			aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+
+		}
+		else if (usage & VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT) 
+		{
+			aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+
+			if (format == VK_FORMAT_UNDEFINED)
+			{
+				format = vk::util::findSupportedFormat(Device::physical,
+					{ VK_FORMAT_D32_SFLOAT_S8_UINT,
+					VK_FORMAT_D32_SFLOAT,
+					VK_FORMAT_D24_UNORM_S8_UINT,
+					VK_FORMAT_D16_UNORM_S8_UINT,
+					VK_FORMAT_D16_UNORM },
+					VK_IMAGE_TILING_OPTIMAL, VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT
+				);
+			}
+
+			if (format >= VK_FORMAT_D16_UNORM_S8_UINT)
+			{
+				aspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
+			}
+
+		}
+
+		assert(format != VK_FORMAT_UNDEFINED);
+
+
+		FramebufferAttachment nDepthResources = {};
+		nDepthResources.format = format;
+
+		//create depth image
+		nDepthResources.image = vk::init::CreateImage(Device::physical, Device::logical, 
+			(uint32_t)viewport.width, (uint32_t)viewport.height, 1, 
+			format, 
+			usage | VK_IMAGE_USAGE_SAMPLED_BIT,
+			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+			nDepthResources.imageMemory);
+
+		//create depth image view 
+		VkImageViewCreateInfo viewInfo = {};
+		viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+		viewInfo.image = nDepthResources.image;
+		viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+		viewInfo.format = format;
+		viewInfo.subresourceRange = { aspectMask, 0, 1, 0, 1 };
+
+		VK_CHECK_RESULT(vkCreateImageView(Device::logical, &viewInfo, nullptr, &nDepthResources.imageView));
+
+		return nDepthResources;
+
+	}
+
 }

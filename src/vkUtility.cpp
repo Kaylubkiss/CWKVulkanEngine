@@ -39,8 +39,7 @@ namespace vk {
 			{
 				return formatProperties.optimalTilingFeatures & VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT;
 			}
-
-			if (tiling == VK_IMAGE_TILING_LINEAR) {
+			else if (tiling == VK_IMAGE_TILING_LINEAR) {
 
 				return formatProperties.linearTilingFeatures & VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT;
 			}

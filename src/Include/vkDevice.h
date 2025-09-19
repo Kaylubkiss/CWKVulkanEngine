@@ -19,6 +19,7 @@ namespace vk
 		//functionality
 		uint32_t GetMemoryType(uint32_t typeBits, VkMemoryPropertyFlags properties);
 		Buffer CreateBuffer(size_t size, VkBufferUsageFlags usage, VkMemoryPropertyFlags flags, void* data);
+		FramebufferAttachment CreateFramebufferAttachment(const VkViewport& viewport, VkImageUsageFlagBits usage, VkFormat format = VK_FORMAT_UNDEFINED);
 	};
 
 }
