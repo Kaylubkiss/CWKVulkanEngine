@@ -15,25 +15,33 @@ namespace vk
 		light.shininess = 32.f;
 
 		this->uniformBuffers.scene = device.CreateBuffer(sizeof(UniformDataScene), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, (void*)(&this->uniformDataScene));
-
+		uniformBuffers.scene.Map();
 
 		this->uniformBuffers.offscreen = device.CreateBuffer(sizeof(UniformDataOffscreen), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, (void*)(&this->uniformDataOffscreen));
+		uniformBuffers.offscreen.Map();
 
 				
 		offscreenPass.depth.format = VK_FORMAT_D16_UNORM;
 
 		ShadowMapScene::UpdateOffscreenUniforms();
 		ShadowMapScene::UpdateSceneUniforms();
-		//TODO: map the uniforms??
 
 		InitializeOffscreenFramebuffer();
 		InitializeDescriptors();
 		InitializePipeline();
+
+		mInfo.descriptorPool = this->descriptorPool;
+		mInfo.descriptorSetLayout = this->sceneDescriptorLayout;
+		mInfo.samplerBinding = 2;
+		
 	}
 
 	ShadowMapScene::~ShadowMapScene() 
 	{
 		offscreenPass.depth.Destroy(device.logical);
+
+		uniformBuffers.offscreen.UnMap();
+		uniformBuffers.scene.UnMap();
 		this->uniformBuffers.offscreen.Destroy();
 		this->uniformBuffers.scene.Destroy();
 
@@ -402,6 +410,8 @@ namespace vk
 			vk::init::WriteDescriptorSet(descriptorSets.scene, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, &shadowMapDescriptor)
 		};
 
+		//TODO: janky mInfo....
+		mInfo.sceneWriteDescriptorSets = writeDescriptorSets;
 
 		vkUpdateDescriptorSets(device.logical, (uint32_t)writeDescriptorSets.size(), writeDescriptorSets.data(), 0, nullptr);
 	}
@@ -489,28 +499,5 @@ namespace vk
 		//since it's a fixed size.
 		ContextBase::ResizeWindow();
 	}
-
-	std::vector<VkWriteDescriptorSet> ShadowMapScene::WriteDescriptorBuffers(VkDescriptorSet descriptorSet) 
-	{
-		//TODO: textures are not in this scene.
-		std::vector<VkWriteDescriptorSet> writeDescriptorSets =
-		{
-			//uniform transforms
-			vk::init::WriteDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &uniformBuffers.scene.descriptor),
-		};
-
-		return writeDescriptorSets;
-	}
-
-	const VkDescriptorSetLayout ShadowMapScene::DescriptorSetLayout() const 
-	{
-		return this->sceneDescriptorLayout;
-	}
-
-	uint32_t ShadowMapScene::SamplerDescriptorSetBinding() 
-	{
-		return 2; //TODO: there are no textures in this scene..
-	}
-
 	
 }

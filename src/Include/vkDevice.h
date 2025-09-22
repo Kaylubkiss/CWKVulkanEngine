@@ -13,6 +13,7 @@ namespace vk
 		VkDevice logical = VK_NULL_HANDLE;
 		vk::Queue graphicsQueue;
 		vk::Queue presentQueue;
+		vk::Queue transferQueue;
 
 		VkPhysicalDeviceMemoryProperties memoryProperties;
 

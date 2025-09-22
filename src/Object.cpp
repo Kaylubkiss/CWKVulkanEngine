@@ -5,79 +5,74 @@
 #include <algorithm>
 #include <unordered_map>
 #include "vkGlobal.h"
-#define TINYOBJLOADER_IMPLEMENTATION
-#include "tiny_obj_loader.h"
 
 Object::Object(const VkPhysicalDevice p_device, const VkDevice l_device, 
                 const char* fileName, bool willDebugDraw)
 {
-    if (fileName && fileName != "")
+    (void)(willDebugDraw);
+    
+    bool result = this->mMesh.LoadOBJMesh((OBJECT_PATH + std::string(fileName)).c_str());
+    
+    if (!result) 
     {
-        (void)(willDebugDraw);
-
-        bool result = LoadMeshOBJ((OBJECT_PATH + std::string(fileName)).c_str(), *this);
-
-        if (!result) 
-        {
-            return;
-        }
-
-        int numVertices = static_cast<int>(this->mMesh.data.vertices.size());
-
-        glm::vec3 min_points(0.f);
-        glm::vec3 max_points(0.f);
-
-        for (unsigned i = 0; i < this->mMesh.data.vertices.size(); ++i)
-        {
-
-            min_points.x = std::min(min_points.x, this->mMesh.data.vertices[i].pos.x);
-            min_points.y = std::min(min_points.y, this->mMesh.data.vertices[i].pos.y);
-            min_points.z = std::min(min_points.z, this->mMesh.data.vertices[i].pos.z);
-
-            max_points.x = std::max(max_points.x, this->mMesh.data.vertices[i].pos.x);
-            max_points.y = std::max(max_points.y, this->mMesh.data.vertices[i].pos.y);
-            max_points.z = std::max(max_points.z, this->mMesh.data.vertices[i].pos.z);
-
-            this->mMesh.data.vertices[i].nrm = glm::vec3(0, 0, 0.f);
-
-            this->mMesh.center += this->mMesh.data.vertices[i].pos;
-        }
-
-        this->mMesh.center /= this->mMesh.data.vertices.size();
-
-        float unitScale = std::max({ glm::length(max_points.x - min_points.x), glm::length(max_points.y - min_points.y), glm::length(max_points.z - min_points.z) });
-
-        max_points = { -std::numeric_limits<float>::min(),  -std::numeric_limits<float>::min() , -std::numeric_limits<float>::min() };
-        min_points = { std::numeric_limits<float>::max(), std::numeric_limits<float>::max(), std::numeric_limits<float>::max() };
-
-        for (size_t i = 0; i < this->mMesh.data.vertices.size(); ++i)
-        {
-            this->mMesh.data.vertices[i].pos = (this->mMesh.data.vertices[i].pos - this->mMesh.center) / unitScale;
-
-            max_points.x = std::max(max_points.x, this->mMesh.data.vertices[i].pos.x);
-            max_points.y = std::max(max_points.y, this->mMesh.data.vertices[i].pos.y);
-            max_points.z = std::max(max_points.z, this->mMesh.data.vertices[i].pos.z);
-
-            min_points.x = std::min(min_points.x, this->mMesh.data.vertices[i].pos.x);
-            min_points.y = std::min(min_points.y, this->mMesh.data.vertices[i].pos.y);
-            min_points.z = std::min(min_points.z, this->mMesh.data.vertices[i].pos.z);
-        }
-
-        this->mMesh.maxLocalPoints = max_points;
-        this->mMesh.minLocalPoints = min_points;
-
-        Object::ComputeVertexNormals();
-
-        size_t sizeOfVertexBuffer = sizeof(std::vector<Vertex>) + (sizeof(Vertex) * this->mMesh.data.vertices.size());
-        this->mMesh.buffer.vertex = vk::Buffer(p_device, l_device, sizeOfVertexBuffer, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, this->mMesh.data.vertices.data());
-
-        size_t sizeOfIndexBuffer = sizeof(std::vector<uint16_t>) + (sizeof(uint16_t) * this->mMesh.data.indices.size());
-        this->mMesh.buffer.index = vk::Buffer(p_device, l_device, sizeOfIndexBuffer, VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, this->mMesh.data.indices.data());
-
-        std::cout << std::endl;
-        std::cout << "loaded in " + std::string(fileName) << std::endl;
-        std::cout << numVertices << " vertices loaded in." << std::endl << std::endl;
+        throw std::runtime_error("could not load requested object " + std::string(fileName));
     }
+    
+    /*int numVertices = static_cast<int>(this->mMesh.data.vertices.size());
+    
+    glm::vec3 min_points(0.f);
+    glm::vec3 max_points(0.f);
+    
+    for (unsigned i = 0; i < this->mMesh.data.vertices.size(); ++i)
+    {
+    
+        min_points.x = std::min(min_points.x, this->mMesh.data.vertices[i].pos.x);
+        min_points.y = std::min(min_points.y, this->mMesh.data.vertices[i].pos.y);
+        min_points.z = std::min(min_points.z, this->mMesh.data.vertices[i].pos.z);
+    
+        max_points.x = std::max(max_points.x, this->mMesh.data.vertices[i].pos.x);
+        max_points.y = std::max(max_points.y, this->mMesh.data.vertices[i].pos.y);
+        max_points.z = std::max(max_points.z, this->mMesh.data.vertices[i].pos.z);
+    
+        this->mMesh.data.vertices[i].nrm = glm::vec3(0, 0, 0.f);
+    
+        this->mMesh.center += this->mMesh.data.vertices[i].pos;
+    }
+    
+    this->mMesh.center /= this->mMesh.data.vertices.size();
+    
+    float unitScale = std::max({ glm::length(max_points.x - min_points.x), glm::length(max_points.y - min_points.y), glm::length(max_points.z - min_points.z) });
+    
+    max_points = { -std::numeric_limits<float>::min(),  -std::numeric_limits<float>::min() , -std::numeric_limits<float>::min() };
+    min_points = { std::numeric_limits<float>::max(), std::numeric_limits<float>::max(), std::numeric_limits<float>::max() };
+    
+    for (size_t i = 0; i < this->mMesh.data.vertices.size(); ++i)
+    {
+        this->mMesh.data.vertices[i].pos = (this->mMesh.data.vertices[i].pos - this->mMesh.center) / unitScale;
+    
+        max_points.x = std::max(max_points.x, this->mMesh.data.vertices[i].pos.x);
+        max_points.y = std::max(max_points.y, this->mMesh.data.vertices[i].pos.y);
+        max_points.z = std::max(max_points.z, this->mMesh.data.vertices[i].pos.z);
+    
+        min_points.x = std::min(min_points.x, this->mMesh.data.vertices[i].pos.x);
+        min_points.y = std::min(min_points.y, this->mMesh.data.vertices[i].pos.y);
+        min_points.z = std::min(min_points.z, this->mMesh.data.vertices[i].pos.z);
+    }
+    
+    this->mMesh.maxLocalPoints = max_points;
+    this->mMesh.minLocalPoints = min_points;
+    
+    Object::ComputeVertexNormals();
+    
+    size_t sizeOfVertexBuffer = sizeof(std::vector<Vertex>) + (sizeof(Vertex) * this->mMesh.data.vertices.size());
+    this->mMesh.buffer.vertex = vk::Buffer(p_device, l_device, sizeOfVertexBuffer, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, this->mMesh.data.vertices.data());
+    
+    size_t sizeOfIndexBuffer = sizeof(std::vector<uint16_t>) + (sizeof(uint16_t) * this->mMesh.data.indices.size());
+    this->mMesh.buffer.index = vk::Buffer(p_device, l_device, sizeOfIndexBuffer, VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, this->mMesh.data.indices.data());
+    
+    std::cout << std::endl;
+    std::cout << "loaded in " + std::string(fileName) << std::endl;
+    std::cout << numVertices << " vertices loaded in." << std::endl << std::endl;*/
 }
 
 void Object::SetDebugDraw(bool option) 
@@ -188,70 +183,6 @@ void Object::Draw(VkCommandBuffer cmdBuffer, VkPipelineLayout pipelineLayout)
     }
 }
 
-void Object::ComputeVertexNormals()
-{
-    std::vector<Vertex>& vertexBufferData = this->mMesh.data.vertices;
-    std::vector<uint16_t>& indexBufferData = this->mMesh.data.indices;
-
-    for (int i = 0; i < vertexBufferData.size(); ++i)
-    {
-        glm::vec3 total_vec(0.0f);
-
-        for (int j = 0; j < indexBufferData.size(); ++j)
-        {
-            //total_vec
-            if (indexBufferData[j] == i)
-            {
-                //angle = glm::angle(q -p, r - p)
-                //total_vec += angle * cross(q - r, r - p)
-                float angle;
-                glm::vec3 normal;
-                glm::vec3 orientation_QP;
-                glm::vec3 orientation_RP;
-                glm::vec3 edge_1;
-                glm::vec3 edge_2;
-
-                if (j % 3 == 0) //beginning of the face index
-                {
-                    orientation_QP = vertexBufferData[indexBufferData[j + 1]].pos - vertexBufferData[indexBufferData[j]].pos;
-                    orientation_RP = vertexBufferData[indexBufferData[j + 2]].pos - vertexBufferData[indexBufferData[j]].pos;
-
-                    edge_1 = orientation_QP;
-                    edge_2 = orientation_RP;
-                }
-                else if (j % 3 == 1) //middle of the face index
-                {
-                    orientation_QP = vertexBufferData[indexBufferData[j]].pos - vertexBufferData[indexBufferData[j - 1]].pos;
-                    orientation_RP = vertexBufferData[indexBufferData[j + 1]].pos - vertexBufferData[indexBufferData[j - 1]].pos;
-
-                    edge_1 = vertexBufferData[indexBufferData[j - 1]].pos - vertexBufferData[indexBufferData[j]].pos;
-                    edge_2 = vertexBufferData[indexBufferData[j + 1]].pos - vertexBufferData[indexBufferData[j]].pos;
-
-                }
-                else if (j % 3 == 2) //end of face index sequence
-                {
-                    orientation_QP = vertexBufferData[indexBufferData[j - 1]].pos - vertexBufferData[indexBufferData[j - 2]].pos;
-                    orientation_RP = vertexBufferData[indexBufferData[j]].pos - vertexBufferData[indexBufferData[j - 2]].pos;
-
-                    edge_1 = vertexBufferData[indexBufferData[j - 2]].pos - vertexBufferData[indexBufferData[j]].pos;
-                    edge_2 = vertexBufferData[indexBufferData[j - 1]].pos - vertexBufferData[indexBufferData[j]].pos;
-                }
-
-
-                angle = glm::degrees(acos((abs(glm::dot(edge_1, edge_2)) /
-                    (glm::length(edge_1) * glm::length(edge_2)))));
-                normal = glm::cross(orientation_QP, orientation_RP);
-                //The angle needs to be between the edges that *SHARE* the vertex.
-                total_vec += (angle * normal);
-            }
-        }
-
-        vertexBufferData[i].nrm = glm::normalize(total_vec); //point + vector equals another point
-
-    } //calculate the normals
-}
-
-
 void Object::UpdatePhysicsComponent(const PhysicsComponent* physComp)
 {
     if (physComp != nullptr) 
@@ -264,9 +195,9 @@ void Object::UpdatePhysicsComponent(const PhysicsComponent* physComp)
     }
 }
 
-void Object::AddTextureDescriptor(VkDescriptorSet tDescriptorSet) 
+void Object::AddTextureDescriptorSet(VkDescriptorSet textureDscSet)
 {
-    this->textureDescriptorSet = tDescriptorSet;
+    textureDescriptorSet = textureDscSet;
 }
 
 void Object::UpdateModelTransform(const glm::mat4* modelTransform) 
@@ -277,124 +208,12 @@ void Object::UpdateModelTransform(const glm::mat4* modelTransform)
     }
 }
 
-
 void Object::UpdateMesh(const Mesh* mesh) 
 {
     if (mesh) 
     {
         this->mMesh = *mesh;
-
-        int numVertices = static_cast<int>(this->mMesh.data.vertices.size());
-
-        glm::vec3 min_points(0.f);
-        glm::vec3 max_points(0.f);
-
-        for (unsigned i = 0; i < this->mMesh.data.vertices.size(); ++i)
-        {
-
-            min_points.x = std::min(min_points.x, this->mMesh.data.vertices[i].pos.x);
-            min_points.y = std::min(min_points.y, this->mMesh.data.vertices[i].pos.y);
-            min_points.z = std::min(min_points.z, this->mMesh.data.vertices[i].pos.z);
-
-            max_points.x = std::max(max_points.x, this->mMesh.data.vertices[i].pos.x);
-            max_points.y = std::max(max_points.y, this->mMesh.data.vertices[i].pos.y);
-            max_points.z = std::max(max_points.z, this->mMesh.data.vertices[i].pos.z);
-
-            this->mMesh.data.vertices[i].nrm = glm::vec3(0, 0, 0.f);
-
-            this->mMesh.center += this->mMesh.data.vertices[i].pos;
-        }
-
-        this->mMesh.center /= this->mMesh.data.vertices.size();
-
-        float unitScale = std::max({ glm::length(max_points.x - min_points.x), glm::length(max_points.y - min_points.y), glm::length(max_points.z - min_points.z) });
-
-        max_points = { -std::numeric_limits<float>::min(),  -std::numeric_limits<float>::min() , -std::numeric_limits<float>::min() };
-        min_points = { std::numeric_limits<float>::max(), std::numeric_limits<float>::max(), std::numeric_limits<float>::max() };
-
-        for (size_t i = 0; i < this->mMesh.data.vertices.size(); ++i)
-        {
-            this->mMesh.data.vertices[i].pos = (this->mMesh.data.vertices[i].pos - this->mMesh.center) / unitScale;
-
-            max_points.x = std::max(max_points.x, this->mMesh.data.vertices[i].pos.x);
-            max_points.y = std::max(max_points.y, this->mMesh.data.vertices[i].pos.y);
-            max_points.z = std::max(max_points.z, this->mMesh.data.vertices[i].pos.z);
-
-            min_points.x = std::min(min_points.x, this->mMesh.data.vertices[i].pos.x);
-            min_points.y = std::min(min_points.y, this->mMesh.data.vertices[i].pos.y);
-            min_points.z = std::min(min_points.z, this->mMesh.data.vertices[i].pos.z);
-        }
-
-        this->mMesh.maxLocalPoints = max_points;
-        this->mMesh.minLocalPoints = min_points;
-
-        VkPhysicalDevice p_device = _GraphicsContext->PhysicalDevice();
-        VkDevice l_device = _GraphicsContext->LogicalDevice();
-
-        size_t sizeOfVertexBuffer = sizeof(std::vector<Vertex>) + (sizeof(Vertex) * this->mMesh.data.vertices.size());
-        this->mMesh.buffer.vertex = vk::Buffer(p_device, l_device, sizeOfVertexBuffer, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, this->mMesh.data.vertices.data());
-
-        size_t sizeOfIndexBuffer = sizeof(std::vector<uint16_t>) + (sizeof(uint16_t) * this->mMesh.data.indices.size());
-        this->mMesh.buffer.index = vk::Buffer(p_device, l_device, sizeOfIndexBuffer, VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, this->mMesh.data.indices.data());
-
     }
-}
-
-bool LoadMeshOBJ(const std::string& path, Object& obj)
-{
-    tinyobj::attrib_t attrib;
-    std::vector<tinyobj::shape_t> shapes;
-    std::vector<tinyobj::material_t> materials;
-    std::string warn, err;
-
-    if (!tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, path.c_str())) {
-        std::cerr << err << std::endl;
-        return false;
-    }
-
-    if (!warn.empty()) 
-    {
-        std::cout << warn << std::endl << std::endl;
-    }
-
-    std::unordered_map<Vertex, uint32_t> uniqueVertices = {};
-
-
-    for (const auto& shape : shapes)
-    {
-        for (const auto& index : shape.mesh.indices)
-        {
-            Vertex vert = {};
-
-            vert.pos =
-            {
-                attrib.vertices[3 * index.vertex_index + 0],
-                attrib.vertices[3 * index.vertex_index + 1],
-                attrib.vertices[3 * index.vertex_index + 2]
-            };
-
-            if (index.texcoord_index > 0) 
-            {
-                vert.uv =
-                {
-                    attrib.texcoords[2 * index.texcoord_index + 0],
-                    1 - attrib.texcoords[2 * index.texcoord_index + 1] //vulkan is upside down.
-                };
-
-            }
-
-            if (uniqueVertices.count(vert) == 0)
-            {
-                uniqueVertices[vert] = static_cast<uint32_t>(obj.mMesh.data.vertices.size());
-                obj.mMesh.data.vertices.push_back(vert);
-            }
-
-            obj.mMesh.data.indices.push_back(uniqueVertices[vert]);
-
-        }
-    }
-
-    return true;
 }
 
 

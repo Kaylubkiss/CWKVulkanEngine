@@ -24,22 +24,18 @@ namespace vk
 		sceneUniformData.light.specular = { 0.5f, 0.5f, 0.5f };
 		sceneUniformData.light.shininess = 32.f;
 
-		defaultTexture = Texture(device.physical, device.logical, device.graphicsQueue.handle, "puppy1.bmp");
-
 		FreddyHeadScene::UpdateUniforms();
 
 		FreddyHeadScene::InitializeDescriptors();
 		FreddyHeadScene::InitializePipeline("blinnForward.vert", "blinnForward.frag");
 
-		/* NOTE: a bit jank, as swapchain relies on Finalize method of mPipeline to finish */
-		
+		mInfo.descriptorPool = this->descriptorPool;
+		mInfo.descriptorSetLayout = this->descriptorSetLayout;
 
 	}
 
 	FreddyHeadScene::~FreddyHeadScene()
 	{
-		defaultTexture.Destroy(device.logical);
-
 		sceneUniformBuffer.Destroy();
 
 		vkDestroyDescriptorSetLayout(this->device.logical, this->descriptorSetLayout, nullptr);
@@ -118,8 +114,7 @@ namespace vk
 
 		sceneDescriptorSet = vk::init::DescriptorSet(device.logical, descriptorPool, descriptorSetLayout);
 
-		
-		
+
 		VkDescriptorImageInfo defaultTextureDescriptor = {};
 		defaultTextureDescriptor.imageLayout = VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL;
 		defaultTextureDescriptor.imageView = defaultTexture.mTextureImageView;
@@ -133,27 +128,14 @@ namespace vk
 		};
 
 		vkUpdateDescriptorSets(device.logical, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, nullptr);
-	}
 
-	std::vector<VkWriteDescriptorSet> FreddyHeadScene::WriteDescriptorBuffers(VkDescriptorSet descriptorSet) 
-	{
-		std::vector<VkWriteDescriptorSet> writeDescriptorSets =
+		//TODO: janky mInfo stuff for texturemanager......
+		writeDescriptorSets = 
 		{
-			//uniform transforms
-			vk::init::WriteDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &sceneUniformBuffer.descriptor),
+			vk::init::WriteDescriptorSet(sceneDescriptorSet, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &sceneUniformBuffer.descriptor)
 		};
 
-		return writeDescriptorSets;	
-	}
-
-	uint32_t FreddyHeadScene::SamplerDescriptorSetBinding() 
-	{
-		return 1;
-	}
-
-	const VkDescriptorSetLayout FreddyHeadScene::DescriptorSetLayout() const 
-	{
-		return this->descriptorSetLayout;
+		mInfo.sceneWriteDescriptorSets = writeDescriptorSets;
 	}
 
 	void FreddyHeadScene::RecordCommandBuffers(vk::ObjectManager& objManager)

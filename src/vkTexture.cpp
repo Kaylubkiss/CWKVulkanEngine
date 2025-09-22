@@ -49,7 +49,7 @@ namespace vk {
 		createInfo.unnormalizedCoordinates = VK_FALSE;
 
 		createInfo.compareEnable = VK_FALSE;
-		createInfo.compareOp = VK_COMPARE_OP_ALWAYS;
+		createInfo.compareOp = VK_COMPARE_OP_ALWAYS; //value is ignored.
 
 		createInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
 		createInfo.minLod = 0.f;
@@ -61,78 +61,67 @@ namespace vk {
 
 		return nTextureSampler;
 	}
-		
-	Texture::Texture(const VkPhysicalDevice p_device, const VkDevice l_device, const VkQueue gfxQueue, const std::string& fileName)
+
+	Texture::Texture(GraphicsContextInfo* graphicsContextInfo, const std::string& fileName)
 	{
+
+		assert(graphicsContextInfo != nullptr);
 		//Might want to make command pool a member variable.
 	
 		int textureWidth, textureHeight, textureChannels;
 		stbi_uc* pixels = fileName == "" ? nullptr : stbi_load((TEXTURE_PATH + fileName).c_str(), &textureWidth, &textureHeight, &textureChannels, STBI_rgb_alpha);
 
-		//TODO: this code segment does not working!!!
 		if (!pixels)
 		{
-			textureWidth = 128;
-			textureHeight = textureWidth;
-			int divisions = textureWidth / 4;
-
-			pixels = new stbi_uc[textureWidth * textureHeight];
-
-			//generate default texture
-			for (size_t i = 0; i < textureHeight; ++i)
-			{
-				size_t pixelCol = i * textureWidth;
-
-				for (size_t i = 0; i < textureWidth; ++i) 
-				{
-					if (i % divisions == 0) 
-					{
-						pixels[pixelCol + i] = 255;
-					}
-					else {
-						pixels[pixelCol + i] = 0;
-					}
-				}
-
-			}
-
+			return;
+			//TODO: generate checker-board texture for objects.
 		}
 
-		VkDeviceSize imageSize = (uint64_t)textureWidth * (uint64_t)textureHeight * 4;
+		uint64_t bytePerPixel = 4;
+		VkDeviceSize imageSize = (uint64_t)textureWidth * (uint64_t)textureHeight * bytePerPixel; //4 bytes per pixel.
 
-		uint32_t mipLevels = vk::util::CalculateMipLevels(textureWidth, textureHeight);
+		/*uint32_t mipLevels = vk::util::CalculateMipLevels(textureWidth, textureHeight); -- commented out because I don't understand it yet. */ 
+		uint32_t mipLevels = 1;
 
-		vk::Buffer stagingBuffer = vk::Buffer(p_device, l_device, static_cast<size_t>(imageSize), VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, (void*)pixels);
+		vk::Buffer stagingBuffer = vk::Buffer(graphicsContextInfo->physicalDevice, graphicsContextInfo->logicalDevice, 
+			static_cast<size_t>(imageSize), VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, (void*)pixels);
 
-		stbi_image_free(pixels);
-
-		this->mTextureImage = vk::init::CreateImage(p_device, l_device, textureWidth, textureHeight, mipLevels, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+		this->mTextureImage = vk::init::CreateImage(graphicsContextInfo->physicalDevice, 
+			graphicsContextInfo->logicalDevice, textureWidth, textureHeight, mipLevels, VK_FORMAT_R8G8B8A8_SRGB,
+			VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
 			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, this->mTextureMemory);
 
-		VkCommandPool cmdPool = vk::init::CommandPool(l_device, VK_COMMAND_POOL_CREATE_TRANSIENT_BIT);
+		VkCommandPool cmdPool = vk::init::CommandPool(graphicsContextInfo->logicalDevice, VK_COMMAND_POOL_CREATE_TRANSIENT_BIT);
 
-		//creating mipmaps
-		vk::util::TransitionImageLayout(l_device, cmdPool, gfxQueue, this->mTextureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, mipLevels);
+		vk::util::TransitionImageLayout(graphicsContextInfo->logicalDevice, cmdPool, graphicsContextInfo->graphicsQueue.handle, this->mTextureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, mipLevels);
 
-		vk::util::copyBufferToImage(l_device, cmdPool, stagingBuffer.handle, gfxQueue, this->mTextureImage, (uint32_t)(textureWidth), (uint32_t)(textureHeight));
+		/*vk::util::GenerateMipMaps(p_device, l_device, cmdPool, gfxQueue, this->mTextureImage, VK_FORMAT_R8G8B8A8_SRGB, (uint32_t)textureWidth, (uint32_t)textureHeight, mipLevels);*/
+		
+		vk::util::copyBufferToImage(graphicsContextInfo->logicalDevice, cmdPool,
+			stagingBuffer.handle, 
+			graphicsContextInfo->graphicsQueue.handle,
+			this->mTextureImage, (uint32_t)(textureWidth), (uint32_t)(textureHeight)); //copy contents of the image (stored in buffer) into the image.
 
-		vk::util::GenerateMipMaps(p_device, l_device, cmdPool, gfxQueue, this->mTextureImage, VK_FORMAT_R8G8B8A8_SRGB, (uint32_t)textureWidth, (uint32_t)textureHeight, mipLevels);
+		//transition the image layout to shader read only for sampling in the shader.
+		vk::util::TransitionImageLayout(graphicsContextInfo->logicalDevice, cmdPool, graphicsContextInfo->graphicsQueue.handle, this->mTextureImage, VK_FORMAT_R8G8B8A8_SRGB,
+			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, mipLevels);
 
+		//end of creating mipmaps.;
+
+		vkDestroyCommandPool(graphicsContextInfo->logicalDevice, cmdPool, nullptr);
 		stagingBuffer.Destroy();
+		stbi_image_free(pixels);
 
-		vkDestroyCommandPool(l_device, cmdPool, nullptr);
+		this->mTextureImageView = CreateTextureView(graphicsContextInfo->logicalDevice, this->mTextureImage, mipLevels);
 
-		//end of creating mipmaps.
-
-		this->mTextureImageView = CreateTextureView(l_device, this->mTextureImage, mipLevels);
-
-		this->mTextureSampler = CreateTextureSampler(p_device, l_device, mipLevels);
+		this->mTextureSampler = CreateTextureSampler(graphicsContextInfo->physicalDevice, graphicsContextInfo->logicalDevice, mipLevels);
 
 		this->descriptor.sampler = this->mTextureSampler;
 		this->descriptor.imageView = this->mTextureImageView;
 		this->descriptor.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 		
-		this->mName = fileName;
+		this->mName = fileName;		
 	}
 
 

@@ -34,6 +34,8 @@ namespace vk
 
 		vkGetDeviceQueue(device.logical, device.graphicsQueue.family, 0, &device.graphicsQueue.handle);
 		vkGetDeviceQueue(device.logical, device.presentQueue.family, 0, &device.presentQueue.handle);
+		vkGetDeviceQueue(device.logical, device.transferQueue.family, 0, &device.transferQueue.handle);
+
 
 		semaphores.presentComplete = vk::init::CreateSemaphore(this->device.logical);
 		semaphores.renderComplete = vk::init::CreateSemaphore(this->device.logical);
@@ -51,6 +53,7 @@ namespace vk
 		this->swapChain.CreateFrameBuffers(window.viewport, this->mPipeline.mRenderPass);
 
 		this->commandPool = vk::init::CommandPool(device.logical, VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
+		this->secondaryCommandPool = vk::init::CommandPool(device.logical, VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
 
 		VkSurfaceCapabilitiesKHR deviceCapabilities;
 		VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device.physical, window.surface, &deviceCapabilities));
@@ -65,6 +68,12 @@ namespace vk
 
 		this->mHotReloader.appDevicePtr = this->device.logical;
 		this->mHotReloader.AddPipeline(this->mPipeline);
+
+
+		//TODO: a little janky way to initialize as more of mInfo is filled with derived classes.
+		mInfo.logicalDevice = device.logical;
+		mInfo.physicalDevice = device.physical;
+		mInfo.graphicsQueue = device.graphicsQueue;
 
 		this->isInitialized = true;
 
@@ -81,6 +90,9 @@ namespace vk
 
 		vkFreeCommandBuffers(device.logical, this->commandPool, this->commandBuffers.size(), this->commandBuffers.data());
 		vkDestroyCommandPool(device.logical, this->commandPool, nullptr);
+		
+
+		vkDestroyCommandPool(device.logical, this->secondaryCommandPool, nullptr);
 
 		//semaphores
 		vkDestroySemaphore(this->device.logical, semaphores.presentComplete, nullptr);
@@ -243,6 +255,7 @@ namespace vk
 
 		bool setGraphicsQueue = false;
 		bool setPresentQueue = false;
+		bool setTransferQueue = false;
 
 		for (unsigned i = 0; i < queueFamilyPropertyCount; ++i)
 		{
@@ -262,11 +275,23 @@ namespace vk
 				setPresentQueue = true;
 			}
 
-			if (setGraphicsQueue && setPresentQueue)
+			if ((queueFamilies[i].queueFlags & VK_QUEUE_TRANSFER_BIT) != 0 &&
+				i != device.presentQueue.family && i != device.graphicsQueue.family)
+			{
+				device.transferQueue.family = i;
+				setTransferQueue = true;
+			}
+
+			if (setGraphicsQueue && setPresentQueue && setTransferQueue)
 			{
 				break;
 			}
 
+		}
+
+		if (!setGraphicsQueue || !setPresentQueue || !setTransferQueue) 
+		{
+			throw std::runtime_error("could not find all required queues on this device!\n");
 		}
 	}
 
@@ -357,8 +382,16 @@ namespace vk
 
 		}
 
-		
+		//transfer queue bit.
+		VkDeviceQueueCreateInfo transferQueueInfo = {}; //to be passed into deviceCreateInfo's struct members.
+		transferQueueInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+		transferQueueInfo.queueFamilyIndex = device.transferQueue.family;
+		transferQueueInfo.queueCount = 1;
+		//THIS IS APPARENTLY REQUIRED --> REFERENCE BOOK DID NOT SHOW THIS...
+		transferQueueInfo.pQueuePriorities = queuePriority; //normalized values between 0.f to 1.f that ranks the priority of the queue in the array.
 
+		deviceQueueCreateInfos.push_back(transferQueueInfo);
+		
 		VkDeviceCreateInfo deviceCreateInfo = {};
 		deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
 		deviceCreateInfo.flags = 0;
@@ -492,6 +525,12 @@ namespace vk
 	VkDescriptorPool ContextBase::DescriptorPool() const 
 	{
 		return this->descriptorPool;
+	}
+
+
+	GraphicsContextInfo ContextBase::GetGraphicsContextInfo() 
+	{
+		return mInfo;
 	}
 
 	void ContextBase::WaitForDevice()

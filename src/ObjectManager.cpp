@@ -6,37 +6,31 @@
 namespace vk 
 {
 
-	void ObjectManager::LoadObjParallel(const ObjectCreateInfo& objInfo)
-	{
-		Object* newObject  = new Object(physicalDevice, logicalDevice, objInfo.objName, objInfo.debugWillDraw);
-		newObject->UpdateModelTransform(objInfo.pModelTransform);
-		newObject->UpdateMesh(objInfo.pMesh);
-		newObject->UpdatePhysicsComponent(objInfo.pPhysicsComponent);
-
-		delete objInfo.pModelTransform;
-		delete objInfo.pMesh;
-		delete objInfo.pPhysicsComponent;
-
-		this->textureSys->BindTextureToObject(objInfo.textureFileName, *newObject);
-
-		objects[objInfo.objName].obj = newObject;
-	}
-
 	void ObjectManager::LoadObject(const ObjectCreateInfo& objectCI)
 	{
+		Object* newObject = new Object();
+		//just get the texture now to avoid asynchronous issues.
+		this->textureSys->BindTextureToObject(objectCI.textureFileName, *newObject); 
 
-		ObjectCreateInfo deepCopy;
-		deepCopy.pModelTransform = new glm::mat4(*objectCI.pModelTransform);
-		deepCopy.pPhysicsComponent = objectCI.pPhysicsComponent ? new PhysicsComponent(*objectCI.pPhysicsComponent) : nullptr;
-		deepCopy.pMesh = objectCI.pMesh ? new Mesh(*objectCI.pMesh) : nullptr;
-		deepCopy.textureFileName = objectCI.textureFileName;
-		deepCopy.objName = objectCI.objName;
+		ObjectCreateInfo deepyCopyCI = objectCI;
+		deepyCopyCI.pModelTransform = objectCI.pModelTransform ? new glm::mat4(*objectCI.pModelTransform) : nullptr;
+		deepyCopyCI.pPhysicsComponent = objectCI.pPhysicsComponent ? new PhysicsComponent(*objectCI.pPhysicsComponent) : nullptr;
 
-		auto func = [this, deepCopy]() {
-			ObjectManager::LoadObjParallel(deepCopy);
+		std::function<void()> parallelFunction = [this, deepyCopyCI, newObject]() {
+			Mesh nMesh;
+			nMesh.LoadOBJMesh((OBJECT_PATH + std::string(deepyCopyCI.objName)).c_str());
+
+			newObject->UpdateMesh(&nMesh);
+			newObject->UpdateModelTransform(deepyCopyCI.pModelTransform);
+			newObject->UpdatePhysicsComponent(deepyCopyCI.pPhysicsComponent);
+
+			objects[deepyCopyCI.objName].obj = newObject;
+
+			delete deepyCopyCI.pModelTransform;
+			delete deepyCopyCI.pPhysicsComponent;
 		};
 
-		mThreadWorkers.EnqueueTask(func);
+		mThreadWorkers.EnqueueTask(parallelFunction);
 	}
 
 	ObjectManager::ObjectManager() 

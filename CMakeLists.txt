@@ -20,6 +20,7 @@ set(SOURCE_FILES src/Application.cpp
 				   src/ApplicationGlobal.cpp
 				   src/CameraController.cpp
 				   src/HotReloader.cpp
+				   src/UserInterface.cpp
 )
 							
 set(VULKAN_ENGINE_SRC src/vkDebug.cpp
@@ -75,6 +76,7 @@ src/Include/ApplicationGlobal.h
 src/Include/Controller.h
 src/Include/SpirvHelper.h
 src/Include/HotReloader.h
+src/Include/UserInterface.h
 )
 				 
 
@@ -120,17 +122,12 @@ src/Shaders/deferredLightPass.frag
 								 
 #-----COMPILATION OPTIONS DEPENDING ON PLATFORM---------
 if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
-    string(APPEND CMAKE_CXX_FLAGS " /MP")
+    string(APPEND CMAKE_CXX_FLAGS "/MP")
 		message("Using MSVC compiler with C++")
-endif()
-
-if(CMAKE_C_COMPILER_ID STREQUAL "MSVC")
+elseif(CMAKE_C_COMPILER_ID STREQUAL "MSVC")
     string(APPEND CMAKE_C_FLAGS " /MP")
 		message("Using MSVC compiler with C")
 endif()
-
-#TRY TO SUPRESS WARNINGS
-add_definitions(-w)
 
 #-------------------------------------------MAKE THE PROJECT--------------------------------------
 add_executable("${PROJECT_NAME}" ${SOURCE_FILES} ${SHADER_FILES} ${HEADER_FILES})

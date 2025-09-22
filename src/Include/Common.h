@@ -3,10 +3,9 @@
 //IF DISABLED: alignment may not be correct. For now, I'm willing to let this happen until something goes bad.
 
 
-#define _DISABLE_EXTENDED_ALIGNED_STORAGE 
+//#define _DISABLE_EXTENDED_ALIGNED_STORAGE 
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEFAULT_ALIGNED_GENTYPES
-//#define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <vector>

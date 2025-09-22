@@ -12,6 +12,7 @@ namespace vk
 		VkBuffer handle = VK_NULL_HANDLE;
 		VkDeviceMemory memory = VK_NULL_HANDLE;
 		VkDeviceSize size = 0;
+		
 
 		VkDescriptorBufferInfo descriptor = {};
 
@@ -26,6 +27,12 @@ namespace vk
 		void Destroy();
 
 		void SetDescriptor(VkDeviceSize size = VK_WHOLE_SIZE, VkDeviceSize offset = 0);
+
+		void Map();
+
+		void Flush();
+
+		void UnMap();
 
 		//TODO: void Map();
 

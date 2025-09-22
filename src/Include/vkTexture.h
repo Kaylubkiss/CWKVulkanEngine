@@ -15,7 +15,7 @@ namespace vk
 		VkImage mTextureImage = VK_NULL_HANDLE;
 		VkDeviceMemory mTextureMemory = VK_NULL_HANDLE;
 		VkImageView mTextureImageView = VK_NULL_HANDLE;
-		VkSampler mTextureSampler = VK_NULL_HANDLE;
+		VkSampler mTextureSampler = VK_NULL_HANDLE; //different mip-levels might need different samplers
 
 		//this is unused for now!!!
 		VkDescriptorSet descriptorSet = VK_NULL_HANDLE;
@@ -26,7 +26,7 @@ namespace vk
 
 		Texture() = default;
 		~Texture() = default;
-		Texture(const VkPhysicalDevice p_device, const VkDevice l_device, const VkQueue gfxQueue, const std::string& fileName);
+		Texture(GraphicsContextInfo* graphicsContextInfo, const std::string& fileName);
 
 		void Destroy(const VkDevice l_device) {
 

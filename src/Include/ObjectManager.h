@@ -83,7 +83,6 @@ namespace vk
 		void Update(float dt);
 
 	private:
-		void LoadObjParallel(const ObjectCreateInfo& objInfo);
 
 	//variables.
 		ThreadPool mThreadWorkers;
@@ -96,11 +95,10 @@ namespace vk
 		};
 
 		std::map<const char*, ObjectInfo, str_cmp> objects;
-		/*std::list<AsyncObjectInitInfo> objectUpdateQueue;*/
-
+		
 		VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
 		VkDevice logicalDevice = VK_NULL_HANDLE;
-		
+
 		TextureManager* textureSys = nullptr;
 	};
 }

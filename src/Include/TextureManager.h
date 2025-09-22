@@ -5,6 +5,7 @@
 #include "vkTexture.h"
 #include <vector>
 #include "vkContextBase.h"
+#include <mutex>
 
 namespace vk 
 {
@@ -18,7 +19,7 @@ namespace vk
 
 			void Init(ContextBase* context);
 
-			void Add(const VkPhysicalDevice p_device, const VkDevice l_device, const VkQueue gfxQueue, const std::string& fileName);
+			void Add(GraphicsContextInfo* graphicsContextInfo, const std::string& fileName);
 
 			void Add(const Texture& nTexture);
 			
@@ -30,7 +31,8 @@ namespace vk
 
 		private:
 
-			ContextBase* graphicsContext = nullptr;
+			vk::GraphicsContextInfo graphicsContextInfo;
+
 			std::vector<vk::Texture> mTextures;
 	};
 

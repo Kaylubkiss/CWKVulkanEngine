@@ -32,6 +32,9 @@ struct Mesh
 
 	static Mesh GenerateCube(int stacks, int slices);
 	static Mesh GeneratePlane(int stacks, int slices);
+	bool LoadOBJMesh(const char* filePath);
+	void ComputeVertices();
+	void ComputeVertexNormals();
 
 	void Destroy(const VkDevice l_device) 
 	{

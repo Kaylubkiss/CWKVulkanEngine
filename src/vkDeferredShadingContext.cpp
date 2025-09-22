@@ -10,19 +10,35 @@ namespace vk
 		deferredPass.width = window.viewport.width;
 		deferredPass.height = window.viewport.height;
 
+		defaultTexture = Texture(&this->mInfo, "wood-floor.png");
+
 		DeferredContext::InitializeUniforms();
 		DeferredContext::IntializeDeferredFramebuffer();
 		DeferredContext::IntializeColorSampler();
 		DeferredContext::InitializeDescriptors();
 		DeferredContext::InitializePipeline();
 
+		//assert(offsetof(UniformDataLightPass, light.shininess) == 80);
+
+		//std::cout << offsetof(UniformDataLightPass, light.shininess) << std::endl;
+
 		//_Application->RequestExit();
+
+		mInfo.descriptorPool = this->descriptorPool;
+		mInfo.descriptorSetLayout = this->sceneDescriptorSetLayout;
+		mInfo.samplerBinding = 3;
 	}
 
 
 	DeferredContext::~DeferredContext() 
 	{
-		uniformBuffers.deferred.Destroy();
+		uniformBuffers.deferredMRT.UnMap();
+		uniformBuffers.deferredMRT.Destroy();
+		
+		uniformBuffers.deferredLightPass.UnMap();
+		uniformBuffers.deferredLightPass.Destroy();
+
+		defaultTexture.Destroy(device.logical);
 
 		vkDestroyRenderPass(device.logical, deferredPass.renderPass, nullptr);
 		vkDestroyFramebuffer(device.logical, deferredPass.framebuffer, nullptr);
@@ -34,40 +50,50 @@ namespace vk
 
 	void DeferredContext::InitializeScene(ObjectManager& objManager) 
 	{
-		glm::mat4 modelTransform = glm::mat4(1.f);
-		float dbScale = 10.f;
-		modelTransform = glm::mat4(dbScale);
+		glm::mat4 modelTransform = glm::mat4(5.f);
+		modelTransform[3] = glm::vec4(1.0f, 0, 5.f, 1);
+
+
+		ObjectCreateInfo objectCI;
+		objectCI.objName = "freddy.obj";
+		objectCI.textureFileName = "myFace.jpg";
+		objectCI.pModelTransform = &modelTransform;
+
+		objManager.LoadObject(objectCI);
+
+		//object 2
+		modelTransform = glm::mat4(1.f);
 		modelTransform[3] = glm::vec4(0, 20, -5.f, 1);
 
 		PhysicsComponent physicsComponent;
 		physicsComponent.bodyType = BodyType::DYNAMIC;
 		physicsComponent.colliderType = PhysicsComponent::ColliderType::CUBE;
 
-		ObjectCreateInfo objCreateInfo = {};
-		objCreateInfo.objName = "cube.obj";
-		objCreateInfo.pModelTransform = &modelTransform;
-		objCreateInfo.pPhysicsComponent = &physicsComponent;
+		objectCI = {};
+		objectCI.objName = "cube.obj";
+		objectCI.textureFileName = "";
+		objectCI.pPhysicsComponent = &physicsComponent;
+		objectCI.pModelTransform = &modelTransform;
 
-		objManager.LoadObject(objCreateInfo);
-
+		objManager.LoadObject(objectCI);
 
 		//object 3
-		dbScale = 50.f;
+		const float dbScale = 30.f;
 		modelTransform = glm::mat4(dbScale);
-		modelTransform[3] = { 0.f, -10.f, -10.f, 1 };
+		modelTransform[3] = { 0.f, -5.f, 0.f, 1 };
 
 		physicsComponent.bodyType = reactphysics3d::BodyType::STATIC;
-		physicsComponent.colliderType = PhysicsComponent::ColliderType::PLANE;
 
-		objCreateInfo = {};
-		objCreateInfo.objName = "base.obj";
-		objCreateInfo.pModelTransform = &modelTransform;
-		objCreateInfo.pPhysicsComponent = &physicsComponent;
 
-		objManager.LoadObject(objCreateInfo);
+		objectCI = {};
+		objectCI.objName = "base.obj";
+		objectCI.textureFileName = "";
+		objectCI.pPhysicsComponent = &physicsComponent;
+		objectCI.pModelTransform = &modelTransform;
+
+		objManager.LoadObject(objectCI);
 
 	}
-
 
 	void DeferredContext::ResizeWindow() 
 	{
@@ -218,21 +244,40 @@ namespace vk
 
 	void DeferredContext::InitializeUniforms() 
 	{
-		uniformBuffers.deferred = device.CreateBuffer(sizeof(UniformDataDeferred), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, (void*)(&uniformDataDeferred));
+		uniformBuffers.deferredMRT = device.CreateBuffer(sizeof(uniformDataMRT), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, (void*)(&uniformDataMRT));
+		uniformBuffers.deferredMRT.Map();
 
+		//TODO: stationary light. single light.
+		uniformDataLightPass.light.pos = {};
+		uniformDataLightPass.light.albedo = { 1.0, 1.0, 1.0 };
+		uniformDataLightPass.light.ambient = uniformDataLightPass.light.albedo * 0.1f;
+		uniformDataLightPass.light.specular = { 0.5f, 0.5f, 0.5f };
+		uniformDataLightPass.light.shininess = 32.f;
+
+		uniformBuffers.deferredLightPass = device.CreateBuffer(sizeof(uniformDataLightPass), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, (void*)(&uniformDataLightPass));
+		uniformBuffers.deferredLightPass.Map(); 
+		
 	}
 
 	void DeferredContext::UpdateUniforms()
 	{
-		uniformDataDeferred.uTransform = 
+		Camera& mainCamera = _Application->GetCamera();
+
+		//transform(s)
+		uniformDataMRT.uTransform =
 		{
-			_Application->GetCamera().LookAt(),
+			mainCamera.LookAt(),
 			glm::perspective(glm::radians(FOV), (float)window.viewport.width / window.viewport.height, 0.1f, 1000.f)
 		};
 
-		uniformDataDeferred.uTransform.proj[1][1] *= -1;
+		uniformDataMRT.uTransform.proj[1][1] *= -1;
 
-		memcpy(uniformBuffers.deferred.mappedMemory, (void*)(&uniformDataDeferred), sizeof(uniformDataDeferred));
+		memcpy(uniformBuffers.deferredMRT.mappedMemory, (void*)(&uniformDataMRT), sizeof(uniformDataMRT));
+
+		//light(s)
+		uniformDataLightPass.viewPosition = mainCamera.Position();
+
+		memcpy(uniformBuffers.deferredLightPass.mappedMemory, (void*)(&uniformDataLightPass), sizeof(uniformDataLightPass));
 
 	}
 
@@ -268,7 +313,6 @@ namespace vk
 
 	}
 
-
 	void DeferredContext::InitializeDescriptors() 
 	{
 		assert(colorSampler != VK_NULL_HANDLE);
@@ -276,19 +320,20 @@ namespace vk
 		//NOTE: non-textured objects in this scene
 		const uint32_t num_pipelines = 2;
 		std::vector<VkDescriptorPoolSize> descriptorPoolSize = {
-			vk::init::DescriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, num_pipelines),
-			vk::init::DescriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 3) //3 samplers in composition pipeline.			
+			vk::init::DescriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 2), //uniform buffer in deferredMRT.vert, and deferredLightPass.frag
+			vk::init::DescriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 4) //3 samplers in composition pipeline, +1 for freddy head texture.			
 		};
 
-		VkDescriptorPoolCreateInfo descriptorPoolCI = vk::init::DescriptorPoolCreateInfo(descriptorPoolSize, num_pipelines);
+		VkDescriptorPoolCreateInfo descriptorPoolCI = vk::init::DescriptorPoolCreateInfo(descriptorPoolSize, num_pipelines + 1); //+1 for the freddy head texture.
 		VK_CHECK_RESULT(vkCreateDescriptorPool(device.logical, &descriptorPoolCI, nullptr, &descriptorPool));
 
 
 		std::vector<VkDescriptorSetLayoutBinding> descriptorSetLayoutBindings = {
-			vk::init::DescriptorLayoutBinding(0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT),
+			vk::init::DescriptorLayoutBinding(0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT), //transformUBO
 			vk::init::DescriptorLayoutBinding(1, 1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT), //position
 			vk::init::DescriptorLayoutBinding(2, 1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT), //normal
-			vk::init::DescriptorLayoutBinding(3, 1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT) //UV
+			vk::init::DescriptorLayoutBinding(3, 1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT), //UV
+			vk::init::DescriptorLayoutBinding(4, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT) //lightUBO
 			//might wanna add a uniform for light later...
 		};
 		
@@ -300,9 +345,19 @@ namespace vk
 		//deferredMRT descriptor set
 		VK_CHECK_RESULT(vkAllocateDescriptorSets(device.logical, &descriptorSetInfo, &descriptorSets.deferred));
 
+		VkDescriptorImageInfo albedoImageSampler = {};
+		albedoImageSampler.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+		albedoImageSampler.imageView = defaultTexture.mTextureImageView;
+		albedoImageSampler.sampler = colorSampler;
+
 		std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
-			vk::init::WriteDescriptorSet(descriptorSets.deferred, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &uniformBuffers.deferred.descriptor)
+			vk::init::WriteDescriptorSet(descriptorSets.deferred, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &uniformBuffers.deferredMRT.descriptor),
+			vk::init::WriteDescriptorSet(descriptorSets.deferred, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 3, &albedoImageSampler)
 		};
+
+		//TODO: a little janky way to initialize as more of mInfo is filled with derived classes.
+		mInfo.sceneWriteDescriptorSets = { writeDescriptorSets[0] };
+
 		vkUpdateDescriptorSets(device.logical, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, nullptr);
 		
 		//deferred l-pass descriptor set
@@ -320,15 +375,16 @@ namespace vk
 		descriptorImage[1].imageView = deferredPass.normal.imageView;
 		descriptorImage[1].sampler = colorSampler;
 
-		//albedo
 		descriptorImage[2].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 		descriptorImage[2].imageView = deferredPass.albedo.imageView;
 		descriptorImage[2].sampler = colorSampler;
 
+
 		writeDescriptorSets = {
 			vk::init::WriteDescriptorSet(descriptorSets.composition, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, &descriptorImage[0]),
 			vk::init::WriteDescriptorSet(descriptorSets.composition, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 2, &descriptorImage[1]),
-			vk::init::WriteDescriptorSet(descriptorSets.composition, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 3, &descriptorImage[2])
+			vk::init::WriteDescriptorSet(descriptorSets.composition, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 3, &descriptorImage[2]),
+			vk::init::WriteDescriptorSet(descriptorSets.composition, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 4, &uniformBuffers.deferredLightPass.descriptor)
 		};
 		vkUpdateDescriptorSets(device.logical, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, nullptr);
 	}
@@ -513,30 +569,5 @@ namespace vk
 		UpdateUniforms();
 		ContextBase::Render();
 	}
-
-
-	const VkDescriptorSetLayout DeferredContext::DescriptorSetLayout() const 
-	{
-		return sceneDescriptorSetLayout;
-	}
-
-	std::vector<VkWriteDescriptorSet> DeferredContext::WriteDescriptorBuffers(VkDescriptorSet descriptorSet) 
-	{
-		//TODO: no textures in this scene.. yet.
-		return {};
-	}
-
-	uint32_t DeferredContext::SamplerDescriptorSetBinding() 
-	{
-		//TODO: no textures in this scene.. yet.
-		return 0;
-	}
-
-
-	
-
-	
-
-
 
 }

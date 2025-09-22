@@ -18,6 +18,7 @@ PhysicsSystem::~PhysicsSystem()
 	if (this->mPhysicsWorld != nullptr) 
 	{
 		this->mPhysicsCommon.destroyPhysicsWorld(this->mPhysicsWorld);
+		this->mPhysicsWorld = nullptr;
 	}
 }
 

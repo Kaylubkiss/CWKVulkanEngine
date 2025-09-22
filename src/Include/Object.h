@@ -5,6 +5,7 @@
 #include <iostream>
 #include <string>
 #include "vkMesh.h"
+#include "vkTexture.h"
 
 
 
@@ -13,10 +14,10 @@
 class Object 
 {
 	private:
-		glm::mat4  modelTransform = glm::mat4(1.f);
-
 		Mesh mMesh;
 		
+		glm::mat4  modelTransform = glm::mat4(1.f);
+
 		PhysicsComponent mPhysicsComponent;
 
 		VkDescriptorSet textureDescriptorSet = VK_NULL_HANDLE;
@@ -40,11 +41,8 @@ class Object
 		void Draw(VkCommandBuffer cmdBuffer, VkPipelineLayout pipelineLayout = VK_NULL_HANDLE);
 		void InitPhysics(PhysicsSystem& appPhysics);
 		/*void SetLinesArrayOffset(uint32_t index);*/
-		void ComputeVertexNormals();
 
-		void AddTextureDescriptor(VkDescriptorSet tDescriptorSet);
-
-		friend bool LoadMeshOBJ(const std::string& path, Object& obj);
+		void AddTextureDescriptorSet(VkDescriptorSet textureDscSet);
 };
 
 

@@ -53,18 +53,19 @@ namespace vk
 		//fill data buffer --> THIS COULD BE ITS OWN MODULE...
 		if (data != NULL)
 		{
-			VK_CHECK_RESULT(vkMapMemory(l_device, this->memory, 0, memoryRequirments.size, 0, &this->mappedMemory));
-			memcpy(this->mappedMemory, data, this->size);
+			Buffer::Map();
+			
+			if (this->mappedMemory != nullptr) 
+			{
+				memcpy(this->mappedMemory, data, this->size);
+			}
 
 			if ((flags & VK_MEMORY_PROPERTY_HOST_COHERENT_BIT) == 0)
 			{
-				VkMappedMemoryRange mappedRange = vk::init::MappedMemoryRange();
-				mappedRange.memory = this->memory;
-				mappedRange.offset = 0;
-				mappedRange.size = this->size;
-				vkFlushMappedMemoryRanges(l_device, 1, &mappedRange);
+				Buffer::Flush();
 			}
-			vkUnmapMemory(l_device, this->memory);
+
+			Buffer::UnMap();
 		}
 
 		Buffer::SetDescriptor(this->size, 0);
@@ -75,6 +76,34 @@ namespace vk
 		descriptor.buffer = this->handle;
 		descriptor.range = size;
 		descriptor.offset = offset;
+	}
+
+
+	void Buffer::Map() 
+	{
+		if (this->mappedMemory == nullptr) 
+		{
+			VK_CHECK_RESULT(vkMapMemory(this->logicalDevice, this->memory, 0, this->size, 0, &this->mappedMemory));
+		}
+	}
+
+	void Buffer::Flush() 
+	{
+		VkMappedMemoryRange mappedRange = vk::init::MappedMemoryRange();
+		mappedRange.memory = this->memory;
+		mappedRange.offset = 0;
+		mappedRange.size = this->size;
+		vkFlushMappedMemoryRanges(this->logicalDevice, 1, &mappedRange);
+	}
+
+	void Buffer::UnMap() 
+	{
+		if (this->mappedMemory) 
+		{
+			vkUnmapMemory(this->logicalDevice, this->memory);
+			this->mappedMemory = nullptr;
+		}
+
 	}
 
 	void Buffer::Destroy() 

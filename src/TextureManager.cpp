@@ -10,12 +10,13 @@ namespace vk
 	void TextureManager::Init(ContextBase* context)
 	{
 		assert(context != nullptr);
-		this->graphicsContext = context;
+		//this->graphicsContext = context;
+		graphicsContextInfo = context->GetGraphicsContextInfo();
 	}
 
-	void TextureManager::Add(const VkPhysicalDevice p_device, const VkDevice l_device, const VkQueue gfxQueue, const std::string& fileName)
+	void TextureManager::Add(GraphicsContextInfo* graphicsContextInfo, const std::string& fileName)
 	{
-		this->mTextures.emplace_back(p_device, l_device, gfxQueue, fileName);
+		this->mTextures.emplace_back(graphicsContextInfo, fileName);
 	}
 
 	void TextureManager::Add(const Texture& nTexture) 
@@ -58,7 +59,6 @@ namespace vk
 
 	}
 
-
 	void TextureManager::BindTextureToObject(const std::string& fileName, Object& obj)
 	{
 		if (fileName != "")
@@ -69,43 +69,45 @@ namespace vk
 			{
 				std::cout << "adding texture...\n";
 
-				TextureManager::Add(graphicsContext->PhysicalDevice(),
-					graphicsContext->LogicalDevice(),
-					graphicsContext->GraphicsQueue().handle,
-					fileName);
+				TextureManager::Add(&graphicsContextInfo, fileName);
 
-				VkDescriptorImageInfo imageInfo = {};
 
-				imageInfo.imageView = mTextures.back().descriptor.imageView;
-				imageInfo.imageLayout = mTextures.back().descriptor.imageLayout;
-				imageInfo.sampler = mTextures.back().descriptor.sampler;
+				VkDescriptorSetAllocateInfo descriptorSetInfo = vk::init::DescriptorSetAllocateInfo
+				(
+					graphicsContextInfo.descriptorPool, 
+					&graphicsContextInfo.descriptorSetLayout, 1
+				);
 
-				mTextures.back().descriptorSet = vk::init::DescriptorSet(graphicsContext->LogicalDevice(),
-					graphicsContext->DescriptorPool(),
-					graphicsContext->DescriptorSetLayout());
+				//deferredMRT descriptor set
+				VK_CHECK_RESULT(vkAllocateDescriptorSets(graphicsContextInfo.logicalDevice, &descriptorSetInfo, &mTextures.back().descriptorSet));
 
-				std::vector<VkWriteDescriptorSet> descriptorWrites = graphicsContext->WriteDescriptorBuffers(mTextures.back().descriptorSet);
+				std::vector<VkWriteDescriptorSet> descriptorWrites = graphicsContextInfo.sceneWriteDescriptorSets; //TODO: copying a vector...inefficient.
+
+				//need to make sure the descriptor set pointed at by the writes is the texture's.
+				for (int i = 0; i < descriptorWrites.size(); ++i)
+				{
+					descriptorWrites[i].dstSet = mTextures.back().descriptorSet;
+				}
 
 				//writing the texture sampler.
-				VkWriteDescriptorSet dscWrite = {};
-				dscWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-				dscWrite.dstSet = mTextures.back().descriptorSet;
-				dscWrite.dstBinding = graphicsContext->SamplerDescriptorSetBinding();
-				dscWrite.dstArrayElement = 0;
-				dscWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-				dscWrite.descriptorCount = 1; //how many images
-				dscWrite.pImageInfo = &imageInfo;
-				dscWrite.pTexelBufferView = nullptr; // Optional
+				VkWriteDescriptorSet dscWrite = vk::init::WriteDescriptorSet(
+					mTextures.back().descriptorSet, 
+					VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 
+					graphicsContextInfo.samplerBinding, 
+					&mTextures.back().descriptor
+				);
+
+				
 
 				descriptorWrites.push_back(dscWrite);
 
-				vkUpdateDescriptorSets(graphicsContext->LogicalDevice(), descriptorWrites.size(), descriptorWrites.data(), 0, nullptr);
+				vkUpdateDescriptorSets(graphicsContextInfo.logicalDevice, descriptorWrites.size(), descriptorWrites.data(), 0, nullptr);
 
 				index = mTextures.size() - 1;
 
 			}
 
-			obj.AddTextureDescriptor(mTextures[index].descriptorSet);
+			obj.AddTextureDescriptorSet(mTextures[index].descriptorSet);
 		}
 
 	}

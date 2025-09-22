@@ -6,16 +6,21 @@ namespace vk
 	class DeferredContext : public ContextBase 
 	{
 
-		
-
-		struct UniformDataDeferred 
+		struct UniformDataMRT
 		{
 			uTransformObject uTransform;
-		} uniformDataDeferred{};
+		} uniformDataMRT{};
+
+
+		struct UniformDataLightPass {
+			uLightObject light;
+			glm::vec3 viewPosition;
+		} uniformDataLightPass {};
 
 		struct
 		{
-			vk::Buffer deferred;
+			vk::Buffer deferredMRT;
+			vk::Buffer deferredLightPass;
 		} uniformBuffers{};
 
 		VkDescriptorSetLayout sceneDescriptorSetLayout = VK_NULL_HANDLE;
@@ -42,15 +47,14 @@ namespace vk
 
 		VkPipeline deferredMRTPipeline = VK_NULL_HANDLE;
 
+		Texture defaultTexture;
+
 	public:
 		DeferredContext();
 		~DeferredContext();
 
 		virtual void RecordCommandBuffers(vk::ObjectManager& objManager) override;
 		virtual void InitializeScene(ObjectManager& objManager) override;
-		virtual std::vector<VkWriteDescriptorSet> WriteDescriptorBuffers(VkDescriptorSet descriptorSet) override;
-		virtual uint32_t SamplerDescriptorSetBinding() override;
-		virtual const VkDescriptorSetLayout DescriptorSetLayout() const override;
 		void ResizeWindow() override;
 
 		virtual void Render() override;

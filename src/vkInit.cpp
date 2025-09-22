@@ -159,13 +159,13 @@ namespace vk
 			return mappedMemInfo;
 		}
 
-		VkCommandPool CommandPool(const VkDevice& l_device, VkCommandPoolCreateFlags createFlag) 
+		VkCommandPool CommandPool(const VkDevice& l_device, VkCommandPoolCreateFlags createFlag, uint32_t queueFamilyIndex) 
 		{
 
 			VkCommandPoolCreateInfo commandPoolCreateInfo = {};
 			commandPoolCreateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
 			commandPoolCreateInfo.flags = createFlag; //recording commands every frame.
-			commandPoolCreateInfo.queueFamilyIndex = 0; //only one physical device on initial development machine.
+			commandPoolCreateInfo.queueFamilyIndex = queueFamilyIndex; //only one physical device on initial development machine.
 
 			VkCommandPool cmdPool;
 			VK_CHECK_RESULT(vkCreateCommandPool(l_device, &commandPoolCreateInfo, nullptr, &cmdPool));
@@ -710,33 +710,6 @@ namespace vk
 
 		///// ENGINE SPECIFIC RESOURCES ////
 
-		FramebufferAttachment CreateFramebufferAttachment(const VkPhysicalDevice& p_device, const VkDevice& l_device, const VkViewport& viewport)
-		{
-			FramebufferAttachment nDepthResources = {};
-
-			nDepthResources.format = vk::util::findSupportedFormat(p_device,
-				{ VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT },
-				VK_IMAGE_TILING_OPTIMAL, VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
-
-			//create depth image
-			nDepthResources.image = vk::init::CreateImage(p_device, l_device, (uint32_t)viewport.width, (uint32_t)viewport.height, 1, nDepthResources.format, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
-				VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-				nDepthResources.imageMemory);
-
-			//create depth image view 
-			VkImageViewCreateInfo viewInfo = {};
-			viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-			viewInfo.image = nDepthResources.image;
-			viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-			viewInfo.format = nDepthResources.format;
-			viewInfo.subresourceRange = { VK_IMAGE_ASPECT_DEPTH_BIT, 0, 1, 0, 1 };
-
-			VK_CHECK_RESULT(vkCreateImageView(l_device, &viewInfo, nullptr, &nDepthResources.imageView));
-
-			return nDepthResources;
-		}
-
-
 		VkImage CreateImage
 		(
 			const VkPhysicalDevice& p_device, const VkDevice& l_device, uint32_t width, uint32_t height, uint32_t mipLevels,
@@ -758,9 +731,9 @@ namespace vk
 			imageCreateInfo.arrayLayers = 1;
 			imageCreateInfo.format = format;
 			imageCreateInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
-			imageCreateInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+			imageCreateInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED; //texels from the transition are not preserved.
 			imageCreateInfo.usage = usage;
-			imageCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+			imageCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE; //assume that the graphics and presentation queue family is the same.
 			imageCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;
 
 

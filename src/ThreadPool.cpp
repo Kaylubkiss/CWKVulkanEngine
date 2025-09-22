@@ -19,12 +19,12 @@ bool ThreadPool::isBusy()
 	return isBusy;
 }
 
-void ThreadPool::EnqueueTask(const std::function<void()>& task) 
+void ThreadPool::EnqueueTask(std::function<void()>& task) 
 {
 	{
 		std::unique_lock<std::mutex> lock(queue_mutex);
 
-		tasks.push(task);
+		tasks.push(std::move(task));
 	}
 
 

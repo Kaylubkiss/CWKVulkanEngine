@@ -17,8 +17,8 @@ layout( location = 1 ) in vec3 aNorm;
 layout( location = 2 ) in vec2 aUv;
 layout( location = 3 ) in vec3 aColor; //instead of texture coords, can also define color
 
-layout( location = 0 ) out vec4 outWorldNormal;
-layout( location = 1 ) out vec4 outWorldPosition;
+layout( location = 0 ) out vec4 outWorldPosition;
+layout( location = 1 ) out vec4 outWorldNormal;
 layout( location = 2 ) out vec2 outTexCoord;
 layout( location = 3 ) out vec4 outColor;
 

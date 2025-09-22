@@ -17,7 +17,7 @@ namespace vk
 
 		VkRenderPass RenderPass(const VkDevice l_device, const VkFormat& depthFormat);
 
-		VkCommandPool CommandPool(const VkDevice& l_device, VkCommandPoolCreateFlags createFlag);
+		VkCommandPool CommandPool(const VkDevice& l_device, VkCommandPoolCreateFlags createFlag, uint32_t queueFamilyIndex = 0);
 
 		VkCommandBuffer CommandBuffer(const VkDevice l_device, const VkCommandPool cmdPool, VkCommandBufferLevel cmdLevel);
 
@@ -99,8 +99,6 @@ namespace vk
 		VkRect2D Rect2D(uint32_t width, uint32_t height, int32_t offset_x = 0, int32_t offset_y = 0);
 
 		//special engine-specific resources
-		FramebufferAttachment CreateFramebufferAttachment(const VkPhysicalDevice& p_device, const VkDevice& l_device, const VkViewport& viewport, VkImageUsageFlagBits usage, VkFormat format);
-		
 		VkImage CreateImage
 		(
 			const VkPhysicalDevice& p_device, const VkDevice& l_device, uint32_t width, uint32_t height, uint32_t mipLevels,

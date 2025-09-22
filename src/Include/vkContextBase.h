@@ -14,6 +14,10 @@ namespace vk
 	class ContextBase
 	{
 		protected:
+
+			GraphicsContextInfo mInfo;//this is for textureManager and potentially any other discrete systems.
+			//WARNING: context specific!!!
+
 			vk::Window window;
 
 			VkInstance instance = VK_NULL_HANDLE;
@@ -28,6 +32,9 @@ namespace vk
 			
 			VkCommandPool commandPool = VK_NULL_HANDLE;
 			std::vector<VkCommandBuffer> commandBuffers;
+
+			VkCommandPool secondaryCommandPool = VK_NULL_HANDLE;
+			std::queue<VkCommandBuffer> secondaryCommandBuffers;
 
 			VkExtent2D currentExtent = { 0,0 };
 
@@ -56,11 +63,9 @@ namespace vk
 			//pure virtual function(s)
 			virtual void RecordCommandBuffers(vk::ObjectManager& objManager) = 0;
 			virtual void ResizeWindow();
-			virtual std::vector<VkWriteDescriptorSet> WriteDescriptorBuffers(VkDescriptorSet descriptorSet) = 0;
-			virtual uint32_t SamplerDescriptorSetBinding() = 0;
-			virtual const VkDescriptorSetLayout DescriptorSetLayout() const = 0;
 			virtual void InitializeScene(ObjectManager& objManager) = 0;
 			
+			GraphicsContextInfo GetGraphicsContextInfo();
 			
 			//virtual function(s)
 			virtual void Render();
