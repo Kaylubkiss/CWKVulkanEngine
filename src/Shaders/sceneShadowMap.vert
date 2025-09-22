@@ -15,11 +15,11 @@ layout(binding = 0) uniform UBO {
 	//camera
 	vec3 camPos;
 
+	float lightShininess; /* exponent value */
 	vec3 lightPos; /* position of light */
 	vec3 lightAmbient; /* scene color */
 	vec3 lightAlbedo; /* base color of light */
 	vec3 lightSpecular; /* reflectivity of the light */
-	vec3 lightShininess; /* exponent value */
 
 
 } ubo;

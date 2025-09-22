@@ -6,9 +6,6 @@
 #include "HotReloader.h"
 #include <SDL2/SDL_vulkan.h>
 
-
-
-
 namespace vk
 {	
 
@@ -53,7 +50,6 @@ namespace vk
 		this->swapChain.CreateFrameBuffers(window.viewport, this->mPipeline.mRenderPass);
 
 		this->commandPool = vk::init::CommandPool(device.logical, VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
-		this->secondaryCommandPool = vk::init::CommandPool(device.logical, VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
 
 		VkSurfaceCapabilitiesKHR deviceCapabilities;
 		VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device.physical, window.surface, &deviceCapabilities));
@@ -70,6 +66,15 @@ namespace vk
 		this->mHotReloader.AddPipeline(this->mPipeline);
 
 
+		UserInterfaceInitInfo userInterfaceCI = {};
+		userInterfaceCI.contextInstance = this->instance;
+		userInterfaceCI.contextLogicalDevice = this->device.logical;
+		userInterfaceCI.contextPhysicalDevice = this->device.physical;
+		userInterfaceCI.contextQueue = this->device.graphicsQueue;
+		userInterfaceCI.contextWindow = this->window.sdl_ptr;
+		userInterfaceCI.renderPass = this->mPipeline.mRenderPass;
+		this->UIOverlay = UserInterface(userInterfaceCI);
+
 		//TODO: a little janky way to initialize as more of mInfo is filled with derived classes.
 		mInfo.logicalDevice = device.logical;
 		mInfo.physicalDevice = device.physical;
@@ -85,14 +90,12 @@ namespace vk
 	{
 		mPipeline.Destroy(this->device.logical);
 		swapChain.Destroy();
+		UIOverlay.Destroy();
 
 		vkDestroyDescriptorPool(device.logical, this->descriptorPool, nullptr);
 
 		vkFreeCommandBuffers(device.logical, this->commandPool, this->commandBuffers.size(), this->commandBuffers.data());
 		vkDestroyCommandPool(device.logical, this->commandPool, nullptr);
-		
-
-		vkDestroyCommandPool(device.logical, this->secondaryCommandPool, nullptr);
 
 		//semaphores
 		vkDestroySemaphore(this->device.logical, semaphores.presentComplete, nullptr);

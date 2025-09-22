@@ -10,11 +10,11 @@ layout(std140, binding = 0) uniform uTransformObject {
 
 	vec3 camPos;
 
+	float lightShininess;
 	vec3 lightPos;
 	vec3 lightAmbient;
 	vec3 lightAlbedo;
 	vec3 lightSpecular;
-	vec3 lightShininess;
 } ubo;
 
 layout(binding = 1) uniform sampler2D texSampler;

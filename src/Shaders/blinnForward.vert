@@ -6,11 +6,11 @@ layout(std140, binding = 0) uniform uTransformObject {
 
 	vec3 camPos;
 
+	float lightShininess; //for data alignment, made a float vec3
 	vec3 lightPos;
 	vec3 lightAmbient;
 	vec3 lightAlbedo;
 	vec3 lightSpecular;
-	vec3 lightShininess; //for data alignment, made a float vec3
 } ubo;
 
 layout (push_constant) uniform pc

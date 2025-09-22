@@ -4,6 +4,7 @@
 #include "VkPipeline.h"
 #include "HotReloader.h"
 #include "vkDevice.h"
+#include "UserInterface.h"
 
 namespace vk
 {
@@ -22,8 +23,10 @@ namespace vk
 
 			VkInstance instance = VK_NULL_HANDLE;
 
-			Device device;
+			vk::Device device;
 
+			vk::UserInterface UIOverlay;
+			
 			vk::HotReloader mHotReloader;
 
 			bool isInitialized = false;
@@ -32,9 +35,6 @@ namespace vk
 			
 			VkCommandPool commandPool = VK_NULL_HANDLE;
 			std::vector<VkCommandBuffer> commandBuffers;
-
-			VkCommandPool secondaryCommandPool = VK_NULL_HANDLE;
-			std::queue<VkCommandBuffer> secondaryCommandBuffers;
 
 			VkExtent2D currentExtent = { 0,0 };
 
