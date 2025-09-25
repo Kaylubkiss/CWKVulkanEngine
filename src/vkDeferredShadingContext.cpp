@@ -554,9 +554,13 @@ namespace vk
 				vkCmdBindPipeline(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, mPipeline.handle);
 				vkCmdDraw(commandBuffers[i], 3, 1, 0, 0);
 
+				this->UIOverlay.RenderUI(commandBuffers[i]); //TODO: fix the recording of this. Seems to cause queuesubmit some trouble.
+
 				vkCmdEndRenderPass(this->commandBuffers[i]);				
 
 			}
+
+			
 
 			VK_CHECK_RESULT(vkEndCommandBuffer(commandBuffers[i]));
 		}

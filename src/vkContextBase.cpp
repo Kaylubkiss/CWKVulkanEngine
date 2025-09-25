@@ -544,6 +544,11 @@ namespace vk
 		}
 	}
 
+	void ContextBase::PrepareFrame() 
+	{
+		//add synchronization calls here.
+	}
+
 	void ContextBase::Render()
 	{
 		//wait for queue submission..

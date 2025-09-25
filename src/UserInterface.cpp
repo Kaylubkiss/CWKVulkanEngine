@@ -59,4 +59,36 @@ namespace vk {
 
 	}
 
+	void UserInterface::RenderUI(VkCommandBuffer cmdBuffer) 
+	{
+		ImGui_ImplVulkan_NewFrame();
+		ImGui_ImplSDL2_NewFrame();
+		ImGui::NewFrame();
+
+		const ImGuiViewport* main_viewport = ImGui::GetMainViewport();
+		ImGui::SetNextWindowPos(ImVec2(main_viewport->WorkPos.x + main_viewport->WorkSize.x / 15, main_viewport->WorkPos.y + main_viewport->WorkSize.y / 10), ImGuiCond_Once);
+		ImGui::SetNextWindowSize(ImVec2(main_viewport->WorkSize.x / 3, main_viewport->WorkSize.y / 2), ImGuiCond_Once);
+
+
+		ImGuiWindowFlags window_flags = 0;
+		window_flags |= ImGuiWindowFlags_MenuBar;
+		// Main body of the Demo window starts here.
+		if (!ImGui::Begin("Asset Log", nullptr, window_flags))
+		{
+			// Early out if the window is collapsed, as an optimization
+			//this->guiWindowIsFocused = ImGui::IsWindowFocused();
+			ImGui::End();
+			ImGui::Render();
+			ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), cmdBuffer);
+			return;
+		}
+
+		//this->guiWindowIsFocused = ImGui::IsWindowFocused();
+		
+		ImGui::End();
+		ImGui::Render();
+		ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), cmdBuffer);
+
+	}
+
 }

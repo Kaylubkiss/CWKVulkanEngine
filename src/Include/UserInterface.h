@@ -23,8 +23,7 @@ namespace vk
 			~UserInterface() = default;
 			void Destroy();
 
-			void UpdateUI(); //before main rendering
-			void RenderUI(); //after main rendering
+			void RenderUI(VkCommandBuffer cmdBuffer); //after main rendering
 
 		private:
 			void InitializeUIDescriptorPool();

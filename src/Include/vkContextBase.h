@@ -67,6 +67,8 @@ namespace vk
 			
 			GraphicsContextInfo GetGraphicsContextInfo();
 			
+			
+
 			//virtual function(s)
 			virtual void Render();
 
@@ -81,6 +83,9 @@ namespace vk
 			void WaitForDevice();
 
 		protected:
+
+			void PrepareFrame();
+
 			//more pure virtual function(s)
 			virtual void InitializePipeline(std::string vsFile = "", std::string fsFile = "") = 0;
 			virtual void InitializeDescriptors() = 0;
