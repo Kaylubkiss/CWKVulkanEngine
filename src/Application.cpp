@@ -87,9 +87,9 @@ void Application::InitGui()
 
 void Application::init() 
 {
-	this->graphicsContext = std::make_unique<vk::ShadowMapScene>();
+	this->graphicsContext = std::make_unique<vk::DeferredContext>();
 
-	vk::ShadowMapScene* freddyScene = static_cast<vk::ShadowMapScene*>(graphicsContext.get());
+	vk::DeferredContext* freddyScene = static_cast<vk::DeferredContext*>(graphicsContext.get());
 	this->mCamera = Camera({ 0.f, 0.f, 10.f }, { 0.f, 0.f, -1.f } , { 0,1,0 });
 
 	this->mTextureManager.Init(this->graphicsContext.get());

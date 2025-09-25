@@ -10,7 +10,9 @@ layout(std140, binding = 0) uniform uTransformObject {
 
 	vec3 camPos;
 
-	float lightShininess;
+	
+	float padding; //TODO: remove this by fixing the structure placement!!
+	float lightShininess; /* exponent value */
 	vec3 lightPos;
 	vec3 lightAmbient;
 	vec3 lightAlbedo;
@@ -30,7 +32,7 @@ void main()
 	vec3 viewDir = normalize(ubo.camPos - worldPos);
 	vec3 halfwayDir = normalize(lightDir + viewDir);
 
-	float spec = pow(max(dot(norm, halfwayDir), 0.0), ubo.lightShininess.x);
+	float spec = pow(max(dot(norm, halfwayDir), 0.0), ubo.lightShininess);
 	vec3 specular = spec * ubo.lightAlbedo;  
 	
 	float diff = max(dot(norm, lightDir), 0.0f);
