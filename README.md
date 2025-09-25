@@ -1,6 +1,19 @@
 # Caleb's Custom Vulkan Engine
 
+Hi, welcome to my Github page! As of September 25th, 2025, I've now made this repository public for all to see my progress! There'll be lots of updates in the coming weeks, months, maybe even years!
 
+<img width="479" height="363" alt="basic shadow maping" src="https://github.com/user-attachments/assets/e817a626-740a-49e9-a7aa-8942fc1c1205" />
+
+## Goals with this project are as follows
+
+* Learning the basics of Vulkan
+* Learning better coding practices in C++
+* Learning advanced graphics techniques
+* Having a cool freakin product
+
+It's been my dream from the day I started my journey into game development to be able to build my own stuff. This project aims to fulfill that whollistically.
+
+# Build Instructions 
 **If You Have Windows:**
 
   <ol>
