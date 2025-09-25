@@ -8,6 +8,7 @@
     <li>Clone the repo</li>
     <li>Run the batch (.bat) script</li>
     <li>Go to build folder</li>
+    <li>Open .sln</li>
     <li>Start Coding</li>
   </ol> 
 
