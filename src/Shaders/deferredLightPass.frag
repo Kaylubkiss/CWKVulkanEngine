@@ -42,5 +42,6 @@ void main()
 	vec3 diffuse = diff * albedo;
 
 	fragColor.rgb = light.ambient + diffuse + specular; 
+	//fragColor.rgb = position; 
 	fragColor.a = 1.f;
 }

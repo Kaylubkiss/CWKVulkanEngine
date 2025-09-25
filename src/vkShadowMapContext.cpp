@@ -8,7 +8,7 @@ namespace vk
 	{
 		uLightObject& light = uniformDataScene.light;
 
-		light.pos = {0, 20, -10};
+		light.pos = { 0,10, 10 };
 		light.albedo = { 1.0, 1.0, 1.0 };
 		light.ambient = light.albedo * 0.1f;
 		light.specular = { 0.5f, 0.5f, 0.5f };
@@ -163,37 +163,48 @@ namespace vk
 
 	void ShadowMapScene::InitializeScene(ObjectManager& objManager) 
 	{
-		glm::mat4 modelTransform = glm::mat4(1.f);
-		float dbScale = 10.f;
-		modelTransform = glm::mat4(dbScale);
+		glm::mat4 modelTransform = glm::mat4(5.f);
+		modelTransform[3] = glm::vec4(1.0f, 0, 5.f, 1);
+
+
+		ObjectCreateInfo objectCI;
+		objectCI.objName = "freddy.obj";
+		objectCI.textureFileName = "";
+		objectCI.pModelTransform = &modelTransform;
+
+		objManager.LoadObject(objectCI);
+
+		//object 2
+		modelTransform = glm::mat4(1.f);
 		modelTransform[3] = glm::vec4(0, 20, -5.f, 1);
 
 		PhysicsComponent physicsComponent;
 		physicsComponent.bodyType = BodyType::DYNAMIC;
 		physicsComponent.colliderType = PhysicsComponent::ColliderType::CUBE;
 
-		ObjectCreateInfo objCreateInfo = {};
-		objCreateInfo.objName = "cube.obj";
-		objCreateInfo.pModelTransform = &modelTransform;
-		objCreateInfo.pPhysicsComponent = &physicsComponent;
+		objectCI = {};
+		objectCI.objName = "cube.obj";
+		objectCI.textureFileName = "";
+		objectCI.pPhysicsComponent = &physicsComponent;
+		objectCI.pModelTransform = &modelTransform;
 
-		objManager.LoadObject(objCreateInfo);
-		
+		objManager.LoadObject(objectCI);
 
 		//object 3
-		dbScale = 50.f;
+		const float dbScale = 30.f;
 		modelTransform = glm::mat4(dbScale);
-		modelTransform[3] = { 0.f, -10.f, -10.f, 1 };
+		modelTransform[3] = { 0.f, -5.f, 0.f, 1 };
 
 		physicsComponent.bodyType = reactphysics3d::BodyType::STATIC;
-		physicsComponent.colliderType = PhysicsComponent::ColliderType::PLANE;
 
-		objCreateInfo = {};
-		objCreateInfo.objName = "base.obj";
-		objCreateInfo.pModelTransform = &modelTransform;
-		objCreateInfo.pPhysicsComponent = &physicsComponent;
 
-		objManager.LoadObject(objCreateInfo);
+		objectCI = {};
+		objectCI.objName = "base.obj";
+		objectCI.textureFileName = "";
+		objectCI.pPhysicsComponent = &physicsComponent;
+		objectCI.pModelTransform = &modelTransform;
+
+		objManager.LoadObject(objectCI);
 
 	}
 

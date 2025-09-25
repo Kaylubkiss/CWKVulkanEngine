@@ -15,6 +15,7 @@ layout(binding = 0) uniform UBO {
 	//camera
 	vec3 camPos;
 
+	float padding; //TODO: remove this by fixing the structure placement!!
 	float lightShininess; /* exponent value */
 	vec3 lightPos; /* position of light */
 	vec3 lightAmbient; /* scene color */

@@ -248,7 +248,7 @@ namespace vk
 		uniformBuffers.deferredMRT.Map();
 
 		//TODO: stationary light. single light.
-		uniformDataLightPass.light.pos = {};
+		uniformDataLightPass.light.pos = {0,0, 10};
 		uniformDataLightPass.light.albedo = { 1.0, 1.0, 1.0 };
 		uniformDataLightPass.light.ambient = uniformDataLightPass.light.albedo * 0.1f;
 		uniformDataLightPass.light.specular = { 0.5f, 0.5f, 0.5f };
