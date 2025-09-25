@@ -26,23 +26,13 @@ namespace vk
 			return createInfo;
 		}
 
-		VkPipelineInputAssemblyStateCreateInfo AssemblyInputStateCreateInfo(VkPrimitiveTopology primitiveTopology)
+
+		VkVertexInputBindingDescription VertexInputBindingDescription(uint32_t binding) 
 		{
-			VkPipelineInputAssemblyStateCreateInfo pipelineAssemblyCreateInfo =
-			{
-				VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
-				nullptr, //pNext
-				0, //flags
-				primitiveTopology,//topology
-				VK_FALSE //primitiveRestartEnable
-			};
-
-
-			return pipelineAssemblyCreateInfo;
-
+			return { binding, sizeof(Vertex), VK_VERTEX_INPUT_RATE_VERTEX };
 		}
 
-		VkPipelineVertexInputStateCreateInfo VertexInputStateCreateInfo()
+		VkPipelineVertexInputStateCreateInfo PipelineVertexInputStateCreateInfo()
 		{
 
 			//all vertex info is in the shaders for now...
@@ -58,183 +48,124 @@ namespace vk
 		}
 
 
-		VkDescriptorSetLayout DescriptorSetLayout(VkDevice logicalDevice, std::vector<VkDescriptorSetLayoutBinding>& bindings)
+		VkDescriptorSetLayout DescriptorSetLayout(VkDevice logicalDevice, VkDescriptorSetLayoutBinding* bindings, uint32_t sizeOfBindings)
 		{
 
 			VkDescriptorSetLayoutCreateInfo layoutInfo = {};
 			layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-			layoutInfo.bindingCount = bindings.size();
-			layoutInfo.pBindings = bindings.data();
-
+			layoutInfo.bindingCount = sizeOfBindings;
+			layoutInfo.pBindings = bindings;
 
 			VkDescriptorSetLayout layout;
 			VK_CHECK_RESULT(vkCreateDescriptorSetLayout(logicalDevice, &layoutInfo, nullptr, &layout));
 
-
 			return layout;
 		}
 
-		std::array<VkVertexInputAttributeDescription, 3> VertexAttributeDescriptions()
+		//buffer descriptor
+		VkWriteDescriptorSet WriteDescriptorSet(VkDescriptorSet dstSet, VkDescriptorType type, uint32_t binding, VkDescriptorBufferInfo* bufferInfo, uint32_t descriptorCount) 
 		{
+			VkWriteDescriptorSet nDescriptorSet = {};
+			nDescriptorSet.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+			nDescriptorSet.dstSet = dstSet;
+			nDescriptorSet.descriptorType = type;
+			nDescriptorSet.dstBinding = binding;
+			nDescriptorSet.pBufferInfo = bufferInfo;
+			nDescriptorSet.descriptorCount = descriptorCount;
+			return nDescriptorSet;
+		}
 
-			//TODO: check VkPhysicalDeviceLimits!!! 
-			// binding -> maxVertexInputBindings, 
-			// location -> maxVertexInputAttributes
-			// offset -> maxVertexInputAttributeOffset
-			//
-			VkVertexInputAttributeDescription vInputAttribute[3] = {};
+		//image descriptor
+		VkWriteDescriptorSet WriteDescriptorSet(VkDescriptorSet dstSet, VkDescriptorType type, uint32_t binding, VkDescriptorImageInfo* imageInfo, uint32_t descriptorCount) 
+		{
+			VkWriteDescriptorSet nDescriptorSet = {};
+			nDescriptorSet.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+			nDescriptorSet.dstSet = dstSet;
+			nDescriptorSet.descriptorType = type;
+			nDescriptorSet.dstBinding = binding;
+			nDescriptorSet.pImageInfo = imageInfo;
+			nDescriptorSet.descriptorCount = descriptorCount;
+			return nDescriptorSet;
+		}
 
-			//position	
-			vInputAttribute[0].format = VK_FORMAT_R32G32B32_SFLOAT;
-			vInputAttribute[0].location = 0;
-			vInputAttribute[0].binding = 0;
-			vInputAttribute[0].offset = offsetof(struct Vertex, pos);
-
-			//normal
-			vInputAttribute[1].format = vInputAttribute[0].format;
-			vInputAttribute[1].location = 1;
-			vInputAttribute[1].binding = 0;
-			vInputAttribute[1].offset = offsetof(struct Vertex, nrm);
-
-			//texture 
-			vInputAttribute[2].format = VK_FORMAT_R32G32_SFLOAT;
-			vInputAttribute[2].location = 2;
-			vInputAttribute[2].binding = 0;
-			vInputAttribute[2].offset = offsetof(struct Vertex, uv);
-
-			return { vInputAttribute[0], vInputAttribute[1], vInputAttribute[2] };
+		VkDescriptorSetAllocateInfo DescriptorSetAllocateInfo(VkDescriptorPool descriptorPool, const VkDescriptorSetLayout* descriptorLayout, uint32_t descriptorSetCount) 
+		{
+			VkDescriptorSetAllocateInfo nInfo = {};
+			nInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+			nInfo.descriptorPool = descriptorPool;
+			nInfo.pSetLayouts = descriptorLayout;
+			nInfo.descriptorSetCount = descriptorSetCount;
+			return nInfo;
 		}
 
 
-		VkInstance CreateInstance(SDL_Window* window)
+		VkDescriptorSetLayoutCreateInfo DescriptorSetLayoutCreateInfo(const std::vector<VkDescriptorSetLayoutBinding>& bindings)
 		{
-
-			//create instance info.
-			VkInstanceCreateInfo createInfo = {};
-			VkApplicationInfo appInfo = {};
-			appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-			appInfo.apiVersion = VK_API_VERSION_1_3;
-			appInfo.pApplicationName = "Caleb Vulkan Engine";
-			appInfo.engineVersion = 1;
-			appInfo.pNext = nullptr;
-
-			createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
-			createInfo.flags = 0;
-
-			//linked list of structures to pass to the create instance func.
-			//--> look into it later.
-			createInfo.pNext = nullptr;
-
-
-			//we won't be doing any extension for now --> look into it at a later time.
-			//need to get sdl extensionss
-			unsigned int sdl_extensionCount = 0;
-
-			VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo = vk::init::DebugMessengerCreateInfo();
-
-			if (SDL_Vulkan_GetInstanceExtensions(window, &sdl_extensionCount, nullptr) != SDL_TRUE)
-			{
-				throw std::runtime_error("could not grab extensions from SDL!");
-			}
-
-			std::vector<const char*> extensionNames(sdl_extensionCount);
-
-			if (SDL_Vulkan_GetInstanceExtensions(window, &sdl_extensionCount, extensionNames.data()) != SDL_TRUE)
-			{
-				throw std::runtime_error("could not grab extensions from SDL!");
-			}
-
-
-			//find other instance extensions.
-			uint32_t extensionPropertyCount = 0;
-			vkEnumerateInstanceExtensionProperties(nullptr, &extensionPropertyCount, nullptr);
-
-			std::vector<VkExtensionProperties> extensionProperties(extensionPropertyCount);
-
-			vkEnumerateInstanceExtensionProperties(nullptr, &extensionPropertyCount, extensionProperties.data());
-
-			for (auto& property : extensionProperties)
-			{
-				if (strcmp(property.extensionName, VK_EXT_DEBUG_UTILS_EXTENSION_NAME) == 0) {
-					extensionNames.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
-					break;
-				}
-			}
-
-
-			//this could be useful for logging, profiling, debugging, whatever.
-			//it intercepts the API
-			if (vk::util::CheckValidationSupport())
-			{
-				createInfo.ppEnabledLayerNames = vk::instanceLayerExtensions;
-				createInfo.enabledLayerCount = 1;
-			}
-
-			createInfo.enabledExtensionCount = extensionNames.size();
-			createInfo.ppEnabledExtensionNames = extensionNames.data();
-
-			createInfo.pNext = &debugCreateInfo;
-			createInfo.pApplicationInfo = &appInfo;
-
-			//create instance.
-			//this function, if successful, will create a "handle object"
-			//and make pInstance the handle. A handle is always 64-bits wide.  
-
-			//also, setting the pAllocator to null will make vulkan do its
-			//own memory management, whereas we can create our own allocator
-			//for vulkan to use
-
-			VkInstance newInstance;
-
-			VK_CHECK_RESULT(vkCreateInstance(&createInfo, nullptr, &newInstance))
-
-			return newInstance;
-
+			VkDescriptorSetLayoutCreateInfo nInfo = {};
+			nInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+			nInfo.pBindings = bindings.data();
+			nInfo.bindingCount = (uint32_t)bindings.size();
+			return nInfo;
 		}
 
+
+		VkRenderPassCreateInfo RenderPassCreateInfo() 
+		{
+			VkRenderPassCreateInfo nInfo = {};
+			nInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+			return nInfo;
+		}
+
+		VkFramebufferCreateInfo FramebufferCreateInfo() 
+		{
+			VkFramebufferCreateInfo nInfo = {};
+			nInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+			return nInfo;
+		}
+
+		VkImageCreateInfo ImageCreateInfo() 
+		{
+			VkImageCreateInfo nCreateInfo = {};
+			nCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+			return nCreateInfo;
+		}
+
+		VkImageViewCreateInfo ImageViewCreateInfo() 
+		{
+			VkImageViewCreateInfo nInfo = {};
+			nInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+			return nInfo;
+		}
 		
 
-		inline VkSampler CreateTextureSampler(const VkPhysicalDevice p_device, const VkDevice l_device, uint32_t mipLevels)
+		VkSamplerCreateInfo SamplerCreateInfo() 
 		{
-			VkSamplerCreateInfo createInfo = {};
-			createInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-			createInfo.magFilter = VK_FILTER_LINEAR;
-			createInfo.minFilter = VK_FILTER_LINEAR;
-			createInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-			createInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-			createInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-
-			createInfo.anisotropyEnable = VK_TRUE;
-
-			VkPhysicalDeviceProperties pdp = { };
-			vkGetPhysicalDeviceProperties(p_device, &pdp);
-
-			createInfo.maxAnisotropy = pdp.limits.maxSamplerAnisotropy / 2.f;
-
-			createInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
-			createInfo.unnormalizedCoordinates = VK_FALSE;
-
-			createInfo.compareEnable = VK_FALSE;
-			createInfo.compareOp = VK_COMPARE_OP_ALWAYS;
-
-			createInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-			createInfo.minLod = 0.f;
-			createInfo.maxLod = static_cast<float>(mipLevels);
-			createInfo.mipLodBias = 0.f; //optional...
-
-			VkSampler nTextureSampler;
-			VK_CHECK_RESULT(vkCreateSampler(l_device, &createInfo, nullptr, &nTextureSampler));
-
-			return nTextureSampler;
+			VkSamplerCreateInfo nInfo = {};
+			nInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+			return nInfo;
 		}
 
-		VkCommandPool CommandPool(const VkDevice& l_device, VkCommandPoolCreateFlags createFlag) 
+		VkMemoryAllocateInfo MemoryAllocateInfo() 
+		{
+			VkMemoryAllocateInfo memAllocInfo{};
+			memAllocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+			return memAllocInfo;
+		}
+
+		VkMappedMemoryRange MappedMemoryRange() {
+
+			VkMappedMemoryRange mappedMemInfo = {};
+			mappedMemInfo.sType = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
+			return mappedMemInfo;
+		}
+
+		VkCommandPool CommandPool(const VkDevice& l_device, VkCommandPoolCreateFlags createFlag, uint32_t queueFamilyIndex) 
 		{
 
 			VkCommandPoolCreateInfo commandPoolCreateInfo = {};
 			commandPoolCreateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
 			commandPoolCreateInfo.flags = createFlag; //recording commands every frame.
-			commandPoolCreateInfo.queueFamilyIndex = 0; //only one physical device on initial development machine.
+			commandPoolCreateInfo.queueFamilyIndex = queueFamilyIndex; //only one physical device on initial development machine.
 
 			VkCommandPool cmdPool;
 			VK_CHECK_RESULT(vkCreateCommandPool(l_device, &commandPoolCreateInfo, nullptr, &cmdPool));
@@ -338,25 +269,38 @@ namespace vk
 
 		}
 
-
-		VkDescriptorPool DescriptorPool(const VkDevice l_device) 
+		VkPipelineLayoutCreateInfo PipelineLayoutCreateInfo() 
 		{
-			const uint32_t poolSizeCount = 2;
-			VkDescriptorPoolSize poolSize[poolSizeCount] = {};
-			poolSize[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-			poolSize[0].descriptorCount = 2 * 2; //max numbers of frames in flight.
+			VkPipelineLayoutCreateInfo nInfo = {};
+			nInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+			return nInfo;
+		}
 
-			//we are concerned about the fragment stage, so we double the descriptor count here.
-			poolSize[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-			poolSize[1].descriptorCount = 1 * 2; //max numbers of frames in flight times two to accomodate the gui.
+		VkDescriptorPoolCreateInfo DescriptorPoolCreateInfo(const std::vector<VkDescriptorPoolSize>& poolSizes, uint32_t maxSets) 
+		{
+			VkDescriptorPoolCreateInfo poolInfo = {};
 
-			VkDescriptorPoolCreateInfo poolInfo{};
 			poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
 			poolInfo.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
-			poolInfo.poolSizeCount = poolSizeCount;
-			poolInfo.pPoolSizes = poolSize;
-			poolInfo.maxSets = 1000; //how many descriptor sets in this pool?
+			poolInfo.poolSizeCount = (uint32_t)(poolSizes.size());
+			poolInfo.pPoolSizes = poolSizes.data();
+			poolInfo.maxSets = maxSets;
 
+			return poolInfo;
+		}
+
+		VkDescriptorPoolSize DescriptorPoolSize(VkDescriptorType type, uint32_t dscCount) 
+		{
+			VkDescriptorPoolSize nPoolSize = {};
+
+			nPoolSize.type = type;
+			nPoolSize.descriptorCount = dscCount;
+
+			return nPoolSize;
+		}
+
+		VkDescriptorPool DescriptorPool(const VkDevice l_device, const VkDescriptorPoolCreateInfo& poolInfo) 
+		{
 			VkDescriptorPool nDescriptorPool;
 			VK_CHECK_RESULT(vkCreateDescriptorPool(l_device, &poolInfo, nullptr, &nDescriptorPool));
 
@@ -364,12 +308,12 @@ namespace vk
 		}
 
 
-		VkDescriptorSet DescriptorSet(const VkDevice l_device, const VkDescriptorPool dscPool, const VkDescriptorSetLayout dscLayout)
+		VkDescriptorSet DescriptorSet(const VkDevice l_device, const VkDescriptorPool dscPool, const VkDescriptorSetLayout dscLayout, uint32_t dscCount)
 		{
 			VkDescriptorSetAllocateInfo descriptorAllocInfo{};
 			descriptorAllocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
 			descriptorAllocInfo.descriptorPool = dscPool;
-			descriptorAllocInfo.descriptorSetCount = 1;
+			descriptorAllocInfo.descriptorSetCount = dscCount;
 			descriptorAllocInfo.pSetLayouts = &dscLayout;
 
 			VkDescriptorSet nDescriptorSet;
@@ -378,21 +322,141 @@ namespace vk
 			return nDescriptorSet;
 		}
 
+		VkDescriptorSetLayoutBinding DescriptorLayoutBinding(uint32_t binding, uint32_t descriptorCount, VkDescriptorType descriptorType, VkShaderStageFlags shaderStage)
+		{
+			VkDescriptorSetLayoutBinding dscSetLayoutBinding = {};
+
+			dscSetLayoutBinding.binding = binding;
+			dscSetLayoutBinding.descriptorCount = descriptorCount;
+			dscSetLayoutBinding.descriptorType = descriptorType;
+			dscSetLayoutBinding.stageFlags = shaderStage;
+
+			return dscSetLayoutBinding;
+		}
+
+		VkPushConstantRange PushConstantRange(uint32_t offset, uint32_t size, VkShaderStageFlags shaderStages)
+		{
+			VkPushConstantRange nPushConstant = {};
+			nPushConstant.offset = offset;
+			nPushConstant.size = size;
+			nPushConstant.stageFlags = shaderStages;
+
+			return nPushConstant;
+		}
+
+
+		VkPipelineInputAssemblyStateCreateInfo PipelineInputAssemblyStateCreateInfo(
+			VkPrimitiveTopology topology, 
+			VkPipelineInputAssemblyStateCreateFlags flags, 
+			VkBool32 primitiveRestartEnable) 
+		{
+			VkPipelineInputAssemblyStateCreateInfo nInfo = {};
+			nInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
+			nInfo.topology = topology;
+			nInfo.flags = flags;
+			nInfo.primitiveRestartEnable = primitiveRestartEnable;
+
+			return nInfo;
+		}
+
+		VkPipelineRasterizationStateCreateInfo PipelineRasterizationStateCreateInfo(
+			VkPolygonMode polygonMode, 
+			VkCullModeFlags cullMode, 
+			VkFrontFace frontFace, 
+			VkPipelineRasterizationStateCreateFlags flags) 
+		{
+			VkPipelineRasterizationStateCreateInfo nInfo = {};
+			nInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
+			nInfo.polygonMode = polygonMode;
+			nInfo.cullMode = cullMode;
+			nInfo.frontFace = frontFace;
+			nInfo.flags = flags;
+			nInfo.depthClampEnable = VK_FALSE;
+			nInfo.lineWidth = 1.0f;
+
+			return nInfo;
+		}
+
+
+		VkPipelineColorBlendAttachmentState PipelineColorBlendAttachmentState(VkColorComponentFlags colorWriteMask, VkBool32 blendEnable) 
+		{
+			VkPipelineColorBlendAttachmentState nState = {};
+			nState.colorWriteMask = colorWriteMask;
+			nState.blendEnable = blendEnable;
+			return nState;
+		}
+
+		VkPipelineColorBlendStateCreateInfo PipelineColorBlendStateCreateInfo(uint32_t attachmentCount, VkPipelineColorBlendAttachmentState* pAttachments) 
+		{
+			VkPipelineColorBlendStateCreateInfo nInfo = {};
+			nInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
+			nInfo.attachmentCount = attachmentCount;
+			nInfo.pAttachments = pAttachments;
+			return nInfo;
+		}
+
+		VkPipelineDepthStencilStateCreateInfo PipelineDepthStencilStateCreateInfo(VkBool32 depthTestEnable, VkBool32 depthWriteEnable, VkCompareOp depthCompareOp) 
+		{
+			VkPipelineDepthStencilStateCreateInfo nInfo = {};
+			nInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+			nInfo.depthTestEnable = depthTestEnable;
+			nInfo.depthWriteEnable = depthWriteEnable;
+			nInfo.depthCompareOp = depthCompareOp;
+			nInfo.back.compareOp = VK_COMPARE_OP_ALWAYS;
+			return nInfo;
+		}
+
+		VkPipelineViewportStateCreateInfo PipelineViewportStateCreateInfo(uint32_t viewportCount, uint32_t scissorCount, VkPipelineViewportStateCreateFlags flags) 
+		{
+			VkPipelineViewportStateCreateInfo nInfo = {};
+			nInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
+			nInfo.viewportCount = viewportCount;
+			nInfo.scissorCount = scissorCount;
+			return nInfo;
+		}
+
+		VkPipelineMultisampleStateCreateInfo PipelineMultisampleCreateInfo(VkSampleCountFlagBits rasterizationSamples, VkPipelineMultisampleStateCreateFlags flags) 
+		{
+			VkPipelineMultisampleStateCreateInfo nInfo = {};
+			nInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
+			nInfo.flags = flags;
+			nInfo.rasterizationSamples = rasterizationSamples;
+			return nInfo;
+		}
+
+		VkPipelineDynamicStateCreateInfo PipelineDynamicStateCreateInfo(std::vector<VkDynamicState>& dynamicStates, VkPipelineDynamicStateCreateFlags flags) 
+		{
+			VkPipelineDynamicStateCreateInfo nInfo = {};
+			nInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
+			nInfo.dynamicStateCount = dynamicStates.size();
+			nInfo.pDynamicStates = dynamicStates.data();
+			nInfo.flags = flags;
+			return nInfo;
+		}
+
+		VkGraphicsPipelineCreateInfo PipelineCreateInfo(VkPipelineLayout pipelineLayout, VkRenderPass renderPass, VkPipelineCreateFlags flags) 
+		{
+			VkGraphicsPipelineCreateInfo nInfo = {};
+			nInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+			nInfo.layout = pipelineLayout;
+			nInfo.renderPass = renderPass;
+			nInfo.flags = flags;
+			return nInfo;
+		}
+
 		VkPipeline CreateGraphicsPipeline(const VkDevice l_device, const VkPipelineLayout pipelineLayout, const VkRenderPass renderPass, VkPipelineShaderStageCreateInfo* pStages, int numStages, VkPrimitiveTopology primitiveTopology)
 		{
-			auto vAttribs = vk::init::VertexAttributeDescriptions();
+			VkVertexInputBindingDescription vBindingDescription = vk::init::VertexInputBindingDescription();
+			
+			auto vAttribs = Vertex::InputAttributeDescriptions();
 
-			VkVertexInputBindingDescription vBindingDescription = {};
-			vBindingDescription.stride = sizeof(struct Vertex);
-			vBindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-
-			VkPipelineVertexInputStateCreateInfo vertexInputCreateInfo = vk::init::VertexInputStateCreateInfo();
+			VkPipelineVertexInputStateCreateInfo vertexInputCreateInfo = vk::init::PipelineVertexInputStateCreateInfo();
 			vertexInputCreateInfo.vertexBindingDescriptionCount = 1; //vertexBindingDescriptionCount
 			vertexInputCreateInfo.pVertexBindingDescriptions = &vBindingDescription,
 				vertexInputCreateInfo.vertexAttributeDescriptionCount = vAttribs.size(); //attribute count
 			vertexInputCreateInfo.pVertexAttributeDescriptions = vAttribs.data();
 
-			VkPipelineInputAssemblyStateCreateInfo pipelineAssemblyCreateInfo = vk::init::AssemblyInputStateCreateInfo(primitiveTopology);
+			VkPipelineInputAssemblyStateCreateInfo pipelineAssemblyCreateInfo = vk::init::PipelineInputAssemblyStateCreateInfo(primitiveTopology, 0, VK_FALSE);
 
 			VkDynamicState dynamicState[2] = { VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR };
 			VkPipelineDynamicStateCreateInfo dynamicStateCreateInfo{};
@@ -430,20 +494,11 @@ namespace vk
 				1.f, //lineWidth
 			};
 
-			VkPipelineColorBlendAttachmentState			colorBlendAttachState;
-			colorBlendAttachState.colorWriteMask = VK_COLOR_COMPONENT_R_BIT
-				| VK_COLOR_COMPONENT_G_BIT
-				| VK_COLOR_COMPONENT_B_BIT
-				| VK_COLOR_COMPONENT_A_BIT;
+			VkPipelineColorBlendAttachmentState			colorBlendAttachState = {};
+			//this is equivalent to 0xf because all bits are enabled. 
+			//1 + 2 + 4 + 8 = 15
+			colorBlendAttachState.colorWriteMask = 0xf;
 			colorBlendAttachState.blendEnable = VK_FALSE;
-			colorBlendAttachState.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_COLOR;
-			colorBlendAttachState.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_COLOR;
-			colorBlendAttachState.colorBlendOp = VK_BLEND_OP_ADD;
-			colorBlendAttachState.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
-			colorBlendAttachState.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
-			colorBlendAttachState.alphaBlendOp = VK_BLEND_OP_ADD;
-
-
 
 			VkPipelineColorBlendStateCreateInfo			colorBlendCreateInfo;
 			colorBlendCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
@@ -552,7 +607,7 @@ namespace vk
 				// we can tell vulkan not to do anything 
 				// that may make the data in this attachment inconsistent
 				0,
-				VK_FORMAT_B8G8R8A8_SRGB, //normalized format --> 0-1 unsigned float.
+				VK_FORMAT_B8G8R8A8_UNORM, //normalized format --> 0-1 unsigned float.
 				VK_SAMPLE_COUNT_1_BIT, //samples -> no multisampling, so make it 1_bit.
 				VK_ATTACHMENT_LOAD_OP_CLEAR, //load operation --> clear everything when the renderpass begins.
 				VK_ATTACHMENT_STORE_OP_STORE, //store operation --> store resources to memory for later use.
@@ -607,8 +662,116 @@ namespace vk
 
 		}
 
+		VkRenderPassBeginInfo RenderPassBeginInfo() 
+		{
+			VkRenderPassBeginInfo nInfo = {};
+			nInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+			return nInfo;
+		}
 
 
+		VkViewport Viewport(uint32_t width, uint32_t height, float minDepth, float maxDepth) 
+		{
+			VkViewport nViewPort = {};
+			nViewPort.width = (float)width;
+			nViewPort.height = (float)height;
+			nViewPort.minDepth = minDepth;
+			nViewPort.maxDepth = maxDepth;
+			return nViewPort;
+		}
+
+		VkRect2D Rect2D(uint32_t width, uint32_t height, int32_t offset_x, int32_t offset_y) 
+		{
+			VkRect2D nRect = {};
+
+			nRect.extent = { width, height };
+			nRect.offset = { offset_x, offset_y };
+
+			return nRect;
+
+		}
+
+		VkBufferCreateInfo BufferCreateInfo(VkBufferUsageFlags usageFlags, VkDeviceSize size) {
+
+			VkBufferCreateInfo nInfo = {};
+			nInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+			nInfo.usage = usageFlags;
+			nInfo.size = size;
+
+			return nInfo;
+		}
+
+		VkCommandBufferBeginInfo CommandBufferBeginInfo() 
+		{
+			VkCommandBufferBeginInfo nInfo = {};
+			nInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+			return nInfo;
+		}
+
+		///// ENGINE SPECIFIC RESOURCES ////
+
+		VkImage CreateImage
+		(
+			const VkPhysicalDevice& p_device, const VkDevice& l_device, uint32_t width, uint32_t height, uint32_t mipLevels,
+			VkFormat format, VkImageUsageFlags usage, 
+			VkMemoryPropertyFlags flags, VkDeviceMemory& imageMemory
+		)
+		{
+
+			VkPhysicalDeviceMemoryProperties	vpdmp;
+			vkGetPhysicalDeviceMemoryProperties(p_device, &vpdmp);
+
+			VkImageCreateInfo imageCreateInfo = { };
+			imageCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+			imageCreateInfo.imageType = VK_IMAGE_TYPE_2D;
+			imageCreateInfo.extent.width = width;
+			imageCreateInfo.extent.height = height;
+			imageCreateInfo.extent.depth = 1;
+			imageCreateInfo.mipLevels = mipLevels;
+			imageCreateInfo.arrayLayers = 1;
+			imageCreateInfo.format = format;
+			imageCreateInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
+			imageCreateInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED; //texels from the transition are not preserved.
+			imageCreateInfo.usage = usage;
+			imageCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE; //assume that the graphics and presentation queue family is the same.
+			imageCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+
+
+			VkImage nImage;
+			VK_CHECK_RESULT(vkCreateImage(l_device, &imageCreateInfo, nullptr, &nImage));
+
+			VkMemoryRequirements memRequirements;
+			vkGetImageMemoryRequirements(l_device, nImage, &memRequirements);
+
+			VkMemoryAllocateInfo memAllocInfo = {};
+			memAllocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+			memAllocInfo.allocationSize = memRequirements.size;
+
+			bool foundMemType = false;
+			for (uint32_t i = 0; i < vpdmp.memoryTypeCount; i++)
+			{
+				VkMemoryType vmt = vpdmp.memoryTypes[i];
+				VkMemoryPropertyFlags vmpf = vmt.propertyFlags;
+				if ((memRequirements.memoryTypeBits & (1 << i)) != 0)
+				{
+					if ((vmpf & flags) != 0)
+					{
+						memAllocInfo.memoryTypeIndex = i;
+						foundMemType = true;
+						break;
+					}
+				}
+			}
+
+			assert(foundMemType);
+
+			VK_CHECK_RESULT(vkAllocateMemory(l_device, &memAllocInfo, nullptr, &imageMemory));
+
+			VK_CHECK_RESULT(vkBindImageMemory(l_device, nImage, imageMemory, 0));
+
+			return nImage;
+
+		}
 
 	}
 }

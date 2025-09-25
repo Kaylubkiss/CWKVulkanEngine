@@ -5,6 +5,7 @@
 #include <iostream>
 #include <string>
 #include "vkMesh.h"
+#include "vkTexture.h"
 
 
 
@@ -15,23 +16,21 @@ class Object
 	private:
 		Mesh mMesh;
 		
+		glm::mat4  modelTransform = glm::mat4(1.f);
+
 		PhysicsComponent mPhysicsComponent;
 
-		int textureIndex = -1;
-
-		VkDescriptorSet mTextureDescriptor = VK_NULL_HANDLE;
-		VkPipelineLayout mPipelineLayout = VK_NULL_HANDLE;
+		VkDescriptorSet textureDescriptorSet = VK_NULL_HANDLE;
 
 		bool debugDraw = false;
 	
 	public:
 		Object(const VkPhysicalDevice p_device, const VkDevice l_device,
-			const char* fileName, bool willDebugDraw,
-			const glm::mat4& modelTransform);
+			const char* fileName, bool willDebugDraw = false);
 	
-		void UpdateTexture(const VkDescriptorSet textureDescriptor);
-		void UpdatePipelineLayout(const VkPipelineLayout pipelineLayout = nullptr);
-		void UpdatePhysicsComponent(PhysicsComponent* physComp);
+		void UpdatePhysicsComponent(const PhysicsComponent* physComp);
+		void UpdateModelTransform(const glm::mat4* modelTransform);
+		void UpdateMesh(const Mesh* mesh);
 		void SetDebugDraw(bool option);
 
 		Object() = default;
@@ -39,12 +38,11 @@ class Object
 		void Destroy(const VkDevice l_device);
 
 		void Update(const float& interpFactor);
-		void Draw(VkCommandBuffer cmdBuffer);
+		void Draw(VkCommandBuffer cmdBuffer, VkPipelineLayout pipelineLayout = VK_NULL_HANDLE);
 		void InitPhysics(PhysicsSystem& appPhysics);
 		/*void SetLinesArrayOffset(uint32_t index);*/
-		void ComputeVertexNormals();
 
-		friend void LoadMeshOBJ(const std::string& path, Object& obj);
+		void AddTextureDescriptorSet(VkDescriptorSet textureDscSet);
 };
 
 

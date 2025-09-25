@@ -2,8 +2,8 @@
 #include "vkUtility.h"
 #include "vkInit.h"
 #include "vkBuffer.h"
-#include "vkResource.h"
 #include <stb_image.h>
+#include "ApplicationGlobal.h"
 
 namespace vk {
 
@@ -49,7 +49,7 @@ namespace vk {
 		createInfo.unnormalizedCoordinates = VK_FALSE;
 
 		createInfo.compareEnable = VK_FALSE;
-		createInfo.compareOp = VK_COMPARE_OP_ALWAYS;
+		createInfo.compareOp = VK_COMPARE_OP_ALWAYS; //value is ignored.
 
 		createInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
 		createInfo.minLod = 0.f;
@@ -61,70 +61,68 @@ namespace vk {
 
 		return nTextureSampler;
 	}
-		
-	Texture::Texture(const VkPhysicalDevice p_device, const VkDevice l_device, const VkQueue gfxQueue, const VkDescriptorPool dscPool, const VkDescriptorSetLayout dscSetLayout, const std::string& fileName)
+
+	Texture::Texture(GraphicsContextInfo* graphicsContextInfo, const std::string& fileName)
 	{
+
+		assert(graphicsContextInfo != nullptr);
 		//Might want to make command pool a member variable.
-		VkCommandPool cmdPool = vk::init::CommandPool(l_device, VK_COMMAND_POOL_CREATE_TRANSIENT_BIT);
-
-		uint32_t arrayLayerCount = 1;
+	
 		int textureWidth, textureHeight, textureChannels;
-		stbi_uc* pixels = stbi_load((TEXTURE_PATH + fileName).c_str(), &textureWidth, &textureHeight, &textureChannels, STBI_rgb_alpha);
+		stbi_uc* pixels = fileName == "" ? nullptr : stbi_load((TEXTURE_PATH + fileName).c_str(), &textureWidth, &textureHeight, &textureChannels, STBI_rgb_alpha);
 
-		VkDeviceSize imageSize = textureWidth * textureHeight * 4;
-
-		if (pixels == NULL)
+		if (!pixels)
 		{
-			throw std::runtime_error("failed to load texture image!");
+			return;
+			//TODO: generate checker-board texture for objects.
 		}
 
-		uint32_t mipLevels = vk::util::CalculateMipLevels(textureWidth, textureHeight);
+		uint64_t bytePerPixel = 4;
+		VkDeviceSize imageSize = (uint64_t)textureWidth * (uint64_t)textureHeight * bytePerPixel; //4 bytes per pixel.
 
-		vk::Buffer stagingBuffer = vk::Buffer(p_device, l_device, static_cast<size_t>(imageSize), VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, pixels);
+		/*uint32_t mipLevels = vk::util::CalculateMipLevels(textureWidth, textureHeight); -- commented out because I don't understand it yet. */ 
+		uint32_t mipLevels = 1;
 
+		vk::Buffer stagingBuffer = vk::Buffer(graphicsContextInfo->physicalDevice, graphicsContextInfo->logicalDevice, 
+			static_cast<size_t>(imageSize), VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, (void*)pixels);
+
+		this->mTextureImage = vk::init::CreateImage(graphicsContextInfo->physicalDevice, 
+			graphicsContextInfo->logicalDevice, textureWidth, textureHeight, mipLevels, VK_FORMAT_R8G8B8A8_SRGB,
+			VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, this->mTextureMemory);
+
+		VkCommandPool cmdPool = vk::init::CommandPool(graphicsContextInfo->logicalDevice, VK_COMMAND_POOL_CREATE_TRANSIENT_BIT);
+
+		vk::util::TransitionImageLayout(graphicsContextInfo->logicalDevice, cmdPool, graphicsContextInfo->graphicsQueue.handle, this->mTextureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, mipLevels);
+
+		/*vk::util::GenerateMipMaps(p_device, l_device, cmdPool, gfxQueue, this->mTextureImage, VK_FORMAT_R8G8B8A8_SRGB, (uint32_t)textureWidth, (uint32_t)textureHeight, mipLevels);*/
+		
+		vk::util::copyBufferToImage(graphicsContextInfo->logicalDevice, cmdPool,
+			stagingBuffer.handle, 
+			graphicsContextInfo->graphicsQueue.handle,
+			this->mTextureImage, (uint32_t)(textureWidth), (uint32_t)(textureHeight)); //copy contents of the image (stored in buffer) into the image.
+
+		//transition the image layout to shader read only for sampling in the shader.
+		vk::util::TransitionImageLayout(graphicsContextInfo->logicalDevice, cmdPool, graphicsContextInfo->graphicsQueue.handle, this->mTextureImage, VK_FORMAT_R8G8B8A8_SRGB,
+			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, mipLevels);
+
+		//end of creating mipmaps.;
+
+		vkDestroyCommandPool(graphicsContextInfo->logicalDevice, cmdPool, nullptr);
+		stagingBuffer.Destroy();
 		stbi_image_free(pixels);
 
-		this->mTextureImage = vk::rsc::CreateImage(p_device, l_device, textureWidth, textureHeight, mipLevels, VK_FORMAT_R8G8B8A8_SRGB,
-			VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, this->mTextureMemory, arrayLayerCount);
+		this->mTextureImageView = CreateTextureView(graphicsContextInfo->logicalDevice, this->mTextureImage, mipLevels);
 
+		this->mTextureSampler = CreateTextureSampler(graphicsContextInfo->physicalDevice, graphicsContextInfo->logicalDevice, mipLevels);
 
-		//creating mipmaps
-		vk::util::TransitionImageLayout(l_device, cmdPool, gfxQueue, this->mTextureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, mipLevels);
-
-		vk::util::copyBufferToImage(l_device, cmdPool, stagingBuffer.handle, gfxQueue, this->mTextureImage, (uint32_t)(textureWidth), (uint32_t)(textureHeight));
-
-		vk::util::GenerateMipMaps(p_device, l_device, cmdPool, gfxQueue, this->mTextureImage, VK_FORMAT_R8G8B8A8_SRGB, (uint32_t)textureWidth, (uint32_t)textureHeight, mipLevels);
-
-
-		vkDestroyBuffer(l_device, stagingBuffer.handle, nullptr);
-		vkFreeMemory(l_device, stagingBuffer.memory, nullptr);
-
-		vkDestroyCommandPool(l_device, cmdPool, nullptr);
-
-		//end of creating mipmaps.
-
-		this->mTextureImageView = CreateTextureView(l_device, this->mTextureImage, mipLevels);
-
-		this->mTextureSampler = CreateTextureSampler(p_device, l_device, mipLevels);
-
-		this->mName = fileName;
-
-		this->mDescriptorSet = vk::init::DescriptorSet(l_device, dscPool, dscSetLayout);
-	}
-
-	Texture::Texture(const Texture& other) 
-	{
-
-		mName = other.mName;
+		this->descriptor.sampler = this->mTextureSampler;
+		this->descriptor.imageView = this->mTextureImageView;
+		this->descriptor.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 		
-		mTextureImage = other.mTextureImage;
-		mTextureMemory = other.mTextureMemory;
-		mTextureImageView = other.mTextureImageView;
-		mTextureSampler = other.mTextureSampler;
-
-		mDescriptorSet = other.mDescriptorSet;
-
+		this->mName = fileName;		
 	}
+
 
 }

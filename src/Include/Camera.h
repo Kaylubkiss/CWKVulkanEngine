@@ -1,9 +1,11 @@
 #pragma once
+#include "vkGlobal.h"
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEFAULT_ALIGNED_GENTYPES
 #include <glm/glm.hpp>
 #include <reactphysics3d/reactphysics3d.h>
 using namespace reactphysics3d;
+
 
 struct Capsule 
 {
@@ -11,10 +13,12 @@ struct Capsule
 	float mHeight;
 };
 
-class CamRayCastCallBack : public RaycastCallback {};
-
 class Camera 
 {
+
+	public:
+		bool isUpdate = false;
+
 	protected:
 		class CamRayCastCallback : public RaycastCallback {
 
@@ -32,13 +36,6 @@ class Camera
 
 			assert(mCamera != NULL);
 
-			// Display the world hit point coordinates
-		/*	std::cout << "Hit point : " <<
-				info.worldPoint.x <<
-				info.worldPoint.y <<
-				info.worldPoint.z <<
-				std::endl;*/
-
 			glm::vec3 cmPosition = mCamera->Position();
 			reactphysics3d::Vector3 cam_position = mCamera->mPhysicsComponent.rigidBody->getTransform().getPosition();
 
@@ -53,17 +50,16 @@ class Camera
 			return decimal(0.0);
 		}
 	};
-	
+		
 		glm::vec3 mEye;
 		glm::vec3 mUpVector;
 		glm::vec3 mLookDir = glm::vec3(0, 0, -1);
-	
+		
 		float mPitch = 0.f;
 		float mYaw = 0.f;
 	
-		bool isUpdate = false;
 		
-		
+			
 		float constant_velocity = 15.f;
 
 		Capsule mCapsule;
@@ -75,25 +71,29 @@ class Camera
 		void UpdatePosition(reactphysics3d::Vector3& velocity, const float& dt);
 	
 	public:
-		Camera() : mEye(0.f), mUpVector(0.f), mCapsule()
-		{
-		}
+		Camera() : mEye(0.f), mUpVector(0.f), mCapsule() {}
 	
 		Camera(const glm::vec3& eye, const glm::vec3& lookDirection, const	glm::vec3& up);
-		
+
+		void Update(const float& dt);
 		void MoveLeft();
 		void MoveRight();
 		void MoveBack();
 		void MoveForward();
 		void MoveDown();
-	
-		void Update(const float& dt);
 		void Rotate(const int& mouseX, const int& mouseY);
 		
 		//getter functions.
 		glm::mat4 LookAt(); 
 		glm::vec3 Position();
 		glm::vec3 ViewDirection();
+
+	private:
+
+
+		
+
+		void UpdateUniform();
 	
 };
 

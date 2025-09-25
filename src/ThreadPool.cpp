@@ -1,14 +1,5 @@
 #include "ThreadPool.h"
 
-ThreadPool::ThreadPool(size_t num_threads) 
-{
-	for (size_t i = 0; i < num_threads; ++i) 
-	{
-		threads.emplace_back(std::thread(&ThreadPool::ThreadLoop, this));
-	}
-
-}
-
 void ThreadPool::Init(size_t num_threads = std::thread::hardware_concurrency() * .5f) 
 {
 	for (size_t i = 0; i < num_threads; ++i)
@@ -28,12 +19,12 @@ bool ThreadPool::isBusy()
 	return isBusy;
 }
 
-void ThreadPool::EnqueueTask(const std::function<void()>& task) 
+void ThreadPool::EnqueueTask(std::function<void()>& task) 
 {
 	{
 		std::unique_lock<std::mutex> lock(queue_mutex);
 
-		tasks.push(task);
+		tasks.push(std::move(task));
 	}
 
 
@@ -59,10 +50,8 @@ void ThreadPool::ThreadLoop()
 				return;
 			}
 
-
 			func = std::move(tasks.front());
 			tasks.pop();
-
 		}
 
 		func();
@@ -82,7 +71,6 @@ void ThreadPool::Terminate() {
 	for (std::thread& active_thread : threads) {
 		active_thread.join();
 	}
-
 
 	threads.clear();
 }

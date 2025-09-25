@@ -19,22 +19,25 @@ set(SOURCE_FILES src/Application.cpp
 				   src/ObjectManager.cpp
 				   src/ApplicationGlobal.cpp
 				   src/CameraController.cpp
-				   src/HotReloader.cpp)
+				   src/HotReloader.cpp
+				   src/UserInterface.cpp
+)
 							
 set(VULKAN_ENGINE_SRC src/vkDebug.cpp
 					  src/vkUtility.cpp
 					  src/vkInit.cpp
                       src/vkGlobal.cpp
-                      src/vkGraphicsSystem.cpp
+                      src/vkContextBase.cpp
 					  src/vkSwapChain.cpp
 					  src/vkBuffer.cpp
-					  src/vkResource.cpp
-					  src/vkRenderResources.cpp
 					  src/vkTexture.cpp
-					  src/vkCubemap.cpp
 					  src/vkPipeline.cpp
-	)
-
+					  src/vkFreddyHeadContext.cpp
+					  src/vkDevice.cpp
+					  src/vkShadowMapContext.cpp
+					  src/vkDeferredShadingContext.cpp
+					  src/vkMesh.cpp
+)
 
 source_group("Source Files/VulkanSources" FILES ${VULKAN_ENGINE_SRC})			
 list(APPEND SOURCE_FILES ${VULKAN_ENGINE_SRC})		
@@ -63,6 +66,7 @@ src/Include/Camera.h
 src/Include/Common.h
 src/Include/Debug.h
 src/Include/Object.h
+src/Include/Vertex.h
 src/Include/Physics.h
 src/Include/Timer.h
 src/Include/ThreadPool.h
@@ -71,7 +75,9 @@ src/Include/TextureManager.h
 src/Include/ApplicationGlobal.h
 src/Include/Controller.h
 src/Include/SpirvHelper.h
-src/Include/HotReloader.h)
+src/Include/HotReloader.h
+src/Include/UserInterface.h
+)
 				 
 
 set(VULKAN_ENGINE_HEADERS 
@@ -80,37 +86,48 @@ src/Include/vkDebug.h
 src/Include/vkGlobal.h
 src/Include/vkInit.h
 src/Include/vkWindow.h
-src/Include/vkGraphicsSystem.h
-src/Include/vkCubemap.h
+src/Include/vkContextBase.h
 src/Include/vkBuffer.h
 src/Include/vkTexture.h
 src/Include/vkSwapChain.h
-src/Include/vkResource.h
 src/Include/vkMesh.h
-src/Include/vkRenderResources.h
-src/Include/vkPipeline.h)
-								 
+src/Include/vkPipeline.h
+src/Include/vkDevice.h
+src/Include/vkShadowMap.h
+src/Include/vkFreddyHeadContext.h
+src/Include/vkDevice.h
+src/Include/vkShadowMapContext.h
+src/Include/vkDeferredShadingContext.h)
+
 source_group("Header Files/VulkanHeaders" FILES ${VULKAN_ENGINE_HEADERS})	
 list(APPEND HEADER_FILES ${VULKAN_ENGINE_HEADERS})
 
-set(SHADER_FILES src/Shaders/color.frag
-src/Shaders/color.vert
-src/Shaders/blinn.frag	
-src/Shaders/blinn.vert)
+set(SHADER_FILES
+#blinn-phong
+src/Shaders/blinnForward.frag	
+src/Shaders/blinnForward.vert
+#shadow mapping
+src/Shaders/offscreenShadowMap.frag
+src/Shaders/offscreenShadowMap.vert
+src/Shaders/sceneShadowMap.frag
+src/Shaders/sceneShadowMap.vert
+src/Shaders/debugShadowMap.vert
+src/Shaders/debugShadowMap.frag
+#deferred shading
+src/Shaders/deferredMRT.vert
+src/Shaders/deferredMRT.frag
+src/Shaders/deferredLightPass.vert
+src/Shaders/deferredLightPass.frag
+)
 								 
 #-----COMPILATION OPTIONS DEPENDING ON PLATFORM---------
 if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
-    string(APPEND CMAKE_CXX_FLAGS " /MP")
+    string(APPEND CMAKE_CXX_FLAGS "/MP")
 		message("Using MSVC compiler with C++")
-endif()
-
-if(CMAKE_C_COMPILER_ID STREQUAL "MSVC")
+elseif(CMAKE_C_COMPILER_ID STREQUAL "MSVC")
     string(APPEND CMAKE_C_FLAGS " /MP")
 		message("Using MSVC compiler with C")
 endif()
-
-#TRY TO SUPRESS WARNINGS
-add_definitions(-w)
 
 #-------------------------------------------MAKE THE PROJECT--------------------------------------
 add_executable("${PROJECT_NAME}" ${SOURCE_FILES} ${SHADER_FILES} ${HEADER_FILES})

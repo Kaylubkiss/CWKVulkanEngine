@@ -1,11 +1,12 @@
 #pragma once
 
-#include "Common.h"
+#include <vulkan/vulkan.h>
 #include <array>
 #include <cassert>
 #include <iostream>
 #include <cmath>
 #include <string>
+#include "shaderc/shaderc.h"
 
 #define VK_CHECK_RESULT(function) {VkResult check = function; assert(check == VK_SUCCESS); if (check != VK_SUCCESS) {std::cout << check << '\n';}}
 
@@ -27,19 +28,33 @@ namespace vk
 				abort();
 		}
 
-		bool CheckValidationSupport();
-
-		/* IDEA:
-		VkPipelineShaderStageCreateInfo PipelineStageCreateInfo(VkShaderStageFlagBits stage, VkShaderModule shaderModule);*/
-
 		VkFormat findSupportedFormat(const VkPhysicalDevice p_device, const std::vector<VkFormat>& possibleFormats,
 			VkImageTiling tiling, VkFormatFeatureFlags features);
 
-		void TransitionImageLayout(const VkDevice l_device, const VkCommandPool cmdPool, const VkQueue& gfxQueue, VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, uint32_t mipLevels);
+		//BEGIN TODO: move this into a device-specific class.
+		//use command pool
+		void TransitionImageLayout(const VkDevice l_device, const VkCommandPool cmdPool, 
+			const VkQueue& gfxQueue, 
+			VkImage image, VkFormat format, 
+			VkImageLayout oldLayout, VkImageLayout newLayout, 
+			uint32_t mipLevels);
 
+		//use command buffer
+		void TransitionImageLayout(const VkDevice l_device, const VkCommandBuffer cmdBuffer,
+			const VkQueue& gfxQueue,
+			VkImage image, VkFormat format,
+			VkImageLayout oldLayout, VkImageLayout newLayout,
+			uint32_t mipLevels);
+
+		//use command pool
 		void copyBufferToImage(const VkDevice l_device, const VkCommandPool cmdPool, VkBuffer buffer, const VkQueue gfxQueue, VkImage image, uint32_t width, uint32_t height);
+		//use command buffer
+		void copyBufferToImage(const VkDevice l_device, const VkCommandBuffer cmdBuffer, VkBuffer buffer, const VkQueue gfxQueue, VkImage image, uint32_t width, uint32_t height);
 
 		void GenerateMipMaps(const VkPhysicalDevice p_device, const VkDevice l_device, const VkCommandPool& cmdPool, const VkQueue gfxQueue, VkImage image, VkFormat imgFormat, uint32_t textureWidth, uint32_t textureHeight, uint32_t mipLevels);
+		//...END OF TODO
+
+		bool FormatIsFilterable(const VkPhysicalDevice p_device, VkFormat format, VkImageTiling tiling);
 
 		uint32_t CalculateMipLevels(const uint32_t& imageWidth, const uint32_t& imageHeight);
 
@@ -48,5 +63,7 @@ namespace vk
 		void WriteSpirvFile(const char* filename, const std::vector<uint32_t>& data);
 
 		std::string ReadSourceAndWriteToSprv(std::string fileName, shaderc_shader_kind shader_kind);
+
+		uint32_t GetMemoryType(uint32_t typeBits, VkMemoryPropertyFlags properties);
 	}
 }

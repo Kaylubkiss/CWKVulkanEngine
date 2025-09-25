@@ -1,14 +1,16 @@
 #include "Physics.h"
 
-void PhysicsSystem::Init() 
+
+PhysicsSystem::PhysicsSystem() 
 {
-	if (this->mPhysicsWorld == nullptr) 
+	if (this->mPhysicsWorld == nullptr)
 	{
 		this->mPhysicsWorld = this->mPhysicsCommon.createPhysicsWorld();
 
 		//empty rigidbody..trick so it doesn't crash when closing the application.
 		this->mPhysicsWorld->createRigidBody(reactphysics3d::Transform::identity());
 	}
+
 }
 
 PhysicsSystem::~PhysicsSystem()
@@ -16,12 +18,14 @@ PhysicsSystem::~PhysicsSystem()
 	if (this->mPhysicsWorld != nullptr) 
 	{
 		this->mPhysicsCommon.destroyPhysicsWorld(this->mPhysicsWorld);
+		this->mPhysicsWorld = nullptr;
 	}
 }
 
 void PhysicsSystem::Update(float dt)
 {
 	if (mPhysicsWorld == nullptr) { return; }
+
 	//capping the iteration count so we don't have odd fluctuations.
 	if (dt > 0.25) 
 	{
@@ -65,6 +69,11 @@ reactphysics3d::BoxShape* PhysicsSystem::CreateBoxShape(const reactphysics3d::Ve
 reactphysics3d::CapsuleShape* PhysicsSystem::CreateCapsuleShape(float radius, float height)
 {
 	return mPhysicsCommon.createCapsuleShape(radius, height);
+}
+
+reactphysics3d::BoxShape* PhysicsSystem::CreatePlaneShape(const reactphysics3d::Vector2 extent)
+{
+	return mPhysicsCommon.createBoxShape({ extent.x, 1.0, extent.y });
 }
 
 void PhysicsComponent::SetRayCastHit(bool set) 

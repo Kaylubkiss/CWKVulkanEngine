@@ -24,6 +24,7 @@ namespace vk
 		inline void PreprocessShader(CompilationInfo& info)
 		{
 			shaderc::Compiler compiler;
+			
 
 			shaderc::PreprocessedSourceCompilationResult result = compiler.PreprocessGlsl(info.source, info.kind, info.filename, info.options);
 

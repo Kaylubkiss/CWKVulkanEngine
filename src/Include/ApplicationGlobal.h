@@ -13,6 +13,5 @@ private:
 
 extern ApplicationManager appManager;
 
-
 #define _Application appManager.GetApplication()
-#define _Window appManager.GetApplication()->GetWindowInfo()
+#define _GraphicsContext appManager.GetApplication()->Context()

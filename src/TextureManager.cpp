@@ -1,76 +1,22 @@
 #include "TextureManager.h"
 #include "vkUtility.h"
 #include "vkBuffer.h"
-#include "vkResource.h"
 #include "vkInit.h"
+#include "ApplicationGlobal.h"
 
 namespace vk 
 {
 	
-	void TextureManager::Init(const VkDevice l_device) 
+	void TextureManager::Init(ContextBase* context)
 	{
-	
-		this->descriptorPool = vk::init::DescriptorPool(l_device);
-
-
-		this->isInitialized = true;
+		assert(context != nullptr);
+		//this->graphicsContext = context;
+		graphicsContextInfo = context->GetGraphicsContextInfo();
 	}
 
-	//Inefficient. Look into a way to individually write descriptor sets. Shouldn't be hard. Later.
-	void TextureManager::UpdateDescriptorSets(const VkDevice l_device, const VkDescriptorBufferInfo* pUniformDescriptorBuffers, size_t uniformDescriptorCount) 
+	void TextureManager::Add(GraphicsContextInfo* graphicsContextInfo, const std::string& fileName)
 	{
-		VkDescriptorImageInfo imageInfo = {};
-
-		for (size_t i = 0; i < this->mTextures.size(); ++i)
-		{
-			//potentially extra check in here to see if the descriptor set needs to be updated??
-
-			imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-			imageInfo.imageView = this->mTextures[i].mTextureImageView;
-			imageInfo.sampler = this->mTextures[i].mTextureSampler;
-
-			//writing the uniform transforms.
-			VkWriteDescriptorSet descriptorWrite[3] = {};
-			descriptorWrite[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-			descriptorWrite[0].dstSet = this->mTextures[i].mDescriptorSet;
-			descriptorWrite[0].dstBinding = 0;
-			descriptorWrite[0].dstArrayElement = 0;
-			descriptorWrite[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-			descriptorWrite[0].descriptorCount = 1; //how many buffers
-			descriptorWrite[0].pBufferInfo = &pUniformDescriptorBuffers[0];
-			descriptorWrite[0].pImageInfo = nullptr; // Optional
-			descriptorWrite[0].pTexelBufferView = nullptr; // Optional
-
-
-
-			//writing the texture sampler.
-			descriptorWrite[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-			descriptorWrite[1].dstSet = this->mTextures[i].mDescriptorSet;
-			descriptorWrite[1].dstBinding = 1;
-			descriptorWrite[1].dstArrayElement = 0;
-			descriptorWrite[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-			descriptorWrite[1].descriptorCount = 1; //how many images
-			descriptorWrite[1].pImageInfo = &imageInfo;
-			descriptorWrite[1].pTexelBufferView = nullptr; // Optional
-
-			descriptorWrite[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-			descriptorWrite[2].dstSet = this->mTextures[i].mDescriptorSet;
-			descriptorWrite[2].dstBinding = 2;
-			descriptorWrite[2].dstArrayElement = 0;
-			descriptorWrite[2].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-			descriptorWrite[2].descriptorCount = 1; //how many buffers
-			descriptorWrite[2].pBufferInfo = &pUniformDescriptorBuffers[1];
-			descriptorWrite[2].pImageInfo = nullptr; // Optional
-			descriptorWrite[2].pTexelBufferView = nullptr; // Optional
-
-			vkUpdateDescriptorSets(l_device, 3, descriptorWrite, 0, nullptr);
-		}
-
-	}
-
-	void TextureManager::Add(const VkPhysicalDevice p_device, const VkDevice l_device, const VkQueue gfxQueue, const VkDescriptorSetLayout dscSetLayout, const std::string& fileName)
-	{
-		this->mTextures.emplace_back(p_device, l_device, gfxQueue, this->descriptorPool, dscSetLayout, fileName);
+		this->mTextures.emplace_back(graphicsContextInfo, fileName);
 	}
 
 	void TextureManager::Add(const Texture& nTexture) 
@@ -81,16 +27,10 @@ namespace vk
 
 	void TextureManager::Destroy(const VkDevice l_device) 
 	{
-		if (this->isInitialized) 
+		for (size_t i = 0; i < mTextures.size(); ++i)
 		{
-			for (size_t i = 0; i < mTextures.size(); ++i)
-			{
-				mTextures[i].Destroy(l_device);
-			}
-
-			vkDestroyDescriptorPool(l_device, this->descriptorPool, nullptr);
+			mTextures[i].Destroy(l_device);
 		}
-
 	}
 
 	const Texture& TextureManager::GetTextureObject(size_t index) const
@@ -113,48 +53,62 @@ namespace vk
 			}
 		}
 
-		/*throw std::runtime_error("could not find specified texture!\n");*/
 		std::cerr << "could not find specified texture!\n";
 
 		return -1;
 
 	}
 
-
-	void TextureManager::BindTextureToObject(const std::string& fileName, GraphicsSystem& graphicsSystem, Object& obj)
+	void TextureManager::BindTextureToObject(const std::string& fileName, Object& obj)
 	{
-		int index = TextureManager::GetTextureIndexByName(fileName.c_str());
-
-		
-		if (index < 0) 
+		if (fileName != "")
 		{
-			std::cout << "adding texture...\n";
+			int index = TextureManager::GetTextureIndexByName(fileName.c_str());
 
-			TextureManager::Add(graphicsSystem.PhysicalDevice(), 
-							    graphicsSystem.LogicalDevice(), 
-								graphicsSystem.GraphicsQueue().handle, 
-								graphicsSystem.DescriptorSetLayout(),
-								fileName);
+			if (index < 0)
+			{
+				std::cout << "adding texture...\n";
 
-			VkDescriptorBufferInfo uTransformbufferInfo = {};
-			uTransformbufferInfo.buffer = graphicsSystem.UTransformBuffer().handle;
-			uTransformbufferInfo.offset = 0;
-			uTransformbufferInfo.range = sizeof(uTransformObject);
+				TextureManager::Add(&graphicsContextInfo, fileName);
 
 
-			VkDescriptorBufferInfo uLightBufferInfo = {};
-			uLightBufferInfo.buffer = graphicsSystem.ULightBuffer().handle;
-			uLightBufferInfo.offset = 0;
-			uLightBufferInfo.range = sizeof(uLightObject);
+				VkDescriptorSetAllocateInfo descriptorSetInfo = vk::init::DescriptorSetAllocateInfo
+				(
+					graphicsContextInfo.descriptorPool, 
+					&graphicsContextInfo.descriptorSetLayout, 1
+				);
 
+				//deferredMRT descriptor set
+				VK_CHECK_RESULT(vkAllocateDescriptorSets(graphicsContextInfo.logicalDevice, &descriptorSetInfo, &mTextures.back().descriptorSet));
 
-			VkDescriptorBufferInfo bufferInfo[2] = { uTransformbufferInfo, uLightBufferInfo };
+				std::vector<VkWriteDescriptorSet> descriptorWrites = graphicsContextInfo.sceneWriteDescriptorSets; //TODO: copying a vector...inefficient.
 
-			TextureManager::UpdateDescriptorSets(graphicsSystem.LogicalDevice(), bufferInfo, 2);
+				//need to make sure the descriptor set pointed at by the writes is the texture's.
+				for (int i = 0; i < descriptorWrites.size(); ++i)
+				{
+					descriptorWrites[i].dstSet = mTextures.back().descriptorSet;
+				}
 
-			index = TextureManager::GetTextureIndexByName(fileName.c_str());
+				//writing the texture sampler.
+				VkWriteDescriptorSet dscWrite = vk::init::WriteDescriptorSet(
+					mTextures.back().descriptorSet, 
+					VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 
+					graphicsContextInfo.samplerBinding, 
+					&mTextures.back().descriptor
+				);
+
+				
+
+				descriptorWrites.push_back(dscWrite);
+
+				vkUpdateDescriptorSets(graphicsContextInfo.logicalDevice, descriptorWrites.size(), descriptorWrites.data(), 0, nullptr);
+
+				index = mTextures.size() - 1;
+
+			}
+
+			obj.AddTextureDescriptorSet(mTextures[index].descriptorSet);
 		}
 
-		obj.UpdateTexture(this->mTextures[index].mDescriptorSet);
 	}
 }

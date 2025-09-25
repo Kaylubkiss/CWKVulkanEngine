@@ -1,7 +1,8 @@
 #include "Controller.h"
 #include <SDL2/SDL.h>
 #include "ApplicationGlobal.h"
-#include "vkGraphicsSystem.h"
+
+
 enum keys {
 
 	W = 0, A, S, D
@@ -16,10 +17,15 @@ inline void ChangeCameraPosition(Camera& camera, const float& dt, bool& update)
 	if (keys[S]) { camera.MoveBack(); update = true; }
 	if (keys[D]) { camera.MoveRight(); update = true; }
 
-	camera.Update(dt);
+	camera.isUpdate = update;
+
+	if (update) 
+	{
+		camera.Update(dt);
+	}
 }
 
-bool Controller::MoveCamera(Camera& camera, const float& dt)
+void Controller::MoveCamera(Camera& camera, const float& dt)
 {
 	bool updated = false;
 
@@ -32,7 +38,7 @@ bool Controller::MoveCamera(Camera& camera, const float& dt)
 		{
 			//it should exit.
 			_Application->RequestExit();
-			return false;
+			return;
 		}
 
 		const SDL_Keycode& keySymbol = e.key.keysym.sym;
@@ -67,7 +73,7 @@ bool Controller::MoveCamera(Camera& camera, const float& dt)
 				{
 					//it should exit.
 					_Application->RequestExit();
-					return false;
+					return;
 				}
 			}
 		}
@@ -107,8 +113,6 @@ bool Controller::MoveCamera(Camera& camera, const float& dt)
 		}
 	}
 
-
 	ChangeCameraPosition(camera, dt, updated);
 
-	return updated;
 }

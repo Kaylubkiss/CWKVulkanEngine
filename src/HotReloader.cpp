@@ -13,20 +13,20 @@ namespace vk
 
 	/*
 		* @brief Initializes the hot reloader object.
-		* @param l_device: logical device which owns the pipeline associated.
-		* @param pipeline: the pipeline which has the shader stages associated.
-		* @param renderPass: information that describes a frame in the pipeline.
 	*/
-	HotReloader::HotReloader(VkDevice l_device, vk::Pipeline& pipeline)
+	void HotReloader::Init()
 	{
-		if (l_device == nullptr) 
-		{
-			throw std::runtime_error("[ERROR] Passed in invalid device to hot reloader\n");
-		}
+		assert(_Application != nullptr);
 
-		appDevicePtr = l_device; 
 
-		HotReloader::AddPipeline(pipeline);
+		//if (l_device == nullptr) 
+		//{
+		//	throw std::runtime_error("[ERROR] Passed in invalid device to hot reloader\n");
+		//}
+
+		//appDevicePtr = l_device; 
+
+		//HotReloader::AddPipeline(pipeline);
 	}
 
 	/*

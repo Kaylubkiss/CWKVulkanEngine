@@ -4,7 +4,8 @@
 #include <vulkan/vulkan.h>
 #include "vkTexture.h"
 #include <vector>
-#include "vkGraphicsSystem.h"
+#include "vkContextBase.h"
+#include <mutex>
 
 namespace vk 
 {
@@ -16,9 +17,9 @@ namespace vk
 
 			void Destroy(const VkDevice l_device);
 
-			void Init(const VkDevice l_device);
+			void Init(ContextBase* context);
 
-			void Add(const VkPhysicalDevice p_device, const VkDevice l_device, const VkQueue gfxQueue, const VkDescriptorSetLayout dscSetLayout, const std::string& fileName);
+			void Add(GraphicsContextInfo* graphicsContextInfo, const std::string& fileName);
 
 			void Add(const Texture& nTexture);
 			
@@ -26,20 +27,11 @@ namespace vk
 			
 			const Texture& GetTextureObject(size_t index) const;
 
-			void UpdateDescriptorSets(const VkDevice l_device, const VkDescriptorBufferInfo* pUniformDescriptorBuffers, size_t uniformDescriptorCount);
-
-			void BindTextureToObject(const std::string& fileName, GraphicsSystem& graphicsSystem, Object& obj);
-
-			VkDescriptorPool DescriptorPool() 
-			{
-				return this->descriptorPool;
-			}
+			void BindTextureToObject(const std::string& fileName, Object& obj);
 
 		private:
 
-			bool isInitialized = false;
-
-			VkDescriptorPool descriptorPool = VK_NULL_HANDLE;
+			vk::GraphicsContextInfo graphicsContextInfo;
 
 			std::vector<vk::Texture> mTextures;
 	};

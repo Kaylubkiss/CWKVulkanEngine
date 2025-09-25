@@ -1,0 +1,106 @@
+#pragma once
+
+#include "vkSwapChain.h"
+#include "VkPipeline.h"
+#include "HotReloader.h"
+#include "vkDevice.h"
+#include "UserInterface.h"
+
+namespace vk
+{
+
+	/* NOTE: JANK FORWARD DECLARATION, BECAUSE OF A DOUBLE INCLUDE PROBABLY */
+	class ObjectManager;
+
+	class ContextBase
+	{
+		protected:
+
+			GraphicsContextInfo mInfo;//this is for textureManager and potentially any other discrete systems.
+			//WARNING: context specific!!!
+
+			vk::Window window;
+
+			VkInstance instance = VK_NULL_HANDLE;
+
+			vk::Device device;
+
+			vk::UserInterface UIOverlay;
+			
+			vk::HotReloader mHotReloader;
+
+			bool isInitialized = false;
+
+			VkDescriptorPool descriptorPool = VK_NULL_HANDLE;
+			
+			VkCommandPool commandPool = VK_NULL_HANDLE;
+			std::vector<VkCommandBuffer> commandBuffers;
+
+			VkExtent2D currentExtent = { 0,0 };
+
+			struct RenderingSemaphores
+			{
+				VkSemaphore presentComplete;
+				VkSemaphore renderComplete;
+
+			} semaphores{};
+
+			VkSubmitInfo submitInfo = {};
+
+			VkPipelineStageFlags pipelineWaitStages = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+
+			vk::SwapChain swapChain;
+
+			vk::Pipeline mPipeline;
+
+			float FOV = 45.f;
+
+		public: 
+
+			ContextBase(); /* expect this to be derived from */
+			virtual ~ContextBase();
+
+			//pure virtual function(s)
+			virtual void RecordCommandBuffers(vk::ObjectManager& objManager) = 0;
+			virtual void ResizeWindow();
+			virtual void InitializeScene(ObjectManager& objManager) = 0;
+			
+			GraphicsContextInfo GetGraphicsContextInfo();
+			
+			
+
+			//virtual function(s)
+			virtual void Render();
+
+			//getter(s)
+			vk::Queue GraphicsQueue();
+			const VkPipeline Pipeline() const;
+			const VkPhysicalDevice PhysicalDevice() const;
+			const VkDevice LogicalDevice() const;
+			VkDescriptorPool DescriptorPool() const;
+
+			//operations
+			void WaitForDevice();
+
+		protected:
+
+			void PrepareFrame();
+
+			//more pure virtual function(s)
+			virtual void InitializePipeline(std::string vsFile = "", std::string fsFile = "") = 0;
+			virtual void InitializeDescriptors() = 0;
+
+			//non-pure virtual functions
+			virtual void InitializeRenderPass();
+
+		private:
+			VkDevice CreateLogicalDevice(const VkPhysicalDevice& p_device, uint32_t graphicsFamily, uint32_t presentFamily);
+
+			void FindQueueFamilies(const VkSurfaceKHR& windowSurface);
+
+			void EnumeratePhysicalDevices();
+
+			void CreateWindow();
+			void CreateInstance();
+	};
+}	

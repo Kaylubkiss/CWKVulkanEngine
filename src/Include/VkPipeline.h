@@ -4,7 +4,6 @@
 */
 #pragma once
 #include <vulkan/vulkan.h>
-#include "vkResource.h"
 #include <vector>
 #include <string>
 #include <list>
@@ -41,74 +40,69 @@ namespace vk
 		*@brief describes the process to a renderpass, containing a series of shaders
 		and rendering information. 
 	*/
-	class Pipeline 
+	struct Pipeline 
 	{
-		private:
-			VkPipeline handle = VK_NULL_HANDLE;
-			VkDescriptorSetLayout descriptorSetLayout = VK_NULL_HANDLE;
-			VkPipelineLayout layout = VK_NULL_HANDLE; 
-			VkPrimitiveTopology mTopology = {};
+		VkPipeline handle = VK_NULL_HANDLE;
+		VkPipelineLayout layout = VK_NULL_HANDLE; 
+		VkPrimitiveTopology mTopology = {};
+		
+		//TODO: move renderpass out of this class.
+		VkRenderPass mRenderPass = VK_NULL_HANDLE;
 
-			vk::rsc::DepthResources mRenderDepthInfo;
-			VkRenderPass mRenderPass = VK_NULL_HANDLE;
+		std::vector<ShaderModuleInfo> shaderModules;
 
-			std::vector<ShaderModuleInfo> shaderModules;
-
-		public:
-			/*
-				*@brief Compiles a shader file to sprv, creates a shader module and puts it into a vector.
-				
-				*@param shaderModuleInfo: added to list of module infos, which describe the shader source a part of the pipeline.
-				
-				*@return pointer to this, which allows chaining of this method on one line.
-			*/
-			vk::Pipeline& AddModule(const ShaderModuleInfo& shaderModuleInfo);
-
-			vk::Pipeline& AddPipelineLayout(const VkPipelineLayout& pipelineLayout);
-
-			vk::Pipeline& AddDescriptorSetLayout(const VkDescriptorSetLayout& dscSetLayout);
-
-
-			/*void InitRenderDepthInformation(const VkDevice l_device, const VkFormat& depthFormat);
-
-			void InitRenderPass(const VkDevice l_device, const VkFormat& depthFormat);*/
-
-			/*
-				*@brief Creates the pipeline handle with the user provided shader modules.
-				*
-				*@param l_device: logical device associated with the application's vulkan instance.
-				*@param renderPass: the thing rendering into the framebuffer after shader processing, argument needed for pipeline creation.
-				*@param topology: the geometric shape of a rendered object.
-				*
-				* @return this pointer to pipeline, for chaining commands on one line.
-			*/
-			vk::Pipeline& Finalize(const VkDevice l_device, const VkPhysicalDevice p_device, const vk::Window& appWindow, VkPrimitiveTopology topology);
-
+		/*
+			*@brief Compiles a shader file to sprv, creates a shader module and puts it into a vector.
 			
-
-			/*
-				*@brief Destroys the pipeline handle and all the vulkan objects (shaders, descriptory layout) created under it.
-				
-				*@param l_device: logical device associated with the application's vulkan instance.
-			*/
-			void Destroy(const VkDevice l_device);
-
-			/*
-				*@brief Destroys the current pipeline handle, and creates a new one. 
-				
-				*@param l_device: logical device associated with the application's vulkan instance.
-			*/
-			void Recreate(const VkDevice l_device);
+			*@param shaderModuleInfo: added to list of module infos, which describe the shader source a part of the pipeline.
 			
-			/* getters */
+			*@return pointer to this, which allows chaining of this method on one line.
+		*/
+		vk::Pipeline& AddModule(const ShaderModuleInfo& shaderModuleInfo);
 
-			const VkDescriptorSetLayout DescriptorSetLayout() const;
-			const VkPipeline Handle() const;
-			const VkPipelineLayout Layout() const;
-			vk::ShaderModuleInfo& ShaderModule(size_t index);
-			const std::vector<vk::ShaderModuleInfo>& ShaderModules() const;
-			VkRenderPass RenderPass();
-			vk::rsc::DepthResources& RenderDepthInfo();
+		vk::Pipeline& AddPipelineLayout(const VkPipelineLayout& pipelineLayout);
+
+		vk::Pipeline& AddRenderPass(const VkRenderPass& renderPass);
+
+
+		/*void InitRenderDepthInformation(const VkDevice l_device, const VkFormat& depthFormat);
+
+		void InitRenderPass(const VkDevice l_device, const VkFormat& depthFormat);*/
+
+		/*
+			*@brief Creates the pipeline handle with the user provided shader modules.
+			*
+			*@param l_device: logical device associated with the application's vulkan instance.
+			*@param renderPass: the thing rendering into the framebuffer after shader processing, argument needed for pipeline creation.
+			*@param topology: the geometric shape of a rendered object.
+			*
+			* @return this pointer to pipeline, for chaining commands on one line.
+		*/
+		vk::Pipeline& Finalize(const VkDevice l_device, const VkPhysicalDevice p_device, const vk::Window& appWindow, VkPrimitiveTopology topology);
+
+		
+
+		/*
+			*@brief Destroys the pipeline handle and all the vulkan objects (shaders, descriptory layout) created under it.
+			
+			*@param l_device: logical device associated with the application's vulkan instance.
+		*/
+		void Destroy(const VkDevice l_device);
+
+		/*
+			*@brief Destroys the current pipeline handle, and creates a new one. 
+			
+			*@param l_device: logical device associated with the application's vulkan instance.
+		*/
+		void Recreate(const VkDevice l_device);
+		
+		/* getters */
+
+		const VkPipeline Handle() const;
+		const VkPipelineLayout Layout() const;
+		vk::ShaderModuleInfo& ShaderModule(size_t index);
+		const std::vector<vk::ShaderModuleInfo>& ShaderModules() const;
+		VkRenderPass RenderPass();
 
 	};
 

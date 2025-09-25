@@ -8,9 +8,8 @@ class ThreadPool
 {
 public:
 	ThreadPool() = default;
-	ThreadPool(size_t num_threads);
 	void Init(size_t num_threads);
-	void EnqueueTask(const std::function<void()>& task);
+	void EnqueueTask(std::function<void()>& task);
 	void Terminate();
 	bool isBusy();
 	~ThreadPool();

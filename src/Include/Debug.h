@@ -1,7 +1,7 @@
 #pragma once
 #include "vkBuffer.h"
 #include <SDL2/SDL.h>
-
+#include "Vertex.h"
 
 //this class more works like a line debug drawer.
 struct DebugDrawObject 

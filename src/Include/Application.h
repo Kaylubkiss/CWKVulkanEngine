@@ -3,18 +3,16 @@
 #include "Camera.h"
 #include "Debug.h"
 #include "ObjectManager.h"
-#include "ThreadPool.h"
 #include "vkWindow.h"
-#include "vkGraphicsSystem.h"
+#include "vkContextBase.h"
 #include "TextureManager.h"
 #include "Physics.h"
-#include "HotReloader.h"
 
 class Application
 {
 private:	
-	vk::Window mWindow;
 	bool guiWindowIsFocused = false;
+	bool exitApplication = false;
 
 public:
 	void run();
@@ -23,40 +21,30 @@ public:
 
 	const Timer& GetTime();
 	void RequestExit();
-	vk::Window& GetWindow();
-	bool WindowisFocused(); 
 
 	void SelectWorldObjects(const vk::Window& appWindow,
-							Camera& camera, const vk::uTransformObject& uTransform, PhysicsSystem& physics);
+							Camera& camera, const uTransformObject& uTransform, PhysicsSystem& physics);
 
 	Camera& GetCamera();
 	PhysicsSystem& GetPhysics();
+	vk::TextureManager& TextureManager();
+
+	vk::ContextBase* Context();
 
 private:
 
 	Timer mTime;
 	Camera mCamera;
-
-	VkInstance m_instance = VK_NULL_HANDLE;
-	VkCommandBuffer secondaryCmdBuffer = VK_NULL_HANDLE;
+	PhysicsSystem mPhysics;
 
 	vk::TextureManager mTextureManager;
 	vk::ObjectManager mObjectManager;
 
-	PhysicsSystem mPhysics;
-	vk::HotReloader mHotReloader;
-	vk::GraphicsSystem mGraphicsSystem;
-
-	bool exitApplication = false;
-
-	VkDebugUtilsMessengerEXT debugMessenger = VK_NULL_HANDLE;
-
-	void CreateWindow(vk::Window& appWindow);
-	void CreateWindowSurface(const VkInstance& vkInstance, vk::Window& appWindow);
+	std::unique_ptr<vk::ContextBase> graphicsContext;
 
 	void DrawGui(VkCommandBuffer cmdBuffer);
 
-	bool init();
+	void init();
 	void loop();
 	void exit();
 

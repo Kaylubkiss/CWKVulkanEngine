@@ -5,17 +5,21 @@
 
 namespace vk 
 {
-	SwapChain::SwapChain(const VkDevice l_device, const VkPhysicalDevice p_device, uint32_t graphicsFamily, uint32_t presentFamily, const VkSurfaceKHR windowSurface)
+	SwapChain::SwapChain(Device* devicePtr, const std::array<uint32_t, 2>& queueFamilies, const vk::Window& appWindow) 
 	{
+		assert(devicePtr);
+
+		this->devicePtr = devicePtr;
+
 		VkSwapchainCreateInfoKHR swapChainInfo = {};
 		swapChainInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-		swapChainInfo.surface = windowSurface;
+		swapChainInfo.surface = appWindow.surface;
 
 
 		uint32_t surfaceFormatCount = 0;
 		std::vector<VkSurfaceFormatKHR> surfaceFormats;
 
-		VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceFormatsKHR(p_device, windowSurface, &surfaceFormatCount, nullptr));
+		VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceFormatsKHR(devicePtr->physical, appWindow.surface, &surfaceFormatCount, nullptr));
 
 		//surfaceFormatCount now filled..
 		if (!surfaceFormatCount)
@@ -25,48 +29,43 @@ namespace vk
 
 		surfaceFormats.resize(surfaceFormatCount);
 
-		VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceFormatsKHR(p_device, windowSurface, &surfaceFormatCount, surfaceFormats.data()));
+		VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceFormatsKHR(devicePtr->physical, appWindow.surface, &surfaceFormatCount, surfaceFormats.data()));
 
 
+		
 		//choose suitable format
-		int surfaceIndex = -1;
-
+		int surfaceIndex = 0;
 		for (size_t i = 0; i < surfaceFormats.size(); ++i)
 		{
-			if (surfaceFormats[i].format == VK_FORMAT_B8G8R8A8_SRGB && 
-				surfaceFormats[i].colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
+			if (surfaceFormats[i].format == VK_FORMAT_B8G8R8A8_UNORM ||
+				surfaceFormats[i].format == VK_FORMAT_R8G8B8A8_UNORM ||
+				surfaceFormats[i].format == VK_FORMAT_A8B8G8R8_UNORM_PACK32)
 			{
 				surfaceIndex = i;
 				break;
 			}
 		}
 
-		if (surfaceIndex < 0)
-		{
-			throw std::runtime_error("couldn't find a suitable format for swap chain");
-		}
-
 
 		VkSurfaceCapabilitiesKHR deviceCapabilities;
-		VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(p_device, windowSurface, &deviceCapabilities));
+		VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(devicePtr->physical, appWindow.surface, &deviceCapabilities));
 
-		this->imageCount = deviceCapabilities.minImageCount + 1;
+		uint32_t imageCount = deviceCapabilities.minImageCount + 1;
 
-		if (deviceCapabilities.maxImageCount > 0 && this->imageCount > deviceCapabilities.maxImageCount)
+		if (deviceCapabilities.maxImageCount > 0 && imageCount > deviceCapabilities.maxImageCount)
 		{
-			this->imageCount = deviceCapabilities.maxImageCount;
+			imageCount = deviceCapabilities.maxImageCount;
 		}
 
-		swapChainInfo.minImageCount = this->imageCount;
+		swapChainInfo.minImageCount = imageCount;
 		swapChainInfo.imageColorSpace = surfaceFormats[surfaceIndex].colorSpace;
 		swapChainInfo.imageFormat = surfaceFormats[surfaceIndex].format;
 		swapChainInfo.imageExtent = deviceCapabilities.currentExtent;
 		swapChainInfo.imageArrayLayers = 1;
 		swapChainInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
-		uint32_t queueFamilyIndices[2] = { graphicsFamily, presentFamily };
-
-		if (graphicsFamily == presentFamily)
+		//queueFamilies[0] == graphics, queueFamilies[1] == present
+		if (queueFamilies[0] == queueFamilies[1])
 		{
 			swapChainInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE; //present mode and graphics mode are the same.
 			swapChainInfo.queueFamilyIndexCount = 0;
@@ -75,8 +74,8 @@ namespace vk
 		else
 		{
 			swapChainInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
-			swapChainInfo.queueFamilyIndexCount = 2;
-			swapChainInfo.pQueueFamilyIndices = queueFamilyIndices;
+			swapChainInfo.queueFamilyIndexCount = queueFamilies.size();
+			swapChainInfo.pQueueFamilyIndices = queueFamilies.data();
 		}
 
 
@@ -87,59 +86,81 @@ namespace vk
 		swapChainInfo.oldSwapchain = nullptr; //resizing needs a reference to the old swap chain
 
 
-		VK_CHECK_RESULT(vkCreateSwapchainKHR(l_device, &swapChainInfo, nullptr, &this->handle));
+		this->createInfo = swapChainInfo;
+		VK_CHECK_RESULT(vkCreateSwapchainKHR(devicePtr->logical, &swapChainInfo, nullptr, &this->handle));
 
-		this->images.resize(this->imageCount);
+		this->images.resize(imageCount);
+		VK_CHECK_RESULT(vkGetSwapchainImagesKHR(devicePtr->logical, this->handle, &imageCount, this->images.data()));
 
-		VK_CHECK_RESULT(vkGetSwapchainImagesKHR(l_device, this->handle, &this->imageCount, this->images.data()));
+		SwapChain::CreateImageViews();
 
-		SwapChain::CreateImageViews(l_device, this->images.data(), this->imageCount);
+		this->depthAttachment = devicePtr->CreateFramebufferAttachment(appWindow.viewport, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT);
+
 	}
 	
-	void SwapChain::Recreate(const VkPhysicalDevice p_device, const VkDevice l_device, uint32_t graphicsFamily, uint32_t presentFamily, vk::rsc::DepthResources& depthResources, const VkRenderPass renderPass, const vk::Window& appWindow)
+	void SwapChain::Recreate(const VkRenderPass renderPass, const vk::Window& appWindow)
 	{
+		SwapChain::Destroy();
 
-		SwapChain::Destroy(l_device);
+		VkSurfaceCapabilitiesKHR deviceCapabilities;
+		VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(devicePtr->physical, appWindow.surface, &deviceCapabilities));
 
-		this->frameBuffers.clear();
-		this->images.clear();
-		this->imageViews.clear();
+		createInfo.imageExtent = deviceCapabilities.currentExtent;
+		VK_CHECK_RESULT(vkCreateSwapchainKHR(devicePtr->logical, &createInfo, nullptr, &this->handle));
 
-		*this = SwapChain(l_device, p_device, graphicsFamily, presentFamily, appWindow.surface);
-		
-		depthResources.Destroy(l_device);
-		depthResources = vk::rsc::CreateDepthResources(p_device, l_device, appWindow.viewport);
+		this->images.resize(createInfo.minImageCount);
+		VK_CHECK_RESULT(vkGetSwapchainImagesKHR(devicePtr->logical, this->handle, &createInfo.minImageCount, this->images.data()));
 
-		SwapChain::AllocateFrameBuffers(l_device, appWindow.viewport, depthResources, renderPass);
+		SwapChain::CreateImageViews();
+
+		this->depthAttachment = devicePtr->CreateFramebufferAttachment(appWindow.viewport, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, this->depthAttachment.format);
+
+		SwapChain::CreateFrameBuffers(appWindow.viewport, renderPass);
 	}
 
-	void SwapChain::CreateImageViews(const VkDevice l_device, VkImage* images, uint32_t imageCount)
+	void SwapChain::Destroy() 
 	{
+		assert(devicePtr);
+
+		for (unsigned i = 0; i < this->images.size(); ++i)
+		{
+			vkDestroyImageView(devicePtr->logical, this->imageViews[i], nullptr);
+			vkDestroyFramebuffer(devicePtr->logical, this->frameBuffers[i], nullptr);
+		}
+
+		depthAttachment.Destroy(devicePtr->logical);
+
+		vkDestroySwapchainKHR(devicePtr->logical, this->handle, nullptr);
+	}
+
+	void SwapChain::CreateImageViews()
+	{
+		assert(this->images.empty() == false);
 
 		//create imageview --> allow image to be seen in a different format.
-		this->imageViews.resize(imageCount);
+		this->imageViews.resize(this->images.size());
 
-		for (unsigned i = 0; i < imageCount; ++i) 
+		//this is nothing fancy, we won't be editing the color interpretation.
+		VkComponentMapping componentMapping =
 		{
-			//this is nothing fancy, we won't be editing the color interpretation.
-			VkComponentMapping componentMapping =
-			{
-				VK_COMPONENT_SWIZZLE_IDENTITY,
-				VK_COMPONENT_SWIZZLE_IDENTITY,
-				VK_COMPONENT_SWIZZLE_IDENTITY,
-				VK_COMPONENT_SWIZZLE_IDENTITY,
-			};
+			VK_COMPONENT_SWIZZLE_IDENTITY,
+			VK_COMPONENT_SWIZZLE_IDENTITY,
+			VK_COMPONENT_SWIZZLE_IDENTITY,
+			VK_COMPONENT_SWIZZLE_IDENTITY,
+		};
 
-			//the view can only refer to one aspect of the parent image.
-			VkImageSubresourceRange subresourceRange =
-			{
-				VK_IMAGE_ASPECT_COLOR_BIT,
-				0, //base mip level
-				1, //levelCount for mip levels
-				0, //baseArrayLayer -> layer not an array image
-				1, //layerCount for image array. 
-			};
+		//the view can only refer to one aspect of the parent image.
+		VkImageSubresourceRange subresourceRange =
+		{
+			VK_IMAGE_ASPECT_COLOR_BIT,
+			0, //base mip level
+			1, //levelCount for mip levels
+			0, //baseArrayLayer -> layer not an array image
+			1, //layerCount for image array. 
+		};
 
+		for (unsigned i = 0; i < this->images.size(); ++i) 
+		{
 			VkImageViewCreateInfo imageViewCreateInfo =
 			{
 				VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
@@ -147,34 +168,34 @@ namespace vk
 				0, //flags
 				images[i], //the created image above
 				VK_IMAGE_VIEW_TYPE_2D, //view image type
-				VK_FORMAT_B8G8R8A8_SRGB, //as long as the same bits per pixel, the parent and view will be	compatible.
+				createInfo.imageFormat, //as long as the same bits per pixel, the parent and view will compatible.
 				componentMapping,
 				subresourceRange
 			};
 
-			imageViewCreateInfo.subresourceRange.baseMipLevel = 0;
-			imageViewCreateInfo.subresourceRange.levelCount = 1;
-			imageViewCreateInfo.subresourceRange.baseArrayLayer = 0;
-			imageViewCreateInfo.subresourceRange.layerCount = 1;
-
-			VK_CHECK_RESULT(vkCreateImageView(l_device, &imageViewCreateInfo, nullptr, &imageViews[i]));
+			VK_CHECK_RESULT(vkCreateImageView(devicePtr->logical, &imageViewCreateInfo, nullptr, &imageViews[i]));
 		}
 
 	}
 
-	void SwapChain::AllocateFrameBuffers(const VkDevice l_device, const VkViewport& vp, const vk::rsc::DepthResources& depthResources, const VkRenderPass renderPass)
+	void SwapChain::CreateFrameBuffers(const VkViewport& vp, const VkRenderPass renderPass)
 	{
 
-		if (this->imageCount <= 0) 
+		assert(this->depthAttachment.imageView != VK_NULL_HANDLE);
+		assert(renderPass != VK_NULL_HANDLE);
+		assert(vp.width != 0.f);
+		assert(vp.height != 0.f);
+
+		if (this->images.size() <= 0) 
 		{
 			throw std::runtime_error("have 0 swap chain images available. Did you allocate the swap chain?");
 		}
 		
-		this->frameBuffers.resize(this->imageCount);
+		this->frameBuffers.resize(this->images.size());
 
-		for (unsigned i = 0; i < this->imageCount; ++i) {
+		for (unsigned i = 0; i < this->images.size(); ++i) {
 
-			VkImageView attachments[2] = { imageViews[i], depthResources.depthImageView };
+			VkImageView attachments[2] = { imageViews[i], this->depthAttachment.imageView };
 
 			//create framebuffer info
 			VkFramebufferCreateInfo framebufferCreateInfo =
@@ -190,7 +211,7 @@ namespace vk
 				1 //1 layer
 			};
 
-			VK_CHECK_RESULT(vkCreateFramebuffer(l_device, &framebufferCreateInfo, nullptr, &this->frameBuffers[i]));
+			VK_CHECK_RESULT(vkCreateFramebuffer(devicePtr->logical, &framebufferCreateInfo, nullptr, &this->frameBuffers[i]));
 		}
 
 	}
