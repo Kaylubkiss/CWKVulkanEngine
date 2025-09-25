@@ -6,10 +6,13 @@ Hi, welcome to my Github page! As of September 25th, 2025, I've now made this re
 
 ## Goals with this project are as follows
 
-* Learning the basics of Vulkan
-* Learning better coding practices in C++
-* Learning advanced graphics techniques
-* Having a cool freakin product
+Learning...
+* the basics of Vulkan
+* better coding practices in C++
+* advanced graphics techniques
+
+And...
+* making a cool freakin product
 
 It's been my dream from the day I started my journey into game development to be able to build my own stuff. This project aims to fulfill that whollistically.
 
