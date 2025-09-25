@@ -4,7 +4,7 @@ Hi, welcome to my Github page! As of September 25th, 2025, I've now made this re
 
 <div>
   <img width="479" height="363" alt="basic shadow maping" src="https://github.com/user-attachments/assets/e817a626-740a-49e9-a7aa-8942fc1c1205" />
-  <p>A shadow mapping implementation written under my codebase</p>
+  <p><em>A shadow mapping implementation written under my codebase</em></p>
 </div>
 
 ## Goals for this project are as follows
