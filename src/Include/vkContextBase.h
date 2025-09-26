@@ -94,12 +94,6 @@ namespace vk
 			virtual void InitializeRenderPass();
 
 		private:
-			VkDevice CreateLogicalDevice(const VkPhysicalDevice& p_device, uint32_t graphicsFamily, uint32_t presentFamily);
-
-			void FindQueueFamilies(const VkSurfaceKHR& windowSurface);
-
-			void EnumeratePhysicalDevices();
-
 			void CreateWindow();
 			void CreateInstance();
 	};

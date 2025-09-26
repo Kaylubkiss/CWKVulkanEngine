@@ -32,7 +32,7 @@ namespace vk
 	struct Queue 
 	{
 		VkQueue handle = VK_NULL_HANDLE;
-		uint32_t family = 0;
+		uint32_t family = uint32_t(-1);
 	};
 
 	struct UniformTransform 

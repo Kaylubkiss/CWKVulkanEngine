@@ -22,17 +22,7 @@ namespace vk
 			throw std::runtime_error("could not create window surface! " + std::string(SDL_GetError()));
 		}
 		
-		ContextBase::EnumeratePhysicalDevices();
-		vkGetPhysicalDeviceMemoryProperties(device.physical, &device.memoryProperties);
-
-		ContextBase::FindQueueFamilies(window.surface);
-
-		this->device.logical = ContextBase::CreateLogicalDevice(this->device.physical, device.graphicsQueue.family, device.presentQueue.family);
-
-		vkGetDeviceQueue(device.logical, device.graphicsQueue.family, 0, &device.graphicsQueue.handle);
-		vkGetDeviceQueue(device.logical, device.presentQueue.family, 0, &device.presentQueue.handle);
-		vkGetDeviceQueue(device.logical, device.transferQueue.family, 0, &device.transferQueue.handle);
-
+		device.Initialize(instance, window.surface);
 
 		semaphores.presentComplete = vk::init::CreateSemaphore(this->device.logical);
 		semaphores.renderComplete = vk::init::CreateSemaphore(this->device.logical);
@@ -101,7 +91,7 @@ namespace vk
 		vkDestroySemaphore(this->device.logical, semaphores.presentComplete, nullptr);
 		vkDestroySemaphore(this->device.logical, semaphores.renderComplete, nullptr);
 
-		vkDestroyDevice(this->device.logical, nullptr);
+		device.Destroy();
 		
 		vkDestroySurfaceKHR(this->instance, this->window.surface, nullptr);
 		vkDestroyInstance(this->instance, nullptr);
@@ -230,201 +220,6 @@ namespace vk
 		window.UpdateExtents(currentExtent);
 
 		this->swapChain.Recreate(this->mPipeline.mRenderPass, window);
-	}
-
-	void ContextBase::FindQueueFamilies(const VkSurfaceKHR& windowSurface)
-	{
-		assert(device.physical);
-
-		uint32_t queueFamilyPropertyCount;
-		std::vector<VkQueueFamilyProperties> queueFamilies;
-
-		//no use for memory properties right now.
-		VkPhysicalDeviceMemoryProperties physicalDeviceMemoryProperties;
-
-		vkGetPhysicalDeviceMemoryProperties(device.physical, &physicalDeviceMemoryProperties);
-
-		//similar maneuver to vkEnumeratePhysicalDevices
-		vkGetPhysicalDeviceQueueFamilyProperties(device.physical, &queueFamilyPropertyCount, nullptr);
-
-		if (queueFamilyPropertyCount == 0)
-		{
-			throw std::runtime_error("couldn't find any queue families...");
-		}
-
-		queueFamilies.resize(queueFamilyPropertyCount);
-
-		vkGetPhysicalDeviceQueueFamilyProperties(device.physical, &queueFamilyPropertyCount, queueFamilies.data());
-
-		bool setGraphicsQueue = false;
-		bool setPresentQueue = false;
-		bool setTransferQueue = false;
-
-		for (unsigned i = 0; i < queueFamilyPropertyCount; ++i)
-		{
-			if ((queueFamilies[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) != 0)
-			{
-				device.graphicsQueue.family = i;
-				setGraphicsQueue = true;
-			}
-
-
-			VkBool32 presentSupport = false;
-			VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceSupportKHR(device.physical, i, windowSurface, &presentSupport));
-
-			if (presentSupport)
-			{
-				device.presentQueue.family = i;
-				setPresentQueue = true;
-			}
-
-			if ((queueFamilies[i].queueFlags & VK_QUEUE_TRANSFER_BIT) != 0 &&
-				i != device.presentQueue.family && i != device.graphicsQueue.family)
-			{
-				device.transferQueue.family = i;
-				setTransferQueue = true;
-			}
-
-			if (setGraphicsQueue && setPresentQueue && setTransferQueue)
-			{
-				break;
-			}
-
-		}
-
-		if (!setGraphicsQueue || !setPresentQueue || !setTransferQueue) 
-		{
-			throw std::runtime_error("could not find all required queues on this device!\n");
-		}
-	}
-
-	void ContextBase::EnumeratePhysicalDevices()
-	{
-		assert(this->instance != VK_NULL_HANDLE);
-
-		std::vector<VkPhysicalDevice> gpus;
-		int g_index = -1;
-
-		//list the physical devices
-		uint32_t max_devices = 0;
-
-		//vulkan will ignor whatever was set in physicalDeviceCount and overwrite max_devices 
-		VK_CHECK_RESULT(vkEnumeratePhysicalDevices(this->instance, &max_devices, nullptr))
-
-		if (!max_devices)
-		{
-			throw std::runtime_error("could not find any GPUs to use!\n");
-		}
-
-		gpus.resize(max_devices);
-
-		VK_CHECK_RESULT(vkEnumeratePhysicalDevices(this->instance, &max_devices, gpus.data()))
-
-		for (size_t i = 0; i < max_devices; ++i)
-		{
-
-			VkPhysicalDeviceProperties properties;
-			VkPhysicalDeviceFeatures features;
-
-			vkGetPhysicalDeviceProperties(gpus[i], &properties);
-			vkGetPhysicalDeviceFeatures(gpus[i], &features);
-
-
-			if ((properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU || properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU ||
-				properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_CPU) &&
-				features.geometryShader && features.samplerAnisotropy)
-			{
-				std::cout << "picked device " << i << '\n';
-
-				g_index = i;
-				break;
-			}
-		}
-
-		if (g_index < 0)
-		{
-			throw std::runtime_error("could not find suitable physical device!");
-		}
-
-		device.physical = gpus[g_index];
-	}
-
-	VkDevice ContextBase::CreateLogicalDevice(const VkPhysicalDevice& p_device, uint32_t graphicsFamily, uint32_t presentFamily)
-	{
-		std::vector<VkDeviceQueueCreateInfo> deviceQueueCreateInfos; //presentation and graphics.
-
-		uint32_t uniqueQueueFamilies[2] = { graphicsFamily, presentFamily };
-
-		float queuePriority[1] = { 1.f };
-
-		if (graphicsFamily != presentFamily)
-		{
-			for (unsigned i = 0; i < 2; ++i)
-			{
-				VkDeviceQueueCreateInfo deviceQueueInfo = {}; //to be passed into deviceCreateInfo's struct members.
-				deviceQueueInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-				deviceQueueInfo.flags = 0;
-				deviceQueueInfo.pNext = nullptr;
-				deviceQueueInfo.queueFamilyIndex = uniqueQueueFamilies[i];
-				deviceQueueInfo.queueCount = 1;
-				//THIS IS APPARENTLY REQUIRED --> REFERENCE BOOK DID NOT SHOW THIS...
-				deviceQueueInfo.pQueuePriorities = queuePriority; //normalized values between 0.f to 1.f that ranks the priority of the queue in the array.
-
-				deviceQueueCreateInfos.push_back(deviceQueueInfo);
-			}
-		}
-		else {
-			VkDeviceQueueCreateInfo deviceQueueInfo = {}; //to be passed into deviceCreateInfo's struct members.
-			deviceQueueInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-			deviceQueueInfo.queueFamilyIndex = graphicsFamily;
-			deviceQueueInfo.queueCount = 1;
-			//THIS IS APPARENTLY REQUIRED --> REFERENCE BOOK DID NOT SHOW THIS...
-			deviceQueueInfo.pQueuePriorities = queuePriority; //normalized values between 0.f to 1.f that ranks the priority of the queue in the array.
-
-			deviceQueueCreateInfos.push_back(deviceQueueInfo);
-
-		}
-
-		//transfer queue bit.
-		VkDeviceQueueCreateInfo transferQueueInfo = {}; //to be passed into deviceCreateInfo's struct members.
-		transferQueueInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-		transferQueueInfo.queueFamilyIndex = device.transferQueue.family;
-		transferQueueInfo.queueCount = 1;
-		//THIS IS APPARENTLY REQUIRED --> REFERENCE BOOK DID NOT SHOW THIS...
-		transferQueueInfo.pQueuePriorities = queuePriority; //normalized values between 0.f to 1.f that ranks the priority of the queue in the array.
-
-		deviceQueueCreateInfos.push_back(transferQueueInfo);
-		
-		VkDeviceCreateInfo deviceCreateInfo = {};
-		deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-		deviceCreateInfo.flags = 0;
-		deviceCreateInfo.pNext = nullptr;
-
-
-		static const char* deviceExtensions[1] =
-		{
-			"VK_KHR_swapchain"
-		};
-
-		//maybe don't assume extensions are there!!!!	
-		deviceCreateInfo.enabledExtensionCount = static_cast<uint32_t>(std::size(deviceExtensions));
-		deviceCreateInfo.ppEnabledExtensionNames = deviceExtensions;
-
-		//won't do many other optional features for now.
-		VkPhysicalDeviceFeatures deviceFeatures = {};
-		deviceFeatures.geometryShader = VK_TRUE;
-		/*	deviceFeatures.tessellationShader = VK_TRUE;*/
-		deviceFeatures.samplerAnisotropy = VK_TRUE;
-
-		deviceCreateInfo.pEnabledFeatures = &deviceFeatures; //call vkGetPhysicalDeviceFeatures to set additional features.
-
-		deviceCreateInfo.pQueueCreateInfos = deviceQueueCreateInfos.data();
-		deviceCreateInfo.queueCreateInfoCount = (uint32_t)(deviceQueueCreateInfos.size());
-
-		VkDevice nLogicalDevice;
-		VK_CHECK_RESULT(vkCreateDevice(p_device, &deviceCreateInfo, nullptr, &nLogicalDevice));
-
-		return nLogicalDevice;
 	}
 
 	//initializers
