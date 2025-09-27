@@ -61,7 +61,8 @@ void Camera::Update(const float& dt)
 	this->mEye = glm::vec3(-currTransform.x, -(currTransform.y + .5f * mCapsule.mHeight), -currTransform.z);
 	
 	this->accumulatedVelocity = reactphysics3d::Vector3::zero();
-	
+
+	isUpdate = false;
 	
 }
 

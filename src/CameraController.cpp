@@ -10,16 +10,14 @@ enum keys {
 
 static bool keys[4] = {  };
 
-inline void ChangeCameraPosition(Camera& camera, const float& dt, bool& update)
+inline void ChangeCameraPosition(Camera& camera, const float& dt)
 {
-	if (keys[W]) { camera.MoveForward(); update = true;  }
-	if (keys[A]) { camera.MoveLeft(); update = true;  }
-	if (keys[S]) { camera.MoveBack(); update = true; }
-	if (keys[D]) { camera.MoveRight(); update = true; }
+	if (keys[W]) { camera.MoveForward(); }
+	if (keys[A]) { camera.MoveLeft(); }
+	if (keys[S]) { camera.MoveBack(); }
+	if (keys[D]) { camera.MoveRight(); }
 
-	camera.isUpdate = update;
-
-	if (update) 
+	if (camera.isUpdate) 
 	{
 		camera.Update(dt);
 	}
@@ -109,10 +107,9 @@ void Controller::MoveCamera(Camera& camera, const float& dt)
 
 			camera.Rotate(deltaX, deltaY);
 			
-			updated = true;
 		}
 	}
 
-	ChangeCameraPosition(camera, dt, updated);
+	ChangeCameraPosition(camera, dt);
 
 }
