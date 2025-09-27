@@ -11,7 +11,6 @@
 class Application
 {
 private:	
-	bool guiWindowIsFocused = false;
 	bool exitApplication = false;
 
 public:
@@ -42,14 +41,9 @@ private:
 
 	std::unique_ptr<vk::ContextBase> graphicsContext;
 
-	void DrawGui(VkCommandBuffer cmdBuffer);
-
 	void init();
 	void loop();
 	void exit();
-
-	void InitGui();
-	void CleanUpGui();
 
 };
 

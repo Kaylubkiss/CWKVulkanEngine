@@ -49,41 +49,6 @@ void Application::run()
 	Application::exit();
 }
 
-void Application::InitGui() 
-{
-	//IMGUI_CHECKVERSION();
-	//ImGui::CreateContext();
-
-	//ImGuiIO& io = ImGui::GetIO(); (void)io;
-	//io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard | ImGuiConfigFlags_NoMouseCursorChange;
-
-	//// Setup Platform/Renderer backends
-	//if (!ImGui_ImplSDL2_InitForVulkan(this->mWindow.sdl_ptr)) {
-
-	//	throw std::runtime_error("couldn't initialize imgui for vulkan!!!\n");
-	//	return;
-	//}
-
-
-	//ImGui_ImplVulkan_InitInfo init_info = {};
-	//init_info.Instance = this->m_instance;
-	//init_info.PhysicalDevice = mGraphicsSystem.PhysicalDevice();
-	//init_info.Device = mGraphicsSystem.LogicalDevice();
-	//init_info.QueueFamily = mGraphicsSystem.GraphicsQueue().family;
-	//init_info.Queue = mGraphicsSystem.GraphicsQueue().handle;
-	//init_info.PipelineCache = VK_NULL_HANDLE;
-	//init_info.DescriptorPool = mGraphicsU;
-	//init_info.RenderPass = this->m_renderPass;
-	//init_info.Subpass = 0;
-	//init_info.MinImageCount = 2;
-	//init_info.ImageCount = this->imageCount;
-	//init_info.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
-	//init_info.Allocator = nullptr;
-	//init_info.CheckVkResultFn = vk::util::check_vk_result;
-	//ImGui_ImplVulkan_Init(&init_info);
-}
-
-
 
 void Application::init() 
 {
@@ -166,40 +131,6 @@ void Application::SelectWorldObjects(const vk::Window& appWindow,
 
 }
 
-void Application::DrawGui(VkCommandBuffer cmdBuffer)
-{
-
-	//ImGui_ImplVulkan_NewFrame();
-	//ImGui_ImplSDL2_NewFrame();
-	//ImGui::NewFrame();
-
-	//const ImGuiViewport* main_viewport = ImGui::GetMainViewport();
-	//ImGui::SetNextWindowPos(ImVec2(main_viewport->WorkPos.x + main_viewport->WorkSize.x / 15, main_viewport->WorkPos.y + main_viewport->WorkSize.y / 10), ImGuiCond_Once);
-	//ImGui::SetNextWindowSize(ImVec2(main_viewport->WorkSize.x / 3, main_viewport->WorkSize.y / 2), ImGuiCond_Once);
-
-
-	//ImGuiWindowFlags window_flags = 0;
-	//window_flags |= ImGuiWindowFlags_MenuBar;
-	//// Main body of the Demo window starts here.
-	//if (!ImGui::Begin("Asset Log", nullptr, window_flags))
-	//{
-	//	// Early out if the window is collapsed, as an optimization
-	//	this->guiWindowIsFocused = ImGui::IsWindowFocused();
-	//	ImGui::End();
-	//	ImGui::Render();
-	//	ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), cmdBuffer);
-	//	return;
-	//}
-
-	//this->guiWindowIsFocused = ImGui::IsWindowFocused();
-	//
-	//ImGui::End();
-	//ImGui::Render();
-	//ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), cmdBuffer);
-
-
-}
-
 void Application::RequestExit() 
 {
 	this->exitApplication = true;
@@ -242,12 +173,6 @@ Application::~Application()
 }
 
 
-void Application::CleanUpGui() 
-{
-	ImGui_ImplVulkan_Shutdown();
-	ImGui_ImplSDL2_Shutdown();
-	ImGui::DestroyContext();
-}
 
 
 
