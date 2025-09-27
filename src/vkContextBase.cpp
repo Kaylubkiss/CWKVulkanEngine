@@ -65,10 +65,7 @@ namespace vk
 		userInterfaceCI.renderPass = this->mPipeline.mRenderPass;
 		this->UIOverlay = UserInterface(userInterfaceCI);
 
-		//TODO: a little janky way to initialize as more of mInfo is filled with derived classes.
-		mInfo.logicalDevice = device.logical;
-		mInfo.physicalDevice = device.physical;
-		mInfo.graphicsQueue = device.graphicsQueue;
+		FillOutGraphicsContextInfo();
 
 		this->isInitialized = true;
 
@@ -297,7 +294,13 @@ namespace vk
 		VK_CHECK_RESULT(vkCreateRenderPass(device.logical, &renderPassCI, nullptr, &this->mPipeline.mRenderPass));
 	}
 
-	
+	void ContextBase::FillOutGraphicsContextInfo() 
+	{
+		//TODO: a little janky way to initialize as more of mInfo is filled with derived classes.
+		mInfo.logicalDevice = device.logical;
+		mInfo.physicalDevice = device.physical;
+		mInfo.graphicsQueue = device.graphicsQueue;
+	}
 
 	//getter(s)
 	vk::Queue ContextBase::GraphicsQueue()

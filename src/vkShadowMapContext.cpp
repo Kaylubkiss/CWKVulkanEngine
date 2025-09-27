@@ -30,10 +30,7 @@ namespace vk
 		InitializeDescriptors();
 		InitializePipeline();
 
-		mInfo.descriptorPool = this->descriptorPool;
-		mInfo.descriptorSetLayout = this->sceneDescriptorLayout;
-		mInfo.samplerBinding = 2;
-		
+		FillOutGraphicsContextInfo();
 	}
 
 	ShadowMapScene::~ShadowMapScene() 
@@ -425,6 +422,15 @@ namespace vk
 		mInfo.sceneWriteDescriptorSets = writeDescriptorSets;
 
 		vkUpdateDescriptorSets(device.logical, (uint32_t)writeDescriptorSets.size(), writeDescriptorSets.data(), 0, nullptr);
+	}
+
+	void ShadowMapScene::FillOutGraphicsContextInfo() 
+	{
+		mInfo.descriptorPool = this->descriptorPool;
+		mInfo.descriptorSetLayout = this->sceneDescriptorLayout;
+		mInfo.samplerBinding = 2;
+		ContextBase::FillOutGraphicsContextInfo();
+
 	}
 
 	void ShadowMapScene::InitializeOffscreenFramebuffer() 

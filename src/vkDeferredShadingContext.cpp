@@ -24,9 +24,8 @@ namespace vk
 
 		//_Application->RequestExit();
 
-		mInfo.descriptorPool = this->descriptorPool;
-		mInfo.descriptorSetLayout = this->sceneDescriptorSetLayout;
-		mInfo.samplerBinding = 3;
+		FillOutGraphicsContextInfo();
+		
 	}
 
 
@@ -140,6 +139,15 @@ namespace vk
 		
 	}
 
+	void DeferredContext::FillOutGraphicsContextInfo() 
+	{
+		mInfo.descriptorPool = this->descriptorPool;
+		mInfo.descriptorSetLayout = this->sceneDescriptorSetLayout;
+		mInfo.samplerBinding = 3;
+
+		//fill out the rest of the struct.
+		ContextBase::FillOutGraphicsContextInfo();
+	}
 
 	void DeferredContext::InitializeDeferredRenderPass()
 	{

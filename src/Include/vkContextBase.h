@@ -93,6 +93,8 @@ namespace vk
 			//non-pure virtual functions
 			virtual void InitializeRenderPass();
 
+			virtual void FillOutGraphicsContextInfo();
+
 		private:
 			void CreateWindow();
 			void CreateInstance();

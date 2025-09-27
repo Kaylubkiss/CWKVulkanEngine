@@ -73,6 +73,7 @@ namespace vk
 		protected:
 			virtual void InitializePipeline(std::string vsFile = "", std::string fsFile = "") override;
 			virtual void InitializeDescriptors() override;
+			virtual void FillOutGraphicsContextInfo() override;
 
 			//class-specific methods.
 		private:

@@ -29,8 +29,7 @@ namespace vk
 		FreddyHeadScene::InitializeDescriptors();
 		FreddyHeadScene::InitializePipeline("blinnForward.vert", "blinnForward.frag");
 
-		mInfo.descriptorPool = this->descriptorPool;
-		mInfo.descriptorSetLayout = this->descriptorSetLayout;
+		FillOutGraphicsContextInfo();
 
 	}
 
@@ -136,6 +135,13 @@ namespace vk
 		};
 
 		mInfo.sceneWriteDescriptorSets = writeDescriptorSets;
+	}
+
+	void FreddyHeadScene::FillOutGraphicsContextInfo() 
+	{
+		mInfo.descriptorPool = this->descriptorPool;
+		mInfo.descriptorSetLayout = this->descriptorSetLayout;
+		ContextBase::FillOutGraphicsContextInfo();
 	}
 
 	void FreddyHeadScene::RecordCommandBuffers(vk::ObjectManager& objManager)

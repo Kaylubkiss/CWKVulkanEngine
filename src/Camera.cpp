@@ -105,7 +105,6 @@ void Camera::MoveBack()
 
 }
 
-
 void Camera::Rotate(const int& mouseX, const int& mouseY)
 {
 	isUpdate = true;
