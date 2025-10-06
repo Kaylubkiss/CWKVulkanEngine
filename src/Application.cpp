@@ -55,9 +55,9 @@ void Application::run()
 
 void Application::init() 
 {
-	this->graphicsContext = std::make_unique<vk::DeferredContext>();
+	this->graphicsContext = std::make_unique<vk::ShadowMapScene>();
 
-	vk::DeferredContext* freddyScene = static_cast<vk::DeferredContext*>(graphicsContext.get());
+	vk::ShadowMapScene* freddyScene = static_cast<vk::ShadowMapScene*>(graphicsContext.get());
 
 	this->mTextureManager.Init(this->graphicsContext.get());
 
@@ -151,8 +151,6 @@ void Application::loop()
 		mPhysics.Update(dt);
 
 		objectManager.Update(mPhysics.InterpFactor());
-
-		graphicsContext->RecordCommandBuffers(objectManager);
 
 		//sync this up with primary command buffer in graphics system...
 		graphicsContext->Render();

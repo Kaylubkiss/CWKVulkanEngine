@@ -73,88 +73,88 @@ namespace vk
 		memcpy(uniformBuffers.offscreen.mappedMemory, &uniformDataOffscreen, sizeof(uniformDataOffscreen));
 	}
 
-	void ShadowMapScene::RecordCommandBuffers(vk::ObjectManager& objManager) 
+	void ShadowMapScene::RecordCommandBuffers() 
 	{
+		vk::ObjectManager& objManager = _Application->ObjectManager();
+
+		VkCommandBuffer cmdBuffer = commandBuffers[currentFrame];
 		VkCommandBufferBeginInfo cmdBeginInfo = vk::init::CommandBufferBeginInfo();
 
 		VkClearValue clearValue[2];
 		VkViewport viewport;
 		VkRect2D scissor;
 
-		for (size_t i = 0; i < commandBuffers.size(); ++i) 
+		VK_CHECK_RESULT(vkBeginCommandBuffer(cmdBuffer, &cmdBeginInfo));
+
 		{
-			VK_CHECK_RESULT(vkBeginCommandBuffer(commandBuffers[i], &cmdBeginInfo));
+			clearValue[0].depthStencil = {1.f, 0};
 
-			{
-				clearValue[0].depthStencil = {1.f, 0};
+			VkRenderPassBeginInfo offscreenRenderPassInfo = vk::init::RenderPassBeginInfo();
+			offscreenRenderPassInfo.framebuffer = offscreenPass.frameBuffer;
+			offscreenRenderPassInfo.renderPass = offscreenPass.renderPass;
+			offscreenRenderPassInfo.renderArea.extent = {offscreenPass.width, offscreenPass.height};
+			offscreenRenderPassInfo.clearValueCount = 1;
+			offscreenRenderPassInfo.pClearValues = clearValue;
 
-				VkRenderPassBeginInfo offscreenRenderPassInfo = vk::init::RenderPassBeginInfo();
-				offscreenRenderPassInfo.framebuffer = offscreenPass.frameBuffer;
-				offscreenRenderPassInfo.renderPass = offscreenPass.renderPass;
-				offscreenRenderPassInfo.renderArea.extent = {offscreenPass.width, offscreenPass.height};
-				offscreenRenderPassInfo.clearValueCount = 1;
-				offscreenRenderPassInfo.pClearValues = clearValue;
+			vkCmdBeginRenderPass(cmdBuffer, &offscreenRenderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-				vkCmdBeginRenderPass(commandBuffers[i], &offscreenRenderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+			VkViewport offscreenViewport = vk::init::Viewport(offscreenPass.width, offscreenPass.height);
+			vkCmdSetViewport(cmdBuffer, 0, 1, &offscreenViewport);
 
-				VkViewport offscreenViewport = vk::init::Viewport(offscreenPass.width, offscreenPass.height);
-				vkCmdSetViewport(commandBuffers[i], 0, 1, &offscreenViewport);
+			VkRect2D offscreenScissor = vk::init::Rect2D(offscreenPass.width, offscreenPass.height);
+			vkCmdSetScissor(cmdBuffer, 0, 1, &offscreenScissor);
 
-				VkRect2D offscreenScissor = vk::init::Rect2D(offscreenPass.width, offscreenPass.height);
-				vkCmdSetScissor(commandBuffers[i], 0, 1, &offscreenScissor);
+			vkCmdSetDepthBias(cmdBuffer,
+				depthBiasConstant, 0.f, 
+				depthBiasSlope);
 
-				vkCmdSetDepthBias(commandBuffers[i], 
-					depthBiasConstant, 0.f, 
-					depthBiasSlope);
+			vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, offscreenPipeline);
 
-				vkCmdBindPipeline(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, offscreenPipeline);
+			vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mPipeline.layout, 0, 1, &descriptorSets.offscreen, 0, nullptr);
 
-				vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, mPipeline.layout, 0, 1, &descriptorSets.offscreen, 0, nullptr);
+			objManager.DrawObjects(cmdBuffer, mPipeline.layout);
 
-				objManager.DrawObjects(commandBuffers[i], mPipeline.layout);
+			vkCmdEndRenderPass(cmdBuffer);
 
-				vkCmdEndRenderPass(commandBuffers[i]);
-
-			}
-
-			{
-
-				clearValue[0].color = { 0.025, 0.025, 0.025, 1.f };
-				clearValue[1].depthStencil = {1.f, 0};
-
-				VkRenderPassBeginInfo sceneRenderPassInfo = vk::init::RenderPassBeginInfo();
-				sceneRenderPassInfo.framebuffer = swapChain.frameBuffers[i];
-				sceneRenderPassInfo.renderPass = mPipeline.mRenderPass;
-				sceneRenderPassInfo.renderArea.extent = currentExtent;
-				sceneRenderPassInfo.clearValueCount = 2;
-				sceneRenderPassInfo.pClearValues = clearValue;
-
-				vkCmdBeginRenderPass(commandBuffers[i], &sceneRenderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
-
-				VkViewport sceneViewport = vk::init::Viewport(currentExtent.width, currentExtent.height);
-				vkCmdSetViewport(commandBuffers[i], 0, 1, &sceneViewport);
-
-				VkRect2D sceneScissor = vk::init::Rect2D(currentExtent.width, currentExtent.height);
-				vkCmdSetScissor(commandBuffers[i], 0, 1, &sceneScissor);
-
-
-				if (!showDebug) {
-					vkCmdBindPipeline(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, mPipeline.handle);
-					vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, mPipeline.layout, 0, 1, &descriptorSets.scene, 0, nullptr);
-					objManager.DrawObjects(commandBuffers[i], mPipeline.layout);
-				}
-				else 
-				{
-					vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, mPipeline.layout, 0, 1, &descriptorSets.offscreenDebug, 0, nullptr);
-					vkCmdBindPipeline(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, offscreenDebugPipeline);
-					vkCmdDraw(commandBuffers[i], 3, 1, 0, 0);
-				}
-
-				vkCmdEndRenderPass(commandBuffers[i]);
-			}
-
-			VK_CHECK_RESULT(vkEndCommandBuffer(commandBuffers[i]));
 		}
+
+		{
+
+			clearValue[0].color = { 0.025, 0.025, 0.025, 1.f };
+			clearValue[1].depthStencil = {1.f, 0};
+
+			VkRenderPassBeginInfo sceneRenderPassInfo = vk::init::RenderPassBeginInfo();
+			sceneRenderPassInfo.framebuffer = swapChain.frameBuffers[currentFrame];
+			sceneRenderPassInfo.renderPass = mPipeline.mRenderPass;
+			sceneRenderPassInfo.renderArea.extent = currentExtent;
+			sceneRenderPassInfo.clearValueCount = 2;
+			sceneRenderPassInfo.pClearValues = clearValue;
+
+			vkCmdBeginRenderPass(cmdBuffer, &sceneRenderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+			VkViewport sceneViewport = vk::init::Viewport(currentExtent.width, currentExtent.height);
+			vkCmdSetViewport(cmdBuffer, 0, 1, &sceneViewport);
+
+			VkRect2D sceneScissor = vk::init::Rect2D(currentExtent.width, currentExtent.height);
+			vkCmdSetScissor(cmdBuffer, 0, 1, &sceneScissor);
+
+
+			if (!showDebug) {
+				vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mPipeline.handle);
+				vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mPipeline.layout, 0, 1, &descriptorSets.scene, 0, nullptr);
+				objManager.DrawObjects(cmdBuffer, mPipeline.layout);
+			}
+			else 
+			{
+				vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mPipeline.layout, 0, 1, &descriptorSets.offscreenDebug, 0,nullptr);
+				vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, offscreenDebugPipeline);
+				vkCmdDraw(cmdBuffer, 3, 1, 0, 0);
+			}
+
+			vkCmdEndRenderPass(cmdBuffer);
+		}
+
+		VK_CHECK_RESULT(vkEndCommandBuffer(cmdBuffer));
 
 	}
 
@@ -504,10 +504,11 @@ namespace vk
 
 	void ShadowMapScene::Render() 
 	{
-		//crappy update scene workaround;
+		ContextBase::PrepareFrame();
 		UpdateOffscreenUniforms();
 		UpdateSceneUniforms();
-		ContextBase::Render();
+		RecordCommandBuffers();
+		ContextBase::SubmitFrame();
 	}
 
 	void ShadowMapScene::ResizeWindow() 

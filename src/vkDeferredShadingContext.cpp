@@ -487,9 +487,9 @@ namespace vk
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device.logical, VK_NULL_HANDLE, 1, &pipelineCI, nullptr, &deferredMRTPipeline));
 	}
 
-	void DeferredContext::RecordCommandBuffers(vk::ObjectManager& objManager)
+	void DeferredContext::RecordCommandBuffers()
 	{
-		ContextBase::PrepareFrame();
+		ObjectManager& objManager = _Application->ObjectManager();
 
 		VkCommandBuffer cmdBuffer = commandBuffers[currentFrame];
 		VkCommandBufferBeginInfo cmdBufferBeginInfo = vk::init::CommandBufferBeginInfo();
@@ -497,8 +497,6 @@ namespace vk
 		//clear value count corresponds to the number of attachments.
 		VkClearValue clearValues[4]; //position, normal, albedo, depth;
 
-	/*	for (int i = 0; i < commandBuffers.size(); ++i) 
-		{*/
 		VK_CHECK_RESULT(vkBeginCommandBuffer(cmdBuffer, &cmdBufferBeginInfo));
 
 		//MRT rendering.
@@ -522,7 +520,6 @@ namespace vk
 
 			VkRect2D deferredMRTScissor = vk::init::Rect2D(deferredPass.width, deferredPass.height);
 			vkCmdSetScissor(cmdBuffer, 0, 1, &deferredMRTScissor);
-
 
 			vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, deferredMRTPipeline);
 
@@ -563,17 +560,17 @@ namespace vk
 
 		}
 
-		
-
+	
 		VK_CHECK_RESULT(vkEndCommandBuffer(cmdBuffer));
 
 	}
 
-
 	void DeferredContext::Render() 
 	{
+		ContextBase::PrepareFrame();
 		UpdateUniforms();
-		ContextBase::Render();
+		RecordCommandBuffers();
+		ContextBase::SubmitFrame();
 	}
 
 }

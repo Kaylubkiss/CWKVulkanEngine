@@ -53,8 +53,6 @@ namespace vk
 			Camera mCamera;
 			vk::UserInterface UIOverlay;
 
-			vk::ObjectManager* objManagerPtr = nullptr;
-
 			bool isInitialized = false;
 
 
@@ -65,7 +63,7 @@ namespace vk
 			virtual ~ContextBase();
 
 			//pure virtual function(s)
-			virtual void RecordCommandBuffers(vk::ObjectManager& objManager) = 0;
+			virtual void RecordCommandBuffers() = 0;
 			virtual void ResizeWindow();
 			virtual void InitializeScene(ObjectManager& objManager) = 0;
 			
@@ -73,8 +71,9 @@ namespace vk
 			
 			
 
-			//virtual function(s)
-			virtual void Render();
+			//public virtual function(s)
+			virtual void Render() = 0;
+			
 
 			//getter(s)
 			vk::Queue GraphicsQueue();
@@ -87,6 +86,7 @@ namespace vk
 
 			//operations
 			void WaitForDevice();
+			void SubmitFrame();
 
 		protected:
 

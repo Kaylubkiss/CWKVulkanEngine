@@ -53,7 +53,7 @@ namespace vk
 		DeferredContext();
 		~DeferredContext();
 
-		virtual void RecordCommandBuffers(vk::ObjectManager& objManager) override;
+		virtual void RecordCommandBuffers() override;
 		virtual void InitializeScene(ObjectManager& objManager) override;
 		void ResizeWindow() override;
 

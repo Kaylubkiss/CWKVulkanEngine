@@ -37,9 +37,7 @@ void main()
 	
 	float diff = max(dot(norm, lightDir), 0.0f);
 	vec3 diffuse = diff * ubo.lightAlbedo;
-	
-	//outColor = texture(texSampler, fragTexCoord);
-	//outColor.rgb = (ubo.lightAmbient + diffuse + specular) * outColor.rgb;
+
 	outColor.rgb = ubo.lightAmbient + diffuse + specular;
 	outColor.a = 1;
 }														

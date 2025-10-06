@@ -25,8 +25,6 @@ namespace vk
 		device.Initialize(instance, window.surface);
 
 
-
-
 		std::array<uint32_t, 2> queueFamilies = { device.graphicsQueue.family, device.presentQueue.family };
 		this->swapChain = SwapChain(&this->device, queueFamilies, window); //need window for its surface and viewport info.
 		ContextBase::InitializeRenderPass();
@@ -378,13 +376,8 @@ namespace vk
 
 	}
 
-
-
-	void ContextBase::Render()
+	void ContextBase::SubmitFrame() 
 	{
-		//wait for queue submission..
-		
-
 		VkSubmitInfo submitInfo = {};
 		const VkPipelineStageFlags pipelineWaitStages = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
 		submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -397,7 +390,7 @@ namespace vk
 		submitInfo.pCommandBuffers = &this->commandBuffers[currentFrame];
 		VK_CHECK_RESULT(vkQueueSubmit(this->device.graphicsQueue.handle, 1, &submitInfo, inFlightFences[currentFrame]))
 
-		VkPresentInfoKHR presentInfo{};
+			VkPresentInfoKHR presentInfo{};
 		presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
 		presentInfo.waitSemaphoreCount = 1;
 		presentInfo.pWaitSemaphores = &renderCompleteSemaphores[currentImageIndex];
@@ -416,6 +409,6 @@ namespace vk
 		}
 
 		currentFrame = (currentFrame + 1) % maxFramesInFlight;
-	}
 
+	}
 }

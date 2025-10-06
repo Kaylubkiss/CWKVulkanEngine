@@ -17,6 +17,7 @@ namespace vk
 		
 		//uniform(s)
 		this->sceneUniformBuffer = device.CreateBuffer(sizeof(sceneUniformData), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, (void*)&sceneUniformData);
+		this->sceneUniformBuffer.Map();
 
 		sceneUniformData.light.pos = {};
 		sceneUniformData.light.albedo = { 1.0, 1.0, 1.0 };
@@ -29,13 +30,15 @@ namespace vk
 		FreddyHeadScene::InitializeDescriptors();
 		FreddyHeadScene::InitializePipeline("blinnForward.vert", "blinnForward.frag");
 
-		FillOutGraphicsContextInfo();
+		
 
 	}
 
 	FreddyHeadScene::~FreddyHeadScene()
 	{
 		sceneUniformBuffer.Destroy();
+
+		defaultTexture.Destroy(device.logical);
 
 		vkDestroyDescriptorSetLayout(this->device.logical, this->descriptorSetLayout, nullptr);
 	}
@@ -102,6 +105,9 @@ namespace vk
 		descriptorPool = vk::init::DescriptorPool(device.logical, poolInfo);
 
 
+		FillOutGraphicsContextInfo();
+		defaultTexture = Texture(&mInfo, "myface.JPG");
+
 		std::vector<VkDescriptorSetLayoutBinding> dscSetLayoutBindings = {
 			//for the scene transform and kight transform
 			vk::init::DescriptorLayoutBinding(0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT),
@@ -144,50 +150,51 @@ namespace vk
 		ContextBase::FillOutGraphicsContextInfo();
 	}
 
-	void FreddyHeadScene::RecordCommandBuffers(vk::ObjectManager& objManager)
+	void FreddyHeadScene::RecordCommandBuffers()
 	{
-		for (size_t i = 0; i < this->commandBuffers.size(); ++i)
-		{
-			VkCommandBufferBeginInfo cmdBufferBeginInfo = {};
-			cmdBufferBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-			cmdBufferBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-			//everything else is default...
+		ObjectManager& objManager = _Application->ObjectManager();
 
-			//resetting command buffer should be implicit with reset flag set on this.
-			VK_CHECK_RESULT(vkBeginCommandBuffer(this->commandBuffers[i], &cmdBufferBeginInfo))
+		VkCommandBuffer cmdBuffer = commandBuffers[currentFrame];
 
-			VkRenderPassBeginInfo renderPassInfo = {};
-			renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-			renderPassInfo.renderPass = this->mPipeline.RenderPass();
-			renderPassInfo.framebuffer = this->swapChain.frameBuffers[i];
-			renderPassInfo.renderArea.offset = { 0,0 };
-			renderPassInfo.renderArea.extent = this->currentExtent;
+		VkCommandBufferBeginInfo cmdBufferBeginInfo = {};
+		cmdBufferBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+		cmdBufferBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+		//everything else is default...
 
-			VkClearValue clearColors[2] = {};
+		//resetting command buffer should be implicit with reset flag set on this.
+		VK_CHECK_RESULT(vkBeginCommandBuffer(cmdBuffer, &cmdBufferBeginInfo))
 
-			uLightObject& sceneLight = sceneUniformData.light;
-			clearColors[0].color = { sceneLight.ambient.x, sceneLight.ambient.y, sceneLight.ambient.z, 1.f };
-			clearColors[1].depthStencil = { 1.f, 0 };
+		VkRenderPassBeginInfo renderPassInfo = {};
+		renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+		renderPassInfo.renderPass = this->mPipeline.RenderPass();
+		renderPassInfo.framebuffer = this->swapChain.frameBuffers[currentFrame];
+		renderPassInfo.renderArea.offset = { 0,0 };
+		renderPassInfo.renderArea.extent = this->currentExtent;
 
-			renderPassInfo.clearValueCount = 2;
-			renderPassInfo.pClearValues = clearColors;
+		VkClearValue clearColors[2] = {};
 
-			vkCmdBeginRenderPass(this->commandBuffers[i], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+		uLightObject& sceneLight = sceneUniformData.light;
+		clearColors[0].color = { sceneLight.ambient.x, sceneLight.ambient.y, sceneLight.ambient.z, 1.f };
+		clearColors[1].depthStencil = { 1.f, 0 };
 
-			//this could be overwritten with the descriptor set of an object with a texture.
-			vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, mPipeline.layout, 0, 1, &sceneDescriptorSet, 0, nullptr);
+		renderPassInfo.clearValueCount = 2;
+		renderPassInfo.pClearValues = clearColors;
 
-			vkCmdBindPipeline(this->commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, this->mPipeline.Handle());
+		vkCmdBeginRenderPass(cmdBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-			vkCmdSetViewport(this->commandBuffers[i], 0, 1, &window.viewport);
-			vkCmdSetScissor(this->commandBuffers[i], 0, 1, &window.scissor);
+		//this could be overwritten with the descriptor set of an object with a texture.
+		vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mPipeline.layout, 0, 1, &sceneDescriptorSet, 0, nullptr);
 
-			objManager.DrawObjects(this->commandBuffers[i], this->mPipeline.Layout());
+		vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->mPipeline.Handle());
 
-			vkCmdEndRenderPass(this->commandBuffers[i]);
+		vkCmdSetViewport(cmdBuffer, 0, 1, &window.viewport);
+		vkCmdSetScissor(cmdBuffer, 0, 1, &window.scissor);
 
-			VK_CHECK_RESULT(vkEndCommandBuffer(this->commandBuffers[i]));
-		}
+		objManager.DrawObjects(cmdBuffer, this->mPipeline.Layout());
+
+		vkCmdEndRenderPass(cmdBuffer);
+
+		VK_CHECK_RESULT(vkEndCommandBuffer(cmdBuffer));
 
 	}
 
@@ -208,8 +215,10 @@ namespace vk
 
 	void FreddyHeadScene::Render() 
 	{
+		ContextBase::PrepareFrame();
 		UpdateUniforms();
-		ContextBase::Render();
+		RecordCommandBuffers();
+		ContextBase::SubmitFrame();
 	}
 
 	void FreddyHeadScene::InitializePipeline(std::string vsFile, std::string fsFile)
