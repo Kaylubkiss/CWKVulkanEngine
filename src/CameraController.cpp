@@ -33,7 +33,10 @@ void Controller::MoveCamera(Camera& camera, const float& dt)
 		
 		ImGuiIO& io = ImGui::GetIO();
 		ImGui_ImplSDL2_ProcessEvent(&e);
-
+		if (io.WantCaptureMouse || io.WantCaptureKeyboard) 
+		{
+			return;
+		}
 
 		if (e.type == SDL_QUIT)
 		{
@@ -100,7 +103,7 @@ void Controller::MoveCamera(Camera& camera, const float& dt)
 	
 		
 
-		if (e.button.button == SDL_BUTTON(SDL_BUTTON_LEFT) && e.button.state == SDL_PRESSED && !io.WantCaptureMouse)
+		if (e.button.button == SDL_BUTTON(SDL_BUTTON_LEFT) && e.button.state == SDL_PRESSED)
 		{
 			SDL_SetRelativeMouseMode(SDL_TRUE);
 		}
