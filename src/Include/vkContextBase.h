@@ -11,6 +11,7 @@ namespace vk
 
 	/* NOTE: JANK FORWARD DECLARATION, BECAUSE OF A DOUBLE INCLUDE PROBABLY */
 	class ObjectManager;
+	const uint32_t maxFramesInFlight = 2;
 
 	class ContextBase
 	{
@@ -20,40 +21,43 @@ namespace vk
 			//WARNING: context specific!!!
 
 			vk::Window window;
+			VkExtent2D currentExtent = { 0,0 };
 
 			VkInstance instance = VK_NULL_HANDLE;
 
 			vk::Device device;
 
-			vk::UserInterface UIOverlay;
 			
 			vk::HotReloader mHotReloader;
 
-			bool isInitialized = false;
 
 			VkDescriptorPool descriptorPool = VK_NULL_HANDLE;
 			
+			uint32_t currentFrame = 0;
+			uint32_t currentImageIndex = 0;
+
 			VkCommandPool commandPool = VK_NULL_HANDLE;
-			std::vector<VkCommandBuffer> commandBuffers;
+			std::array<VkCommandBuffer, maxFramesInFlight> commandBuffers;
 
-			VkExtent2D currentExtent = { 0,0 };
+			std::array<VkSemaphore, maxFramesInFlight> presentCompleteSemaphores;
+			std::array<VkSemaphore, maxFramesInFlight> renderCompleteSemaphores;
 
-			struct RenderingSemaphores
-			{
-				VkSemaphore presentComplete;
-				VkSemaphore renderComplete;
+			std::array<VkFence, maxFramesInFlight> inFlightFences;
 
-			} semaphores{};
-
-			VkSubmitInfo submitInfo = {};
-
-			VkPipelineStageFlags pipelineWaitStages = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
 
 			vk::SwapChain swapChain;
 
 			vk::Pipeline mPipeline;
 
 			float FOV = 45.f;
+			Camera mCamera;
+			vk::UserInterface UIOverlay;
+
+			vk::ObjectManager* objManagerPtr = nullptr;
+
+			bool isInitialized = false;
+
+
 
 		public: 
 
@@ -78,6 +82,8 @@ namespace vk
 			const VkPhysicalDevice PhysicalDevice() const;
 			const VkDevice LogicalDevice() const;
 			VkDescriptorPool DescriptorPool() const;
+
+			Camera& GetCamera();
 
 			//operations
 			void WaitForDevice();

@@ -24,32 +24,36 @@ namespace vk
 		
 		device.Initialize(instance, window.surface);
 
-		semaphores.presentComplete = vk::init::CreateSemaphore(this->device.logical);
-		semaphores.renderComplete = vk::init::CreateSemaphore(this->device.logical);
 
-		submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-		submitInfo.waitSemaphoreCount = 1;
-		submitInfo.pWaitSemaphores = &semaphores.presentComplete;
-		submitInfo.pWaitDstStageMask = &pipelineWaitStages;
-		submitInfo.signalSemaphoreCount = 1;
-		submitInfo.pSignalSemaphores = &semaphores.renderComplete;
+
 
 		std::array<uint32_t, 2> queueFamilies = { device.graphicsQueue.family, device.presentQueue.family };
 		this->swapChain = SwapChain(&this->device, queueFamilies, window); //need window for its surface and viewport info.
 		ContextBase::InitializeRenderPass();
 		this->swapChain.CreateFrameBuffers(window.viewport, this->mPipeline.mRenderPass);
 
+		if (swapChain.createInfo.minImageCount != maxFramesInFlight) 
+		{
+			throw std::runtime_error("your application surface doesn't seem to support two swapchain images");
+		}
+
+		for (int i = 0; i < maxFramesInFlight; ++i)
+		{
+			inFlightFences[i] = vk::init::CreateFence(device.logical);
+			presentCompleteSemaphores[i] = vk::init::CreateSemaphore(this->device.logical);
+			renderCompleteSemaphores[i] = vk::init::CreateSemaphore(this->device.logical);
+		}
+
 		this->commandPool = vk::init::CommandPool(device.logical, VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
+		//each swapchain should have its own command buffer
+		VkCommandBufferAllocateInfo cmdBufferAllocateInfo = vk::init::CommandBufferAllocateInfo();
+		cmdBufferAllocateInfo.commandBufferCount = (uint32_t)this->commandBuffers.size();
+		cmdBufferAllocateInfo.commandPool = this->commandPool;
+		cmdBufferAllocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+		VK_CHECK_RESULT(vkAllocateCommandBuffers(device.logical, &cmdBufferAllocateInfo, commandBuffers.data()));
 
 		VkSurfaceCapabilitiesKHR deviceCapabilities;
 		VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device.physical, window.surface, &deviceCapabilities));
-
-		//size of command buffer array is the same as swap chain image array
-		for (int i = 0; i < deviceCapabilities.minImageCount + 1; ++i)
-		{
-			this->commandBuffers.push_back(vk::init::CommandBuffer(device.logical, this->commandPool, VK_COMMAND_BUFFER_LEVEL_PRIMARY));
-		}
-
 		this->currentExtent = deviceCapabilities.currentExtent;
 
 		this->mHotReloader.appDevicePtr = this->device.logical;
@@ -66,6 +70,8 @@ namespace vk
 		this->UIOverlay = UserInterface(userInterfaceCI);
 
 		FillOutGraphicsContextInfo();
+
+		this->mCamera = Camera({ 0.f, 0.f, 10.f }, { 0.f, 0.f, -1.f }, { 0,1,0 });
 
 		this->isInitialized = true;
 
@@ -85,8 +91,13 @@ namespace vk
 		vkDestroyCommandPool(device.logical, this->commandPool, nullptr);
 
 		//semaphores
-		vkDestroySemaphore(this->device.logical, semaphores.presentComplete, nullptr);
-		vkDestroySemaphore(this->device.logical, semaphores.renderComplete, nullptr);
+		for (int i = 0; i < maxFramesInFlight; ++i) 
+		{
+			vkDestroySemaphore(this->device.logical, presentCompleteSemaphores[i], nullptr);
+			vkDestroySemaphore(this->device.logical, renderCompleteSemaphores[i], nullptr);
+
+			vkDestroyFence(device.logical, inFlightFences[i], nullptr);
+		}
 
 		device.Destroy();
 		
@@ -328,6 +339,11 @@ namespace vk
 		return this->descriptorPool;
 	}
 
+	Camera& ContextBase::GetCamera()
+	{
+		return this->mCamera;
+	}
+
 
 	GraphicsContextInfo ContextBase::GetGraphicsContextInfo() 
 	{
@@ -345,53 +361,61 @@ namespace vk
 	void ContextBase::PrepareFrame() 
 	{
 		//add synchronization calls here.
+		vkWaitForFences(device.logical, 1, &inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
+		vkResetFences(device.logical, 1, &inFlightFences[currentFrame]);
+
+		VkResult result = vkAcquireNextImageKHR(device.logical, swapChain.handle, UINT64_MAX, presentCompleteSemaphores[currentFrame], (VkFence)nullptr, &currentImageIndex);
+
+		if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
+		{
+			ResizeWindow();
+			return;
+		}
+		else
+		{
+			VK_CHECK_RESULT(result);
+		}
+
 	}
+
+
 
 	void ContextBase::Render()
 	{
 		//wait for queue submission..
-		uint32_t imageIndex;
-		VkResult result = vkAcquireNextImageKHR(device.logical, swapChain.handle, UINT64_MAX, semaphores.presentComplete, (VkFence)nullptr, &imageIndex);
+		
 
-		if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
-		{
-			ResizeWindow();
-			return;
-		}
-		else 
-		{
-			assert(result == VK_SUCCESS);
-		}
-
+		VkSubmitInfo submitInfo = {};
+		const VkPipelineStageFlags pipelineWaitStages = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+		submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+		submitInfo.waitSemaphoreCount = 1;
+		submitInfo.pWaitSemaphores = &presentCompleteSemaphores[currentFrame];
+		submitInfo.pWaitDstStageMask = &pipelineWaitStages;
+		submitInfo.signalSemaphoreCount = 1;
+		submitInfo.pSignalSemaphores = &renderCompleteSemaphores[currentImageIndex];
 		submitInfo.commandBufferCount = 1;
-		submitInfo.pCommandBuffers = &this->commandBuffers[imageIndex];
-
-		VK_CHECK_RESULT(vkQueueSubmit(this->device.graphicsQueue.handle, 1, &submitInfo, VK_NULL_HANDLE))
+		submitInfo.pCommandBuffers = &this->commandBuffers[currentFrame];
+		VK_CHECK_RESULT(vkQueueSubmit(this->device.graphicsQueue.handle, 1, &submitInfo, inFlightFences[currentFrame]))
 
 		VkPresentInfoKHR presentInfo{};
 		presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
-		
+		presentInfo.waitSemaphoreCount = 1;
+		presentInfo.pWaitSemaphores = &renderCompleteSemaphores[currentImageIndex];
+		presentInfo.pImageIndices = &currentImageIndex;
 		presentInfo.swapchainCount = 1;
 		presentInfo.pSwapchains = &this->swapChain.handle;
-		presentInfo.pImageIndices = &imageIndex;
-
-		presentInfo.waitSemaphoreCount = 1;
-		presentInfo.pWaitSemaphores = &semaphores.renderComplete;
-
-		result = vkQueuePresentKHR(this->device.presentQueue.handle, &presentInfo);
-
+		VkResult result = vkQueuePresentKHR(this->device.presentQueue.handle, &presentInfo);
 		if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
 		{
 			ResizeWindow();
 			return;
 		}
-		else 
+		else
 		{
-			assert(result == VK_SUCCESS);
+			VK_CHECK_RESULT(result);
 		}
 
-		//so we wait a bit here on the CPU for every submission. This is inefficient, but good enough for now.
-		VK_CHECK_RESULT(vkQueueWaitIdle(this->device.presentQueue.handle));
+		currentFrame = (currentFrame + 1) % maxFramesInFlight;
 	}
 
 }

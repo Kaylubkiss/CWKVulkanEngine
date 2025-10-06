@@ -25,11 +25,11 @@ namespace vk
 
 			void RenderUI(VkCommandBuffer cmdBuffer); //after main rendering
 
+			bool isInFocus = false;
 		private:
 			void InitializeUIDescriptorPool();
 			VkDevice contextLogicalDevice = VK_NULL_HANDLE;
 			VkDescriptorPool UIDescriptorPool = VK_NULL_HANDLE; //just for the sampler.
-			bool isInFocus = false;
 	};
 
 }

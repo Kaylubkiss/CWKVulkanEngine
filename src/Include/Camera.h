@@ -19,37 +19,7 @@ class Camera
 	public:
 		bool isUpdate = false;
 
-	protected:
-		class CamRayCastCallback : public RaycastCallback {
-
 	private:
-		Camera* mCamera = nullptr;
-
-	public:
-
-		void SetParent(Camera* camera)
-		{
-			mCamera = camera;
-		}
-
-		virtual decimal notifyRaycastHit(const RaycastInfo& info) {
-
-			assert(mCamera != NULL);
-
-			glm::vec3 cmPosition = mCamera->Position();
-			reactphysics3d::Vector3 cam_position = mCamera->mPhysicsComponent.rigidBody->getTransform().getPosition();
-
-			cam_position.y -= mCamera->mCapsule.mHeight * .5f;
-			
-			if ((cam_position - info.worldPoint).length() <= 0.1f)
-			{
-				mCamera->mPhysicsComponent.rayCastHit = true;
-				std::cout << "grounded.\n";
-			}
-			// Return a fraction of 1.0 to gather all hits
-			return decimal(0.0);
-		}
-	};
 		
 		glm::vec3 mEye;
 		glm::vec3 mUpVector;
@@ -57,21 +27,16 @@ class Camera
 		
 		float mPitch = 0.f;
 		float mYaw = 0.f;
-	
 		
-			
 		float constant_velocity = 15.f;
 
-		Capsule mCapsule;
-		PhysicsComponent mPhysicsComponent; 
-		CamRayCastCallback mCamRayCast;
 		reactphysics3d::Transform mMovementTransform;
 		reactphysics3d::Vector3 accumulatedVelocity = Vector3::zero();
 	
 		void UpdatePosition(reactphysics3d::Vector3& velocity, const float& dt);
 	
 	public:
-		Camera() : mEye(0.f), mUpVector(0.f), mCapsule() {}
+		Camera() : mEye(0.f), mUpVector(0.f) {}
 	
 		Camera(const glm::vec3& eye, const glm::vec3& lookDirection, const	glm::vec3& up);
 
@@ -87,13 +52,6 @@ class Camera
 		glm::mat4 LookAt(); 
 		glm::vec3 Position();
 		glm::vec3 ViewDirection();
-
-	private:
-
-
-		
-
-		void UpdateUniform();
 	
 };
 

@@ -17,14 +17,14 @@
 //the static analyzer of visual studio is bad.
 
 
-Camera& Application::GetCamera()
-{
-	return this->mCamera;
-}
-
 PhysicsSystem& Application::GetPhysics() 
 {
 	return this->mPhysics;
+}
+
+vk::ContextBase* Application::Context() {
+
+	return graphicsContext.get();
 }
 
 vk::TextureManager& Application::TextureManager() 
@@ -32,10 +32,13 @@ vk::TextureManager& Application::TextureManager()
 	return this->mTextureManager;
 }
 
-vk::ContextBase* Application::Context() {
-
-	return graphicsContext.get();
+vk::ObjectManager& Application::ObjectManager() 
+{
+	return this->objectManager;
 }
+
+
+
 
 void Application::run() 
 {
@@ -55,17 +58,16 @@ void Application::init()
 	this->graphicsContext = std::make_unique<vk::DeferredContext>();
 
 	vk::DeferredContext* freddyScene = static_cast<vk::DeferredContext*>(graphicsContext.get());
-	this->mCamera = Camera({ 0.f, 0.f, 10.f }, { 0.f, 0.f, -1.f } , { 0,1,0 });
 
 	this->mTextureManager.Init(this->graphicsContext.get());
 
-	this->mObjectManager.Init(
+	this->objectManager.Init(
 		&this->mTextureManager, 
 		graphicsContext.get()->PhysicalDevice(), 
 		graphicsContext.get()->LogicalDevice()
 	);
 	
-	graphicsContext->InitializeScene(mObjectManager);
+	graphicsContext->InitializeScene(objectManager);
 	
 	mTime = Timer(SDL_GetPerformanceCounter());
 }
@@ -144,13 +146,13 @@ void Application::loop()
 	{	
 		double dt = mTime.CalculateDeltaTime();
 
-		Controller::MoveCamera(mCamera, dt);
+		Controller::MoveCamera(graphicsContext->GetCamera() , dt);
 
 		mPhysics.Update(dt);
 
-		this->mObjectManager.Update(mPhysics.InterpFactor());
+		objectManager.Update(mPhysics.InterpFactor());
 
-		graphicsContext->RecordCommandBuffers(this->mObjectManager);
+		graphicsContext->RecordCommandBuffers(objectManager);
 
 		//sync this up with primary command buffer in graphics system...
 		graphicsContext->Render();
@@ -164,7 +166,7 @@ void Application::loop()
 void Application::exit()
 {
 	mTextureManager.Destroy(graphicsContext->LogicalDevice());
-	mObjectManager.Destroy(graphicsContext->LogicalDevice());
+	objectManager.Destroy(graphicsContext->LogicalDevice());
 }
 
 

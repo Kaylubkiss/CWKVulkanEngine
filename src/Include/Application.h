@@ -24,20 +24,19 @@ public:
 	void SelectWorldObjects(const vk::Window& appWindow,
 							Camera& camera, const uTransformObject& uTransform, PhysicsSystem& physics);
 
-	Camera& GetCamera();
 	PhysicsSystem& GetPhysics();
 	vk::TextureManager& TextureManager();
+	vk::ObjectManager& ObjectManager();
 
 	vk::ContextBase* Context();
 
 private:
 
 	Timer mTime;
-	Camera mCamera;
 	PhysicsSystem mPhysics;
 
 	vk::TextureManager mTextureManager;
-	vk::ObjectManager mObjectManager;
+	vk::ObjectManager objectManager;
 
 	std::unique_ptr<vk::ContextBase> graphicsContext;
 

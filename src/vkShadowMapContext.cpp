@@ -53,13 +53,13 @@ namespace vk
 	{
 		uniformDataScene.transform = 
 		{
-			_Application->GetCamera().LookAt(),
+			mCamera.LookAt(),
 			glm::perspective(glm::radians(45.f), (float)window.viewport.width / window.viewport.height, 0.1f, 1000.f) 
 		};
 		uniformDataScene.transform.proj[1][1] *= -1.f;
 		uniformDataScene.depthBiasMVP = uniformDataOffscreen.depthVP;
 
-		uniformDataScene.camPos = _Application->GetCamera().Position();
+		uniformDataScene.camPos = mCamera.Position();
 		memcpy(uniformBuffers.scene.mappedMemory, (void*)(&uniformDataScene), sizeof(uniformDataScene));
 	}
 

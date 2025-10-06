@@ -98,6 +98,8 @@ namespace vk
 
 		VkRect2D Rect2D(uint32_t width, uint32_t height, int32_t offset_x = 0, int32_t offset_y = 0);
 
+		VkCommandBufferAllocateInfo CommandBufferAllocateInfo();
+
 		//special engine-specific resources
 		VkImage CreateImage
 		(

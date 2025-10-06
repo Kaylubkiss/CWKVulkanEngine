@@ -12,7 +12,7 @@ namespace vk {
 		ImGui::CreateContext();
 
 		ImGuiIO& io = ImGui::GetIO(); (void)io;
-		io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard | ImGuiConfigFlags_NoMouseCursorChange;
+		io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard | ImGuiConfigFlags_NoMouseCursorChange ;
 
 		if (!ImGui_ImplSDL2_InitForVulkan(initInfo.contextWindow)) {
 
@@ -82,16 +82,15 @@ namespace vk {
 		//	ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), cmdBuffer);
 		//	return;
 		//}
-
-		isInFocus = ImGui::IsWindowFocused();
-		
-		ImGui::ShowDemoWindow();
-	
+		bool open = true;
+		ImGui::ShowDemoWindow(&open);
 		ImGui::Render();
 
 
 		ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), cmdBuffer);
 
 	}
+
+
 
 }

@@ -193,16 +193,15 @@ namespace vk
 
 	void FreddyHeadScene::UpdateUniforms() 
 	{
-		Camera& appCamera = _Application->GetCamera();
 		//uniform transform for objects of default pipeline.
 		this->sceneUniformData.transform = {
-			appCamera.LookAt(), //view
+			mCamera.LookAt(), //view
 			glm::perspective(glm::radians(45.f), (float)window.viewport.width / window.viewport.height, 0.1f, 1000.f) //proj
 		};
 
 		this->sceneUniformData.transform.proj[1][1] *= -1.f;
 
-		this->sceneUniformData.camPos = appCamera.Position();
+		this->sceneUniformData.camPos = mCamera.Position();
 
 		memcpy(this->sceneUniformBuffer.mappedMemory, &this->sceneUniformData, sizeof(sceneUniformData));
 	}

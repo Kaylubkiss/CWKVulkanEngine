@@ -6,15 +6,13 @@
 Camera::Camera(const glm::vec3& eye, const glm::vec3& lookDirection, const glm::vec3& up) : mEye(eye), mLookDir(lookDirection), mUpVector(up) 
 {
 
-	this->mCapsule = { .5f, 5.f };
-
 	glm::mat4 lookAt = Camera::LookAt();
 
 	this->mMovementTransform.setFromOpenGL(&lookAt[0].x);
 
 	reactphysics3d::Vector3 nPosition = this->mMovementTransform.getPosition();
 	
-	this->mMovementTransform.setPosition({ nPosition.x, nPosition.y - mCapsule.mHeight * .5f, nPosition.z });
+	this->mMovementTransform.setPosition({ nPosition.x, nPosition.y, nPosition.z });
 
 
 }
@@ -58,14 +56,13 @@ void Camera::Update(const float& dt)
 	Camera::UpdatePosition(this->accumulatedVelocity, dt);
 	
 	reactphysics3d::Vector3 currTransform = this->mMovementTransform.getPosition();
-	this->mEye = glm::vec3(-currTransform.x, -(currTransform.y + .5f * mCapsule.mHeight), -currTransform.z);
+	this->mEye = glm::vec3(-currTransform.x, -currTransform.y, -currTransform.z);
 	
 	this->accumulatedVelocity = reactphysics3d::Vector3::zero();
 
 	isUpdate = false;
 	
 }
-
 
 void Camera::MoveLeft() 
 {
@@ -78,7 +75,6 @@ void Camera::MoveLeft()
 
 void Camera::MoveRight() 
 {
-	//TODO
 	isUpdate = true;
 	
 	reactphysics3d::Vector3 velocity = -reactphysics3d::Vector3(mLookDir.x, 0, mLookDir.z).cross({mUpVector.x, mUpVector.y, mUpVector.z});

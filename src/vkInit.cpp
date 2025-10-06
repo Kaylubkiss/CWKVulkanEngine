@@ -691,6 +691,13 @@ namespace vk
 
 		}
 
+		VkCommandBufferAllocateInfo CommandBufferAllocateInfo() {
+
+			VkCommandBufferAllocateInfo nInfo = {};
+			nInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+			return nInfo;
+		}
+
 		VkBufferCreateInfo BufferCreateInfo(VkBufferUsageFlags usageFlags, VkDeviceSize size) {
 
 			VkBufferCreateInfo nInfo = {};

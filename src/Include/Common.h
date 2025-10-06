@@ -27,8 +27,6 @@
 
 #include <SDL2/SDL.h>
 
-class Application; //forward declare class.
-
 
 
 
