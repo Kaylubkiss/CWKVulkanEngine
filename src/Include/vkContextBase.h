@@ -5,6 +5,7 @@
 #include "HotReloader.h"
 #include "vkDevice.h"
 #include "UserInterface.h"
+#include "Camera.h"
 
 namespace vk
 {
@@ -20,40 +21,41 @@ namespace vk
 			//WARNING: context specific!!!
 
 			vk::Window window;
+			VkExtent2D currentExtent = { 0,0 };
 
 			VkInstance instance = VK_NULL_HANDLE;
 
 			vk::Device device;
 
-			vk::UserInterface UIOverlay;
 			
 			vk::HotReloader mHotReloader;
 
-			bool isInitialized = false;
 
 			VkDescriptorPool descriptorPool = VK_NULL_HANDLE;
 			
+			uint32_t currentFrame = 0;
+			uint32_t currentImageIndex = 0;
+
 			VkCommandPool commandPool = VK_NULL_HANDLE;
-			std::vector<VkCommandBuffer> commandBuffers;
+			std::array<VkCommandBuffer, maxFramesInFlight> commandBuffers;
 
-			VkExtent2D currentExtent = { 0,0 };
+			std::array<VkSemaphore, maxFramesInFlight> presentCompleteSemaphores;
+			std::array<VkSemaphore, maxFramesInFlight> renderCompleteSemaphores;
 
-			struct RenderingSemaphores
-			{
-				VkSemaphore presentComplete;
-				VkSemaphore renderComplete;
+			std::array<VkFence, maxFramesInFlight> inFlightFences;
 
-			} semaphores{};
-
-			VkSubmitInfo submitInfo = {};
-
-			VkPipelineStageFlags pipelineWaitStages = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
 
 			vk::SwapChain swapChain;
 
 			vk::Pipeline mPipeline;
 
 			float FOV = 45.f;
+			Camera mCamera;
+			vk::UserInterface UIOverlay;
+
+			bool isInitialized = false;
+
+
 
 		public: 
 
@@ -61,7 +63,8 @@ namespace vk
 			virtual ~ContextBase();
 
 			//pure virtual function(s)
-			virtual void RecordCommandBuffers(vk::ObjectManager& objManager) = 0;
+			virtual void RecordCommandBuffers() = 0;
+			virtual void UpdateUI();
 			virtual void ResizeWindow();
 			virtual void InitializeScene(ObjectManager& objManager) = 0;
 			
@@ -69,8 +72,9 @@ namespace vk
 			
 			
 
-			//virtual function(s)
-			virtual void Render();
+			//public virtual function(s)
+			virtual void Render() = 0;
+			
 
 			//getter(s)
 			vk::Queue GraphicsQueue();
@@ -79,8 +83,11 @@ namespace vk
 			const VkDevice LogicalDevice() const;
 			VkDescriptorPool DescriptorPool() const;
 
+			Camera& GetCamera();
+
 			//operations
 			void WaitForDevice();
+			void SubmitFrame();
 
 		protected:
 
@@ -93,13 +100,9 @@ namespace vk
 			//non-pure virtual functions
 			virtual void InitializeRenderPass();
 
+			virtual void FillOutGraphicsContextInfo();
+
 		private:
-			VkDevice CreateLogicalDevice(const VkPhysicalDevice& p_device, uint32_t graphicsFamily, uint32_t presentFamily);
-
-			void FindQueueFamilies(const VkSurfaceKHR& windowSurface);
-
-			void EnumeratePhysicalDevices();
-
 			void CreateWindow();
 			void CreateInstance();
 	};

@@ -1,5 +1,4 @@
 #include <iostream>
-#include "ApplicationGlobal.h"
 #include <filesystem>
 
 static void Locatecwd()

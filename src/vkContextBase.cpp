@@ -1,7 +1,6 @@
 #include "vkContextBase.h"
 #include "vkUtility.h"
 #include "vkInit.h"
-#include "ApplicationGlobal.h"
 #include "ObjectManager.h"
 #include "HotReloader.h"
 #include <SDL2/SDL_vulkan.h>
@@ -14,52 +13,43 @@ namespace vk
 	{
 		assert(_Application != NULL);
 
-		ContextBase::CreateWindow();
-		ContextBase::CreateInstance();
+		CreateWindow();
+		CreateInstance();
 
 		if (SDL_Vulkan_CreateSurface(window.sdl_ptr, instance, &window.surface) != SDL_TRUE)
 		{
 			throw std::runtime_error("could not create window surface! " + std::string(SDL_GetError()));
 		}
 		
-		ContextBase::EnumeratePhysicalDevices();
-		vkGetPhysicalDeviceMemoryProperties(device.physical, &device.memoryProperties);
-
-		ContextBase::FindQueueFamilies(window.surface);
-
-		this->device.logical = ContextBase::CreateLogicalDevice(this->device.physical, device.graphicsQueue.family, device.presentQueue.family);
-
-		vkGetDeviceQueue(device.logical, device.graphicsQueue.family, 0, &device.graphicsQueue.handle);
-		vkGetDeviceQueue(device.logical, device.presentQueue.family, 0, &device.presentQueue.handle);
-		vkGetDeviceQueue(device.logical, device.transferQueue.family, 0, &device.transferQueue.handle);
-
-
-		semaphores.presentComplete = vk::init::CreateSemaphore(this->device.logical);
-		semaphores.renderComplete = vk::init::CreateSemaphore(this->device.logical);
-
-		submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-		submitInfo.waitSemaphoreCount = 1;
-		submitInfo.pWaitSemaphores = &semaphores.presentComplete;
-		submitInfo.pWaitDstStageMask = &pipelineWaitStages;
-		submitInfo.signalSemaphoreCount = 1;
-		submitInfo.pSignalSemaphores = &semaphores.renderComplete;
+		device.Initialize(instance, window.surface);
 
 		std::array<uint32_t, 2> queueFamilies = { device.graphicsQueue.family, device.presentQueue.family };
 		this->swapChain = SwapChain(&this->device, queueFamilies, window); //need window for its surface and viewport info.
 		ContextBase::InitializeRenderPass();
 		this->swapChain.CreateFrameBuffers(window.viewport, this->mPipeline.mRenderPass);
 
+		if (swapChain.createInfo.minImageCount != maxFramesInFlight) 
+		{
+			throw std::runtime_error("your application surface doesn't seem to support two swapchain images");
+		}
+
+		for (int i = 0; i < maxFramesInFlight; ++i)
+		{
+			inFlightFences[i] = vk::init::CreateFence(device.logical);
+			presentCompleteSemaphores[i] = vk::init::CreateSemaphore(this->device.logical);
+			renderCompleteSemaphores[i] = vk::init::CreateSemaphore(this->device.logical);
+		}
+
 		this->commandPool = vk::init::CommandPool(device.logical, VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
+		//each swapchain should have its own command buffer
+		VkCommandBufferAllocateInfo cmdBufferAllocateInfo = vk::init::CommandBufferAllocateInfo();
+		cmdBufferAllocateInfo.commandBufferCount = (uint32_t)this->commandBuffers.size();
+		cmdBufferAllocateInfo.commandPool = this->commandPool;
+		cmdBufferAllocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+		VK_CHECK_RESULT(vkAllocateCommandBuffers(device.logical, &cmdBufferAllocateInfo, commandBuffers.data()));
 
 		VkSurfaceCapabilitiesKHR deviceCapabilities;
 		VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device.physical, window.surface, &deviceCapabilities));
-
-		//size of command buffer array is the same as swap chain image array
-		for (int i = 0; i < deviceCapabilities.minImageCount + 1; ++i)
-		{
-			this->commandBuffers.push_back(vk::init::CommandBuffer(device.logical, this->commandPool, VK_COMMAND_BUFFER_LEVEL_PRIMARY));
-		}
-
 		this->currentExtent = deviceCapabilities.currentExtent;
 
 		this->mHotReloader.appDevicePtr = this->device.logical;
@@ -75,10 +65,9 @@ namespace vk
 		userInterfaceCI.renderPass = this->mPipeline.mRenderPass;
 		this->UIOverlay = UserInterface(userInterfaceCI);
 
-		//TODO: a little janky way to initialize as more of mInfo is filled with derived classes.
-		mInfo.logicalDevice = device.logical;
-		mInfo.physicalDevice = device.physical;
-		mInfo.graphicsQueue = device.graphicsQueue;
+		FillOutGraphicsContextInfo();
+
+		this->mCamera = Camera({ 0.f, 0.f, 10.f }, { 0.f, 0.f, -1.f }, { 0,1,0 });
 
 		this->isInitialized = true;
 
@@ -98,10 +87,15 @@ namespace vk
 		vkDestroyCommandPool(device.logical, this->commandPool, nullptr);
 
 		//semaphores
-		vkDestroySemaphore(this->device.logical, semaphores.presentComplete, nullptr);
-		vkDestroySemaphore(this->device.logical, semaphores.renderComplete, nullptr);
+		for (int i = 0; i < maxFramesInFlight; ++i) 
+		{
+			vkDestroySemaphore(this->device.logical, presentCompleteSemaphores[i], nullptr);
+			vkDestroySemaphore(this->device.logical, renderCompleteSemaphores[i], nullptr);
 
-		vkDestroyDevice(this->device.logical, nullptr);
+			vkDestroyFence(device.logical, inFlightFences[i], nullptr);
+		}
+
+		device.Destroy();
 		
 		vkDestroySurfaceKHR(this->instance, this->window.surface, nullptr);
 		vkDestroyInstance(this->instance, nullptr);
@@ -217,6 +211,11 @@ namespace vk
 		}
 	}
 	
+	void ContextBase::UpdateUI() 
+	{
+		//do nothing, yaya!!!
+	}
+
 	void ContextBase::ResizeWindow() 
 	{
 		assert(_Application != NULL);
@@ -230,201 +229,6 @@ namespace vk
 		window.UpdateExtents(currentExtent);
 
 		this->swapChain.Recreate(this->mPipeline.mRenderPass, window);
-	}
-
-	void ContextBase::FindQueueFamilies(const VkSurfaceKHR& windowSurface)
-	{
-		assert(device.physical);
-
-		uint32_t queueFamilyPropertyCount;
-		std::vector<VkQueueFamilyProperties> queueFamilies;
-
-		//no use for memory properties right now.
-		VkPhysicalDeviceMemoryProperties physicalDeviceMemoryProperties;
-
-		vkGetPhysicalDeviceMemoryProperties(device.physical, &physicalDeviceMemoryProperties);
-
-		//similar maneuver to vkEnumeratePhysicalDevices
-		vkGetPhysicalDeviceQueueFamilyProperties(device.physical, &queueFamilyPropertyCount, nullptr);
-
-		if (queueFamilyPropertyCount == 0)
-		{
-			throw std::runtime_error("couldn't find any queue families...");
-		}
-
-		queueFamilies.resize(queueFamilyPropertyCount);
-
-		vkGetPhysicalDeviceQueueFamilyProperties(device.physical, &queueFamilyPropertyCount, queueFamilies.data());
-
-		bool setGraphicsQueue = false;
-		bool setPresentQueue = false;
-		bool setTransferQueue = false;
-
-		for (unsigned i = 0; i < queueFamilyPropertyCount; ++i)
-		{
-			if ((queueFamilies[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) != 0)
-			{
-				device.graphicsQueue.family = i;
-				setGraphicsQueue = true;
-			}
-
-
-			VkBool32 presentSupport = false;
-			VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceSupportKHR(device.physical, i, windowSurface, &presentSupport));
-
-			if (presentSupport)
-			{
-				device.presentQueue.family = i;
-				setPresentQueue = true;
-			}
-
-			if ((queueFamilies[i].queueFlags & VK_QUEUE_TRANSFER_BIT) != 0 &&
-				i != device.presentQueue.family && i != device.graphicsQueue.family)
-			{
-				device.transferQueue.family = i;
-				setTransferQueue = true;
-			}
-
-			if (setGraphicsQueue && setPresentQueue && setTransferQueue)
-			{
-				break;
-			}
-
-		}
-
-		if (!setGraphicsQueue || !setPresentQueue || !setTransferQueue) 
-		{
-			throw std::runtime_error("could not find all required queues on this device!\n");
-		}
-	}
-
-	void ContextBase::EnumeratePhysicalDevices()
-	{
-		assert(this->instance != VK_NULL_HANDLE);
-
-		std::vector<VkPhysicalDevice> gpus;
-		int g_index = -1;
-
-		//list the physical devices
-		uint32_t max_devices = 0;
-
-		//vulkan will ignor whatever was set in physicalDeviceCount and overwrite max_devices 
-		VK_CHECK_RESULT(vkEnumeratePhysicalDevices(this->instance, &max_devices, nullptr))
-
-		if (!max_devices)
-		{
-			throw std::runtime_error("could not find any GPUs to use!\n");
-		}
-
-		gpus.resize(max_devices);
-
-		VK_CHECK_RESULT(vkEnumeratePhysicalDevices(this->instance, &max_devices, gpus.data()))
-
-		for (size_t i = 0; i < max_devices; ++i)
-		{
-
-			VkPhysicalDeviceProperties properties;
-			VkPhysicalDeviceFeatures features;
-
-			vkGetPhysicalDeviceProperties(gpus[i], &properties);
-			vkGetPhysicalDeviceFeatures(gpus[i], &features);
-
-
-			if ((properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU || properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU ||
-				properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_CPU) &&
-				features.geometryShader && features.samplerAnisotropy)
-			{
-				std::cout << "picked device " << i << '\n';
-
-				g_index = i;
-				break;
-			}
-		}
-
-		if (g_index < 0)
-		{
-			throw std::runtime_error("could not find suitable physical device!");
-		}
-
-		device.physical = gpus[g_index];
-	}
-
-	VkDevice ContextBase::CreateLogicalDevice(const VkPhysicalDevice& p_device, uint32_t graphicsFamily, uint32_t presentFamily)
-	{
-		std::vector<VkDeviceQueueCreateInfo> deviceQueueCreateInfos; //presentation and graphics.
-
-		uint32_t uniqueQueueFamilies[2] = { graphicsFamily, presentFamily };
-
-		float queuePriority[1] = { 1.f };
-
-		if (graphicsFamily != presentFamily)
-		{
-			for (unsigned i = 0; i < 2; ++i)
-			{
-				VkDeviceQueueCreateInfo deviceQueueInfo = {}; //to be passed into deviceCreateInfo's struct members.
-				deviceQueueInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-				deviceQueueInfo.flags = 0;
-				deviceQueueInfo.pNext = nullptr;
-				deviceQueueInfo.queueFamilyIndex = uniqueQueueFamilies[i];
-				deviceQueueInfo.queueCount = 1;
-				//THIS IS APPARENTLY REQUIRED --> REFERENCE BOOK DID NOT SHOW THIS...
-				deviceQueueInfo.pQueuePriorities = queuePriority; //normalized values between 0.f to 1.f that ranks the priority of the queue in the array.
-
-				deviceQueueCreateInfos.push_back(deviceQueueInfo);
-			}
-		}
-		else {
-			VkDeviceQueueCreateInfo deviceQueueInfo = {}; //to be passed into deviceCreateInfo's struct members.
-			deviceQueueInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-			deviceQueueInfo.queueFamilyIndex = graphicsFamily;
-			deviceQueueInfo.queueCount = 1;
-			//THIS IS APPARENTLY REQUIRED --> REFERENCE BOOK DID NOT SHOW THIS...
-			deviceQueueInfo.pQueuePriorities = queuePriority; //normalized values between 0.f to 1.f that ranks the priority of the queue in the array.
-
-			deviceQueueCreateInfos.push_back(deviceQueueInfo);
-
-		}
-
-		//transfer queue bit.
-		VkDeviceQueueCreateInfo transferQueueInfo = {}; //to be passed into deviceCreateInfo's struct members.
-		transferQueueInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-		transferQueueInfo.queueFamilyIndex = device.transferQueue.family;
-		transferQueueInfo.queueCount = 1;
-		//THIS IS APPARENTLY REQUIRED --> REFERENCE BOOK DID NOT SHOW THIS...
-		transferQueueInfo.pQueuePriorities = queuePriority; //normalized values between 0.f to 1.f that ranks the priority of the queue in the array.
-
-		deviceQueueCreateInfos.push_back(transferQueueInfo);
-		
-		VkDeviceCreateInfo deviceCreateInfo = {};
-		deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-		deviceCreateInfo.flags = 0;
-		deviceCreateInfo.pNext = nullptr;
-
-
-		static const char* deviceExtensions[1] =
-		{
-			"VK_KHR_swapchain"
-		};
-
-		//maybe don't assume extensions are there!!!!	
-		deviceCreateInfo.enabledExtensionCount = static_cast<uint32_t>(std::size(deviceExtensions));
-		deviceCreateInfo.ppEnabledExtensionNames = deviceExtensions;
-
-		//won't do many other optional features for now.
-		VkPhysicalDeviceFeatures deviceFeatures = {};
-		deviceFeatures.geometryShader = VK_TRUE;
-		/*	deviceFeatures.tessellationShader = VK_TRUE;*/
-		deviceFeatures.samplerAnisotropy = VK_TRUE;
-
-		deviceCreateInfo.pEnabledFeatures = &deviceFeatures; //call vkGetPhysicalDeviceFeatures to set additional features.
-
-		deviceCreateInfo.pQueueCreateInfos = deviceQueueCreateInfos.data();
-		deviceCreateInfo.queueCreateInfoCount = (uint32_t)(deviceQueueCreateInfos.size());
-
-		VkDevice nLogicalDevice;
-		VK_CHECK_RESULT(vkCreateDevice(p_device, &deviceCreateInfo, nullptr, &nLogicalDevice));
-
-		return nLogicalDevice;
 	}
 
 	//initializers
@@ -502,7 +306,15 @@ namespace vk
 		VK_CHECK_RESULT(vkCreateRenderPass(device.logical, &renderPassCI, nullptr, &this->mPipeline.mRenderPass));
 	}
 
-	
+	void ContextBase::FillOutGraphicsContextInfo() 
+	{
+		//TODO: a little janky way to initialize as more of mInfo is filled with derived classes.
+		mInfo.logicalDevice = device.logical;
+		mInfo.physicalDevice = device.physical;
+		mInfo.graphicsQueue = device.graphicsQueue;
+
+		mInfo.contextUIPtr = &UIOverlay;
+	}
 
 	//getter(s)
 	vk::Queue ContextBase::GraphicsQueue()
@@ -530,6 +342,10 @@ namespace vk
 		return this->descriptorPool;
 	}
 
+	Camera& ContextBase::GetCamera()
+	{
+		return this->mCamera;
+	}
 
 	GraphicsContextInfo ContextBase::GetGraphicsContextInfo() 
 	{
@@ -547,53 +363,67 @@ namespace vk
 	void ContextBase::PrepareFrame() 
 	{
 		//add synchronization calls here.
-	}
+		vkWaitForFences(device.logical, 1, &inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
+		vkResetFences(device.logical, 1, &inFlightFences[currentFrame]);
 
-	void ContextBase::Render()
-	{
-		//wait for queue submission..
-		uint32_t imageIndex;
-		VkResult result = vkAcquireNextImageKHR(device.logical, swapChain.handle, UINT64_MAX, semaphores.presentComplete, (VkFence)nullptr, &imageIndex);
+		UIOverlay.Prepare();
+		if (!ImGui::Begin("CWKVulkanEngine"))
+		{
+			ImGui::End();
+		}
+		else 
+		{
+			UpdateUI();
+			ImGui::End();
+		}
+
+		VkResult result = vkAcquireNextImageKHR(device.logical, swapChain.handle, UINT64_MAX, presentCompleteSemaphores[currentFrame], (VkFence)nullptr, &currentImageIndex);
 
 		if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
 		{
 			ResizeWindow();
 			return;
 		}
-		else 
+		else
 		{
-			assert(result == VK_SUCCESS);
+			VK_CHECK_RESULT(result);
 		}
 
+	}
+
+	void ContextBase::SubmitFrame() 
+	{
+		VkSubmitInfo submitInfo = {};
+		const VkPipelineStageFlags pipelineWaitStages = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+		submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+		submitInfo.waitSemaphoreCount = 1;
+		submitInfo.pWaitSemaphores = &presentCompleteSemaphores[currentFrame];
+		submitInfo.pWaitDstStageMask = &pipelineWaitStages;
+		submitInfo.signalSemaphoreCount = 1;
+		submitInfo.pSignalSemaphores = &renderCompleteSemaphores[currentImageIndex];
 		submitInfo.commandBufferCount = 1;
-		submitInfo.pCommandBuffers = &this->commandBuffers[imageIndex];
+		submitInfo.pCommandBuffers = &this->commandBuffers[currentFrame];
+		VK_CHECK_RESULT(vkQueueSubmit(this->device.graphicsQueue.handle, 1, &submitInfo, inFlightFences[currentFrame]))
 
-		VK_CHECK_RESULT(vkQueueSubmit(this->device.graphicsQueue.handle, 1, &submitInfo, VK_NULL_HANDLE))
-
-		VkPresentInfoKHR presentInfo{};
+			VkPresentInfoKHR presentInfo{};
 		presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
-		
+		presentInfo.waitSemaphoreCount = 1;
+		presentInfo.pWaitSemaphores = &renderCompleteSemaphores[currentImageIndex];
+		presentInfo.pImageIndices = &currentImageIndex;
 		presentInfo.swapchainCount = 1;
 		presentInfo.pSwapchains = &this->swapChain.handle;
-		presentInfo.pImageIndices = &imageIndex;
-
-		presentInfo.waitSemaphoreCount = 1;
-		presentInfo.pWaitSemaphores = &semaphores.renderComplete;
-
-		result = vkQueuePresentKHR(this->device.presentQueue.handle, &presentInfo);
-
+		VkResult result = vkQueuePresentKHR(this->device.presentQueue.handle, &presentInfo);
 		if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
 		{
 			ResizeWindow();
 			return;
 		}
-		else 
+		else
 		{
-			assert(result == VK_SUCCESS);
+			VK_CHECK_RESULT(result);
 		}
 
-		//so we wait a bit here on the CPU for every submission. This is inefficient, but good enough for now.
-		VK_CHECK_RESULT(vkQueueWaitIdle(this->device.presentQueue.handle));
-	}
+		currentFrame = (currentFrame + 1) % maxFramesInFlight;
 
+	}
 }

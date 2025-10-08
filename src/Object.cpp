@@ -1,5 +1,4 @@
 #include "Object.h"
-#include "ApplicationGlobal.h"
 #include <fstream>
 #include <sstream>
 #include <algorithm>

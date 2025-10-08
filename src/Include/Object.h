@@ -1,11 +1,9 @@
 #pragma once
-//#include "Debug.h"
+
 #include "Physics.h"
-#include "vkBuffer.h"
 #include <iostream>
 #include <string>
 #include "vkMesh.h"
-#include "vkTexture.h"
 
 
 

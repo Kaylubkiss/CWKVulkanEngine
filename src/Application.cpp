@@ -1,5 +1,4 @@
 #include "Application.h"
-#include <iostream>
 #include "vkDebug.h"
 #include "vkInit.h"
 #include "Controller.h"
@@ -17,14 +16,14 @@
 //the static analyzer of visual studio is bad.
 
 
-Camera& Application::GetCamera()
-{
-	return this->mCamera;
-}
-
 PhysicsSystem& Application::GetPhysics() 
 {
 	return this->mPhysics;
+}
+
+vk::ContextBase* Application::Context() {
+
+	return graphicsContext.get();
 }
 
 vk::TextureManager& Application::TextureManager() 
@@ -32,10 +31,13 @@ vk::TextureManager& Application::TextureManager()
 	return this->mTextureManager;
 }
 
-vk::ContextBase* Application::Context() {
-
-	return graphicsContext.get();
+vk::ObjectManager& Application::ObjectManager() 
+{
+	return this->objectManager;
 }
+
+
+
 
 void Application::run() 
 {
@@ -49,58 +51,22 @@ void Application::run()
 	Application::exit();
 }
 
-void Application::InitGui() 
-{
-	//IMGUI_CHECKVERSION();
-	//ImGui::CreateContext();
-
-	//ImGuiIO& io = ImGui::GetIO(); (void)io;
-	//io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard | ImGuiConfigFlags_NoMouseCursorChange;
-
-	//// Setup Platform/Renderer backends
-	//if (!ImGui_ImplSDL2_InitForVulkan(this->mWindow.sdl_ptr)) {
-
-	//	throw std::runtime_error("couldn't initialize imgui for vulkan!!!\n");
-	//	return;
-	//}
-
-
-	//ImGui_ImplVulkan_InitInfo init_info = {};
-	//init_info.Instance = this->m_instance;
-	//init_info.PhysicalDevice = mGraphicsSystem.PhysicalDevice();
-	//init_info.Device = mGraphicsSystem.LogicalDevice();
-	//init_info.QueueFamily = mGraphicsSystem.GraphicsQueue().family;
-	//init_info.Queue = mGraphicsSystem.GraphicsQueue().handle;
-	//init_info.PipelineCache = VK_NULL_HANDLE;
-	//init_info.DescriptorPool = mGraphicsU;
-	//init_info.RenderPass = this->m_renderPass;
-	//init_info.Subpass = 0;
-	//init_info.MinImageCount = 2;
-	//init_info.ImageCount = this->imageCount;
-	//init_info.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
-	//init_info.Allocator = nullptr;
-	//init_info.CheckVkResultFn = vk::util::check_vk_result;
-	//ImGui_ImplVulkan_Init(&init_info);
-}
-
-
 
 void Application::init() 
 {
 	this->graphicsContext = std::make_unique<vk::DeferredContext>();
 
 	vk::DeferredContext* freddyScene = static_cast<vk::DeferredContext*>(graphicsContext.get());
-	this->mCamera = Camera({ 0.f, 0.f, 10.f }, { 0.f, 0.f, -1.f } , { 0,1,0 });
 
 	this->mTextureManager.Init(this->graphicsContext.get());
 
-	this->mObjectManager.Init(
+	this->objectManager.Init(
 		&this->mTextureManager, 
 		graphicsContext.get()->PhysicalDevice(), 
 		graphicsContext.get()->LogicalDevice()
 	);
 	
-	graphicsContext->InitializeScene(mObjectManager);
+	graphicsContext->InitializeScene(objectManager);
 	
 	mTime = Timer(SDL_GetPerformanceCounter());
 }
@@ -166,40 +132,6 @@ void Application::SelectWorldObjects(const vk::Window& appWindow,
 
 }
 
-void Application::DrawGui(VkCommandBuffer cmdBuffer)
-{
-
-	//ImGui_ImplVulkan_NewFrame();
-	//ImGui_ImplSDL2_NewFrame();
-	//ImGui::NewFrame();
-
-	//const ImGuiViewport* main_viewport = ImGui::GetMainViewport();
-	//ImGui::SetNextWindowPos(ImVec2(main_viewport->WorkPos.x + main_viewport->WorkSize.x / 15, main_viewport->WorkPos.y + main_viewport->WorkSize.y / 10), ImGuiCond_Once);
-	//ImGui::SetNextWindowSize(ImVec2(main_viewport->WorkSize.x / 3, main_viewport->WorkSize.y / 2), ImGuiCond_Once);
-
-
-	//ImGuiWindowFlags window_flags = 0;
-	//window_flags |= ImGuiWindowFlags_MenuBar;
-	//// Main body of the Demo window starts here.
-	//if (!ImGui::Begin("Asset Log", nullptr, window_flags))
-	//{
-	//	// Early out if the window is collapsed, as an optimization
-	//	this->guiWindowIsFocused = ImGui::IsWindowFocused();
-	//	ImGui::End();
-	//	ImGui::Render();
-	//	ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), cmdBuffer);
-	//	return;
-	//}
-
-	//this->guiWindowIsFocused = ImGui::IsWindowFocused();
-	//
-	//ImGui::End();
-	//ImGui::Render();
-	//ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), cmdBuffer);
-
-
-}
-
 void Application::RequestExit() 
 {
 	this->exitApplication = true;
@@ -213,13 +145,11 @@ void Application::loop()
 	{	
 		double dt = mTime.CalculateDeltaTime();
 
-		Controller::MoveCamera(mCamera, dt);
+		Controller::MoveCamera(graphicsContext->GetCamera() , dt);
 
 		mPhysics.Update(dt);
 
-		this->mObjectManager.Update(mPhysics.InterpFactor());
-
-		graphicsContext->RecordCommandBuffers(this->mObjectManager);
+		objectManager.Update(mPhysics.InterpFactor());
 
 		//sync this up with primary command buffer in graphics system...
 		graphicsContext->Render();
@@ -233,7 +163,7 @@ void Application::loop()
 void Application::exit()
 {
 	mTextureManager.Destroy(graphicsContext->LogicalDevice());
-	mObjectManager.Destroy(graphicsContext->LogicalDevice());
+	objectManager.Destroy(graphicsContext->LogicalDevice());
 }
 
 
@@ -242,12 +172,6 @@ Application::~Application()
 }
 
 
-void Application::CleanUpGui() 
-{
-	ImGui_ImplVulkan_Shutdown();
-	ImGui_ImplSDL2_Shutdown();
-	ImGui::DestroyContext();
-}
 
 
 

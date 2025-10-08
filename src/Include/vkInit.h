@@ -1,7 +1,7 @@
 #pragma once
 
-
 #include <vulkan/vulkan.h>
+#include <vector>
 
 namespace vk
 {
@@ -97,6 +97,8 @@ namespace vk
 		VkViewport Viewport(uint32_t width, uint32_t height, float minDepth = 0.f, float maxDepth = 1.f);
 
 		VkRect2D Rect2D(uint32_t width, uint32_t height, int32_t offset_x = 0, int32_t offset_y = 0);
+
+		VkCommandBufferAllocateInfo CommandBufferAllocateInfo();
 
 		//special engine-specific resources
 		VkImage CreateImage

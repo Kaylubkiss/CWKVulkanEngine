@@ -1,4 +1,5 @@
 #pragma once
+
 #include "Application.h"
 
 struct ApplicationManager

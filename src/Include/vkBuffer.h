@@ -34,8 +34,6 @@ namespace vk
 
 		void UnMap();
 
-		//TODO: void Map();
-
 	};
 }
 

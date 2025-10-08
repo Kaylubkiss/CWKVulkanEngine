@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Common.h"
+#include "vkTexture.h"
 
 namespace vk 
 {
@@ -23,13 +23,24 @@ namespace vk
 			~UserInterface() = default;
 			void Destroy();
 
-			void RenderUI(VkCommandBuffer cmdBuffer); //after main rendering
+			void Prepare();
+			void Render(VkCommandBuffer cmdBuffer); //after main rendering
 
+			//types of options
+			void CheckBox(std::string label, bool* condition);
+			void Slider(std::string label, glm::vec3& position, float min = -100, float max = 100);
+			void SeparatorText(std::string text);
+			void ComboBox();
+			void DisplayImages();
+			bool CollapsingHeader(std::string label);
+
+			void AddImage(const vk::Texture& texture);
 		private:
 			void InitializeUIDescriptorPool();
 			VkDevice contextLogicalDevice = VK_NULL_HANDLE;
 			VkDescriptorPool UIDescriptorPool = VK_NULL_HANDLE; //just for the sampler.
-
+			uint32_t max_textures = 100;
+			std::vector<VkDescriptorSet> displayTextures;
 	};
 
 }

@@ -1,6 +1,7 @@
 #include "vkInit.h"
 #include "vkUtility.h"
 #include "vkDebug.h"
+#include "Vertex.h"
 #include <SDL2/SDL_vulkan.h>
 
 namespace vk
@@ -689,6 +690,13 @@ namespace vk
 
 			return nRect;
 
+		}
+
+		VkCommandBufferAllocateInfo CommandBufferAllocateInfo() {
+
+			VkCommandBufferAllocateInfo nInfo = {};
+			nInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+			return nInfo;
 		}
 
 		VkBufferCreateInfo BufferCreateInfo(VkBufferUsageFlags usageFlags, VkDeviceSize size) {

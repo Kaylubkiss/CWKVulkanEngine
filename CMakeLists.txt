@@ -32,15 +32,23 @@ set(VULKAN_ENGINE_SRC src/vkDebug.cpp
 					  src/vkBuffer.cpp
 					  src/vkTexture.cpp
 					  src/vkPipeline.cpp
-					  src/vkFreddyHeadContext.cpp
 					  src/vkDevice.cpp
-					  src/vkShadowMapContext.cpp
-					  src/vkDeferredShadingContext.cpp
 					  src/vkMesh.cpp
 )
 
+set(VULKAN_ENGINE_SCENES_SOURCE 
+src/vkFreddyHeadContext.cpp
+src/vkDeferredShadingContext.cpp
+src/vkShadowMapContext.cpp)
+
+
+
+
 source_group("Source Files/VulkanSources" FILES ${VULKAN_ENGINE_SRC})			
-list(APPEND SOURCE_FILES ${VULKAN_ENGINE_SRC})		
+list(APPEND SOURCE_FILES ${VULKAN_ENGINE_SRC})
+
+source_group("Source Files/VulkanSources/Scenes" FILES ${VULKAN_ENGINE_SCENES_SOURCE})
+list(APPEND SOURCE_FILES ${VULKAN_ENGINE_SCENES_SOURCE})	
 
 set(IM_GUI_FILES src/External/libraries/imgui/imgui_demo.cpp
                    src/External/libraries/imgui/imgui_draw.cpp
@@ -94,13 +102,21 @@ src/Include/vkMesh.h
 src/Include/vkPipeline.h
 src/Include/vkDevice.h
 src/Include/vkShadowMap.h
-src/Include/vkFreddyHeadContext.h
 src/Include/vkDevice.h
+)
+
+
+set(VULKAN_ENGINE_SCENES_HEADERS
+src/Include/vkFreddyHeadContext.h
+src/Include/vkDeferredShadingContext.h
 src/Include/vkShadowMapContext.h
-src/Include/vkDeferredShadingContext.h)
+)
 
 source_group("Header Files/VulkanHeaders" FILES ${VULKAN_ENGINE_HEADERS})	
 list(APPEND HEADER_FILES ${VULKAN_ENGINE_HEADERS})
+
+source_group("Header Files/VulkanHeaders/Scenes" FILES ${VULKAN_ENGINE_SCENES_HEADERS})
+list(APPEND HEADER_FILES ${VULKAN_ENGINE_SCENES_HEADERS})	
 
 set(SHADER_FILES
 #blinn-phong

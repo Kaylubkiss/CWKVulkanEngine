@@ -50,7 +50,7 @@ namespace vk
 		VkSurfaceCapabilitiesKHR deviceCapabilities;
 		VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(devicePtr->physical, appWindow.surface, &deviceCapabilities));
 
-		uint32_t imageCount = deviceCapabilities.minImageCount + 1;
+		uint32_t imageCount = deviceCapabilities.minImageCount < 2 ? deviceCapabilities.minImageCount + 1 : 2;
 
 		if (deviceCapabilities.maxImageCount > 0 && imageCount > deviceCapabilities.maxImageCount)
 		{

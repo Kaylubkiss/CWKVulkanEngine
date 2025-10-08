@@ -3,9 +3,10 @@
 
 #include <vulkan/vulkan.h>
 #include "vkTexture.h"
-#include <vector>
 #include "vkContextBase.h"
+#include <vector>
 #include <mutex>
+#include "Object.h"
 
 namespace vk 
 {
@@ -28,6 +29,8 @@ namespace vk
 			const Texture& GetTextureObject(size_t index) const;
 
 			void BindTextureToObject(const std::string& fileName, Object& obj);
+
+			const std::vector<vk::Texture>& Textures() const;
 
 		private:
 

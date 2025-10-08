@@ -28,13 +28,14 @@ namespace vk
 			FreddyHeadScene();
 			~FreddyHeadScene();
 
-			virtual void RecordCommandBuffers(vk::ObjectManager& objManager) override;
+			virtual void RecordCommandBuffers() override;
 			virtual void InitializeScene(ObjectManager& objManager) override;
 			virtual void Render();
 
 		protected:
 			virtual void InitializePipeline(std::string vsFile, std::string fsFile) override;
 			virtual void InitializeDescriptors() override;
+			virtual void FillOutGraphicsContextInfo() override;
 
 		private:
 			void UpdateUniforms();

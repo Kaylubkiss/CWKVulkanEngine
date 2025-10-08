@@ -12,7 +12,7 @@ namespace vk {
 		ImGui::CreateContext();
 
 		ImGuiIO& io = ImGui::GetIO(); (void)io;
-		io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard | ImGuiConfigFlags_NoMouseCursorChange;
+		io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard | ImGuiConfigFlags_NoMouseCursorChange ;
 
 		if (!ImGui_ImplSDL2_InitForVulkan(initInfo.contextWindow)) {
 
@@ -40,6 +40,11 @@ namespace vk {
 
 	void UserInterface::Destroy() 
 	{
+		for (auto texture : displayTextures) 
+		{
+			ImGui_ImplVulkan_RemoveTexture(texture);
+		}
+
 		ImGui_ImplVulkan_Shutdown();
 		ImGui_ImplSDL2_Shutdown();
 		ImGui::DestroyContext();
@@ -53,42 +58,82 @@ namespace vk {
 			vk::init::DescriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1) 
 		};
 
-		VkDescriptorPoolCreateInfo descriptorPoolCI = vk::init::DescriptorPoolCreateInfo(poolSizes, 2); //2 for swapchain image count. 
+		VkDescriptorPoolCreateInfo descriptorPoolCI = vk::init::DescriptorPoolCreateInfo(poolSizes, maxFramesInFlight * max_textures); //2 for swapchain image count. 
 
 		VK_CHECK_RESULT(vkCreateDescriptorPool(this->contextLogicalDevice, &descriptorPoolCI, nullptr, &UIDescriptorPool));
 
 	}
 
-	void UserInterface::RenderUI(VkCommandBuffer cmdBuffer) 
+	void UserInterface::CheckBox(std::string label, bool* condition)
+	{
+		ImGui::Checkbox(label.c_str(), condition);
+	}
+
+	void UserInterface::Slider(std::string label, glm::vec3& position, float min, float max) 
+	{	
+		float* data[3] = { &position.x, &position.y, &position.z };
+		ImGui::SliderFloat3(label.c_str(), *data, min, max);
+	}
+
+	void UserInterface::SeparatorText(std::string text)
+	{
+		ImGui::SeparatorText(text.c_str());
+	}
+
+	void UserInterface::ComboBox() 
+	{
+		//ImGui::BeginMenuBar(,);
+
+		//ImGui::Combo
+
+	}
+
+	void UserInterface::DisplayImages() 
+	{
+		for (auto texture : displayTextures) {
+
+			ImGui::Image(texture, ImVec2(128, 128));
+			ImGui::SameLine();
+		}
+
+	}
+
+	bool UserInterface::CollapsingHeader(std::string label)
+	{
+		return ImGui::CollapsingHeader(label.c_str(), ImGuiTreeNodeFlags_DefaultOpen);
+	}
+
+	void UserInterface::AddImage(const vk::Texture& texture) 
+	{
+		displayTextures.emplace_back(
+			ImGui_ImplVulkan_AddTexture(
+				texture.mTextureSampler, 
+				texture.mTextureImageView, 
+				VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+			)
+		);
+
+	}
+
+	void UserInterface::Prepare() 
 	{
 		ImGui_ImplVulkan_NewFrame();
 		ImGui_ImplSDL2_NewFrame();
 		ImGui::NewFrame();
 
-		const ImGuiViewport* main_viewport = ImGui::GetMainViewport();
-		ImGui::SetNextWindowPos(ImVec2(main_viewport->WorkPos.x + main_viewport->WorkSize.x / 15, main_viewport->WorkPos.y + main_viewport->WorkSize.y / 10), ImGuiCond_Once);
-		ImGui::SetNextWindowSize(ImVec2(main_viewport->WorkSize.x / 3, main_viewport->WorkSize.y / 2), ImGuiCond_Once);
 
+	}
 
-		ImGuiWindowFlags window_flags = 0;
-		window_flags |= ImGuiWindowFlags_MenuBar;
-		// Main body of the Demo window starts here.
-		if (!ImGui::Begin("Asset Log", nullptr, window_flags))
-		{
-			// Early out if the window is collapsed, as an optimization
-			//this->guiWindowIsFocused = ImGui::IsWindowFocused();
-			ImGui::End();
-			ImGui::Render();
-			ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), cmdBuffer);
-			return;
-		}
-
-		//this->guiWindowIsFocused = ImGui::IsWindowFocused();
-		
-		ImGui::End();
+	void UserInterface::Render(VkCommandBuffer cmdBuffer) 
+	{
+	
+		ImGui::ShowDemoWindow();
 		ImGui::Render();
+
 		ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), cmdBuffer);
 
 	}
+
+
 
 }

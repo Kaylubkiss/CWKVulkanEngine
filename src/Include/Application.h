@@ -11,7 +11,6 @@
 class Application
 {
 private:	
-	bool guiWindowIsFocused = false;
 	bool exitApplication = false;
 
 public:
@@ -25,31 +24,25 @@ public:
 	void SelectWorldObjects(const vk::Window& appWindow,
 							Camera& camera, const uTransformObject& uTransform, PhysicsSystem& physics);
 
-	Camera& GetCamera();
 	PhysicsSystem& GetPhysics();
 	vk::TextureManager& TextureManager();
+	vk::ObjectManager& ObjectManager();
 
 	vk::ContextBase* Context();
 
 private:
 
 	Timer mTime;
-	Camera mCamera;
 	PhysicsSystem mPhysics;
 
 	vk::TextureManager mTextureManager;
-	vk::ObjectManager mObjectManager;
+	vk::ObjectManager objectManager;
 
 	std::unique_ptr<vk::ContextBase> graphicsContext;
-
-	void DrawGui(VkCommandBuffer cmdBuffer);
 
 	void init();
 	void loop();
 	void exit();
-
-	void InitGui();
-	void CleanUpGui();
 
 };
 

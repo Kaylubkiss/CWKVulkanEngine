@@ -1,6 +1,6 @@
-#include "Common.h"
 #include "vkUtility.h"
 #include <string>
+#include <fstream>
 #include "SpirvHelper.h"
 
 namespace vk {

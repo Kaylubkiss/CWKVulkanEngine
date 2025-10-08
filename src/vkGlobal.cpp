@@ -1,13 +1,8 @@
 #include "vkGlobal.h"
-#include "vkUtility.h"
+
 
 namespace vk 
 {
-	/*namespace global
-	{
-		uTransformObject uTransform = {};
-		vk::Buffer uTransformBuffer;
-	}*/
 
 	VkCommandBuffer beginSingleTimeCommand(const VkDevice l_device, const VkCommandPool cmdPool)
 	{

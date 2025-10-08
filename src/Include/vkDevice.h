@@ -3,6 +3,7 @@
 
 #include <vulkan/vulkan.h>
 #include "vkBuffer.h"
+#include "vkGlobal.h"
 
 namespace vk 
 {
@@ -13,14 +14,22 @@ namespace vk
 		VkDevice logical = VK_NULL_HANDLE;
 		vk::Queue graphicsQueue;
 		vk::Queue presentQueue;
-		vk::Queue transferQueue;
 
 		VkPhysicalDeviceMemoryProperties memoryProperties;
+
+		void Initialize(VkInstance instance, VkSurfaceKHR surface);
+		void Destroy();
 
 		//functionality
 		uint32_t GetMemoryType(uint32_t typeBits, VkMemoryPropertyFlags properties);
 		Buffer CreateBuffer(size_t size, VkBufferUsageFlags usage, VkMemoryPropertyFlags flags, void* data);
 		FramebufferAttachment CreateFramebufferAttachment(const VkViewport& viewport, VkImageUsageFlagBits usage, VkFormat format = VK_FORMAT_UNDEFINED);
+
+		//helpers
+		private:
+			void FindPhysicalDevices(VkInstance instance);
+			void FindQueueFamilies(VkSurfaceKHR windowSurface);
+			void InitializeLogicalDevice();
 	};
 
 }
