@@ -8,14 +8,10 @@
 #define GLM_FORCE_DEFAULT_ALIGNED_GENTYPES
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
-#include <vector>
-#include <string>
 
 #include "vkGlobal.h"
 #include "vkUtility.h"
 #include "vkInit.h"
-
-#include "Physics.h"
 
 #define IMGUI_DEFINE_MATH_OPERATORS
 #include "imgui/imgui.h"

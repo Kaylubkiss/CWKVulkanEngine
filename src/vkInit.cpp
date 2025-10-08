@@ -1,6 +1,7 @@
 #include "vkInit.h"
 #include "vkUtility.h"
 #include "vkDebug.h"
+#include "Vertex.h"
 #include <SDL2/SDL_vulkan.h>
 
 namespace vk

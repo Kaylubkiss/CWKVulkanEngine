@@ -3,6 +3,7 @@
 
 #include <vulkan/vulkan.h>
 #include "vkBuffer.h"
+#include "vkGlobal.h"
 
 namespace vk 
 {

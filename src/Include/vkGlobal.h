@@ -1,8 +1,10 @@
 #pragma once
 
 #include <vulkan/vulkan.h>
-#include <vkBuffer.h>
 #include <queue>
+#include "vkBuffer.h"
+
+const uint32_t maxFramesInFlight = 2;
 
 //these don't need to be tied to the vulkan API!!!
 struct uTransformObject
@@ -22,8 +24,11 @@ struct uLightObject
 	glm::vec3 specular = glm::vec3(0.f); /* reflectivity of the light */
 };
 
+
 namespace vk
 {
+	class UserInterface;
+
 	static const char* instanceExtensions[1] =
 	{
 		VK_EXT_DEBUG_UTILS_EXTENSION_NAME
@@ -41,6 +46,8 @@ namespace vk
 		vk::Buffer buffer;
 	};
 
+
+
 	//created in response to the need of texture manager. It needs a lot of graphics context state, but the calls to 
 	//function methods of the context to get this information seemed inconvenient.
 	//in turn, I've had to create this data structure which contains all the information that
@@ -55,6 +62,8 @@ namespace vk
 		VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
 		vk::Queue graphicsQueue = {};
 		uint32_t samplerBinding = 0; //TODO: what if there are multiple sampler bindings across different objects?
+
+		vk::UserInterface* contextUIPtr = nullptr;
 	};
 
 	struct FramebufferAttachment

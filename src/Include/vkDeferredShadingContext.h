@@ -54,6 +54,7 @@ namespace vk
 		~DeferredContext();
 
 		virtual void RecordCommandBuffers() override;
+		virtual void UpdateUI() override;
 		virtual void InitializeScene(ObjectManager& objManager) override;
 		void ResizeWindow() override;
 

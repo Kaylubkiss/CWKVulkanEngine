@@ -5,7 +5,6 @@
 #pragma once
 #include <sys/stat.h>
 #include <vkPipeline.h>
-#include "vkContextBase.h"
 
 namespace vk 
 {

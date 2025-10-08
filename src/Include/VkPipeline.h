@@ -8,6 +8,7 @@
 #include <string>
 #include <list>
 #include "shaderc/shaderc.hpp"
+#include "vkWindow.h"
 
 namespace vk 
 {

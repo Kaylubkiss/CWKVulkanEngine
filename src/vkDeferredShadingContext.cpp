@@ -11,6 +11,7 @@ namespace vk
 		deferredPass.height = window.viewport.height;
 
 		defaultTexture = Texture(&this->mInfo, "wood-floor.png");
+		UIOverlay.AddImage(defaultTexture);
 
 		DeferredContext::InitializeUniforms();
 		DeferredContext::IntializeDeferredFramebuffer();
@@ -554,7 +555,7 @@ namespace vk
 			vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mPipeline.handle);
 			vkCmdDraw(cmdBuffer, 3, 1, 0, 0);
 
-			UIOverlay.RenderUI(cmdBuffer); //TODO: fix the recording of this. Seems to cause queuesubmit some trouble.
+			UIOverlay.Render(cmdBuffer); //TODO: fix the recording of this. Seems to cause queuesubmit some trouble.
 
 			vkCmdEndRenderPass(cmdBuffer);
 
@@ -563,6 +564,19 @@ namespace vk
 	
 		VK_CHECK_RESULT(vkEndCommandBuffer(cmdBuffer));
 
+	}
+
+	void DeferredContext::UpdateUI() 
+	{
+		static bool option = false;
+		if (UIOverlay.CollapsingHeader("Deferred Context Settings"))
+		{
+			UIOverlay.CheckBox("box test", &option);
+			UIOverlay.SeparatorText("light position");
+			UIOverlay.Slider("", uniformDataLightPass.light.pos);
+			UIOverlay.SeparatorText("textures in scene");
+			UIOverlay.DisplayImages();
+		}
 	}
 
 	void DeferredContext::Render() 

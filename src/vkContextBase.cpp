@@ -14,8 +14,8 @@ namespace vk
 	{
 		assert(_Application != NULL);
 
-		ContextBase::CreateWindow();
-		ContextBase::CreateInstance();
+		CreateWindow();
+		CreateInstance();
 
 		if (SDL_Vulkan_CreateSurface(window.sdl_ptr, instance, &window.surface) != SDL_TRUE)
 		{
@@ -23,7 +23,6 @@ namespace vk
 		}
 		
 		device.Initialize(instance, window.surface);
-
 
 		std::array<uint32_t, 2> queueFamilies = { device.graphicsQueue.family, device.presentQueue.family };
 		this->swapChain = SwapChain(&this->device, queueFamilies, window); //need window for its surface and viewport info.
@@ -213,6 +212,11 @@ namespace vk
 		}
 	}
 	
+	void ContextBase::UpdateUI() 
+	{
+		//do nothing, yaya!!!
+	}
+
 	void ContextBase::ResizeWindow() 
 	{
 		assert(_Application != NULL);
@@ -309,6 +313,11 @@ namespace vk
 		mInfo.logicalDevice = device.logical;
 		mInfo.physicalDevice = device.physical;
 		mInfo.graphicsQueue = device.graphicsQueue;
+
+		if (_DEBUG) 
+		{
+			mInfo.contextUIPtr = &UIOverlay;
+		}
 	}
 
 	//getter(s)
@@ -342,7 +351,6 @@ namespace vk
 		return this->mCamera;
 	}
 
-
 	GraphicsContextInfo ContextBase::GetGraphicsContextInfo() 
 	{
 		return mInfo;
@@ -361,6 +369,17 @@ namespace vk
 		//add synchronization calls here.
 		vkWaitForFences(device.logical, 1, &inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
 		vkResetFences(device.logical, 1, &inFlightFences[currentFrame]);
+
+		UIOverlay.Prepare();
+		if (!ImGui::Begin("CWKVulkanEngine"))
+		{
+			ImGui::End();
+		}
+		else 
+		{
+			UpdateUI();
+			ImGui::End();
+		}
 
 		VkResult result = vkAcquireNextImageKHR(device.logical, swapChain.handle, UINT64_MAX, presentCompleteSemaphores[currentFrame], (VkFence)nullptr, &currentImageIndex);
 

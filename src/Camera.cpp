@@ -1,5 +1,4 @@
 #include "Camera.h"
-#include "Application.h"
 #include <glm/gtx/rotate_vector.hpp>
 
 

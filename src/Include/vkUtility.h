@@ -6,6 +6,7 @@
 #include <iostream>
 #include <cmath>
 #include <string>
+#include <vector>
 #include "shaderc/shaderc.h"
 
 #define VK_CHECK_RESULT(function) {VkResult check = function; assert(check == VK_SUCCESS); if (check != VK_SUCCESS) {std::cout << check << '\n';}}

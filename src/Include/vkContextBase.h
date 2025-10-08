@@ -5,13 +5,13 @@
 #include "HotReloader.h"
 #include "vkDevice.h"
 #include "UserInterface.h"
+#include "Camera.h"
 
 namespace vk
 {
 
 	/* NOTE: JANK FORWARD DECLARATION, BECAUSE OF A DOUBLE INCLUDE PROBABLY */
 	class ObjectManager;
-	const uint32_t maxFramesInFlight = 2;
 
 	class ContextBase
 	{
@@ -64,6 +64,7 @@ namespace vk
 
 			//pure virtual function(s)
 			virtual void RecordCommandBuffers() = 0;
+			virtual void UpdateUI();
 			virtual void ResizeWindow();
 			virtual void InitializeScene(ObjectManager& objManager) = 0;
 			

@@ -16,7 +16,16 @@ namespace vk
 
 	void TextureManager::Add(GraphicsContextInfo* graphicsContextInfo, const std::string& fileName)
 	{
-		this->mTextures.emplace_back(graphicsContextInfo, fileName);
+		if (graphicsContextInfo)
+		{
+			this->mTextures.emplace_back(graphicsContextInfo, fileName);
+
+			UserInterface* UI = graphicsContextInfo->contextUIPtr;
+			if (UI) 
+			{
+				UI->AddImage(this->mTextures.back());
+			}
+		}
 	}
 
 	void TextureManager::Add(const Texture& nTexture) 
@@ -110,5 +119,11 @@ namespace vk
 			obj.AddTextureDescriptorSet(mTextures[index].descriptorSet);
 		}
 
+	}
+
+
+	const std::vector<vk::Texture>& TextureManager::Textures() const 
+	{
+		return this->mTextures;
 	}
 }
