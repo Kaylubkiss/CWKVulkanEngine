@@ -313,10 +313,7 @@ namespace vk
 		mInfo.physicalDevice = device.physical;
 		mInfo.graphicsQueue = device.graphicsQueue;
 
-		if (_DEBUG) 
-		{
-			mInfo.contextUIPtr = &UIOverlay;
-		}
+		mInfo.contextUIPtr = &UIOverlay;
 	}
 
 	//getter(s)
