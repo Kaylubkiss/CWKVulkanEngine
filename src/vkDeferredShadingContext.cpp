@@ -261,24 +261,30 @@ namespace vk
 		
 	}
 
-	void DeferredContext::UpdateUniforms()
+	void DeferredContext::UpdateScreenUniforms()
 	{
 		//transform(s)
-		uniformDataMRT.uTransform =
+		if (settings.minimized == false) 
 		{
-			mCamera.LookAt(),
-			glm::perspective(glm::radians(FOV), (float)window.viewport.width / window.viewport.height, 0.1f, 1000.f)
-		};
+			uniformDataMRT.uTransform =
+			{
+				mCamera.LookAt(),
+				glm::perspective(glm::radians(FOV), (float)window.viewport.width / window.viewport.height, 0.1f, 1000.f)
+			};
 
-		uniformDataMRT.uTransform.proj[1][1] *= -1;
+			uniformDataMRT.uTransform.proj[1][1] *= -1;
 
-		memcpy(uniformBuffers.deferredMRT.mappedMemory, (void*)(&uniformDataMRT), sizeof(uniformDataMRT));
+			memcpy(uniformBuffers.deferredMRT.mappedMemory, (void*)(&uniformDataMRT), sizeof(uniformDataMRT));
+		}
+		
+	}
 
+	void DeferredContext::UpdateSceneUniforms() 
+	{
 		//light(s)
 		uniformDataLightPass.viewPosition = mCamera.Position();
 
 		memcpy(uniformBuffers.deferredLightPass.mappedMemory, (void*)(&uniformDataLightPass), sizeof(uniformDataLightPass));
-
 	}
 
 	void DeferredContext::IntializeDeferredFramebuffer() 
@@ -489,79 +495,82 @@ namespace vk
 
 	void DeferredContext::RecordCommandBuffers()
 	{
-		ObjectManager& objManager = _Application->ObjectManager();
-
-		VkCommandBuffer cmdBuffer = commandBuffers[currentFrame];
-		VkCommandBufferBeginInfo cmdBufferBeginInfo = vk::init::CommandBufferBeginInfo();
-
-		//clear value count corresponds to the number of attachments.
-		VkClearValue clearValues[4]; //position, normal, albedo, depth;
-
-		VK_CHECK_RESULT(vkBeginCommandBuffer(cmdBuffer, &cmdBufferBeginInfo));
-
-		//MRT rendering.
+		if (settings.minimized == false) 
 		{
-			clearValues[0].color = { 0,0,0,0 };
-			clearValues[1].color = clearValues[0].color;
-			clearValues[2].color = clearValues[0].color;
-			clearValues[3].depthStencil = { 1.f, 0 };
+			ObjectManager& objManager = _Application->ObjectManager();
 
-			VkRenderPassBeginInfo renderPassBeginInfo = vk::init::RenderPassBeginInfo();
-			renderPassBeginInfo.clearValueCount = 4;
-			renderPassBeginInfo.pClearValues = clearValues;
-			renderPassBeginInfo.renderArea.extent = { (uint32_t)deferredPass.width, (uint32_t)deferredPass.height };
-			renderPassBeginInfo.renderPass = deferredPass.renderPass;
-			renderPassBeginInfo.framebuffer = deferredPass.framebuffer;
+			VkCommandBuffer cmdBuffer = commandBuffers[currentFrame];
+			VkCommandBufferBeginInfo cmdBufferBeginInfo = vk::init::CommandBufferBeginInfo();
 
-			vkCmdBeginRenderPass(cmdBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+			//clear value count corresponds to the number of attachments.
+			VkClearValue clearValues[4]; //position, normal, albedo, depth;
 
-			VkViewport deferredMRTViewport = vk::init::Viewport(deferredPass.width, deferredPass.height);
-			vkCmdSetViewport(cmdBuffer, 0, 1, &deferredMRTViewport);
+			VK_CHECK_RESULT(vkBeginCommandBuffer(cmdBuffer, &cmdBufferBeginInfo));
 
-			VkRect2D deferredMRTScissor = vk::init::Rect2D(deferredPass.width, deferredPass.height);
-			vkCmdSetScissor(cmdBuffer, 0, 1, &deferredMRTScissor);
+			//MRT rendering.
+			{
+				clearValues[0].color = { 0,0,0,0 };
+				clearValues[1].color = clearValues[0].color;
+				clearValues[2].color = clearValues[0].color;
+				clearValues[3].depthStencil = { 1.f, 0 };
 
-			vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, deferredMRTPipeline);
+				VkRenderPassBeginInfo renderPassBeginInfo = vk::init::RenderPassBeginInfo();
+				renderPassBeginInfo.clearValueCount = 4;
+				renderPassBeginInfo.pClearValues = clearValues;
+				renderPassBeginInfo.renderArea.extent = { (uint32_t)deferredPass.width, (uint32_t)deferredPass.height };
+				renderPassBeginInfo.renderPass = deferredPass.renderPass;
+				renderPassBeginInfo.framebuffer = deferredPass.framebuffer;
 
-			vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mPipeline.layout, 0, 1, &descriptorSets.deferred, 0, nullptr);
+				vkCmdBeginRenderPass(cmdBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-			objManager.DrawObjects(cmdBuffer, mPipeline.layout);
+				VkViewport deferredMRTViewport = vk::init::Viewport(deferredPass.width, deferredPass.height);
+				vkCmdSetViewport(cmdBuffer, 0, 1, &deferredMRTViewport);
 
-			vkCmdEndRenderPass(cmdBuffer);
+				VkRect2D deferredMRTScissor = vk::init::Rect2D(deferredPass.width, deferredPass.height);
+				vkCmdSetScissor(cmdBuffer, 0, 1, &deferredMRTScissor);
+
+				vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, deferredMRTPipeline);
+
+				vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mPipeline.layout, 0, 1, &descriptorSets.deferred, 0, nullptr);
+
+				objManager.DrawObjects(cmdBuffer, mPipeline.layout);
+
+				vkCmdEndRenderPass(cmdBuffer);
+			}
+
+			//light pass rendering
+			{
+				clearValues[0].color = { 0,0,0,0 };
+				clearValues[1].depthStencil = { 1.f, 0 };
+
+				VkRenderPassBeginInfo renderPassBeginInfo = vk::init::RenderPassBeginInfo();
+				renderPassBeginInfo.clearValueCount = 4;
+				renderPassBeginInfo.pClearValues = clearValues;
+				renderPassBeginInfo.renderArea.extent = {(uint32_t)window.viewport.width, (uint32_t)window.viewport.height};
+				renderPassBeginInfo.renderPass = mPipeline.mRenderPass;
+				renderPassBeginInfo.framebuffer = swapChain.frameBuffers[currentFrame];
+
+				vkCmdBeginRenderPass(cmdBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+				VkViewport sceneViewport = window.viewport;
+				vkCmdSetViewport(cmdBuffer, 0, 1, &sceneViewport);
+
+				VkRect2D sceneScissor = window.scissor;
+				vkCmdSetScissor(cmdBuffer, 0, 1, &sceneScissor);
+
+				vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mPipeline.layout, 0, 1, &descriptorSets.composition, 0, nullptr);
+				vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mPipeline.handle);
+				vkCmdDraw(cmdBuffer, 3, 1, 0, 0);
+
+				UIOverlay.Render(cmdBuffer); //TODO: fix the recording of this. Seems to cause queuesubmit some trouble.
+
+				vkCmdEndRenderPass(cmdBuffer);
+
+			}
+
+
+			VK_CHECK_RESULT(vkEndCommandBuffer(cmdBuffer));
 		}
-
-		//light pass rendering
-		{
-			clearValues[0].color = { 0,0,0,0 };
-			clearValues[1].depthStencil = { 1.f, 0 };
-
-			VkRenderPassBeginInfo renderPassBeginInfo = vk::init::RenderPassBeginInfo();
-			renderPassBeginInfo.clearValueCount = 4;
-			renderPassBeginInfo.pClearValues = clearValues;
-			renderPassBeginInfo.renderArea.extent = currentExtent;
-			renderPassBeginInfo.renderPass = mPipeline.mRenderPass;
-			renderPassBeginInfo.framebuffer = swapChain.frameBuffers[currentFrame];
-
-			vkCmdBeginRenderPass(cmdBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
-
-			VkViewport sceneViewport = vk::init::Viewport(currentExtent.width, currentExtent.height);
-			vkCmdSetViewport(cmdBuffer, 0, 1, &sceneViewport);
-
-			VkRect2D sceneScissor = vk::init::Rect2D(currentExtent.width, currentExtent.height);
-			vkCmdSetScissor(cmdBuffer, 0, 1, &sceneScissor);
-
-			vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mPipeline.layout, 0, 1, &descriptorSets.composition, 0, nullptr);
-			vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mPipeline.handle);
-			vkCmdDraw(cmdBuffer, 3, 1, 0, 0);
-
-			UIOverlay.Render(cmdBuffer); //TODO: fix the recording of this. Seems to cause queuesubmit some trouble.
-
-			vkCmdEndRenderPass(cmdBuffer);
-
-		}
-
-	
-		VK_CHECK_RESULT(vkEndCommandBuffer(cmdBuffer));
 
 	}
 
@@ -580,10 +589,14 @@ namespace vk
 
 	void DeferredContext::Render() 
 	{
-		ContextBase::PrepareFrame();
-		UpdateUniforms();
-		RecordCommandBuffers();
-		ContextBase::SubmitFrame();
+		UpdateSceneUniforms();
+		if (window.IsMinimized() == false) 
+		{
+			ContextBase::PrepareFrame();
+			UpdateScreenUniforms();
+			RecordCommandBuffers();
+			ContextBase::SubmitFrame();
+		}
 	}
 
 }

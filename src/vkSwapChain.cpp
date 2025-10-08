@@ -183,8 +183,6 @@ namespace vk
 
 		assert(this->depthAttachment.imageView != VK_NULL_HANDLE);
 		assert(renderPass != VK_NULL_HANDLE);
-		assert(vp.width != 0.f);
-		assert(vp.height != 0.f);
 
 		if (this->images.size() <= 0) 
 		{

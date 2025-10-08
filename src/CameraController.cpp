@@ -27,8 +27,6 @@ void Controller::MoveCamera(Camera& camera, const float& dt)
 	SDL_Event e;
 	while (SDL_PollEvent(&e))
 	{
-		const Uint8* keystates = SDL_GetKeyboardState(nullptr);
-		
 		if (SDL_GetRelativeMouseMode() == SDL_FALSE) 
 		{
 			ImGuiIO& io = ImGui::GetIO();
@@ -44,6 +42,10 @@ void Controller::MoveCamera(Camera& camera, const float& dt)
 		{
 			//it should exit.
 			_Application->RequestExit();
+			return;
+		}
+		else if (e.type == SDL_WINDOW_MINIMIZED) 
+		{
 			return;
 		}
 	
@@ -70,10 +72,9 @@ void Controller::MoveCamera(Camera& camera, const float& dt)
 	
 			if (keySymbol == SDLK_ESCAPE)
 			{
-				if (SDL_GetRelativeMouseMode())
+				if (SDL_GetRelativeMouseMode() == SDL_TRUE)
 				{
 					SDL_SetRelativeMouseMode(SDL_FALSE);
-					SDL_ShowCursor(1);
 				}
 				else
 				{

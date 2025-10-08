@@ -22,10 +22,12 @@ namespace vk
 		}
 		
 		device.Initialize(instance, window.surface);
+		window.contextPhysicalDevice = device.physical;
 
 		std::array<uint32_t, 2> queueFamilies = { device.graphicsQueue.family, device.presentQueue.family };
 		this->swapChain = SwapChain(&this->device, queueFamilies, window); //need window for its surface and viewport info.
-		ContextBase::InitializeRenderPass();
+		
+		InitializeRenderPass();
 		this->swapChain.CreateFrameBuffers(window.viewport, this->mPipeline.mRenderPass);
 
 		if (swapChain.createInfo.minImageCount != maxFramesInFlight) 
@@ -47,10 +49,6 @@ namespace vk
 		cmdBufferAllocateInfo.commandPool = this->commandPool;
 		cmdBufferAllocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
 		VK_CHECK_RESULT(vkAllocateCommandBuffers(device.logical, &cmdBufferAllocateInfo, commandBuffers.data()));
-
-		VkSurfaceCapabilitiesKHR deviceCapabilities;
-		VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device.physical, window.surface, &deviceCapabilities));
-		this->currentExtent = deviceCapabilities.currentExtent;
 
 		this->mHotReloader.appDevicePtr = this->device.logical;
 		this->mHotReloader.AddPipeline(this->mPipeline);
@@ -225,8 +223,7 @@ namespace vk
 		VkSurfaceCapabilitiesKHR deviceCapabilities;
 		VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(this->device.physical, window.surface, &deviceCapabilities));
 
-		currentExtent = deviceCapabilities.currentExtent;
-		window.UpdateExtents(currentExtent);
+		window.UpdateExtents(deviceCapabilities.currentExtent);
 
 		this->swapChain.Recreate(this->mPipeline.mRenderPass, window);
 	}
@@ -347,6 +344,11 @@ namespace vk
 		return this->mCamera;
 	}
 
+	SDL_Window* ContextBase::GetWindow() 
+	{
+		return this->window.sdl_ptr;
+	}
+
 	GraphicsContextInfo ContextBase::GetGraphicsContextInfo() 
 	{
 		return mInfo;
@@ -393,37 +395,40 @@ namespace vk
 
 	void ContextBase::SubmitFrame() 
 	{
-		VkSubmitInfo submitInfo = {};
-		const VkPipelineStageFlags pipelineWaitStages = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-		submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-		submitInfo.waitSemaphoreCount = 1;
-		submitInfo.pWaitSemaphores = &presentCompleteSemaphores[currentFrame];
-		submitInfo.pWaitDstStageMask = &pipelineWaitStages;
-		submitInfo.signalSemaphoreCount = 1;
-		submitInfo.pSignalSemaphores = &renderCompleteSemaphores[currentImageIndex];
-		submitInfo.commandBufferCount = 1;
-		submitInfo.pCommandBuffers = &this->commandBuffers[currentFrame];
-		VK_CHECK_RESULT(vkQueueSubmit(this->device.graphicsQueue.handle, 1, &submitInfo, inFlightFences[currentFrame]))
-
-			VkPresentInfoKHR presentInfo{};
-		presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
-		presentInfo.waitSemaphoreCount = 1;
-		presentInfo.pWaitSemaphores = &renderCompleteSemaphores[currentImageIndex];
-		presentInfo.pImageIndices = &currentImageIndex;
-		presentInfo.swapchainCount = 1;
-		presentInfo.pSwapchains = &this->swapChain.handle;
-		VkResult result = vkQueuePresentKHR(this->device.presentQueue.handle, &presentInfo);
-		if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
+		if (settings.minimized == false) 
 		{
-			ResizeWindow();
-			return;
-		}
-		else
-		{
-			VK_CHECK_RESULT(result);
-		}
+			VkSubmitInfo submitInfo = {};
+			const VkPipelineStageFlags pipelineWaitStages = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+			submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+			submitInfo.waitSemaphoreCount = 1;
+			submitInfo.pWaitSemaphores = &presentCompleteSemaphores[currentFrame];
+			submitInfo.pWaitDstStageMask = &pipelineWaitStages;
+			submitInfo.signalSemaphoreCount = 1;
+			submitInfo.pSignalSemaphores = &renderCompleteSemaphores[currentImageIndex];
+			submitInfo.commandBufferCount = 1;
+			submitInfo.pCommandBuffers = &this->commandBuffers[currentFrame];
+			VK_CHECK_RESULT(vkQueueSubmit(this->device.graphicsQueue.handle, 1, &submitInfo, inFlightFences[currentFrame]))
 
-		currentFrame = (currentFrame + 1) % maxFramesInFlight;
+				VkPresentInfoKHR presentInfo{};
+			presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+			presentInfo.waitSemaphoreCount = 1;
+			presentInfo.pWaitSemaphores = &renderCompleteSemaphores[currentImageIndex];
+			presentInfo.pImageIndices = &currentImageIndex;
+			presentInfo.swapchainCount = 1;
+			presentInfo.pSwapchains = &this->swapChain.handle;
+			VkResult result = vkQueuePresentKHR(this->device.presentQueue.handle, &presentInfo);
+			if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
+			{
+				ResizeWindow();
+				return;
+			}
+			else
+			{
+				VK_CHECK_RESULT(result);
+			}
+
+			currentFrame = (currentFrame + 1) % maxFramesInFlight;
+		}
 
 	}
 }

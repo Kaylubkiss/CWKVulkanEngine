@@ -34,6 +34,7 @@ set(VULKAN_ENGINE_SRC src/vkDebug.cpp
 					  src/vkPipeline.cpp
 					  src/vkDevice.cpp
 					  src/vkMesh.cpp
+					  src/vkWindow.cpp
 )
 
 set(VULKAN_ENGINE_SCENES_SOURCE 

@@ -30,7 +30,7 @@ namespace vk {
 		init_info.RenderPass = initInfo.renderPass;
 		init_info.Subpass = 0;
 		init_info.MinImageCount = 2;
-		init_info.ImageCount = 2; //TODO: we assume that there is a backbuffer to render into.
+		init_info.ImageCount = maxFramesInFlight; //TODO: we assume that there is a backbuffer to render into.
 		init_info.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
 		init_info.Allocator = nullptr;
 		init_info.CheckVkResultFn = vk::util::check_vk_result;
@@ -92,7 +92,7 @@ namespace vk {
 	{
 		for (auto texture : displayTextures) {
 
-			ImGui::Image(texture, ImVec2(128, 128));
+			ImGui::Image(texture, ImVec2(64, 64));
 			ImGui::SameLine();
 		}
 
@@ -127,9 +127,8 @@ namespace vk {
 	void UserInterface::Render(VkCommandBuffer cmdBuffer) 
 	{
 	
-		ImGui::ShowDemoWindow();
+		//ImGui::ShowDemoWindow();
 		ImGui::Render();
-
 		ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), cmdBuffer);
 
 	}

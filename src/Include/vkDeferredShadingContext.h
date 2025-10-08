@@ -72,7 +72,8 @@ namespace vk
 		void IntializeDeferredFramebuffer();
 		void IntializeColorSampler();
 		void InitializeUniforms();
-		void UpdateUniforms();
+		void UpdateScreenUniforms();
+		void UpdateSceneUniforms();
 
 	};
 

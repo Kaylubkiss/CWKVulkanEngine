@@ -166,10 +166,10 @@ namespace vk
 
 		VkRenderPassBeginInfo renderPassInfo = {};
 		renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-		renderPassInfo.renderPass = this->mPipeline.RenderPass();
+		renderPassInfo.renderPass = this->mPipeline.mRenderPass;
 		renderPassInfo.framebuffer = this->swapChain.frameBuffers[currentFrame];
 		renderPassInfo.renderArea.offset = { 0,0 };
-		renderPassInfo.renderArea.extent = this->currentExtent;
+		renderPassInfo.renderArea.extent = { (uint32_t)window.viewport.width, (uint32_t)window.viewport.height };
 
 		VkClearValue clearColors[2] = {};
 

@@ -126,16 +126,16 @@ namespace vk
 			VkRenderPassBeginInfo sceneRenderPassInfo = vk::init::RenderPassBeginInfo();
 			sceneRenderPassInfo.framebuffer = swapChain.frameBuffers[currentFrame];
 			sceneRenderPassInfo.renderPass = mPipeline.mRenderPass;
-			sceneRenderPassInfo.renderArea.extent = currentExtent;
+			sceneRenderPassInfo.renderArea.extent = {(uint32_t)window.viewport.width, (uint32_t)window.viewport.height};
 			sceneRenderPassInfo.clearValueCount = 2;
 			sceneRenderPassInfo.pClearValues = clearValue;
 
 			vkCmdBeginRenderPass(cmdBuffer, &sceneRenderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-			VkViewport sceneViewport = vk::init::Viewport(currentExtent.width, currentExtent.height);
+			VkViewport sceneViewport = window.viewport;
 			vkCmdSetViewport(cmdBuffer, 0, 1, &sceneViewport);
 
-			VkRect2D sceneScissor = vk::init::Rect2D(currentExtent.width, currentExtent.height);
+			VkRect2D sceneScissor = window.scissor;
 			vkCmdSetScissor(cmdBuffer, 0, 1, &sceneScissor);
 
 

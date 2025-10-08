@@ -20,14 +20,17 @@ namespace vk
 			GraphicsContextInfo mInfo;//this is for textureManager and potentially any other discrete systems.
 			//WARNING: context specific!!!
 
+			struct {
+				bool minimized = false;
+
+			} settings;
+
 			vk::Window window;
-			VkExtent2D currentExtent = { 0,0 };
 
 			VkInstance instance = VK_NULL_HANDLE;
 
 			vk::Device device;
 
-			
 			vk::HotReloader mHotReloader;
 
 
@@ -84,6 +87,7 @@ namespace vk
 			VkDescriptorPool DescriptorPool() const;
 
 			Camera& GetCamera();
+			SDL_Window* GetWindow();
 
 			//operations
 			void WaitForDevice();
@@ -92,7 +96,6 @@ namespace vk
 		protected:
 
 			void PrepareFrame();
-
 			//more pure virtual function(s)
 			virtual void InitializePipeline(std::string vsFile = "", std::string fsFile = "") = 0;
 			virtual void InitializeDescriptors() = 0;
@@ -101,6 +104,8 @@ namespace vk
 			virtual void InitializeRenderPass();
 
 			virtual void FillOutGraphicsContextInfo();
+
+		
 
 		private:
 			void CreateWindow();
