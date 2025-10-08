@@ -29,12 +29,16 @@ void Controller::MoveCamera(Camera& camera, const float& dt)
 	{
 		const Uint8* keystates = SDL_GetKeyboardState(nullptr);
 		
-		ImGuiIO& io = ImGui::GetIO();
-		ImGui_ImplSDL2_ProcessEvent(&e);
-		if (io.WantCaptureMouse || io.WantCaptureKeyboard) 
+		if (SDL_GetRelativeMouseMode() == SDL_FALSE) 
 		{
-			return;
+			ImGuiIO& io = ImGui::GetIO();
+			ImGui_ImplSDL2_ProcessEvent(&e);
+			if (io.WantCaptureMouse || io.WantCaptureKeyboard)
+			{
+				return;
+			}
 		}
+
 
 		if (e.type == SDL_QUIT)
 		{
