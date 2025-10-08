@@ -1,4 +1,3 @@
-#include "Common.h"
 #include "vkUtility.h"
 #include <string>
 #include <fstream>

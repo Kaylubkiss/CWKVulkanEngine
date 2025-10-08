@@ -1,4 +1,3 @@
-#include <iostream>
 #include "Application.h"
 #include "vkDebug.h"
 #include "vkInit.h"

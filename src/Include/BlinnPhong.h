@@ -1,6 +1,5 @@
 #pragma once
 #include "vkBuffer.h"
-#include "Common.h"
 
 
 enum LightCountIndex {

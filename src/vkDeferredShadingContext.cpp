@@ -1,5 +1,4 @@
 #include "vkDeferredShadingContext.h"
-#include "ApplicationGlobal.h"
 
 namespace vk 
 {

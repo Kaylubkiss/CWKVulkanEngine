@@ -1,7 +1,6 @@
 #include "vkContextBase.h"
 #include "vkUtility.h"
 #include "vkInit.h"
-#include "ApplicationGlobal.h"
 #include "ObjectManager.h"
 #include "HotReloader.h"
 #include <SDL2/SDL_vulkan.h>

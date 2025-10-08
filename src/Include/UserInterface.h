@@ -1,6 +1,5 @@
 #pragma once
 
-#include "Common.h"
 #include "vkTexture.h"
 
 namespace vk 
