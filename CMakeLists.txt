@@ -31,10 +31,10 @@ set(VULKAN_ENGINE_SRC src/vkDebug.cpp
 					  src/vkSwapChain.cpp
 					  src/vkBuffer.cpp
 					  src/vkTexture.cpp
-					  src/vkPipeline.cpp
 					  src/vkDevice.cpp
 					  src/vkMesh.cpp
 					  src/vkWindow.cpp
+					  src/vkPipelineManager.cpp
 )
 
 set(VULKAN_ENGINE_SCENES_SOURCE 
@@ -100,11 +100,10 @@ src/Include/vkBuffer.h
 src/Include/vkTexture.h
 src/Include/vkSwapChain.h
 src/Include/vkMesh.h
-src/Include/vkPipeline.h
 src/Include/vkDevice.h
 src/Include/vkShadowMap.h
 src/Include/vkDevice.h
-)
+src/Include/vkPipelineManager.h)
 
 
 set(VULKAN_ENGINE_SCENES_HEADERS

@@ -28,7 +28,7 @@ namespace vk
 		this->swapChain = SwapChain(&this->device, queueFamilies, window); //need window for its surface and viewport info.
 		
 		InitializeRenderPass();
-		this->swapChain.CreateFrameBuffers(window.viewport, this->mPipeline.mRenderPass);
+		this->swapChain.CreateFrameBuffers(window.viewport, renderPass);
 
 		if (swapChain.createInfo.minImageCount != maxFramesInFlight) 
 		{
@@ -50,9 +50,9 @@ namespace vk
 		cmdBufferAllocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
 		VK_CHECK_RESULT(vkAllocateCommandBuffers(device.logical, &cmdBufferAllocateInfo, commandBuffers.data()));
 
-		this->mHotReloader.appDevicePtr = this->device.logical;
+		/*this->mHotReloader.appDevicePtr = this->device.logical;
 		this->mHotReloader.AddPipeline(this->mPipeline);
-
+*/
 
 		UserInterfaceInitInfo userInterfaceCI = {};
 		userInterfaceCI.contextInstance = this->instance;
@@ -60,12 +60,14 @@ namespace vk
 		userInterfaceCI.contextPhysicalDevice = this->device.physical;
 		userInterfaceCI.contextQueue = this->device.graphicsQueue;
 		userInterfaceCI.contextWindow = this->window.sdl_ptr;
-		userInterfaceCI.renderPass = this->mPipeline.mRenderPass;
+		userInterfaceCI.renderPass = this->renderPass;
 		this->UIOverlay = UserInterface(userInterfaceCI);
 
-		FillOutGraphicsContextInfo();
+		ContextBase::FillOutGraphicsContextInfo();
 
 		this->mCamera = Camera({ 0.f, 0.f, 10.f }, { 0.f, 0.f, -1.f }, { 0,1,0 });
+
+		this->pipelineManager.Init(mInfo);
 
 		this->isInitialized = true;
 
@@ -75,10 +77,11 @@ namespace vk
 	//destructor
 	ContextBase::~ContextBase()
 	{
-		mPipeline.Destroy(this->device.logical);
+		pipelineManager.Destroy();
 		swapChain.Destroy();
 		UIOverlay.Destroy();
 
+		vkDestroyPipelineLayout(device.logical, pipelineLayout, nullptr);
 		vkDestroyDescriptorPool(device.logical, this->descriptorPool, nullptr);
 
 		vkFreeCommandBuffers(device.logical, this->commandPool, this->commandBuffers.size(), this->commandBuffers.data());
@@ -225,7 +228,7 @@ namespace vk
 
 		window.UpdateExtents(deviceCapabilities.currentExtent);
 
-		this->swapChain.Recreate(this->mPipeline.mRenderPass, window);
+		this->swapChain.Recreate(renderPass, window);
 	}
 
 	//initializers
@@ -300,7 +303,7 @@ namespace vk
 		renderPassCI.dependencyCount = dependencies.size();
 		renderPassCI.pDependencies = dependencies.data();
 
-		VK_CHECK_RESULT(vkCreateRenderPass(device.logical, &renderPassCI, nullptr, &this->mPipeline.mRenderPass));
+		VK_CHECK_RESULT(vkCreateRenderPass(device.logical, &renderPassCI, nullptr, &renderPass));
 	}
 
 	void ContextBase::FillOutGraphicsContextInfo() 
@@ -317,11 +320,6 @@ namespace vk
 	vk::Queue ContextBase::GraphicsQueue()
 	{
 		return this->device.graphicsQueue;
-	}
-
-	const VkPipeline ContextBase::Pipeline() const
-	{
-		return this->mPipeline.Handle();
 	}
 
 	const VkPhysicalDevice ContextBase::PhysicalDevice() const 

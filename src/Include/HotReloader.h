@@ -4,16 +4,14 @@
 */
 #pragma once
 #include <sys/stat.h>
-#include <vkPipeline.h>
 
 namespace vk 
 {
 	struct HotReloader
 	{
 		VkDevice appDevicePtr = VK_NULL_HANDLE; /* pointer to application's logical device */
-		vk::Pipeline* pipelinePtr = nullptr;  /* pointer to pipeline with edited shaders.
+		//vk::Pipeline* pipelinePtr = nullptr;  /* pointer to pipeline with edited shaders.
 
-		Could be edited to hold multiple pipelinePtrs*/
 
 		/* file status info on shaders from pipeline */
 		struct ShaderFileInfo
@@ -28,10 +26,8 @@ namespace vk
 			HotReloader() = default;
 			~HotReloader() = default;
 
-			/* Initializer for the hot reloader */
-			void Init();
 			/* Assigns pipeline pipelinePtr. */
-			void AddPipeline(vk::Pipeline& pipeline);
+	/*		void AddPipeline(vk::Pipeline& pipeline);*/
 			
 			
 			/* Analyze the assigned files for changes, and then recreate the pipeline

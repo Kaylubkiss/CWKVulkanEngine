@@ -1,7 +1,7 @@
 #pragma once
 
 #include "vkSwapChain.h"
-#include "VkPipeline.h"
+#include "VkPipelineManager.h"
 #include "HotReloader.h"
 #include "vkDevice.h"
 #include "UserInterface.h"
@@ -50,7 +50,9 @@ namespace vk
 
 			vk::SwapChain swapChain;
 
-			vk::Pipeline mPipeline;
+			vk::PipelineManager pipelineManager;
+			VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
+			VkRenderPass renderPass = VK_NULL_HANDLE;
 
 			float FOV = 45.f;
 			Camera mCamera;
@@ -81,7 +83,6 @@ namespace vk
 
 			//getter(s)
 			vk::Queue GraphicsQueue();
-			const VkPipeline Pipeline() const;
 			const VkPhysicalDevice PhysicalDevice() const;
 			const VkDevice LogicalDevice() const;
 			VkDescriptorPool DescriptorPool() const;

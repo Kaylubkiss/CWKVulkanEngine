@@ -11,8 +11,9 @@ namespace vk
 
 	FreddyHeadScene::FreddyHeadScene()
 	{
-		
-
+		std::cout << "this scene is still under construction due to core rewrites, and will probably crash : )\n";
+		_Application->RequestExit();
+		return;
 		//initialized uniforms...
 		
 		//uniform(s)
@@ -152,49 +153,49 @@ namespace vk
 
 	void FreddyHeadScene::RecordCommandBuffers()
 	{
-		ObjectManager& objManager = _Application->ObjectManager();
+		//ObjectManager& objManager = _Application->ObjectManager();
 
-		VkCommandBuffer cmdBuffer = commandBuffers[currentFrame];
+		//VkCommandBuffer cmdBuffer = commandBuffers[currentFrame];
 
-		VkCommandBufferBeginInfo cmdBufferBeginInfo = {};
-		cmdBufferBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-		cmdBufferBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-		//everything else is default...
+		//VkCommandBufferBeginInfo cmdBufferBeginInfo = {};
+		//cmdBufferBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+		//cmdBufferBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+		////everything else is default...
 
-		//resetting command buffer should be implicit with reset flag set on this.
-		VK_CHECK_RESULT(vkBeginCommandBuffer(cmdBuffer, &cmdBufferBeginInfo))
+		////resetting command buffer should be implicit with reset flag set on this.
+		//VK_CHECK_RESULT(vkBeginCommandBuffer(cmdBuffer, &cmdBufferBeginInfo))
 
-		VkRenderPassBeginInfo renderPassInfo = {};
-		renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-		renderPassInfo.renderPass = this->mPipeline.mRenderPass;
-		renderPassInfo.framebuffer = this->swapChain.frameBuffers[currentFrame];
-		renderPassInfo.renderArea.offset = { 0,0 };
-		renderPassInfo.renderArea.extent = { (uint32_t)window.viewport.width, (uint32_t)window.viewport.height };
+		//VkRenderPassBeginInfo renderPassInfo = {};
+		//renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+		//renderPassInfo.renderPass = this->mPipeline.mRenderPass;
+		//renderPassInfo.framebuffer = this->swapChain.frameBuffers[currentFrame];
+		//renderPassInfo.renderArea.offset = { 0,0 };
+		//renderPassInfo.renderArea.extent = { (uint32_t)window.viewport.width, (uint32_t)window.viewport.height };
 
-		VkClearValue clearColors[2] = {};
+		//VkClearValue clearColors[2] = {};
 
-		uLightObject& sceneLight = sceneUniformData.light;
-		clearColors[0].color = { sceneLight.ambient.x, sceneLight.ambient.y, sceneLight.ambient.z, 1.f };
-		clearColors[1].depthStencil = { 1.f, 0 };
+		//uLightObject& sceneLight = sceneUniformData.light;
+		//clearColors[0].color = { sceneLight.ambient.x, sceneLight.ambient.y, sceneLight.ambient.z, 1.f };
+		//clearColors[1].depthStencil = { 1.f, 0 };
 
-		renderPassInfo.clearValueCount = 2;
-		renderPassInfo.pClearValues = clearColors;
+		//renderPassInfo.clearValueCount = 2;
+		//renderPassInfo.pClearValues = clearColors;
 
-		vkCmdBeginRenderPass(cmdBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+		//vkCmdBeginRenderPass(cmdBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-		//this could be overwritten with the descriptor set of an object with a texture.
-		vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mPipeline.layout, 0, 1, &sceneDescriptorSet, 0, nullptr);
+		////this could be overwritten with the descriptor set of an object with a texture.
+		//vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mPipeline.layout, 0, 1, &sceneDescriptorSet, 0, nullptr);
 
-		vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->mPipeline.Handle());
+		//vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->mPipeline.Handle());
 
-		vkCmdSetViewport(cmdBuffer, 0, 1, &window.viewport);
-		vkCmdSetScissor(cmdBuffer, 0, 1, &window.scissor);
+		//vkCmdSetViewport(cmdBuffer, 0, 1, &window.viewport);
+		//vkCmdSetScissor(cmdBuffer, 0, 1, &window.scissor);
 
-		objManager.DrawObjects(cmdBuffer, this->mPipeline.Layout());
+		//objManager.DrawObjects(cmdBuffer, this->mPipeline.Layout());
 
-		vkCmdEndRenderPass(cmdBuffer);
+		//vkCmdEndRenderPass(cmdBuffer);
 
-		VK_CHECK_RESULT(vkEndCommandBuffer(cmdBuffer));
+		//VK_CHECK_RESULT(vkEndCommandBuffer(cmdBuffer));
 
 	}
 
@@ -223,23 +224,23 @@ namespace vk
 
 	void FreddyHeadScene::InitializePipeline(std::string vsFile, std::string fsFile)
 	{
-		ShaderModuleInfo vertShaderInfo(this->device.logical, vsFile, VK_SHADER_STAGE_VERTEX_BIT);
-		ShaderModuleInfo fragShaderInfo(this->device.logical, fsFile, VK_SHADER_STAGE_FRAGMENT_BIT, shaderc_fragment_shader);
+		//ShaderModuleInfo vertShaderInfo(this->device.logical, vsFile, VK_SHADER_STAGE_VERTEX_BIT);
+		//ShaderModuleInfo fragShaderInfo(this->device.logical, fsFile, VK_SHADER_STAGE_FRAGMENT_BIT, shaderc_fragment_shader);
 
-		//this is for an object's model transformation.
-		std::vector<VkPushConstantRange> pushConstants = {
-			vk::init::PushConstantRange(0, sizeof(glm::mat4), VK_SHADER_STAGE_VERTEX_BIT)
-		};
+		////this is for an object's model transformation.
+		//std::vector<VkPushConstantRange> pushConstants = {
+		//	vk::init::PushConstantRange(0, sizeof(glm::mat4), VK_SHADER_STAGE_VERTEX_BIT)
+		//};
 
-		VkPipelineLayout pipelineLayout = vk::init::CreatePipelineLayout(this->device.logical, descriptorSetLayout, pushConstants);
+		//VkPipelineLayout pipelineLayout = vk::init::CreatePipelineLayout(this->device.logical, descriptorSetLayout, pushConstants);
 
-		this->mPipeline.
-			AddModule(vertShaderInfo).
-			AddModule(fragShaderInfo).
-			AddPipelineLayout(pipelineLayout).
-			Finalize(this->device.logical, this->device.physical,
-				window, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST
-			);
+		//this->mPipeline.
+		//	AddModule(vertShaderInfo).
+		//	AddModule(fragShaderInfo).
+		//	AddPipelineLayout(pipelineLayout).
+		//	Finalize(this->device.logical, this->device.physical,
+		//		window, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST
+		//	);
 
 
 	}

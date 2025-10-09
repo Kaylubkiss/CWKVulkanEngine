@@ -45,11 +45,17 @@ namespace vk
 				VkSampler depthSampler = VK_NULL_HANDLE;
 			} offscreenPass{};
 
+			enum Pipelines 
+			{
+				OFFSCREEN = 0, 
+				OFFSCREEN_DEBUG,
+				FORWARD_RENDER
+			};
 
-			//pipeline for scene here...
-			VkPipeline offscreenPipeline = VK_NULL_HANDLE;
-			VkPipeline offscreenDebugPipeline = VK_NULL_HANDLE;
-			
+			////pipeline for scene here...
+			//VkPipeline offscreenPipeline = VK_NULL_HANDLE;
+			//VkPipeline offscreenDebugPipeline = VK_NULL_HANDLE;
+			//
 			VkDescriptorSetLayout sceneDescriptorLayout = VK_NULL_HANDLE;
 			
 			struct {

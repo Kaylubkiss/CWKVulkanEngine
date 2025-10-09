@@ -12,29 +12,11 @@ namespace vk
 {
 
 	/*
-		* @brief Initializes the hot reloader object.
-	*/
-	void HotReloader::Init()
-	{
-		assert(_Application != nullptr);
-
-
-		//if (l_device == nullptr) 
-		//{
-		//	throw std::runtime_error("[ERROR] Passed in invalid device to hot reloader\n");
-		//}
-
-		//appDevicePtr = l_device; 
-
-		//HotReloader::AddPipeline(pipeline);
-	}
-
-	/*
 		* @brief private helper method which adds a pipeline the hot reloader 
 		can edit if changes occur in its associated shader modules.
 		* @param pipeline: the pipeline which has the shader stages associated.
 	*/
-	void HotReloader::AddPipeline(vk::Pipeline& pipeline) 
+	/*void HotReloader::AddPipeline(vk::Pipeline& pipeline) 
 	{
 
 		this->pipelinePtr = (&pipeline);
@@ -57,7 +39,7 @@ namespace vk
 		}
 
 		
-	}
+	}*/
 	
 	/*
 		* @brief Called every frame to check the file status of a shader, and recreates
@@ -65,51 +47,51 @@ namespace vk
 	*/
 	void HotReloader::HotReload() 
 	{
-		bool somethingChanged = false;
-		const VkDevice& appDevice = (this->appDevicePtr);
+		//bool somethingChanged = false;
+		//const VkDevice& appDevice = (this->appDevicePtr);
 
 
-		for (size_t i = 0; i < shaderInfos.size(); ++i)
-		{
-			struct stat fileStat;
-			
-			vk::ShaderModuleInfo& shaderModule = pipelinePtr->ShaderModule(shaderInfos[i].module_i);
+		//for (size_t i = 0; i < shaderInfos.size(); ++i)
+		//{
+		//	struct stat fileStat;
+		//	
+		//	vk::ShaderModuleInfo& shaderModule = pipelinePtr->ShaderModule(shaderInfos[i].module_i);
 
-			std::string filePath = SHADER_PATH + shaderModule.mFileName;
+		//	std::string filePath = SHADER_PATH + shaderModule.mFileName;
 
-			if (stat(filePath.c_str(), &fileStat) != 0)
-			{
-				std::cerr << "[ERROR] Can't Read File " << filePath << '\n';
-				continue;
-			}
+		//	if (stat(filePath.c_str(), &fileStat) != 0)
+		//	{
+		//		std::cerr << "[ERROR] Can't Read File " << filePath << '\n';
+		//		continue;
+		//	}
 
-			//check if the filesystem saw any changes.
-			if (fileStat.st_mtime != shaderInfos[i].last_modification)
-			{
-				std::string shaderPath = 
-					vk::util::ReadSourceAndWriteToSprv(filePath, shaderModule.mShaderKind);
+		//	//check if the filesystem saw any changes.
+		//	if (fileStat.st_mtime != shaderInfos[i].last_modification)
+		//	{
+		//		std::string shaderPath = 
+		//			vk::util::ReadSourceAndWriteToSprv(filePath, shaderModule.mShaderKind);
 
-				if (shaderPath.empty())
-				{
-					std::cerr << "[ERROR] Couldn't successfully write to file " << shaderModule.mFileName << '\n';
-					continue;
-				}
+		//		if (shaderPath.empty())
+		//		{
+		//			std::cerr << "[ERROR] Couldn't successfully write to file " << shaderModule.mFileName << '\n';
+		//			continue;
+		//		}
 
-				somethingChanged = true;
+		//		somethingChanged = true;
 
-				VK_CHECK_RESULT(vkDeviceWaitIdle(appDevicePtr))
+		//		VK_CHECK_RESULT(vkDeviceWaitIdle(appDevicePtr))
 
-				vkDestroyShaderModule(appDevice, shaderModule.mHandle, nullptr);
-				shaderModule.mHandle = vk::init::ShaderModule(appDevice, shaderPath.data());
+		//		vkDestroyShaderModule(appDevice, shaderModule.mHandle, nullptr);
+		//		shaderModule.mHandle = vk::init::ShaderModule(appDevice, shaderPath.data());
 
-				shaderInfos[i].last_modification = fileStat.st_mtime;
-			}
-		}
+		//		shaderInfos[i].last_modification = fileStat.st_mtime;
+		//	}
+		//}
 
-		if (somethingChanged) 
-		{
-			pipelinePtr->Recreate(appDevice);
-		}
+		//if (somethingChanged) 
+		//{
+		//	pipelinePtr->Recreate(appDevice);
+		//}
 	}
 
 }
