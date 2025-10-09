@@ -1,6 +1,5 @@
 #pragma once
 #include "vkInit.h"
-#include <vulkan/vulkan.h>
 #include "vkUtility.h"
 
 namespace vk

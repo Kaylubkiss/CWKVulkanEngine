@@ -1,14 +1,8 @@
 #include "Application.h"
-#include "vkDebug.h"
-#include "vkInit.h"
 #include "Controller.h"
-#include "Physics.h"
 #include "vkFreddyHeadContext.h"
 #include "vkShadowMapContext.h"
 #include "vkDeferredShadingContext.h"
-#define GLM_FORCE_RADIANS
-#define GLM_FORCE_DEFAULT_ALIGNED_GENTYPES
-#include <glm/gtc/matrix_transform.hpp>
 
 
 //NOTE: to remove pesky warnings from visual studio, on dynamically allocated arrays,

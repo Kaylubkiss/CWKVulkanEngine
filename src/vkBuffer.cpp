@@ -1,4 +1,3 @@
-#include "Application.h"
 #include "vkBuffer.h"
 #include <cassert>
 #include <memory>

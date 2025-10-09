@@ -2,7 +2,6 @@
 
 #include "vkSwapChain.h"
 #include "VkPipelineManager.h"
-#include "HotReloader.h"
 #include "vkDevice.h"
 #include "UserInterface.h"
 #include "Camera.h"
@@ -31,9 +30,6 @@ namespace vk
 
 			vk::Device device;
 
-			vk::HotReloader mHotReloader;
-
-
 			VkDescriptorPool descriptorPool = VK_NULL_HANDLE;
 			
 			uint32_t currentFrame = 0;
@@ -47,10 +43,10 @@ namespace vk
 
 			std::array<VkFence, maxFramesInFlight> inFlightFences;
 
-
 			vk::SwapChain swapChain;
 
 			vk::PipelineManager pipelineManager;
+
 			VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
 			VkRenderPass renderPass = VK_NULL_HANDLE;
 
@@ -59,8 +55,6 @@ namespace vk
 			vk::UserInterface UIOverlay;
 
 			bool isInitialized = false;
-
-
 
 		public: 
 
@@ -75,8 +69,7 @@ namespace vk
 			
 			GraphicsContextInfo GetGraphicsContextInfo();
 			
-			
-
+		
 			//public virtual function(s)
 			virtual void Render() = 0;
 			

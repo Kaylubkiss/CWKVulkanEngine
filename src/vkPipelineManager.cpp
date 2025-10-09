@@ -1,5 +1,5 @@
 /*
-	* filename: VkPipeline.cpp
+	* filename: VkPipelineManager.cpp
 	* author: Caleb Kissinger
 */
 #include "vkPipelineManager.h"
@@ -79,26 +79,6 @@ namespace vk
 		{
 			pipelines[pipeline].createFunc = std::move(createFunc);
 		}
-	}
-
-
-	//TODO
-	void PipelineManager::Recreate(const VkDevice l_device) 
-	{
-		//NOTE: globals, i.e. descriptor set layout 
-		// cannot be edited in the shader during runtime!!
-		/*vkDestroyPipeline(l_device, this->handle, nullptr);
-
-
-		std::vector<VkPipelineShaderStageCreateInfo> shaderStageCreateInfo;
-
-		for (size_t i = 0; i < shaderModules.size(); ++i) {
-			shaderStageCreateInfo.push_back(vk::init::PipelineShaderStageCreateInfo(shaderModules[i].mHandle, shaderModules[i].mFlags));
-		}
-
-		this->handle = vk::init::CreateGraphicsPipeline(l_device, this->layout, this->mRenderPass,
-			shaderStageCreateInfo.data(), shaderStageCreateInfo.size(),
-			this->mTopology);*/
 	}
 
 	//TODO: remove this entirely, only serviced the freddy head scene.

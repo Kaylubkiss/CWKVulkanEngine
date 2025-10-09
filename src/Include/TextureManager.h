@@ -1,7 +1,5 @@
 #pragma once
 
-
-#include <vulkan/vulkan.h>
 #include "vkTexture.h"
 #include "vkContextBase.h"
 #include <vector>

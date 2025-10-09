@@ -9,6 +9,8 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
+#include <vulkan/vulkan.h>
+
 #include "vkGlobal.h"
 #include "vkUtility.h"
 #include "vkInit.h"
@@ -22,6 +24,7 @@
 #include <glm/gtx/hash.hpp>
 
 #include <SDL2/SDL.h>
+#include <SDL2/SDL_vulkan.h>
 
 #include "ApplicationGlobal.h"
 

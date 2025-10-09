@@ -1,8 +1,5 @@
 #pragma once
 
-#include <vulkan/vulkan.h>
-#include <SDL2/SDL.h>
-
 namespace vk 
 {
 	struct Window 

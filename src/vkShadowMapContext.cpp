@@ -110,11 +110,11 @@ namespace vk
 				depthBiasConstant, 0.f, 
 				depthBiasSlope);
 
-			vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, offscreenPipeline);
+			vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineManager.Get(Pipelines::OFFSCREEN));
 
-			vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mPipeline.layout, 0, 1, &descriptorSets.offscreen, 0, nullptr);
+			vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets.offscreen, 0, nullptr);
 
-			objManager.DrawObjects(cmdBuffer, mPipeline.layout);
+			objManager.DrawObjects(cmdBuffer, pipelineLayout);
 
 			vkCmdEndRenderPass(cmdBuffer);
 

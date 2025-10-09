@@ -1,5 +1,5 @@
 /*
-	* filename: VkPipeline.h
+	* filename: VkPipelineManager.h
 	* author: Caleb Kissinger
 */
 #pragma once
@@ -7,7 +7,6 @@
 #include <list>
 #include <map>
 
-#include <vulkan/vulkan.h>
 #include "shaderc/shaderc.hpp"
 #include "vkWindow.h"
 
@@ -93,16 +92,6 @@ namespace vk
 				* @return void
 			*/
 			void Finalize(const VkDevice l_device, const VkPhysicalDevice p_device, const vk::Window& appWindow, VkPrimitiveTopology topology);
-
-			
-
-			/*
-				*@brief Destroys the current pipeline handle, and creates a new one. 
-				
-				*@param l_device: logical device associated with the application's vulkan instance.
-			*/
-			void Recreate(const VkDevice l_device);
-
 
 			void HotReloadShaders();
 			

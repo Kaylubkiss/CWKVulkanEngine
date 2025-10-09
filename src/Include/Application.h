@@ -1,7 +1,6 @@
 #pragma once
 #include "Timer.h"
 #include "Camera.h"
-#include "Debug.h"
 #include "ObjectManager.h"
 #include "vkWindow.h"
 #include "vkContextBase.h"

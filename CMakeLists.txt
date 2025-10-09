@@ -6,10 +6,8 @@ project("${PROJECT_NAME}" LANGUAGES CXX C)
 
 #------------------SOURCES----------------------
 set(SOURCE_FILES src/Application.cpp 
-                   src/BlinnPhong.cpp 
                    src/Camera.cpp 
                    src/Common.cpp
-                   src/Debug.cpp
                    src/Main.cpp
                    src/Object.cpp
                    src/Physics.cpp
@@ -19,7 +17,6 @@ set(SOURCE_FILES src/Application.cpp
 				   src/ObjectManager.cpp
 				   src/ApplicationGlobal.cpp
 				   src/CameraController.cpp
-				   src/HotReloader.cpp
 				   src/UserInterface.cpp
 )
 							
@@ -70,10 +67,8 @@ list(APPEND SOURCE_FILES ${IM_GUI_FILES})
 #------------------HEADERS----------------------
 set(HEADER_FILES 
 src/Include/Application.h
-src/Include/BlinnPhong.h
 src/Include/Camera.h
 src/Include/Common.h
-src/Include/Debug.h
 src/Include/Object.h
 src/Include/Vertex.h
 src/Include/Physics.h
@@ -84,7 +79,6 @@ src/Include/TextureManager.h
 src/Include/ApplicationGlobal.h
 src/Include/Controller.h
 src/Include/SpirvHelper.h
-src/Include/HotReloader.h
 src/Include/UserInterface.h
 )
 				 

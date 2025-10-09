@@ -1,9 +1,7 @@
 #include "vkContextBase.h"
 #include "vkUtility.h"
 #include "vkInit.h"
-#include "ObjectManager.h"
-#include "HotReloader.h"
-#include <SDL2/SDL_vulkan.h>
+#include "vkContextBase.h"
 
 namespace vk
 {	
@@ -50,10 +48,6 @@ namespace vk
 		cmdBufferAllocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
 		VK_CHECK_RESULT(vkAllocateCommandBuffers(device.logical, &cmdBufferAllocateInfo, commandBuffers.data()));
 
-		/*this->mHotReloader.appDevicePtr = this->device.logical;
-		this->mHotReloader.AddPipeline(this->mPipeline);
-*/
-
 		UserInterfaceInitInfo userInterfaceCI = {};
 		userInterfaceCI.contextInstance = this->instance;
 		userInterfaceCI.contextLogicalDevice = this->device.logical;
@@ -68,8 +62,6 @@ namespace vk
 		this->mCamera = Camera({ 0.f, 0.f, 10.f }, { 0.f, 0.f, -1.f }, { 0,1,0 });
 
 		this->pipelineManager.Init(mInfo);
-
-		this->isInitialized = true;
 
 	}
 
@@ -354,7 +346,7 @@ namespace vk
 
 	void ContextBase::WaitForDevice()
 	{
-		if (this->isInitialized) 
+		if (this->device.logical)
 		{
 			VK_CHECK_RESULT(vkDeviceWaitIdle(this->device.logical));
 		}

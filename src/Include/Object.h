@@ -1,11 +1,9 @@
 #pragma once
 
-#include "Physics.h"
 #include <iostream>
 #include <string>
+#include "Physics.h"
 #include "vkMesh.h"
-
-
 
 #define OBJECT_PATH "External/objects/"
 
@@ -20,8 +18,6 @@ class Object
 
 		VkDescriptorSet textureDescriptorSet = VK_NULL_HANDLE;
 
-		bool debugDraw = false;
-	
 	public:
 		Object(const VkPhysicalDevice p_device, const VkDevice l_device,
 			const char* fileName, bool willDebugDraw = false);
@@ -29,7 +25,6 @@ class Object
 		void UpdatePhysicsComponent(const PhysicsComponent* physComp);
 		void UpdateModelTransform(const glm::mat4* modelTransform);
 		void UpdateMesh(const Mesh* mesh);
-		void SetDebugDraw(bool option);
 
 		Object() = default;
 		~Object() = default;
@@ -38,7 +33,6 @@ class Object
 		void Update(const float& interpFactor);
 		void Draw(VkCommandBuffer cmdBuffer, VkPipelineLayout pipelineLayout = VK_NULL_HANDLE);
 		void InitPhysics(PhysicsSystem& appPhysics);
-		/*void SetLinesArrayOffset(uint32_t index);*/
 
 		void AddTextureDescriptorSet(VkDescriptorSet textureDscSet);
 };
