@@ -24,14 +24,13 @@ namespace vk
 		}
 		else 
 		{
-
-			mFilePath = shaderPath.c_str();
+			mFilePath = SHADER_PATH + filename;
 		}
 
 		mHandle = vk::init::ShaderModule(l_device, shaderPath.data());
 
 		struct stat fileStat;
-		if (stat(mFilePath, &fileStat) != 0)
+		if (stat(mFilePath.c_str(), &fileStat) != 0)
 		{
 			std::cerr << "[ERROR] Can't open file: " << mFilePath << '\n';
 		}
@@ -72,9 +71,14 @@ namespace vk
 		pipelines[pipeline].shaderModules.push_back(shaderModuleInfo);
 	}
 
-	void PipelineManager::AddPipeline(uint32_t pipeline, const VkPipeline handle) 
+	void PipelineManager::AddPipeline(uint32_t pipeline, const VkPipeline handle, std::function<void()> createFunc)
 	{
 		pipelines[pipeline].handle = handle;
+
+		if (createFunc != nullptr) 
+		{
+			pipelines[pipeline].createFunc = std::move(createFunc);
+		}
 	}
 
 
@@ -118,58 +122,65 @@ namespace vk
 
 	void PipelineManager::HotReloadShaders() 
 	{
-		//bool somethingChanged = false;
-		//const VkDevice& appDevice = (this->appDevicePtr);
+		bool somethingChanged = false;
 
+		for (auto& pipeline : pipelines) 
+		{
+			for (auto& shader : pipeline.second.shaderModules) 
+			{
+				struct stat fileStat;
 
-		//for (size_t i = 0; i < shaderInfos.size(); ++i)
-		//{
-		//	struct stat fileStat;
+				if (stat(shader.mFilePath.c_str(), &fileStat) != 0)
+				{
+					std::cerr << "[ERROR] Can't Read File " << shader.mFilePath << '\n';
+					continue;
+				}
 
-		//	vk::ShaderModuleInfo& shaderModule = pipelinePtr->ShaderModule(shaderInfos[i].module_i);
+				//check if the filesystem saw any changes.
+				if (fileStat.st_mtime != shader.lastModificationTime)
+				{
+					std::string shaderPath =
+						vk::util::ReadSourceAndWriteToSprv(shader.mFilePath, shader.mShaderKind);
 
-		//	std::string filePath = SHADER_PATH + shaderModule.mFileName;
+					if (shaderPath.empty())
+					{
+						std::cerr << "[ERROR] Couldn't successfully write to file " << shader.mFilePath << '\n';
+						continue;
+					}
 
-		//	if (stat(filePath.c_str(), &fileStat) != 0)
-		//	{
-		//		std::cerr << "[ERROR] Can't Read File " << filePath << '\n';
-		//		continue;
-		//	}
+					somethingChanged = true;
 
-		//	//check if the filesystem saw any changes.
-		//	if (fileStat.st_mtime != shaderInfos[i].last_modification)
-		//	{
-		//		std::string shaderPath =
-		//			vk::util::ReadSourceAndWriteToSprv(filePath, shaderModule.mShaderKind);
+					VK_CHECK_RESULT(vkDeviceWaitIdle(contextLogicalDevice))
 
-		//		if (shaderPath.empty())
-		//		{
-		//			std::cerr << "[ERROR] Couldn't successfully write to file " << shaderModule.mFileName << '\n';
-		//			continue;
-		//		}
+					vkDestroyShaderModule(contextLogicalDevice, shader.mHandle, nullptr);
+					shader.mHandle = vk::init::ShaderModule(contextLogicalDevice, shaderPath.data());
 
-		//		somethingChanged = true;
+					shader.lastModificationTime = fileStat.st_mtime;
+				}	
+			}
 
-		//		VK_CHECK_RESULT(vkDeviceWaitIdle(appDevicePtr))
+			if (somethingChanged)
+			{
+				if (pipeline.second.createFunc != nullptr) 
+				{
+					pipeline.second.createFunc();
+				}
 
-		//			vkDestroyShaderModule(appDevice, shaderModule.mHandle, nullptr);
-		//		shaderModule.mHandle = vk::init::ShaderModule(appDevice, shaderPath.data());
+				somethingChanged = false;
+			}
 
-		//		shaderInfos[i].last_modification = fileStat.st_mtime;
-		//	}
-		//}
-
-		//if (somethingChanged)
-		//{
-		//	pipelinePtr->Recreate(appDevice);
-		//}
+		}
 
 	}
-
 
 	VkPipeline PipelineManager::Get(uint32_t pipeline) 
 	{
 		return pipelines[pipeline].handle;
+	}
+
+	const std::vector<ShaderModuleInfo>& PipelineManager::GetPipelineShaders(uint32_t pipeline) 
+	{
+		return pipelines[pipeline].shaderModules;
 	}
 
 

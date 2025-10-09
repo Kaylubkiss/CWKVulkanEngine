@@ -393,40 +393,37 @@ namespace vk
 
 	void ContextBase::SubmitFrame() 
 	{
-		if (settings.minimized == false) 
+		VkSubmitInfo submitInfo = {};
+		const VkPipelineStageFlags pipelineWaitStages = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+		submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+		submitInfo.waitSemaphoreCount = 1;
+		submitInfo.pWaitSemaphores = &presentCompleteSemaphores[currentFrame];
+		submitInfo.pWaitDstStageMask = &pipelineWaitStages;
+		submitInfo.signalSemaphoreCount = 1;
+		submitInfo.pSignalSemaphores = &renderCompleteSemaphores[currentImageIndex];
+		submitInfo.commandBufferCount = 1;
+		submitInfo.pCommandBuffers = &this->commandBuffers[currentFrame];
+		VK_CHECK_RESULT(vkQueueSubmit(this->device.graphicsQueue.handle, 1, &submitInfo, inFlightFences[currentFrame]))
+
+		VkPresentInfoKHR presentInfo{};
+		presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+		presentInfo.waitSemaphoreCount = 1;
+		presentInfo.pWaitSemaphores = &renderCompleteSemaphores[currentImageIndex];
+		presentInfo.pImageIndices = &currentImageIndex;
+		presentInfo.swapchainCount = 1;
+		presentInfo.pSwapchains = &this->swapChain.handle;
+		VkResult result = vkQueuePresentKHR(this->device.presentQueue.handle, &presentInfo);
+		if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
 		{
-			VkSubmitInfo submitInfo = {};
-			const VkPipelineStageFlags pipelineWaitStages = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-			submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-			submitInfo.waitSemaphoreCount = 1;
-			submitInfo.pWaitSemaphores = &presentCompleteSemaphores[currentFrame];
-			submitInfo.pWaitDstStageMask = &pipelineWaitStages;
-			submitInfo.signalSemaphoreCount = 1;
-			submitInfo.pSignalSemaphores = &renderCompleteSemaphores[currentImageIndex];
-			submitInfo.commandBufferCount = 1;
-			submitInfo.pCommandBuffers = &this->commandBuffers[currentFrame];
-			VK_CHECK_RESULT(vkQueueSubmit(this->device.graphicsQueue.handle, 1, &submitInfo, inFlightFences[currentFrame]))
-
-				VkPresentInfoKHR presentInfo{};
-			presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
-			presentInfo.waitSemaphoreCount = 1;
-			presentInfo.pWaitSemaphores = &renderCompleteSemaphores[currentImageIndex];
-			presentInfo.pImageIndices = &currentImageIndex;
-			presentInfo.swapchainCount = 1;
-			presentInfo.pSwapchains = &this->swapChain.handle;
-			VkResult result = vkQueuePresentKHR(this->device.presentQueue.handle, &presentInfo);
-			if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
-			{
-				ResizeWindow();
-				return;
-			}
-			else
-			{
-				VK_CHECK_RESULT(result);
-			}
-
-			currentFrame = (currentFrame + 1) % maxFramesInFlight;
+			ResizeWindow();
+			return;
 		}
+		else
+		{
+			VK_CHECK_RESULT(result);
+		}
+
+		currentFrame = (currentFrame + 1) % maxFramesInFlight;
 
 	}
 }

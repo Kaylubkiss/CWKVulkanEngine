@@ -449,10 +449,60 @@ namespace vk
 
 		VkPipeline lightPassPipeline = VK_NULL_HANDLE;
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device.logical, VK_NULL_HANDLE, 1, &pipelineCI, nullptr, &lightPassPipeline));
-		pipelineManager.AddPipeline(DeferredPipelines::LIGHTPASS, lightPassPipeline);
+		
+		//for the hot reloading - light pass 
+		std::function<void()> lightPassCreationFunction = 
+				[this,
+				inputAssemblyStateCI, 
+				rasterizationStateCI, 
+				depthStencilStateCI,
+				multiplesampleStateCI,
+				viewportStateCI,
+				emptyVertexInputStateCI]
+		{
+
+				VkPipeline pipeline = pipelineManager.Get(DeferredPipelines::LIGHTPASS);
+				
+				if (pipeline != VK_NULL_HANDLE) 
+				{
+					vkDestroyPipeline(device.logical, pipeline, nullptr);
+					pipeline = VK_NULL_HANDLE;
+				}
+
+				VkPipelineColorBlendAttachmentState blendAttachmentState = vk::init::PipelineColorBlendAttachmentState(0xf, VK_FALSE);
+				VkPipelineColorBlendStateCreateInfo colorBlendStateCI = vk::init::PipelineColorBlendStateCreateInfo(1, &blendAttachmentState);
+
+				std::vector<VkDynamicState> dynamicStates = { VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR };
+				VkPipelineDynamicStateCreateInfo dynamicStateCI = vk::init::PipelineDynamicStateCreateInfo(dynamicStates);
+
+				std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages;
+				
+				VkGraphicsPipelineCreateInfo pipelineCI = vk::init::PipelineCreateInfo(pipelineLayout, renderPass);
+
+				pipelineCI.pInputAssemblyState = &inputAssemblyStateCI;
+				pipelineCI.pRasterizationState = &rasterizationStateCI;
+				pipelineCI.pColorBlendState = &colorBlendStateCI;
+				pipelineCI.pDepthStencilState = &depthStencilStateCI;
+				pipelineCI.pMultisampleState = &multiplesampleStateCI;
+				pipelineCI.pDynamicState = &dynamicStateCI;
+				pipelineCI.pViewportState = &viewportStateCI;
+				pipelineCI.pVertexInputState = &emptyVertexInputStateCI;
+				pipelineCI.stageCount = static_cast<uint32_t>(shaderStages.size());
+				pipelineCI.pStages = shaderStages.data();
+
+				const std::vector<ShaderModuleInfo>& shaders = pipelineManager.GetPipelineShaders(DeferredPipelines::LIGHTPASS);
+				shaderStages[0] = vk::init::PipelineShaderStageCreateInfo(shaders[0].mHandle, shaders[0].mFlags);
+				shaderStages[1] = vk::init::PipelineShaderStageCreateInfo(shaders[1].mHandle, shaders[1].mFlags);
+
+				VK_CHECK_RESULT(vkCreateGraphicsPipelines(device.logical, VK_NULL_HANDLE, 1, &pipelineCI, nullptr, &pipeline));
+
+				pipelineManager.AddPipeline(DeferredPipelines::LIGHTPASS, pipeline);
+		};
 
 
+		pipelineManager.AddPipeline(DeferredPipelines::LIGHTPASS, lightPassPipeline, std::move(lightPassCreationFunction));
 
+	
 		/////////////////////////////////////////////////////////////
 		//pipeline #2: MRT stage of deferred shading -- outputting to color/textures
 		vertShaderInfo = ShaderModuleInfo(device.logical, "deferredMRT.vert", VK_SHADER_STAGE_VERTEX_BIT);
@@ -494,89 +544,153 @@ namespace vk
 
 		VkPipeline deferredMRTPipeline = VK_NULL_HANDLE;
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device.logical, VK_NULL_HANDLE, 1, &pipelineCI, nullptr, &deferredMRTPipeline));
-		pipelineManager.AddPipeline(DeferredPipelines::MRT, deferredMRTPipeline);
+
+		//for hot reloading - MRT pass
+		std::function<void()> MRTPassCreationFunction =
+			[this,
+			inputAssemblyStateCI,
+			rasterizationStateCI,
+			depthStencilStateCI,
+			multiplesampleStateCI,
+			viewportStateCI]
+		{
+
+				VkPipeline pipeline = pipelineManager.Get(DeferredPipelines::MRT);
+
+				if (pipeline != VK_NULL_HANDLE)
+				{
+					vkDestroyPipeline(device.logical, pipeline, nullptr);
+					pipeline = VK_NULL_HANDLE;
+				}
+
+				std::array<VkPipelineColorBlendAttachmentState, 3> blendAttachmentStates = {
+					vk::init::PipelineColorBlendAttachmentState(0xf, VK_FALSE),
+					vk::init::PipelineColorBlendAttachmentState(0xf, VK_FALSE),
+					vk::init::PipelineColorBlendAttachmentState(0xf, VK_FALSE)
+				};
+
+				VkPipelineColorBlendStateCreateInfo colorBlendStateCI = vk::init::PipelineColorBlendStateCreateInfo
+				(
+					blendAttachmentStates.size(), blendAttachmentStates.data()
+				);
+
+				std::vector<VkDynamicState> dynamicStates = { VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR };
+				VkPipelineDynamicStateCreateInfo dynamicStateCI = vk::init::PipelineDynamicStateCreateInfo(dynamicStates);
+
+				VkVertexInputBindingDescription vertexBindingDescription = vk::init::VertexInputBindingDescription();
+				auto vertexInputAttributeDescriptions = Vertex::InputAttributeDescriptions();
+
+				VkPipelineVertexInputStateCreateInfo vertexInputStateCI = vk::init::PipelineVertexInputStateCreateInfo();
+				vertexInputStateCI.pVertexBindingDescriptions = &vertexBindingDescription;
+				vertexInputStateCI.vertexBindingDescriptionCount = 1;
+				vertexInputStateCI.pVertexAttributeDescriptions = vertexInputAttributeDescriptions.data();
+				vertexInputStateCI.vertexAttributeDescriptionCount = vertexInputAttributeDescriptions.size();
+
+				std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages;
+
+				VkGraphicsPipelineCreateInfo pipelineCI = vk::init::PipelineCreateInfo(pipelineLayout, deferredPass.renderPass);
+
+				pipelineCI.pInputAssemblyState = &inputAssemblyStateCI;
+				pipelineCI.pRasterizationState = &rasterizationStateCI;
+				pipelineCI.pColorBlendState = &colorBlendStateCI;
+				pipelineCI.pDepthStencilState = &depthStencilStateCI;
+				pipelineCI.pMultisampleState = &multiplesampleStateCI;
+				pipelineCI.pDynamicState = &dynamicStateCI;
+				pipelineCI.pViewportState = &viewportStateCI;
+				pipelineCI.pVertexInputState = &vertexInputStateCI;
+				pipelineCI.stageCount = static_cast<uint32_t>(shaderStages.size());
+				pipelineCI.pStages = shaderStages.data();
+
+				const std::vector<ShaderModuleInfo>& shaders = pipelineManager.GetPipelineShaders(DeferredPipelines::MRT);
+				shaderStages[0] = vk::init::PipelineShaderStageCreateInfo(shaders[0].mHandle, shaders[0].mFlags);
+				shaderStages[1] = vk::init::PipelineShaderStageCreateInfo(shaders[1].mHandle, shaders[1].mFlags);
+
+				VK_CHECK_RESULT(vkCreateGraphicsPipelines(device.logical, VK_NULL_HANDLE, 1, &pipelineCI, nullptr, &pipeline));
+
+				pipelineManager.AddPipeline(DeferredPipelines::MRT, pipeline);
+		};
+
+
+		pipelineManager.AddPipeline(DeferredPipelines::MRT, deferredMRTPipeline, std::move(MRTPassCreationFunction));
 	}
 
 	void DeferredContext::RecordCommandBuffers()
 	{
-		if (settings.minimized == false) 
+		ObjectManager& objManager = _Application->ObjectManager();
+
+		VkCommandBuffer cmdBuffer = commandBuffers[currentFrame];
+		VkCommandBufferBeginInfo cmdBufferBeginInfo = vk::init::CommandBufferBeginInfo();
+
+		//clear value count corresponds to the number of attachments.
+		VkClearValue clearValues[4]; //position, normal, albedo, depth;
+
+		VK_CHECK_RESULT(vkBeginCommandBuffer(cmdBuffer, &cmdBufferBeginInfo));
+
+		//MRT rendering.
 		{
-			ObjectManager& objManager = _Application->ObjectManager();
+			clearValues[0].color = { 0,0,0,0 };
+			clearValues[1].color = clearValues[0].color;
+			clearValues[2].color = clearValues[0].color;
+			clearValues[3].depthStencil = { 1.f, 0 };
 
-			VkCommandBuffer cmdBuffer = commandBuffers[currentFrame];
-			VkCommandBufferBeginInfo cmdBufferBeginInfo = vk::init::CommandBufferBeginInfo();
+			VkRenderPassBeginInfo renderPassBeginInfo = vk::init::RenderPassBeginInfo();
+			renderPassBeginInfo.clearValueCount = 4;
+			renderPassBeginInfo.pClearValues = clearValues;
+			renderPassBeginInfo.renderArea.extent = { (uint32_t)deferredPass.width, (uint32_t)deferredPass.height };
+			renderPassBeginInfo.renderPass = deferredPass.renderPass;
+			renderPassBeginInfo.framebuffer = deferredPass.framebuffer;
 
-			//clear value count corresponds to the number of attachments.
-			VkClearValue clearValues[4]; //position, normal, albedo, depth;
+			vkCmdBeginRenderPass(cmdBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-			VK_CHECK_RESULT(vkBeginCommandBuffer(cmdBuffer, &cmdBufferBeginInfo));
+			VkViewport deferredMRTViewport = vk::init::Viewport(deferredPass.width, deferredPass.height);
+			vkCmdSetViewport(cmdBuffer, 0, 1, &deferredMRTViewport);
 
-			//MRT rendering.
-			{
-				clearValues[0].color = { 0,0,0,0 };
-				clearValues[1].color = clearValues[0].color;
-				clearValues[2].color = clearValues[0].color;
-				clearValues[3].depthStencil = { 1.f, 0 };
+			VkRect2D deferredMRTScissor = vk::init::Rect2D(deferredPass.width, deferredPass.height);
+			vkCmdSetScissor(cmdBuffer, 0, 1, &deferredMRTScissor);
 
-				VkRenderPassBeginInfo renderPassBeginInfo = vk::init::RenderPassBeginInfo();
-				renderPassBeginInfo.clearValueCount = 4;
-				renderPassBeginInfo.pClearValues = clearValues;
-				renderPassBeginInfo.renderArea.extent = { (uint32_t)deferredPass.width, (uint32_t)deferredPass.height };
-				renderPassBeginInfo.renderPass = deferredPass.renderPass;
-				renderPassBeginInfo.framebuffer = deferredPass.framebuffer;
+			vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineManager.Get(DeferredPipelines::MRT));
 
-				vkCmdBeginRenderPass(cmdBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+			vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets.deferred, 0, nullptr);
 
-				VkViewport deferredMRTViewport = vk::init::Viewport(deferredPass.width, deferredPass.height);
-				vkCmdSetViewport(cmdBuffer, 0, 1, &deferredMRTViewport);
+			objManager.DrawObjects(cmdBuffer, pipelineLayout);
 
-				VkRect2D deferredMRTScissor = vk::init::Rect2D(deferredPass.width, deferredPass.height);
-				vkCmdSetScissor(cmdBuffer, 0, 1, &deferredMRTScissor);
-
-				vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineManager.Get(DeferredPipelines::MRT));
-
-				vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets.deferred, 0, nullptr);
-
-				objManager.DrawObjects(cmdBuffer, pipelineLayout);
-
-				vkCmdEndRenderPass(cmdBuffer);
-			}
-
-			//light pass rendering
-			{
-				clearValues[0].color = { 0,0,0,0 };
-				clearValues[1].depthStencil = { 1.f, 0 };
-
-				VkRenderPassBeginInfo renderPassBeginInfo = vk::init::RenderPassBeginInfo();
-				renderPassBeginInfo.clearValueCount = 4;
-				renderPassBeginInfo.pClearValues = clearValues;
-				renderPassBeginInfo.renderArea.extent = {(uint32_t)window.viewport.width, (uint32_t)window.viewport.height};
-				renderPassBeginInfo.renderPass = renderPass;
-				renderPassBeginInfo.framebuffer = swapChain.frameBuffers[currentFrame];
-
-				vkCmdBeginRenderPass(cmdBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
-
-				VkViewport sceneViewport = window.viewport;
-				vkCmdSetViewport(cmdBuffer, 0, 1, &sceneViewport);
-
-				VkRect2D sceneScissor = window.scissor;
-				vkCmdSetScissor(cmdBuffer, 0, 1, &sceneScissor);
-
-				vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets.composition, 0, nullptr);
-
-				vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineManager.Get(DeferredPipelines::LIGHTPASS));
-
-				vkCmdDraw(cmdBuffer, 3, 1, 0, 0);
-
-				UIOverlay.Render(cmdBuffer); //TODO: fix the recording of this. Seems to cause queuesubmit some trouble.
-
-				vkCmdEndRenderPass(cmdBuffer);
-
-			}
-
-
-			VK_CHECK_RESULT(vkEndCommandBuffer(cmdBuffer));
+			vkCmdEndRenderPass(cmdBuffer);
 		}
+
+		//light pass rendering
+		{
+			clearValues[0].color = { 0,0,0,0 };
+			clearValues[1].depthStencil = { 1.f, 0 };
+
+			VkRenderPassBeginInfo renderPassBeginInfo = vk::init::RenderPassBeginInfo();
+			renderPassBeginInfo.clearValueCount = 4;
+			renderPassBeginInfo.pClearValues = clearValues;
+			renderPassBeginInfo.renderArea.extent = {(uint32_t)window.viewport.width, (uint32_t)window.viewport.height};
+			renderPassBeginInfo.renderPass = renderPass;
+			renderPassBeginInfo.framebuffer = swapChain.frameBuffers[currentFrame];
+
+			vkCmdBeginRenderPass(cmdBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+			VkViewport sceneViewport = window.viewport;
+			vkCmdSetViewport(cmdBuffer, 0, 1, &sceneViewport);
+
+			VkRect2D sceneScissor = window.scissor;
+			vkCmdSetScissor(cmdBuffer, 0, 1, &sceneScissor);
+
+			vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets.composition, 0, nullptr);
+
+			vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineManager.Get(DeferredPipelines::LIGHTPASS));
+
+			vkCmdDraw(cmdBuffer, 3, 1, 0, 0);
+
+			UIOverlay.Render(cmdBuffer); //TODO: fix the recording of this. Seems to cause queuesubmit some trouble.
+
+			vkCmdEndRenderPass(cmdBuffer);
+
+		}
+
+
+		VK_CHECK_RESULT(vkEndCommandBuffer(cmdBuffer));
 
 	}
 
@@ -595,13 +709,19 @@ namespace vk
 
 	void DeferredContext::Render() 
 	{
-		UpdateSceneUniforms();
+		pipelineManager.HotReloadShaders();
+
 		if (window.IsMinimized() == false) 
 		{
 			ContextBase::PrepareFrame();
 			UpdateScreenUniforms();
+			UpdateSceneUniforms();
 			RecordCommandBuffers();
 			ContextBase::SubmitFrame();
+		}
+		else 
+		{
+			UpdateSceneUniforms();
 		}
 	}
 

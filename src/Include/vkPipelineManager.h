@@ -19,7 +19,7 @@ namespace vk
 	{
 		VkShaderModule mHandle = VK_NULL_HANDLE;
 		time_t lastModificationTime = 0;
-		const char* mFilePath = "";
+		std::string mFilePath = "";
 
 		VkShaderStageFlagBits mFlags;
 		shaderc_shader_kind mShaderKind; /*arguments in runtime shader compilation */
@@ -43,7 +43,7 @@ namespace vk
 {
 	struct Pipeline 
 	{
-		//TODO: creation info..?
+		std::function<void()> createFunc = nullptr;
 		std::vector<ShaderModuleInfo> shaderModules;
 		VkPipeline handle = VK_NULL_HANDLE;
 	};
@@ -77,7 +77,7 @@ namespace vk
 			*/
 			void AddModule(uint32_t pipeline, const ShaderModuleInfo& shaderModuleInfo);
 
-			void AddPipeline(uint32_t pipeline, const VkPipeline handle);
+			void AddPipeline(uint32_t pipeline, const VkPipeline handle, std::function<void()> createFunc = nullptr);
 
 			/*void InitRenderDepthInformation(const VkDevice l_device, const VkFormat& depthFormat);
 
@@ -108,6 +108,8 @@ namespace vk
 			
 			/* getters */
 			VkPipeline Get(uint32_t pipeline);
+
+			const std::vector<ShaderModuleInfo>& GetPipelineShaders(uint32_t pipeline);
 
 	};
 

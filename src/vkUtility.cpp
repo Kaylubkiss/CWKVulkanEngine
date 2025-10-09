@@ -303,7 +303,8 @@ namespace vk {
 
 			if (!file.is_open())
 			{
-				throw std::runtime_error("failed to open shader file!");
+				std::cerr << "failed to open " + filename << std::endl;
+				return "";
 			}
 
 			//reads the offset from the beginning of the file
@@ -345,6 +346,11 @@ namespace vk {
 			//vertex shader reading and compilation
 			vk::shader::CompilationInfo shaderInfo = {};
 			shaderInfo.source = vk::util::ReadFile(fileNamePath);
+			if (shaderInfo.source.empty()) 
+			{
+				return "";
+			}
+
 			shaderInfo.filename = fileNamePath.c_str();
 			shaderInfo.kind = shader_kind;
 
