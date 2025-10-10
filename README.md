@@ -23,6 +23,14 @@ It's been my dream from the day I started my journey into game development to be
 **If You Have Windows:**
 
   <ol>
+    <li>Have the correct drivers installed for Vulkan 1.4 and above according to your hardware vendor:
+      <ul>
+        <li> <a href="https://www.amd.com/en/support/download/drivers.html">AMD</a></li>
+        <li> <a href="https://www.nvidia.com/en-us/drivers/">Nvidia</a></li>
+        <li><a href="https://www.intel.com/content/www/us/en/download-center/home.html">Intel</a></li>
+        <li>other...</li>
+      </ul> 
+    </li>
     <li><a href="https://visualstudio.microsoft.com/downloads/">Download Visual Studio</a></li>
     <li>Clone the repo</li>
     <li>Run the batch (.bat) script</li>
