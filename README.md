@@ -23,7 +23,7 @@ It's been my dream from the day I started my journey into game development to be
 **If You Have Windows:**
 
   <ol>
-    <li><a href="https://visualstudio.microsoft.com/downloads/">Download Visual Studio</a></li>
+    <li><a target="_blank" href="https://visualstudio.microsoft.com/downloads/">Download Visual Studio</a></li>
     <li>Clone the repo</li>
     <li>Run the batch (.bat) script</li>
     <li>Go to build folder</li>
