@@ -6,6 +6,7 @@ project("${PROJECT_NAME}" LANGUAGES CXX C)
 
 #------------------SOURCES----------------------
 set(SOURCE_FILES src/Application.cpp 
+									src/pch.cpp
                    src/Camera.cpp 
                    src/Common.cpp
                    src/Main.cpp
@@ -40,8 +41,6 @@ src/vkDeferredShadingContext.cpp
 src/vkShadowMapContext.cpp)
 
 
-
-
 source_group("Source Files/VulkanSources" FILES ${VULKAN_ENGINE_SRC})			
 list(APPEND SOURCE_FILES ${VULKAN_ENGINE_SRC})
 
@@ -56,17 +55,13 @@ set(IM_GUI_FILES src/External/libraries/imgui/imgui_demo.cpp
                    src/External/libraries/imgui/backends/imgui_impl_sdl2.cpp
                    src/External/libraries/imgui/backends/imgui_impl_vulkan.cpp)
 
-if (WIN32)
-	#currently doesn't work..
-	list(APPEND ${IM_GUI_FILES} src/External/libraries/imgui/backends/imgui_impl_win32.cpp)
-endif()
-
 source_group("Source Files/ImGui" FILES ${IM_GUI_FILES})			
 list(APPEND SOURCE_FILES ${IM_GUI_FILES})					 
 
 #------------------HEADERS----------------------
 set(HEADER_FILES 
 src/Include/Application.h
+src/Include/pch.h
 src/Include/Camera.h
 src/Include/Common.h
 src/Include/Object.h
@@ -142,8 +137,7 @@ endif()
 #-------------------------------------------MAKE THE PROJECT--------------------------------------
 add_executable("${PROJECT_NAME}" ${SOURCE_FILES} ${SHADER_FILES} ${HEADER_FILES})
 
-
-target_precompile_headers("${PROJECT_NAME}" PUBLIC "src/Include/pch.h")
+target_precompile_headers("${PROJECT_NAME}" PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src/Include/pch.h")
 
 set_property(TARGET "${PROJECT_NAME}" PROPERTY CXX_STANDARD 20)
 
@@ -152,6 +146,8 @@ set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT "
 find_package(Vulkan REQUIRED)
 
 if (UNIX)
+
+ 	list(APPEND CMAKE_PREFIX_PATH src/External/libraries/ReactPhysics3D/lib/cmake/ReactPhysics3D/)
 
 	find_package(ReactPhysics3D REQUIRED)
 
@@ -163,7 +159,8 @@ if (UNIX)
 endif()
 
 
-target_include_directories("${PROJECT_NAME}" PRIVATE src/Include
+target_include_directories(${PROJECT_NAME} PRIVATE 
+src/Include
 src/External/libraries
 src/External/libraries/imgui
 src/External/libraries/stb
@@ -189,10 +186,12 @@ elseif (UNIX)
 		target_link_libraries(${PROJECT_NAME} SDL2::SDL2main)
 	endif()
 
+	
 	target_link_libraries(${PROJECT_NAME} ${Vulkan_LIBRARIES} SDL2::SDL2 reactphysics3d shaderc_combined)
-
-	#~/libraries contains reactphysics3d and shaderc_combined
-	target_link_directories("${PROJECT_NAME}" PRIVATE Vulkan::Vulkan ~/libraries/)
+	
+	target_link_directories(${PROJECT_NAME} PRIVATE Vulkan::Vulkan)
+	
+	add_subdirectory(src/External/libraries/shaderc/)
 
 	target_compile_options(${PROJECT_NAME} PRIVATE -fsanitize=address)
 	target_link_options(${PROJECT_NAME} PRIVATE -fsanitize=address)

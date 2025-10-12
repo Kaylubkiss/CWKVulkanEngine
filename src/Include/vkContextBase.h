@@ -1,7 +1,7 @@
 #pragma once
 
 #include "vkSwapChain.h"
-#include "VkPipelineManager.h"
+#include "vkPipelineManager.h"
 #include "vkDevice.h"
 #include "UserInterface.h"
 #include "Camera.h"
