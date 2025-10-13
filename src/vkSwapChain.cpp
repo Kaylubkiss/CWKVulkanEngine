@@ -102,10 +102,7 @@ namespace vk
 	{
 		SwapChain::Destroy();
 
-		VkSurfaceCapabilitiesKHR deviceCapabilities;
-		VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(devicePtr->physical, appWindow.surface, &deviceCapabilities));
-
-		createInfo.imageExtent = deviceCapabilities.currentExtent;
+		createInfo.imageExtent = { (uint32_t)appWindow.viewport.width, (uint32_t)appWindow.viewport.height };
 		VK_CHECK_RESULT(vkCreateSwapchainKHR(devicePtr->logical, &createInfo, nullptr, &this->handle));
 
 		this->images.resize(createInfo.minImageCount);
