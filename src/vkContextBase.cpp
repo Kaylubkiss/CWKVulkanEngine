@@ -23,7 +23,8 @@ namespace vk
 
 		std::array<uint32_t, 2> queueFamilies = { device.graphicsQueue.family, device.presentQueue.family };
 		this->swapChain = SwapChain(&this->device, queueFamilies, window); //need window for its surface and viewport info.
-		
+
+		//conforms to higher frame counts to prevent flickering.
 		if (swapChain.createInfo.minImageCount > settings.max_frames_in_flight)
 		{
 			settings.max_frames_in_flight = swapChain.createInfo.minImageCount;
