@@ -24,6 +24,11 @@ namespace vk
 		std::array<uint32_t, 2> queueFamilies = { device.graphicsQueue.family, device.presentQueue.family };
 		this->swapChain = SwapChain(&this->device, queueFamilies, window); //need window for its surface and viewport info.
 		
+		if (swapChain.createInfo.minImageCount > settings.max_frames_in_flight)
+		{
+			settings.max_frames_in_flight = swapChain.createInfo.minImageCount;
+		}
+
 		InitializeRenderPass();
 		this->swapChain.CreateFrameBuffers(window.viewport, renderPass);
 
