@@ -322,11 +322,11 @@ namespace vk
 		//NOTE: non-textured objects in this scene
 		const uint32_t num_pipelines = 2;
 		std::vector<VkDescriptorPoolSize> descriptorPoolSize = {
-			vk::init::DescriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,  maxFramesInFlight * (2 * 3)), //2 UB/set * 3 sets -- uniform buffer in deferredMRT.vert, and deferredLightPass.frag
-			vk::init::DescriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, maxFramesInFlight * (3 * 3)) //3 samplers (3 CI/set * 3 sets)-- in composition pipeline, +1 for freddy head texture.			
+			vk::init::DescriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,  gMaxFramesInFlight * (2 * 3)), //2 UB/set * 3 sets -- uniform buffer in deferredMRT.vert, and deferredLightPass.frag
+			vk::init::DescriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, gMaxFramesInFlight * (3 * 3)) //3 samplers (3 CI/set * 3 sets)-- in composition pipeline, +1 for freddy head texture.			
 		};
 
-		VkDescriptorPoolCreateInfo descriptorPoolCI = vk::init::DescriptorPoolCreateInfo(descriptorPoolSize, (num_pipelines + 1) * maxFramesInFlight); //+1 for the freddy head texture.
+		VkDescriptorPoolCreateInfo descriptorPoolCI = vk::init::DescriptorPoolCreateInfo(descriptorPoolSize, (num_pipelines + 1) * gMaxFramesInFlight); //+1 for the freddy head texture.
 		VK_CHECK_RESULT(vkCreateDescriptorPool(device.logical, &descriptorPoolCI, nullptr, &descriptorPool));
 		
 		// VkPhysicalDeviceProperties deviceProps;

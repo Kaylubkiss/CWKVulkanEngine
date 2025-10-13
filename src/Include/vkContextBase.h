@@ -21,7 +21,7 @@ namespace vk
 
 			struct {
 				bool minimized = false;
-
+				uint32_t max_frames_in_flight = 2;
 			} settings;
 
 			vk::Window window;
@@ -36,12 +36,12 @@ namespace vk
 			uint32_t currentImageIndex = 0;
 
 			VkCommandPool commandPool = VK_NULL_HANDLE;
-			std::array<VkCommandBuffer, maxFramesInFlight> commandBuffers;
+			std::array<VkCommandBuffer, gMaxFramesInFlight> commandBuffers;
 
-			std::array<VkSemaphore, maxFramesInFlight> presentCompleteSemaphores;
-			std::array<VkSemaphore, maxFramesInFlight> renderCompleteSemaphores;
+			std::array<VkSemaphore, gMaxFramesInFlight> presentCompleteSemaphores;
+			std::array<VkSemaphore, gMaxFramesInFlight> renderCompleteSemaphores;
 
-			std::array<VkFence, maxFramesInFlight> inFlightFences;
+			std::array<VkFence, gMaxFramesInFlight> inFlightFences;
 
 			vk::SwapChain swapChain;
 

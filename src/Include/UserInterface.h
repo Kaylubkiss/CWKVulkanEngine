@@ -9,11 +9,12 @@ namespace vk
 		VkInstance contextInstance = VK_NULL_HANDLE;
 		VkDevice contextLogicalDevice = VK_NULL_HANDLE;
 		VkPhysicalDevice contextPhysicalDevice = VK_NULL_HANDLE;
-
 		SDL_Window* contextWindow = nullptr;
 
 		vk::Queue contextQueue = {};
 		VkRenderPass renderPass = VK_NULL_HANDLE;
+
+		uint32_t minImages = 0;
 	};
 
 	class UserInterface {

@@ -1,7 +1,6 @@
 #include "vkContextBase.h"
 #include "vkUtility.h"
 #include "vkInit.h"
-#include "vkContextBase.h"
 
 namespace vk
 {	
@@ -28,19 +27,12 @@ namespace vk
 		InitializeRenderPass();
 		this->swapChain.CreateFrameBuffers(window.viewport, renderPass);
 
-		if (swapChain.createInfo.minImageCount < maxFramesInFlight) 
-		{
-			throw std::runtime_error("Device must support at least 2 swapchain images");
-		}
-
-		for (int i = 0; i < maxFramesInFlight; ++i)
+		for (int i = 0; i < gMaxFramesInFlight; ++i)
 		{
 			inFlightFences[i] = vk::init::CreateFence(device.logical);
 			presentCompleteSemaphores[i] = vk::init::CreateSemaphore(this->device.logical);
 			renderCompleteSemaphores[i] = vk::init::CreateSemaphore(this->device.logical);
 		}
-
-		renderCompleteSemaphores[2] = vk::init::CreateSemaphore(this->device.logical);
 
 		this->commandPool = vk::init::CommandPool(device.logical, VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
 		//each swapchain should have its own command buffer
@@ -57,6 +49,8 @@ namespace vk
 		userInterfaceCI.contextQueue = this->device.graphicsQueue;
 		userInterfaceCI.contextWindow = this->window.sdl_ptr;
 		userInterfaceCI.renderPass = this->renderPass;
+		userInterfaceCI.minImages = settings.max_frames_in_flight;
+
 		this->UIOverlay = UserInterface(userInterfaceCI);
 
 		ContextBase::FillOutGraphicsContextInfo();
@@ -82,15 +76,13 @@ namespace vk
 		vkDestroyCommandPool(device.logical, this->commandPool, nullptr);
 
 		//semaphores
-		for (int i = 0; i < maxFramesInFlight; ++i) 
+		for (int i = 0; i < gMaxFramesInFlight; ++i)
 		{
 			vkDestroySemaphore(this->device.logical, presentCompleteSemaphores[i], nullptr);
 			vkDestroySemaphore(this->device.logical, renderCompleteSemaphores[i], nullptr);
 
 			vkDestroyFence(device.logical, inFlightFences[i], nullptr);
 		}
-
-		vkDestroySemaphore(this->device.logical, renderCompleteSemaphores[2], nullptr);
 
 		device.Destroy();
 		
@@ -315,6 +307,7 @@ namespace vk
 		mInfo.graphicsQueue = device.graphicsQueue;
 
 		mInfo.contextUIPtr = &UIOverlay;
+		
 	}
 
 	//getter(s)
@@ -424,7 +417,7 @@ namespace vk
 			VK_CHECK_RESULT(result);
 		}
 
-		currentFrame = (currentFrame + 1) % maxFramesInFlight;
+		currentFrame = (currentFrame + 1) % settings.max_frames_in_flight;
 
 	}
 }

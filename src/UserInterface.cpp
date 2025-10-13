@@ -30,7 +30,7 @@ namespace vk {
 		init_info.RenderPass = initInfo.renderPass;
 		init_info.Subpass = 0;
 		init_info.MinImageCount = 2;
-		init_info.ImageCount = maxFramesInFlight; //TODO: we assume that there is a backbuffer to render into.
+		init_info.ImageCount = initInfo.minImages; //TODO: we assume that there is a backbuffer to render into.
 		init_info.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
 		init_info.Allocator = nullptr;
 		init_info.CheckVkResultFn = vk::util::check_vk_result;
@@ -55,10 +55,10 @@ namespace vk {
 	void UserInterface::InitializeUIDescriptorPool() 
 	{
 		std::vector<VkDescriptorPoolSize> poolSizes = {
-			vk::init::DescriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, maxFramesInFlight * max_textures) 
+			vk::init::DescriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, gMaxFramesInFlight * max_textures) 
 		};
 
-		VkDescriptorPoolCreateInfo descriptorPoolCI = vk::init::DescriptorPoolCreateInfo(poolSizes, maxFramesInFlight * max_textures); //2 for swapchain image count. 
+		VkDescriptorPoolCreateInfo descriptorPoolCI = vk::init::DescriptorPoolCreateInfo(poolSizes, gMaxFramesInFlight * max_textures); //2 for swapchain image count. 
 
 		VK_CHECK_RESULT(vkCreateDescriptorPool(this->contextLogicalDevice, &descriptorPoolCI, nullptr, &UIDescriptorPool));
 
