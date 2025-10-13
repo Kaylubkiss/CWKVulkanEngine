@@ -387,5 +387,35 @@ namespace vk {
 
 			return fileNamePath;
 		}	
+
+		bool CheckLayerSupport(const char* layers[], int layersSize)
+		{
+			uint32_t layerCount = 0;
+    	vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
+
+			std::vector<VkLayerProperties> availableLayers(layerCount);
+			vkEnumerateInstanceLayerProperties(&layerCount, availableLayers.data());
+
+			for (int i = 0; i < layersSize; ++i)
+			{
+				bool foundLayer = false;
+				for (int j = 0; j < availableLayers.size(); ++j)
+				{
+					if (strcmp(layers[i], availableLayers[j].layerName) == 0)
+					{
+						foundLayer = true;
+						break;
+					}
+				}
+
+				if (foundLayer == false) 
+				{
+					return false;
+				}
+			}
+
+			return true;
+		}
+
 	}
 }

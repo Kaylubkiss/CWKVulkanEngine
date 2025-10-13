@@ -55,7 +55,7 @@ namespace vk {
 	void UserInterface::InitializeUIDescriptorPool() 
 	{
 		std::vector<VkDescriptorPoolSize> poolSizes = {
-			vk::init::DescriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1) 
+			vk::init::DescriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, maxFramesInFlight * max_textures) 
 		};
 
 		VkDescriptorPoolCreateInfo descriptorPoolCI = vk::init::DescriptorPoolCreateInfo(poolSizes, maxFramesInFlight * max_textures); //2 for swapchain image count. 
@@ -105,6 +105,13 @@ namespace vk {
 
 	void UserInterface::AddImage(const vk::Texture& texture) 
 	{
+		std::cout << "adding image to UI\n";
+		
+		if (texture.mTextureImageView == VK_NULL_HANDLE)
+		{
+			std::cout << "huh\n" << std::endl;
+		}
+
 		displayTextures.emplace_back(
 			ImGui_ImplVulkan_AddTexture(
 				texture.mTextureSampler, 

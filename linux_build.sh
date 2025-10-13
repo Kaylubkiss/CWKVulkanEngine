@@ -2,21 +2,52 @@
 
 sudo apt-get update && sudo apt-get upgrade
 
-sudo apt-get install libvulkan-dev libvulkan1 vulkan-tools libsdl2-dev libglm-dev ninja
+sudo apt-get install libvulkan-dev libvulkan1 vulkan-tools vulkan-validationlayers libsdl2-dev libglm-dev ninja-build 
 
 current_directory=$(pwd)
 
-cd src/External/libraries
+cd ~/
 
+library_directory=vkEngineLibraries/
+
+mkdir $library_directory
+
+cd $library_directory
+
+#BEGIN download shaderc library
 git clone https://github.com/google/shaderc
 
 cd shaderc
 
 ./utils/git-sync-deps
 
-cd $current_directory
+mkdir build
 
-rm -r build
+cd build
+
+cmake -G Ninja ..
+
+ninja -j 4
+
+cd ..
+
+#END download shaderc library
+
+#BEGIN download reactphysics3d
+git clone https://github.com/DanielChappuis/reactphysics3d.git reactphysics3d
+
+cd reactphysics3d
+
+mkdir build
+
+cd build
+
+cmake -G Ninja ..
+
+ninja -j 4
+#END download reactphysic3d
+
+cd $current_directory
 
 mkdir build
 

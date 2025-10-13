@@ -28,9 +28,9 @@ namespace vk
 		InitializeRenderPass();
 		this->swapChain.CreateFrameBuffers(window.viewport, renderPass);
 
-		if (swapChain.createInfo.minImageCount != maxFramesInFlight) 
+		if (swapChain.createInfo.minImageCount < maxFramesInFlight) 
 		{
-			throw std::runtime_error("your application surface doesn't seem to support two swapchain images");
+			throw std::runtime_error("Device must support at least 2 swapchain images");
 		}
 
 		for (int i = 0; i < maxFramesInFlight; ++i)
@@ -39,6 +39,8 @@ namespace vk
 			presentCompleteSemaphores[i] = vk::init::CreateSemaphore(this->device.logical);
 			renderCompleteSemaphores[i] = vk::init::CreateSemaphore(this->device.logical);
 		}
+
+		renderCompleteSemaphores[2] = vk::init::CreateSemaphore(this->device.logical);
 
 		this->commandPool = vk::init::CommandPool(device.logical, VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
 		//each swapchain should have its own command buffer
@@ -88,6 +90,8 @@ namespace vk
 			vkDestroyFence(device.logical, inFlightFences[i], nullptr);
 		}
 
+		vkDestroySemaphore(this->device.logical, renderCompleteSemaphores[2], nullptr);
+
 		device.Destroy();
 		
 		vkDestroySurfaceKHR(this->instance, this->window.surface, nullptr);
@@ -131,7 +135,7 @@ namespace vk
 
 
 		//enabling validation layers
-		const char* layerName = "VK_LAYER_KHRONOS_validation";
+ 		const char* layerName = "VK_LAYER_KHRONOS_validation";
 
 		const VkBool32 setting_validate_core = VK_TRUE;
 		const VkBool32 setting_validate_sync = VK_TRUE;
@@ -158,13 +162,18 @@ namespace vk
 
 		createInfo.pNext = &layer_settings_create_info;
 
-		static const char* instanceLayers[] =
+		std::array<const char*, 1> instanceLayers =
 		{
 			layerName
 		};
 
-		createInfo.enabledLayerCount = static_cast<uint32_t>(std::size(instanceLayers));
-		createInfo.ppEnabledLayerNames = instanceLayers;
+		if (!vk::util::CheckLayerSupport(instanceLayers.data(), instanceLayers.size()))
+		{
+			throw std::runtime_error("one or more layers are not supported\n");
+		}
+
+		createInfo.enabledLayerCount = static_cast<uint32_t>(instanceLayers.size());
+		createInfo.ppEnabledLayerNames = instanceLayers.data();
 	
 
 		//create instance.
@@ -370,7 +379,7 @@ namespace vk
 		}
 
 		VkResult result = vkAcquireNextImageKHR(device.logical, swapChain.handle, UINT64_MAX, presentCompleteSemaphores[currentFrame], (VkFence)nullptr, &currentImageIndex);
-
+	
 		if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
 		{
 			ResizeWindow();

@@ -66,12 +66,15 @@ namespace vk {
 
 		assert(graphicsContextInfo != nullptr);
 		//Might want to make command pool a member variable.
+
+		std::cout << "constructing a texture\n";
 	
 		int textureWidth, textureHeight, textureChannels;
 		stbi_uc* pixels = fileName == "" ? nullptr : stbi_load((TEXTURE_PATH + fileName).c_str(), &textureWidth, &textureHeight, &textureChannels, STBI_rgb_alpha);
 
 		if (!pixels)
 		{
+			std::cerr << "could not load in specified texture " + std::string(TEXTURE_PATH + fileName) << std::endl;
 			return;
 			//TODO: generate checker-board texture for objects.
 		}
@@ -121,6 +124,8 @@ namespace vk {
 		this->descriptor.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 		
 		this->mName = fileName;		
+		
+		std::cout << "finished constructing a texture\n";
 	}
 
 

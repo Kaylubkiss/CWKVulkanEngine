@@ -7,7 +7,6 @@ layout(binding = 3) uniform sampler2D colorSampler;
 layout( location = 0 ) in vec4 inWorldPosition;
 layout( location = 1 ) in vec4 inWorldNormal;
 layout( location = 2 ) in vec2 inTexCoord;
-layout( location = 3 ) in vec4 inColor;
 
 
 layout( location = 0 ) out vec4 outPosition;

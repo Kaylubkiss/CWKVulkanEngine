@@ -3,7 +3,7 @@
 #include <queue>
 #include "vkBuffer.h"
 
-const uint32_t maxFramesInFlight = 2;
+const uint32_t maxFramesInFlight = 3;
 
 //these don't need to be tied to the vulkan API!!!
 struct uTransformObject

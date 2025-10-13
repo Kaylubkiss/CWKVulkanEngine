@@ -16,6 +16,9 @@ namespace vk
 
 	void TextureManager::Add(GraphicsContextInfo* graphicsContextInfo, const std::string& fileName)
 	{
+
+		std::cout << "adding a texture to manager\n";
+		
 		if (graphicsContextInfo)
 		{
 			this->mTextures.emplace_back(graphicsContextInfo, fileName);
@@ -87,7 +90,6 @@ namespace vk
 					&graphicsContextInfo.descriptorSetLayout, 1
 				);
 
-				//deferredMRT descriptor set
 				VK_CHECK_RESULT(vkAllocateDescriptorSets(graphicsContextInfo.logicalDevice, &descriptorSetInfo, &mTextures.back().descriptorSet));
 
 				std::vector<VkWriteDescriptorSet> descriptorWrites = graphicsContextInfo.sceneWriteDescriptorSets; //TODO: copying a vector...inefficient.
@@ -106,9 +108,9 @@ namespace vk
 					&mTextures.back().descriptor
 				);
 
-				
-
+			
 				descriptorWrites.push_back(dscWrite);
+				
 
 				vkUpdateDescriptorSets(graphicsContextInfo.logicalDevice, descriptorWrites.size(), descriptorWrites.data(), 0, nullptr);
 

@@ -82,7 +82,7 @@ namespace vk
 	{
 		if (this->mappedMemory == nullptr) 
 		{
-			VK_CHECK_RESULT(vkMapMemory(this->logicalDevice, this->memory, 0, this->size, 0, &this->mappedMemory));
+			VK_CHECK_RESULT(vkMapMemory(this->logicalDevice, this->memory, 0, VK_WHOLE_SIZE, 0, &this->mappedMemory));
 		}
 	}
 
@@ -108,7 +108,17 @@ namespace vk
 	void Buffer::Destroy() 
 	{
 		assert(logicalDevice != VK_NULL_HANDLE);
-		vkFreeMemory(logicalDevice, this->memory, nullptr);
-		vkDestroyBuffer(logicalDevice, this->handle, nullptr);
+
+		if (this->memory)
+		{
+			vkFreeMemory(logicalDevice, this->memory, nullptr);
+			this->memory = VK_NULL_HANDLE;
+		}
+
+		if (this->handle)
+		{
+			vkDestroyBuffer(logicalDevice, this->handle, nullptr);
+			this->handle = VK_NULL_HANDLE;
+		}
 	}
 }

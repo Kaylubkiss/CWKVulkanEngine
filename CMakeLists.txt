@@ -147,10 +147,6 @@ find_package(Vulkan REQUIRED)
 
 if (UNIX)
 
- 	list(APPEND CMAKE_PREFIX_PATH src/External/libraries/ReactPhysics3D/lib/cmake/ReactPhysics3D/)
-
-	find_package(ReactPhysics3D REQUIRED)
-
 	find_package(SDL2 REQUIRED CONFIG REQUIRED COMPONENTS SDL2)
 
 	# 1. Look for a SDL2 package, 2. Look for the SDL2maincomponent and 3. DO NOT fail when SDL2main is not available
@@ -186,12 +182,19 @@ elseif (UNIX)
 		target_link_libraries(${PROJECT_NAME} SDL2::SDL2main)
 	endif()
 
+
+	set(GIT_LIBRARIES $ENV{HOME}/vkEngineLibraries)
+	target_include_directories(${PROJECT_NAME} PRIVATE 
+		${GIT_LIBRARIES}/shaderc/libshaderc/include
+		${GIT_LIBRARIES}/reactphysics3d/include/reactphysics3d)
 	
-	target_link_libraries(${PROJECT_NAME} ${Vulkan_LIBRARIES} SDL2::SDL2 reactphysics3d shaderc_combined)
+	target_link_libraries(${PROJECT_NAME} ${Vulkan_LIBRARIES} SDL2::SDL2 reactphysics3d libshaderc_combined.a)
 	
-	target_link_directories(${PROJECT_NAME} PRIVATE Vulkan::Vulkan)
-	
-	add_subdirectory(src/External/libraries/shaderc/)
+	target_link_directories(${PROJECT_NAME} PRIVATE 
+		Vulkan::Vulkan
+		${GIT_LIBRARIES}/shaderc/build/libshaderc
+		${GIT_LIBRARIES}/reactphysics3d/build/
+	)
 
 	target_compile_options(${PROJECT_NAME} PRIVATE -fsanitize=address)
 	target_link_options(${PROJECT_NAME} PRIVATE -fsanitize=address)

@@ -8,7 +8,7 @@
 #include <vector>
 #include "shaderc/shaderc.h"
 
-#define VK_CHECK_RESULT(function) {VkResult check = function; assert(check == VK_SUCCESS); if (check != VK_SUCCESS) {std::cout << check << '\n';}}
+#define VK_CHECK_RESULT(function) {VkResult check = function; if (check != VK_SUCCESS) {std::cout << check << '\n';} assert(check == VK_SUCCESS);}
 
 #define SHADER_PATH "Shaders/"
 
@@ -65,5 +65,7 @@ namespace vk
 		std::string ReadSourceAndWriteToSprv(std::string fileName, shaderc_shader_kind shader_kind);
 
 		uint32_t GetMemoryType(uint32_t typeBits, VkMemoryPropertyFlags properties);
+
+		bool CheckLayerSupport(const char* layers[], int layersSize);
 	}
 }

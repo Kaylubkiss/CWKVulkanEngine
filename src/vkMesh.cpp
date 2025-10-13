@@ -271,10 +271,10 @@ void Mesh::ComputeVertices()
 
     Mesh::ComputeVertexNormals();
 
-    size_t sizeOfVertexBuffer = sizeof(std::vector<Vertex>) + (sizeof(Vertex) * this->data.vertices.size());
+    size_t sizeOfVertexBuffer = (sizeof(data.vertices[0]) * this->data.vertices.size());
     this->buffer.vertex = vk::Buffer(p_device, l_device, sizeOfVertexBuffer, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, this->data.vertices.data());
-
-    size_t sizeOfIndexBuffer = sizeof(std::vector<uint16_t>) + (sizeof(uint16_t) * this->data.indices.size());
+    
+    size_t sizeOfIndexBuffer = (sizeof(data.indices[0]) * this->data.indices.size());
     this->buffer.index = vk::Buffer(p_device, l_device, sizeOfIndexBuffer, VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, this->data.indices.data());
 }
 

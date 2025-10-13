@@ -48,7 +48,7 @@ namespace vk
 
 		ObjectCreateInfo objectCI;
 		objectCI.objName = "freddy.obj";
-		objectCI.textureFileName = "myFace.jpg";
+		objectCI.textureFileName = "myface.JPG";
 		objectCI.pModelTransform = &modelTransform;
 
 		objManager.LoadObject(objectCI);
@@ -122,7 +122,7 @@ namespace vk
 		descriptorImage[2].imageView = deferredPass.albedo.imageView;
 		descriptorImage[2].sampler = colorSampler;
 
-		std::vector<VkWriteDescriptorSet>writeDescriptorSets = {
+		std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
 			vk::init::WriteDescriptorSet(descriptorSets.composition, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, &descriptorImage[0]),
 			vk::init::WriteDescriptorSet(descriptorSets.composition, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 2, &descriptorImage[1]),
 			vk::init::WriteDescriptorSet(descriptorSets.composition, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 3, &descriptorImage[2])
@@ -322,13 +322,19 @@ namespace vk
 		//NOTE: non-textured objects in this scene
 		const uint32_t num_pipelines = 2;
 		std::vector<VkDescriptorPoolSize> descriptorPoolSize = {
-			vk::init::DescriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 2), //uniform buffer in deferredMRT.vert, and deferredLightPass.frag
-			vk::init::DescriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 4) //3 samplers in composition pipeline, +1 for freddy head texture.			
+			vk::init::DescriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,  maxFramesInFlight * (2 * 3)), //2 UB/set * 3 sets -- uniform buffer in deferredMRT.vert, and deferredLightPass.frag
+			vk::init::DescriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, maxFramesInFlight * (3 * 3)) //3 samplers (3 CI/set * 3 sets)-- in composition pipeline, +1 for freddy head texture.			
 		};
 
-		VkDescriptorPoolCreateInfo descriptorPoolCI = vk::init::DescriptorPoolCreateInfo(descriptorPoolSize, num_pipelines + 1); //+1 for the freddy head texture.
+		VkDescriptorPoolCreateInfo descriptorPoolCI = vk::init::DescriptorPoolCreateInfo(descriptorPoolSize, (num_pipelines + 1) * maxFramesInFlight); //+1 for the freddy head texture.
 		VK_CHECK_RESULT(vkCreateDescriptorPool(device.logical, &descriptorPoolCI, nullptr, &descriptorPool));
+		
+		// VkPhysicalDeviceProperties deviceProps;
+		// vkGetPhysicalDeviceProperties(device.physical, &deviceProps);
+		// VkPhysicalDeviceLimits limits = deviceProps.limits;
 
+		// std::cout << "maximum UNIFORM descriptors: " << limits.maxDescriptorSetUniformBuffers << std::endl;
+		// 	std::cout << "maximum COMBINED IMAGE descriptors: " << limits.maxDescriptorSetSampledImages << std::endl;
 
 		std::vector<VkDescriptorSetLayoutBinding> descriptorSetLayoutBindings = {
 			vk::init::DescriptorLayoutBinding(0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT), //transformUBO
@@ -377,6 +383,7 @@ namespace vk
 		descriptorImage[1].imageView = deferredPass.normal.imageView;
 		descriptorImage[1].sampler = colorSampler;
 
+		//albedo descriptor
 		descriptorImage[2].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 		descriptorImage[2].imageView = deferredPass.albedo.imageView;
 		descriptorImage[2].sampler = colorSampler;
