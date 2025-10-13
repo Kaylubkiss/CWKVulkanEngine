@@ -38,22 +38,27 @@ void Controller::MoveCamera(Camera& camera, const float& dt)
 		}
 
 
-		if (e.type == SDL_QUIT)
+		if (e.type == SDL_WINDOWEVENT) 
 		{
-			//it should exit.
-			_Application->RequestExit();
+			switch (e.window.event) 
+			{
+				case SDL_WINDOWEVENT_CLOSE:
+					//it should exit.
+					_Application->RequestExit();
+					break;
+				case SDL_WINDOW_MINIMIZED:
+					//don't process anything
+					break;
+				default:
+					break;
+			}
+
 			return;
 		}
-		else if (e.type == SDL_WINDOW_MINIMIZED) 
-		{
-			return;
-		}
-	
+		
 		const SDL_Keycode& keySymbol = e.key.keysym.sym;
-	
 		if (e.type == SDL_KEYDOWN)
 		{
-	
 			switch (keySymbol)
 			{
 			case SDLK_w:
