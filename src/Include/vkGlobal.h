@@ -75,8 +75,11 @@ namespace vk
 		void Destroy(VkDevice l_device)
 		{
 			vkDestroyImageView(l_device, this->imageView, nullptr);
+			this->imageView = VK_NULL_HANDLE;
 			vkDestroyImage(l_device, this->image, nullptr);
+			this->image = VK_NULL_HANDLE;
 			vkFreeMemory(l_device, this->imageMemory, nullptr);
+			this->imageMemory = VK_NULL_HANDLE;
 		}
 	};
 
