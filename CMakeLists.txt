@@ -171,7 +171,7 @@ if (WIN32)
 
 	target_link_libraries(${PROJECT_NAME} debug reactphysics3dd.lib general reactphysics3d.lib)
 
-	target_link_libraries(${PROJECT_NAME} debug shaderc_combinedd.lib)
+	target_link_libraries(${PROJECT_NAME} debug shaderc_combinedd.lib general shaderc_combined.lib)
 
 	target_link_directories("${PROJECT_NAME}" PRIVATE $ENV{VULKAN_SDK}/Lib src/External/libraries/ReactPhysics3D/lib)
 
