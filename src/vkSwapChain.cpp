@@ -5,16 +5,16 @@
 
 namespace vk 
 {
-	SwapChain::SwapChain(Device* devicePtr, const std::array<uint32_t, 2>& queueFamilies, const vk::Window& appWindow) 
+	void SwapChain::Init(vk::Device* devicePtr, const vk::Window& appWindow)
 	{
 		assert(devicePtr);
 
 		this->devicePtr = devicePtr;
 
-		VkSwapchainCreateInfoKHR swapChainInfo = {};
-		swapChainInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-		swapChainInfo.surface = appWindow.surface;
 
+		createInfo = {};
+		createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
+		createInfo.surface = appWindow.surface;
 
 		uint32_t surfaceFormatCount = 0;
 		std::vector<VkSurfaceFormatKHR> surfaceFormats;
@@ -31,8 +31,6 @@ namespace vk
 
 		VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceFormatsKHR(devicePtr->physical, appWindow.surface, &surfaceFormatCount, surfaceFormats.data()));
 
-
-		
 		//choose suitable format
 		int surfaceIndex = 0;
 		for (size_t i = 0; i < surfaceFormats.size(); ++i)
@@ -51,68 +49,97 @@ namespace vk
 		VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(devicePtr->physical, appWindow.surface, &deviceCapabilities));
 
 		uint32_t imageCount = deviceCapabilities.minImageCount < 2 ? 2 : deviceCapabilities.minImageCount;
+
+		if (deviceCapabilities.maxImageCount > 0 && imageCount > deviceCapabilities.maxImageCount)
+		{
+			imageCount = deviceCapabilities.maxImageCount;
+		}
+
+		createInfo.imageColorSpace = surfaceFormats[surfaceIndex].colorSpace;
+		createInfo.imageFormat = surfaceFormats[surfaceIndex].format;
+
+
+		createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE; //present mode and graphics mode are the same.
+		createInfo.queueFamilyIndexCount = 0;
+		createInfo.pQueueFamilyIndices = nullptr;
+
+
+	}
+
+	void SwapChain::Create(const vk::Window& appWindow) 
+	{
+		assert(this->devicePtr);
+
+		VkSwapchainKHR oldSwapchain = this->handle;
+
+
+		VkSurfaceCapabilitiesKHR deviceCapabilities;
+		VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(devicePtr->physical, appWindow.surface, &deviceCapabilities));
+
+		uint32_t imageCount = deviceCapabilities.minImageCount < 2 ? 2 : deviceCapabilities.minImageCount;
 		
 		if (deviceCapabilities.maxImageCount > 0 && imageCount > deviceCapabilities.maxImageCount)
 		{
 			imageCount = deviceCapabilities.maxImageCount;
 		}
 
-		swapChainInfo.minImageCount = imageCount;
-		swapChainInfo.imageColorSpace = surfaceFormats[surfaceIndex].colorSpace;
-		swapChainInfo.imageFormat = surfaceFormats[surfaceIndex].format;
-		swapChainInfo.imageExtent = deviceCapabilities.currentExtent;
-		swapChainInfo.imageArrayLayers = 1;
-		swapChainInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+		createInfo.minImageCount = imageCount;
+		createInfo.imageExtent = deviceCapabilities.currentExtent;
+		createInfo.imageArrayLayers = 1;
+		createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
-		//queueFamilies[0] == graphics, queueFamilies[1] == present
-		if (queueFamilies[0] == queueFamilies[1])
+		if (deviceCapabilities.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_SRC_BIT) 
 		{
-			swapChainInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE; //present mode and graphics mode are the same.
-			swapChainInfo.queueFamilyIndexCount = 0;
-			swapChainInfo.pQueueFamilyIndices = nullptr;
+			createInfo.imageUsage |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
 		}
-		else
+		if (deviceCapabilities.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_DST_BIT) 
 		{
-			swapChainInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
-			swapChainInfo.queueFamilyIndexCount = queueFamilies.size();
-			swapChainInfo.pQueueFamilyIndices = queueFamilies.data();
+			createInfo.imageUsage |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 		}
 
+		createInfo.preTransform = deviceCapabilities.currentTransform;
+		createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+		createInfo.presentMode = VK_PRESENT_MODE_FIFO_KHR; //this is always guaranteed.
+		createInfo.clipped = VK_TRUE;
+		createInfo.oldSwapchain = oldSwapchain; //resizing needs a reference to the old swap chain
 
-		swapChainInfo.preTransform = deviceCapabilities.currentTransform;
-		swapChainInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
-		swapChainInfo.presentMode = VK_PRESENT_MODE_FIFO_KHR; //this is always guaranteed.
-		swapChainInfo.clipped = VK_TRUE;
-		swapChainInfo.oldSwapchain = nullptr; //resizing needs a reference to the old swap chain
 
+		VK_CHECK_RESULT(vkCreateSwapchainKHR(devicePtr->logical, &createInfo, nullptr, &this->handle));
 
-		this->createInfo = swapChainInfo;
-		VK_CHECK_RESULT(vkCreateSwapchainKHR(devicePtr->logical, &swapChainInfo, nullptr, &this->handle));
+		if (oldSwapchain != VK_NULL_HANDLE)
+		{
+			for (unsigned i = 0; i < this->images.size(); ++i)
+			{
+				vkDestroyImageView(devicePtr->logical, this->imageViews[i], nullptr);
+				imageViews[i] = VK_NULL_HANDLE;
+			}
 
+			this->depthAttachment.Destroy(devicePtr->logical);
+
+			vkDestroySwapchainKHR(devicePtr->logical, oldSwapchain, nullptr);
+		}
+		
 		this->images.resize(imageCount);
 		VK_CHECK_RESULT(vkGetSwapchainImagesKHR(devicePtr->logical, this->handle, &imageCount, this->images.data()));
 
 		SwapChain::CreateImageViews();
 
-		this->depthAttachment = devicePtr->CreateFramebufferAttachment(appWindow.viewport, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT);
+		this->depthAttachment = devicePtr->CreateFramebufferAttachment(appWindow.viewport, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT);		
 
 	}
 	
 	void SwapChain::Recreate(const VkRenderPass renderPass, const vk::Window& appWindow)
 	{
-		SwapChain::Destroy();
+		SwapChain::Create(appWindow);
 
-		createInfo.imageExtent = { (uint32_t)appWindow.viewport.width, (uint32_t)appWindow.viewport.height };
-		VK_CHECK_RESULT(vkCreateSwapchainKHR(devicePtr->logical, &createInfo, nullptr, &this->handle));
-
-		this->images.resize(createInfo.minImageCount);
-		VK_CHECK_RESULT(vkGetSwapchainImagesKHR(devicePtr->logical, this->handle, &createInfo.minImageCount, this->images.data()));
-
-		SwapChain::CreateImageViews();
-
-		this->depthAttachment = devicePtr->CreateFramebufferAttachment(appWindow.viewport, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, this->depthAttachment.format);
+		for (auto& framebuffer : frameBuffers) 
+		{
+			vkDestroyFramebuffer(devicePtr->logical, framebuffer, nullptr);
+			framebuffer = VK_NULL_HANDLE;
+		}
 
 		SwapChain::CreateFrameBuffers(appWindow.viewport, renderPass);
+
 	}
 
 	void SwapChain::Destroy() 
@@ -122,12 +149,15 @@ namespace vk
 		for (unsigned i = 0; i < this->images.size(); ++i)
 		{
 			vkDestroyImageView(devicePtr->logical, this->imageViews[i], nullptr);
+			imageViews[i] = VK_NULL_HANDLE;
 			vkDestroyFramebuffer(devicePtr->logical, this->frameBuffers[i], nullptr);
+			frameBuffers[i] = VK_NULL_HANDLE;
 		}
 
 		depthAttachment.Destroy(devicePtr->logical);
 
 		vkDestroySwapchainKHR(devicePtr->logical, this->handle, nullptr);
+		handle = VK_NULL_HANDLE;
 	}
 
 	void SwapChain::CreateImageViews()

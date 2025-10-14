@@ -38,10 +38,11 @@ namespace vk
 			void AddImage(const vk::Texture& texture);
 		private:
 			void InitializeUIDescriptorPool();
+			std::vector<VkDescriptorSet> displayTextures;
 			VkDevice contextLogicalDevice = VK_NULL_HANDLE;
 			VkDescriptorPool UIDescriptorPool = VK_NULL_HANDLE; //just for the sampler.
 			uint32_t max_textures = 100;
-			std::vector<VkDescriptorSet> displayTextures;
+			bool isInitialized = false;
 	};
 
 }

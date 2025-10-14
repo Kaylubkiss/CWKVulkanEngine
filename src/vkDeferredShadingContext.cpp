@@ -3,14 +3,17 @@
 namespace vk 
 {
 
-	DeferredContext::DeferredContext() 
+	DeferredContext::DeferredContext()
 	{
 
 		deferredPass.width = window.viewport.width;
 		deferredPass.height = window.viewport.height;
 
 		defaultTexture = Texture(&this->mInfo, "wood-floor.png");
-		UIOverlay.AddImage(defaultTexture);
+		if (settings.UIEnabled) 
+		{
+			UIOverlay.AddImage(defaultTexture);
+		}
 
 		DeferredContext::InitializeUniforms();
 		DeferredContext::IntializeDeferredFramebuffer();
@@ -87,49 +90,51 @@ namespace vk
 
 	}
 
-	void DeferredContext::ResizeWindow() 
+	void DeferredContext::ResizeWindowDerived() 
 	{
-		ContextBase::ResizeWindow();
-		deferredPass.width = window.viewport.width;
-		deferredPass.height = window.viewport.height;
-		
-		
-		vkDestroyRenderPass(device.logical, deferredPass.renderPass, nullptr);
-		vkDestroyFramebuffer(device.logical, deferredPass.framebuffer, nullptr);
+		if (window.isResizing) 
+		{
+			deferredPass.width = window.viewport.width;
+			deferredPass.height = window.viewport.height;
 
-		deferredPass.position.Destroy(device.logical);
-		deferredPass.normal.Destroy(device.logical);
-		deferredPass.albedo.Destroy(device.logical);
-		deferredPass.depth.Destroy(device.logical);
 
-		DeferredContext::IntializeDeferredFramebuffer();
+			vkDestroyRenderPass(device.logical, deferredPass.renderPass, nullptr);
+			vkDestroyFramebuffer(device.logical, deferredPass.framebuffer, nullptr);
 
-		//must also update the descriptors as they are still pointing to the old image views.
-		std::array<VkDescriptorImageInfo, 3> descriptorImage;
+			deferredPass.position.Destroy(device.logical);
+			deferredPass.normal.Destroy(device.logical);
+			deferredPass.albedo.Destroy(device.logical);
+			deferredPass.depth.Destroy(device.logical);
 
-		//position descriptor
-		descriptorImage[0].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-		descriptorImage[0].imageView = deferredPass.position.imageView;
-		descriptorImage[0].sampler = colorSampler;
+			DeferredContext::IntializeDeferredFramebuffer();
 
-		//normal descriptor
-		descriptorImage[1].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-		descriptorImage[1].imageView = deferredPass.normal.imageView;
-		descriptorImage[1].sampler = colorSampler;
+			//must also update the descriptors as they are still pointing to the old image views.
+			std::array<VkDescriptorImageInfo, 3> descriptorImage;
 
-		//albedo
-		descriptorImage[2].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-		descriptorImage[2].imageView = deferredPass.albedo.imageView;
-		descriptorImage[2].sampler = colorSampler;
+			//position descriptor
+			descriptorImage[0].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+			descriptorImage[0].imageView = deferredPass.position.imageView;
+			descriptorImage[0].sampler = colorSampler;
 
-		std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
-			vk::init::WriteDescriptorSet(descriptorSets.composition, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, &descriptorImage[0]),
-			vk::init::WriteDescriptorSet(descriptorSets.composition, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 2, &descriptorImage[1]),
-			vk::init::WriteDescriptorSet(descriptorSets.composition, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 3, &descriptorImage[2])
-		};
-		vkUpdateDescriptorSets(device.logical, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, nullptr);
+			//normal descriptor
+			descriptorImage[1].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+			descriptorImage[1].imageView = deferredPass.normal.imageView;
+			descriptorImage[1].sampler = colorSampler;
 
-		
+			//albedo
+			descriptorImage[2].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+			descriptorImage[2].imageView = deferredPass.albedo.imageView;
+			descriptorImage[2].sampler = colorSampler;
+
+			std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
+				vk::init::WriteDescriptorSet(descriptorSets.composition, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, &descriptorImage[0]),
+				vk::init::WriteDescriptorSet(descriptorSets.composition, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 2, &descriptorImage[1]),
+				vk::init::WriteDescriptorSet(descriptorSets.composition, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 3, &descriptorImage[2])
+			};
+			vkUpdateDescriptorSets(device.logical, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, nullptr);
+
+			window.isResizing = false;
+		}	
 	}
 
 	void DeferredContext::FillOutGraphicsContextInfo() 
@@ -690,7 +695,10 @@ namespace vk
 
 			vkCmdDraw(cmdBuffer, 3, 1, 0, 0);
 
-			UIOverlay.Render(cmdBuffer); //TODO: fix the recording of this. Seems to cause queuesubmit some trouble.
+			if (settings.UIEnabled) 
+			{
+				UIOverlay.Render(cmdBuffer); //TODO: fix the recording of this. Seems to cause queuesubmit some trouble.
+			}
 
 			vkCmdEndRenderPass(cmdBuffer);
 
@@ -718,17 +726,13 @@ namespace vk
 	{
 		pipelineManager.HotReloadShaders();
 
-		if (window.IsMinimized() == false) 
+		if (window.isPrepared) 
 		{
 			ContextBase::PrepareFrame();
 			UpdateScreenUniforms();
 			UpdateSceneUniforms();
 			RecordCommandBuffers();
 			ContextBase::SubmitFrame();
-		}
-		else 
-		{
-			UpdateSceneUniforms();
 		}
 	}
 

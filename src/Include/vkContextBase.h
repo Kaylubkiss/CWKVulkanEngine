@@ -20,8 +20,9 @@ namespace vk
 			//WARNING: context specific!!!
 
 			struct {
+				uint32_t maxFramesInFlight = 2;
 				bool minimized = false;
-				uint32_t max_frames_in_flight = 2;
+				const bool UIEnabled = true;
 			} settings;
 
 			vk::Window window;
@@ -64,21 +65,17 @@ namespace vk
 			//pure virtual function(s)
 			virtual void RecordCommandBuffers() = 0;
 			virtual void UpdateUI();
-			virtual void ResizeWindow();
+			virtual void ResizeWindowDerived();
 			virtual void InitializeScene(ObjectManager& objManager) = 0;
 			
 			GraphicsContextInfo GetGraphicsContextInfo();
 			
-		
 			//public virtual function(s)
 			virtual void Render() = 0;
 			
-
 			//getter(s)
-			vk::Queue GraphicsQueue();
 			const VkPhysicalDevice PhysicalDevice() const;
 			const VkDevice LogicalDevice() const;
-			VkDescriptorPool DescriptorPool() const;
 
 			Camera& GetCamera();
 			SDL_Window* GetWindow();
@@ -86,6 +83,8 @@ namespace vk
 			//operations
 			void WaitForDevice();
 			void SubmitFrame();
+			void ToggleRendering();
+			void ResizeWindow();
 
 		protected:
 
@@ -104,5 +103,7 @@ namespace vk
 		private:
 			void CreateWindow();
 			void CreateInstance();
+			void CreateSynchronizationPrimitives();
+			void CreateUI();
 	};
 }	

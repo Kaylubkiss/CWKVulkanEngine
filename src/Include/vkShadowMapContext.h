@@ -72,7 +72,6 @@ namespace vk
 
 			virtual void RecordCommandBuffers() override;
 			virtual void InitializeScene(ObjectManager& objManager) override;
-			virtual void ResizeWindow() override;
 
 			virtual void Render();
 

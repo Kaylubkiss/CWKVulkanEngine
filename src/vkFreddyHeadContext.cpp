@@ -44,8 +44,6 @@ namespace vk
 		vkDestroyDescriptorSetLayout(this->device.logical, this->descriptorSetLayout, nullptr);
 	}
 
-
-
 	void FreddyHeadScene::InitializeScene(ObjectManager& objManager)
 	{
 		glm::mat4 modelTransform = glm::mat4(5.f);

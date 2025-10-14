@@ -131,6 +131,15 @@ void Application::RequestExit()
 	this->exitApplication = true;
 }
 
+void Application::ResizeWindow() 
+{
+	graphicsContext->ResizeWindow();
+}
+
+void Application::ToggleRendering() 
+{
+	graphicsContext->ToggleRendering();
+}
 
 void Application::loop()
 {

@@ -27,16 +27,13 @@ void Controller::MoveCamera(Camera& camera, const float& dt)
 	SDL_Event e;
 	while (SDL_PollEvent(&e))
 	{
-		if (SDL_GetRelativeMouseMode() == SDL_FALSE) 
-		{
-			ImGuiIO& io = ImGui::GetIO();
-			ImGui_ImplSDL2_ProcessEvent(&e);
-			if (io.WantCaptureMouse || io.WantCaptureKeyboard)
-			{
-				return;
-			}
-		}
+		ImGui_ImplSDL2_ProcessEvent(&e);
 
+		ImGuiIO& io = ImGui::GetIO();
+		if (io.WantCaptureMouse || io.WantCaptureKeyboard)
+		{
+			return;
+		}
 
 		if (e.type == SDL_WINDOWEVENT) 
 		{
@@ -45,15 +42,19 @@ void Controller::MoveCamera(Camera& camera, const float& dt)
 				case SDL_WINDOWEVENT_CLOSE:
 					//it should exit.
 					_Application->RequestExit();
+					return;
 					break;
-				case SDL_WINDOW_MINIMIZED:
+				case SDL_WINDOWEVENT_FOCUS_GAINED:
 					//don't process anything
+					//_Application->ToggleRendering();
+					std::cout << "window focus gained\n";
+					break;
+				case SDL_WINDOWEVENT_RESIZED:
+					_Application->ResizeWindow();
 					break;
 				default:
 					break;
 			}
-
-			return;
 		}
 		
 		const SDL_Keycode& keySymbol = e.key.keysym.sym;
@@ -61,25 +62,28 @@ void Controller::MoveCamera(Camera& camera, const float& dt)
 		{
 			switch (keySymbol)
 			{
-			case SDLK_w:
-				keys[W] = true;
-				break;
-			case SDLK_a:
-				keys[A] = true;
-				break;
-			case SDLK_s:
-				keys[S] = true;
-				break;
-			case SDLK_d:
-				keys[D] = true;
-				break;
+				case SDLK_w:
+					keys[W] = true;
+					break;
+				case SDLK_a:
+					keys[A] = true;
+					break;
+				case SDLK_s:
+					keys[S] = true;
+					break;
+				case SDLK_d:
+					keys[D] = true;
+					break;
 			}
 	
 			if (keySymbol == SDLK_ESCAPE)
 			{
 				if (SDL_GetRelativeMouseMode() == SDL_TRUE)
 				{
-					SDL_SetRelativeMouseMode(SDL_FALSE);
+					if (SDL_SetRelativeMouseMode(SDL_FALSE) < 0)
+					{
+						std::cerr << SDL_GetError() << std::endl;
+					}
 				}
 				else
 				{
@@ -93,18 +97,18 @@ void Controller::MoveCamera(Camera& camera, const float& dt)
 		{
 			switch (keySymbol)
 			{
-			case SDLK_w:
-				keys[W] = false;
-				break;
-			case SDLK_s:
-				keys[S] = false;
-				break;
-			case SDLK_a:
-				keys[A] = false;
-				break;
-			case SDLK_d:
-				keys[D] = false;
-				break;
+				case SDLK_w:
+					keys[W] = false;
+					break;
+				case SDLK_s:
+					keys[S] = false;
+					break;
+				case SDLK_a:
+					keys[A] = false;
+					break;
+				case SDLK_d:
+					keys[D] = false;
+					break;
 			}
 		}
 	
@@ -113,7 +117,12 @@ void Controller::MoveCamera(Camera& camera, const float& dt)
 
 		if (e.button.button == SDL_BUTTON(SDL_BUTTON_LEFT) && e.button.state == SDL_PRESSED)
 		{
-			SDL_SetRelativeMouseMode(SDL_TRUE);
+			SDL_RaiseWindow(_GraphicsContext->GetWindow());
+
+			if (SDL_SetRelativeMouseMode(SDL_TRUE) < 0) 
+			{
+				std::cerr << SDL_GetError() << std::endl;
+			}
 		}
 	
 		if (e.type == SDL_MOUSEMOTION && SDL_GetRelativeMouseMode() == SDL_TRUE)

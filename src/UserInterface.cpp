@@ -36,20 +36,25 @@ namespace vk {
 		init_info.CheckVkResultFn = vk::util::check_vk_result;
 		ImGui_ImplVulkan_Init(&init_info);
 
+		isInitialized = true;
+
 	}
 
 	void UserInterface::Destroy() 
 	{
-		for (auto texture : displayTextures) 
+		if (isInitialized) 
 		{
-			ImGui_ImplVulkan_RemoveTexture(texture);
+			for (auto texture : displayTextures)
+			{
+				ImGui_ImplVulkan_RemoveTexture(texture);
+			}
+
+			ImGui_ImplVulkan_Shutdown();
+			ImGui_ImplSDL2_Shutdown();
+			ImGui::DestroyContext();
+
+			vkDestroyDescriptorPool(contextLogicalDevice, this->UIDescriptorPool, nullptr);
 		}
-
-		ImGui_ImplVulkan_Shutdown();
-		ImGui_ImplSDL2_Shutdown();
-		ImGui::DestroyContext();
-
-		vkDestroyDescriptorPool(contextLogicalDevice, this->UIDescriptorPool, nullptr);
 	}
 
 	void UserInterface::InitializeUIDescriptorPool() 
@@ -106,7 +111,7 @@ namespace vk {
 	void UserInterface::AddImage(const vk::Texture& texture) 
 	{
 		std::cout << "adding image to UI\n";
-		
+
 		if (texture.mTextureImageView == VK_NULL_HANDLE)
 		{
 			std::cout << "huh\n" << std::endl;
@@ -114,12 +119,11 @@ namespace vk {
 
 		displayTextures.emplace_back(
 			ImGui_ImplVulkan_AddTexture(
-				texture.mTextureSampler, 
-				texture.mTextureImageView, 
+				texture.mTextureSampler,
+				texture.mTextureImageView,
 				VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
 			)
 		);
-
 	}
 
 	void UserInterface::Prepare() 
@@ -127,17 +131,13 @@ namespace vk {
 		ImGui_ImplVulkan_NewFrame();
 		ImGui_ImplSDL2_NewFrame();
 		ImGui::NewFrame();
-
-
 	}
 
 	void UserInterface::Render(VkCommandBuffer cmdBuffer) 
 	{
-	
 		//ImGui::ShowDemoWindow();
 		ImGui::Render();
 		ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), cmdBuffer);
-
 	}
 
 

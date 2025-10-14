@@ -15,6 +15,9 @@ namespace vk
 		int center_x = 0.f;
 		int center_y = 0.f;
 
+		bool isPrepared = false;
+		bool isResizing = false;
+
 		~Window();
 
 		void UpdateExtents(const VkExtent2D& area);

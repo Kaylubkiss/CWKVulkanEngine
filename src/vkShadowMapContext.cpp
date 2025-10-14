@@ -515,12 +515,5 @@ namespace vk
 		RecordCommandBuffers();
 		ContextBase::SubmitFrame();
 	}
-
-	void ShadowMapScene::ResizeWindow() 
-	{
-		//won't need to resize the framebuffer for the offscreen pass
-		//since it's a fixed size.
-		ContextBase::ResizeWindow();
-	}
 	
 }
