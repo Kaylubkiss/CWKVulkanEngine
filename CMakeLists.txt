@@ -165,7 +165,8 @@ src/External/libraries/ReactPhysics3D/include)
 if (WIN32)
 	target_include_directories(${PROJECT_NAME} PRIVATE $ENV{VULKAN_SDK}/Include)
 
-	target_link_libraries("${PROJECT_NAME}" SDL2.lib
+	target_link_libraries("${PROJECT_NAME}" 
+	SDL2.lib
 	vulkan-1.lib
 	SDL2main.lib)
 

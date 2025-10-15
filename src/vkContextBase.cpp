@@ -202,7 +202,7 @@ namespace vk
 		}
 
 		window.sdl_ptr = SDL_CreateWindow("Caleb's Vulkan Engine", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
-			int(window.viewport.width), int(window.viewport.height), SDL_WINDOW_VULKAN | SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
+			int(window.viewport.width), int(window.viewport.height), SDL_WINDOW_VULKAN | SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_INPUT_FOCUS);
 
 		if (window.sdl_ptr == nullptr)
 		{
@@ -230,20 +230,21 @@ namespace vk
 
 	void ContextBase::ResizeWindow() 
 	{
-		if (!window.isPrepared) 
+		//std::cout << "resizing window\n";
+
+		if (window.isMinimized)
 		{
+			window.isPrepared = false;
 			return;
 		}
 
-		window.isPrepared = false;
-		window.isResizing = true;
-
 		VK_CHECK_RESULT(vkDeviceWaitIdle(this->device.logical));
+		
 
-		VkSurfaceCapabilitiesKHR deviceCapabilities;
-		VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(this->device.physical, window.surface, &deviceCapabilities));
+		VkSurfaceCapabilitiesKHR surfaceCapabilities;
+		VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(this->device.physical, window.surface, &surfaceCapabilities));
 
-		window.UpdateExtents(deviceCapabilities.currentExtent);
+		window.UpdateExtents(surfaceCapabilities.currentExtent);
 
 		swapChain.Recreate(renderPass, window);
 
@@ -251,7 +252,7 @@ namespace vk
 		{
 			vkDestroySemaphore(this->device.logical, presentCompleteSemaphores[i], nullptr);
 			presentCompleteSemaphores[i] = VK_NULL_HANDLE;
-			
+
 			vkDestroySemaphore(this->device.logical, renderCompleteSemaphores[i], nullptr);
 			renderCompleteSemaphores[i] = VK_NULL_HANDLE;
 
@@ -261,11 +262,10 @@ namespace vk
 
 		CreateSynchronizationPrimitives();
 
-		VK_CHECK_RESULT(vkDeviceWaitIdle(this->device.logical));
-
 		ResizeWindowDerived();
 
 		window.isPrepared = true;
+		
 	}
 
 	//initializers
@@ -372,9 +372,9 @@ namespace vk
 		return this->mCamera;
 	}
 
-	SDL_Window* ContextBase::GetWindow() 
+	vk::Window& ContextBase::GetWindow() 
 	{
-		return this->window.sdl_ptr;
+		return this->window;
 	}
 
 	GraphicsContextInfo ContextBase::GetGraphicsContextInfo() 
@@ -451,7 +451,10 @@ namespace vk
 		VkResult result = vkQueuePresentKHR(this->device.presentQueue.handle, &presentInfo);
 		if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
 		{
-			ResizeWindow();
+			if (result == VK_ERROR_OUT_OF_DATE_KHR) 
+			{
+				ResizeWindow();
+			}
 			return;
 		}
 		else

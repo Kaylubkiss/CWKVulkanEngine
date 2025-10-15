@@ -20,7 +20,6 @@ public:
 	const Timer& GetTime();
 	void RequestExit();
 	void ResizeWindow();
-	void ToggleRendering();
 
 	void SelectWorldObjects(const vk::Window& appWindow,
 							Camera& camera, const uTransformObject& uTransform, PhysicsSystem& physics);

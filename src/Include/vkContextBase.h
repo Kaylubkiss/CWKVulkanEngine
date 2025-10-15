@@ -78,7 +78,7 @@ namespace vk
 			const VkDevice LogicalDevice() const;
 
 			Camera& GetCamera();
-			SDL_Window* GetWindow();
+			vk::Window& GetWindow();
 
 			//operations
 			void WaitForDevice();
@@ -104,6 +104,6 @@ namespace vk
 			void CreateWindow();
 			void CreateInstance();
 			void CreateSynchronizationPrimitives();
-			void CreateUI();
+			//void CreateUI();
 	};
 }	

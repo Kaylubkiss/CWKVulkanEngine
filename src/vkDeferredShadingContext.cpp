@@ -92,49 +92,43 @@ namespace vk
 
 	void DeferredContext::ResizeWindowDerived() 
 	{
-		if (window.isResizing) 
-		{
-			deferredPass.width = window.viewport.width;
-			deferredPass.height = window.viewport.height;
+		deferredPass.width = window.viewport.width;
+		deferredPass.height = window.viewport.height;
 
+		vkDestroyRenderPass(device.logical, deferredPass.renderPass, nullptr);
+		vkDestroyFramebuffer(device.logical, deferredPass.framebuffer, nullptr);
 
-			vkDestroyRenderPass(device.logical, deferredPass.renderPass, nullptr);
-			vkDestroyFramebuffer(device.logical, deferredPass.framebuffer, nullptr);
+		deferredPass.position.Destroy(device.logical);
+		deferredPass.normal.Destroy(device.logical);
+		deferredPass.albedo.Destroy(device.logical);
+		deferredPass.depth.Destroy(device.logical);
 
-			deferredPass.position.Destroy(device.logical);
-			deferredPass.normal.Destroy(device.logical);
-			deferredPass.albedo.Destroy(device.logical);
-			deferredPass.depth.Destroy(device.logical);
+		DeferredContext::IntializeDeferredFramebuffer();
 
-			DeferredContext::IntializeDeferredFramebuffer();
+		//must also update the descriptors as they are still pointing to the old image views.
+		std::array<VkDescriptorImageInfo, 3> descriptorImage;
 
-			//must also update the descriptors as they are still pointing to the old image views.
-			std::array<VkDescriptorImageInfo, 3> descriptorImage;
+		//position descriptor
+		descriptorImage[0].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+		descriptorImage[0].imageView = deferredPass.position.imageView;
+		descriptorImage[0].sampler = colorSampler;
 
-			//position descriptor
-			descriptorImage[0].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-			descriptorImage[0].imageView = deferredPass.position.imageView;
-			descriptorImage[0].sampler = colorSampler;
+		//normal descriptor
+		descriptorImage[1].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+		descriptorImage[1].imageView = deferredPass.normal.imageView;
+		descriptorImage[1].sampler = colorSampler;
 
-			//normal descriptor
-			descriptorImage[1].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-			descriptorImage[1].imageView = deferredPass.normal.imageView;
-			descriptorImage[1].sampler = colorSampler;
+		//albedo
+		descriptorImage[2].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+		descriptorImage[2].imageView = deferredPass.albedo.imageView;
+		descriptorImage[2].sampler = colorSampler;
 
-			//albedo
-			descriptorImage[2].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-			descriptorImage[2].imageView = deferredPass.albedo.imageView;
-			descriptorImage[2].sampler = colorSampler;
-
-			std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
-				vk::init::WriteDescriptorSet(descriptorSets.composition, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, &descriptorImage[0]),
-				vk::init::WriteDescriptorSet(descriptorSets.composition, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 2, &descriptorImage[1]),
-				vk::init::WriteDescriptorSet(descriptorSets.composition, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 3, &descriptorImage[2])
-			};
-			vkUpdateDescriptorSets(device.logical, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, nullptr);
-
-			window.isResizing = false;
-		}	
+		std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
+			vk::init::WriteDescriptorSet(descriptorSets.composition, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, &descriptorImage[0]),
+			vk::init::WriteDescriptorSet(descriptorSets.composition, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 2, &descriptorImage[1]),
+			vk::init::WriteDescriptorSet(descriptorSets.composition, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 3, &descriptorImage[2])
+		};
+		vkUpdateDescriptorSets(device.logical, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, nullptr);
 	}
 
 	void DeferredContext::FillOutGraphicsContextInfo() 
@@ -265,19 +259,15 @@ namespace vk
 	void DeferredContext::UpdateScreenUniforms()
 	{
 		//transform(s)
-		if (settings.minimized == false) 
+		uniformDataMRT.uTransform =
 		{
-			uniformDataMRT.uTransform =
-			{
-				mCamera.LookAt(),
-				glm::perspective(glm::radians(FOV), (float)window.viewport.width / window.viewport.height, 0.1f, 1000.f)
-			};
+			mCamera.LookAt(),
+			glm::perspective(glm::radians(FOV), (float)window.viewport.width / window.viewport.height, 0.1f, 1000.f)
+		};
 
-			uniformDataMRT.uTransform.proj[1][1] *= -1;
+		uniformDataMRT.uTransform.proj[1][1] *= -1;
 
-			memcpy(uniformBuffers.deferredMRT.mappedMemory, (void*)(&uniformDataMRT), sizeof(uniformDataMRT));
-		}
-		
+		memcpy(uniformBuffers.deferredMRT.mappedMemory, (void*)(&uniformDataMRT), sizeof(uniformDataMRT));
 	}
 
 	void DeferredContext::UpdateSceneUniforms() 
@@ -298,7 +288,6 @@ namespace vk
 		deferredPass.position = device.CreateFramebufferAttachment(window.viewport, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, VK_FORMAT_R16G16B16A16_SFLOAT);
 		deferredPass.normal = device.CreateFramebufferAttachment(window.viewport, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, VK_FORMAT_R16G16B16A16_SFLOAT);
 		deferredPass.albedo = device.CreateFramebufferAttachment(window.viewport, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, VK_FORMAT_R8G8B8A8_UNORM);
-
 		deferredPass.depth = device.CreateFramebufferAttachment(window.viewport, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT);
 
 		std::array<VkImageView, 4> attachments =

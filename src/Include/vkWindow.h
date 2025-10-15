@@ -16,13 +16,11 @@ namespace vk
 		int center_y = 0.f;
 
 		bool isPrepared = false;
-		bool isResizing = false;
+		bool isMinimized = false;
 
 		~Window();
 
 		void UpdateExtents(const VkExtent2D& area);
-
-		bool IsMinimized();
 	};
 
 }

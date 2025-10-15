@@ -19,14 +19,4 @@ namespace vk
 		scissor.extent.width = area.width;
 		scissor.extent.height = area.height;
 	}
-
-	bool Window::IsMinimized()
-	{
-		VkSurfaceCapabilitiesKHR deviceCapabilities;
-		VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(contextPhysicalDevice, surface, &deviceCapabilities));
-
-		return (deviceCapabilities.currentExtent.width == 0 && deviceCapabilities.currentExtent.height == 0);
-	}
-
-
 }

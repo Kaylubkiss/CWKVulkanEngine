@@ -21,19 +21,14 @@ inline void ChangeCameraPosition(Camera& camera, const float& dt)
 	}
 }
 
+
+
 void Controller::MoveCamera(Camera& camera, const float& dt)
 {
-	
 	SDL_Event e;
 	while (SDL_PollEvent(&e))
 	{
 		ImGui_ImplSDL2_ProcessEvent(&e);
-
-		ImGuiIO& io = ImGui::GetIO();
-		if (io.WantCaptureMouse || io.WantCaptureKeyboard)
-		{
-			return;
-		}
 
 		if (e.type == SDL_WINDOWEVENT) 
 		{
@@ -43,18 +38,48 @@ void Controller::MoveCamera(Camera& camera, const float& dt)
 					//it should exit.
 					_Application->RequestExit();
 					return;
+				case SDL_WINDOWEVENT_MINIMIZED:
+					std::cout << "window is minimized";	
+					_GraphicsContext->GetWindow().isMinimized = true;
+					break;
+				case SDL_WINDOWEVENT_RESTORED:
+					std::cout << "window is restored";
+					if (_GraphicsContext->GetWindow().isMinimized) 
+					{
+						_GraphicsContext->GetWindow().isMinimized = false;
+						
+						_Application->ResizeWindow();
+					}
+					break;
+				case SDL_WINDOWEVENT_SIZE_CHANGED:
+					std::cout << "window size changed";
+					//_Application->ResizeWindow();
+					_GraphicsContext->GetWindow().isPrepared = false;
 					break;
 				case SDL_WINDOWEVENT_FOCUS_GAINED:
-					//don't process anything
-					//_Application->ToggleRendering();
-					std::cout << "window focus gained\n";
+					std::cout << "window focus gained";
+					break;
+				case SDL_WINDOWEVENT_FOCUS_LOST:
+					std::cout << "window focus lost";
 					break;
 				case SDL_WINDOWEVENT_RESIZED:
+					std::cout << "window is resized";
+					_GraphicsContext->GetWindow().isPrepared = true;
 					_Application->ResizeWindow();
 					break;
 				default:
 					break;
+
+					
 			}
+
+			std::cout << "\n\n";
+		}
+
+		ImGuiIO& io = ImGui::GetIO();
+		if (io.WantCaptureMouse || io.WantCaptureKeyboard)
+		{
+			return;
 		}
 		
 		const SDL_Keycode& keySymbol = e.key.keysym.sym;
@@ -117,7 +142,6 @@ void Controller::MoveCamera(Camera& camera, const float& dt)
 
 		if (e.button.button == SDL_BUTTON(SDL_BUTTON_LEFT) && e.button.state == SDL_PRESSED)
 		{
-			SDL_RaiseWindow(_GraphicsContext->GetWindow());
 
 			if (SDL_SetRelativeMouseMode(SDL_TRUE) < 0) 
 			{

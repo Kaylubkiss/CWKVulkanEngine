@@ -136,11 +136,6 @@ void Application::ResizeWindow()
 	graphicsContext->ResizeWindow();
 }
 
-void Application::ToggleRendering() 
-{
-	graphicsContext->ToggleRendering();
-}
-
 void Application::loop()
 {
 	//render graphics.

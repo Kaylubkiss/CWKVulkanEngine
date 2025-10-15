@@ -11,14 +11,12 @@ namespace vk
 
 		this->devicePtr = devicePtr;
 
-
 		createInfo = {};
 		createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
 		createInfo.surface = appWindow.surface;
 
 		uint32_t surfaceFormatCount = 0;
 		std::vector<VkSurfaceFormatKHR> surfaceFormats;
-
 		VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceFormatsKHR(devicePtr->physical, appWindow.surface, &surfaceFormatCount, nullptr));
 
 		//surfaceFormatCount now filled..
@@ -76,14 +74,13 @@ namespace vk
 		VkSurfaceCapabilitiesKHR deviceCapabilities;
 		VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(devicePtr->physical, appWindow.surface, &deviceCapabilities));
 
-		uint32_t imageCount = deviceCapabilities.minImageCount < 2 ? 2 : deviceCapabilities.minImageCount;
-		
-		if (deviceCapabilities.maxImageCount > 0 && imageCount > deviceCapabilities.maxImageCount)
+		uint32_t desiredImageCount = deviceCapabilities.minImageCount < 2 ? 2 : deviceCapabilities.minImageCount;
+		if (deviceCapabilities.maxImageCount > 0 && desiredImageCount > deviceCapabilities.maxImageCount)
 		{
-			imageCount = deviceCapabilities.maxImageCount;
+			desiredImageCount = deviceCapabilities.maxImageCount;
 		}
 
-		createInfo.minImageCount = imageCount;
+		createInfo.minImageCount = desiredImageCount;
 		createInfo.imageExtent = deviceCapabilities.currentExtent;
 		createInfo.imageArrayLayers = 1;
 		createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
@@ -119,6 +116,9 @@ namespace vk
 			vkDestroySwapchainKHR(devicePtr->logical, oldSwapchain, nullptr);
 		}
 		
+		uint32_t imageCount = 0;
+		VK_CHECK_RESULT(vkGetSwapchainImagesKHR(devicePtr->logical, this->handle, &imageCount, nullptr));
+
 		this->images.resize(imageCount);
 		VK_CHECK_RESULT(vkGetSwapchainImagesKHR(devicePtr->logical, this->handle, &imageCount, this->images.data()));
 
@@ -162,9 +162,6 @@ namespace vk
 
 	void SwapChain::CreateImageViews()
 	{
-		assert(this->images.empty() == false);
-
-		//create imageview --> allow image to be seen in a different format.
 		this->imageViews.resize(this->images.size());
 
 		//this is nothing fancy, we won't be editing the color interpretation.
@@ -186,7 +183,7 @@ namespace vk
 			1, //layerCount for image array. 
 		};
 
-		for (unsigned i = 0; i < this->images.size(); ++i) 
+		for (unsigned i = 0; i < this->imageViews.size(); ++i)
 		{
 			VkImageViewCreateInfo imageViewCreateInfo =
 			{
@@ -207,14 +204,8 @@ namespace vk
 
 	void SwapChain::CreateFrameBuffers(const VkViewport& vp, const VkRenderPass renderPass)
 	{
-
-		assert(this->depthAttachment.imageView != VK_NULL_HANDLE);
 		assert(renderPass != VK_NULL_HANDLE);
-
-		if (this->images.size() <= 0) 
-		{
-			throw std::runtime_error("have 0 swap chain images available. Did you allocate the swap chain?");
-		}
+		//assert(vp.width != 0 && vp.height != 0);
 		
 		this->frameBuffers.resize(this->images.size());
 
@@ -240,7 +231,4 @@ namespace vk
 		}
 
 	}
-
-
-
 }
