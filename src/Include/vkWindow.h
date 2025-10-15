@@ -17,6 +17,7 @@ namespace vk
 
 		bool isPrepared = false;
 		bool isMinimized = false;
+		
 
 		~Window();
 
