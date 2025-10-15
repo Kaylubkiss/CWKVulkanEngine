@@ -25,7 +25,6 @@ namespace vk
 		
 	}
 
-
 	DeferredContext::~DeferredContext() 
 	{
 		uniformBuffers.deferredMRT.UnMap();
@@ -51,7 +50,7 @@ namespace vk
 
 		ObjectCreateInfo objectCI;
 		objectCI.objName = "freddy.obj";
-		objectCI.textureFileName = "myface.JPG";
+		objectCI.textureFileName = "myfeesh.JPG";
 		objectCI.pModelTransform = &modelTransform;
 
 		objManager.LoadObject(objectCI);
@@ -313,7 +312,6 @@ namespace vk
 	{
 		assert(colorSampler != VK_NULL_HANDLE);
 
-		//NOTE: non-textured objects in this scene
 		const uint32_t num_pipelines = 2;
 		std::vector<VkDescriptorPoolSize> descriptorPoolSize = {
 			vk::init::DescriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,  gMaxFramesInFlight * (2 * 3)), //2 UB/set * 3 sets -- uniform buffer in deferredMRT.vert, and deferredLightPass.frag

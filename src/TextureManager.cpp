@@ -14,27 +14,27 @@ namespace vk
 		graphicsContextInfo = context->GetGraphicsContextInfo();
 	}
 
-	void TextureManager::Add(GraphicsContextInfo* graphicsContextInfo, const std::string& fileName)
+	bool TextureManager::AddTexture(GraphicsContextInfo* graphicsContextInfo, const std::string& fileName)
 	{
-
-		std::cout << "adding a texture to manager\n";
-		
 		if (graphicsContextInfo)
 		{
-			this->mTextures.emplace_back(graphicsContextInfo, fileName);
+			Texture newTexture = Texture(graphicsContextInfo, fileName);
 
-			UserInterface* UI = graphicsContextInfo->contextUIPtr;
-			if (UI) 
+			if (newTexture.mTextureImage != VK_NULL_HANDLE) 
 			{
-				UI->AddImage(this->mTextures.back());
+				this->mTextures.push_back(newTexture);
+
+				UserInterface* UI = graphicsContextInfo->contextUIPtr;
+				if (UI)
+				{
+					UI->AddImage(newTexture);
+				}
+
+				return true;
 			}
 		}
-	}
 
-	void TextureManager::Add(const Texture& nTexture) 
-	{
-		//will use copy constructor
-		this->mTextures.push_back(nTexture);
+		return false;
 	}
 
 	void TextureManager::Destroy(const VkDevice l_device) 
@@ -81,8 +81,12 @@ namespace vk
 			{
 				std::cout << "adding texture...\n";
 
-				TextureManager::Add(&graphicsContextInfo, fileName);
+				bool result  = AddTexture(&graphicsContextInfo, fileName);
 
+				if (!result) 
+				{
+					return;
+				}
 
 				VkDescriptorSetAllocateInfo descriptorSetInfo = vk::init::DescriptorSetAllocateInfo
 				(

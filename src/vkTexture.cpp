@@ -75,8 +75,9 @@ namespace vk {
 		if (!pixels)
 		{
 			std::cerr << "could not load in specified texture " + std::string(TEXTURE_PATH + fileName) << std::endl;
-			return;
 			//TODO: generate checker-board texture for objects.
+			return;
+
 		}
 
 		uint64_t bytePerPixel = 4;

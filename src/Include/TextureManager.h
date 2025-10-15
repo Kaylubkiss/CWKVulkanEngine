@@ -18,10 +18,6 @@ namespace vk
 
 			void Init(ContextBase* context);
 
-			void Add(GraphicsContextInfo* graphicsContextInfo, const std::string& fileName);
-
-			void Add(const Texture& nTexture);
-			
 			int GetTextureIndexByName(const char* fileName) const;
 			
 			const Texture& GetTextureObject(size_t index) const;
@@ -31,6 +27,8 @@ namespace vk
 			const std::vector<vk::Texture>& Textures() const;
 
 		private:
+
+			bool AddTexture(GraphicsContextInfo* graphicsContextInfo, const std::string& fileName);
 
 			vk::GraphicsContextInfo graphicsContextInfo;
 
