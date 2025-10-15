@@ -38,7 +38,7 @@ Ensure to have the correct drivers installed for Vulkan 1.4 and above according 
     <li>Clone the repo</li>
     <li>Run the <em>batch (.bat)</em> script</li>
     <li>Go to build folder</li>
-    <li>Open .sln</li>
+    <li>Open .sln, run the project, mess with it, etc.</li>
     <li>Start Coding</li>
   </ol> 
 
@@ -49,6 +49,6 @@ Ensure to have the correct drivers installed for Vulkan 1.4 and above according 
 <ol>
   <li>Clone the repo</li>
   <li>Run the <em>bash (.sh)</em> script</li>
-  <li>Go to build folder</li>
+  <li>Go to build folder, run the produced executable ("CKVulkan"), mess with it, etc.</li>
   <li>Start Coding</li>
 </ol> 
