@@ -9,6 +9,8 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
+#include <vulkan/vulkan.h>
+
 #include "vkGlobal.h"
 #include "vkUtility.h"
 #include "vkInit.h"
@@ -18,10 +20,8 @@
 #include "imgui/backends/imgui_impl_sdl2.h"
 #include "imgui/backends/imgui_impl_vulkan.h"
 
-#define GLM_ENABLE_EXPERIMENTAL
-#include <glm/gtx/hash.hpp>
-
 #include <SDL2/SDL.h>
+#include <SDL2/SDL_vulkan.h>
 
 #include "ApplicationGlobal.h"
 

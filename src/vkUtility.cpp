@@ -303,7 +303,8 @@ namespace vk {
 
 			if (!file.is_open())
 			{
-				throw std::runtime_error("failed to open shader file!");
+				std::cerr << "failed to open " + filename << std::endl;
+				return "";
 			}
 
 			//reads the offset from the beginning of the file
@@ -345,6 +346,11 @@ namespace vk {
 			//vertex shader reading and compilation
 			vk::shader::CompilationInfo shaderInfo = {};
 			shaderInfo.source = vk::util::ReadFile(fileNamePath);
+			if (shaderInfo.source.empty()) 
+			{
+				return "";
+			}
+
 			shaderInfo.filename = fileNamePath.c_str();
 			shaderInfo.kind = shader_kind;
 
@@ -381,5 +387,35 @@ namespace vk {
 
 			return fileNamePath;
 		}	
+
+		bool CheckLayerSupport(const char* layers[], int layersSize)
+		{
+			uint32_t layerCount = 0;
+    	vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
+
+			std::vector<VkLayerProperties> availableLayers(layerCount);
+			vkEnumerateInstanceLayerProperties(&layerCount, availableLayers.data());
+
+			for (int i = 0; i < layersSize; ++i)
+			{
+				bool foundLayer = false;
+				for (int j = 0; j < availableLayers.size(); ++j)
+				{
+					if (strcmp(layers[i], availableLayers[j].layerName) == 0)
+					{
+						foundLayer = true;
+						break;
+					}
+				}
+
+				if (foundLayer == false) 
+				{
+					return false;
+				}
+			}
+
+			return true;
+		}
+
 	}
 }

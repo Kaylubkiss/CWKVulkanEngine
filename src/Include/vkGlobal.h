@@ -1,10 +1,9 @@
 #pragma once
 
-#include <vulkan/vulkan.h>
 #include <queue>
 #include "vkBuffer.h"
 
-const uint32_t maxFramesInFlight = 2;
+const uint32_t gMaxFramesInFlight = 3;
 
 //these don't need to be tied to the vulkan API!!!
 struct uTransformObject
@@ -76,8 +75,11 @@ namespace vk
 		void Destroy(VkDevice l_device)
 		{
 			vkDestroyImageView(l_device, this->imageView, nullptr);
+			this->imageView = VK_NULL_HANDLE;
 			vkDestroyImage(l_device, this->image, nullptr);
+			this->image = VK_NULL_HANDLE;
 			vkFreeMemory(l_device, this->imageMemory, nullptr);
+			this->imageMemory = VK_NULL_HANDLE;
 		}
 	};
 

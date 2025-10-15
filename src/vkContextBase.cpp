@@ -1,9 +1,6 @@
 #include "vkContextBase.h"
 #include "vkUtility.h"
 #include "vkInit.h"
-#include "ObjectManager.h"
-#include "HotReloader.h"
-#include <SDL2/SDL_vulkan.h>
 
 namespace vk
 {	
@@ -22,23 +19,23 @@ namespace vk
 		}
 		
 		device.Initialize(instance, window.surface);
+		window.contextPhysicalDevice = device.physical;
 
 		std::array<uint32_t, 2> queueFamilies = { device.graphicsQueue.family, device.presentQueue.family };
-		this->swapChain = SwapChain(&this->device, queueFamilies, window); //need window for its surface and viewport info.
-		ContextBase::InitializeRenderPass();
-		this->swapChain.CreateFrameBuffers(window.viewport, this->mPipeline.mRenderPass);
+		swapChain.Init(&this->device, window); //need window for its surface and viewport info.
+		
+		swapChain.Create(window);
 
-		if (swapChain.createInfo.minImageCount != maxFramesInFlight) 
+		//conforms to higher frame counts to prevent flickering.
+		if (swapChain.createInfo.minImageCount > settings.maxFramesInFlight)
 		{
-			throw std::runtime_error("your application surface doesn't seem to support two swapchain images");
+			settings.maxFramesInFlight = swapChain.createInfo.minImageCount;
 		}
 
-		for (int i = 0; i < maxFramesInFlight; ++i)
-		{
-			inFlightFences[i] = vk::init::CreateFence(device.logical);
-			presentCompleteSemaphores[i] = vk::init::CreateSemaphore(this->device.logical);
-			renderCompleteSemaphores[i] = vk::init::CreateSemaphore(this->device.logical);
-		}
+		InitializeRenderPass();
+		this->swapChain.CreateFrameBuffers(window.viewport, renderPass);
+
+		CreateSynchronizationPrimitives();
 
 		this->commandPool = vk::init::CommandPool(device.logical, VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
 		//each swapchain should have its own command buffer
@@ -48,46 +45,43 @@ namespace vk
 		cmdBufferAllocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
 		VK_CHECK_RESULT(vkAllocateCommandBuffers(device.logical, &cmdBufferAllocateInfo, commandBuffers.data()));
 
-		VkSurfaceCapabilitiesKHR deviceCapabilities;
-		VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device.physical, window.surface, &deviceCapabilities));
-		this->currentExtent = deviceCapabilities.currentExtent;
+		if (settings.UIEnabled) 
+		{
+			UserInterfaceInitInfo userInterfaceCI = {};
+			userInterfaceCI.contextInstance = this->instance;
+			userInterfaceCI.contextLogicalDevice = this->device.logical;
+			userInterfaceCI.contextPhysicalDevice = this->device.physical;
+			userInterfaceCI.contextQueue = this->device.graphicsQueue;
+			userInterfaceCI.contextWindow = this->window.sdl_ptr;
+			userInterfaceCI.renderPass = this->renderPass;
+			userInterfaceCI.minImages = settings.maxFramesInFlight;
 
-		this->mHotReloader.appDevicePtr = this->device.logical;
-		this->mHotReloader.AddPipeline(this->mPipeline);
+			this->UIOverlay = UserInterface(userInterfaceCI);
+		}
 
-
-		UserInterfaceInitInfo userInterfaceCI = {};
-		userInterfaceCI.contextInstance = this->instance;
-		userInterfaceCI.contextLogicalDevice = this->device.logical;
-		userInterfaceCI.contextPhysicalDevice = this->device.physical;
-		userInterfaceCI.contextQueue = this->device.graphicsQueue;
-		userInterfaceCI.contextWindow = this->window.sdl_ptr;
-		userInterfaceCI.renderPass = this->mPipeline.mRenderPass;
-		this->UIOverlay = UserInterface(userInterfaceCI);
-
-		FillOutGraphicsContextInfo();
+		ContextBase::FillOutGraphicsContextInfo();
 
 		this->mCamera = Camera({ 0.f, 0.f, 10.f }, { 0.f, 0.f, -1.f }, { 0,1,0 });
 
-		this->isInitialized = true;
+		this->pipelineManager.Init(mInfo);
 
 	}
-
 
 	//destructor
 	ContextBase::~ContextBase()
 	{
-		mPipeline.Destroy(this->device.logical);
+		pipelineManager.Destroy();
 		swapChain.Destroy();
 		UIOverlay.Destroy();
 
+		vkDestroyPipelineLayout(device.logical, pipelineLayout, nullptr);
 		vkDestroyDescriptorPool(device.logical, this->descriptorPool, nullptr);
 
 		vkFreeCommandBuffers(device.logical, this->commandPool, this->commandBuffers.size(), this->commandBuffers.data());
 		vkDestroyCommandPool(device.logical, this->commandPool, nullptr);
 
 		//semaphores
-		for (int i = 0; i < maxFramesInFlight; ++i) 
+		for (int i = 0; i < gMaxFramesInFlight; ++i)
 		{
 			vkDestroySemaphore(this->device.logical, presentCompleteSemaphores[i], nullptr);
 			vkDestroySemaphore(this->device.logical, renderCompleteSemaphores[i], nullptr);
@@ -138,7 +132,7 @@ namespace vk
 
 
 		//enabling validation layers
-		const char* layerName = "VK_LAYER_KHRONOS_validation";
+ 		const char* layerName = "VK_LAYER_KHRONOS_validation";
 
 		const VkBool32 setting_validate_core = VK_TRUE;
 		const VkBool32 setting_validate_sync = VK_TRUE;
@@ -165,13 +159,18 @@ namespace vk
 
 		createInfo.pNext = &layer_settings_create_info;
 
-		static const char* instanceLayers[] =
+		std::array<const char*, 1> instanceLayers =
 		{
 			layerName
 		};
 
-		createInfo.enabledLayerCount = static_cast<uint32_t>(std::size(instanceLayers));
-		createInfo.ppEnabledLayerNames = instanceLayers;
+		if (!vk::util::CheckLayerSupport(instanceLayers.data(), instanceLayers.size()))
+		{
+			throw std::runtime_error("one or more layers are not supported\n");
+		}
+
+		createInfo.enabledLayerCount = static_cast<uint32_t>(instanceLayers.size());
+		createInfo.ppEnabledLayerNames = instanceLayers.data();
 	
 
 		//create instance.
@@ -203,32 +202,70 @@ namespace vk
 		}
 
 		window.sdl_ptr = SDL_CreateWindow("Caleb's Vulkan Engine", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
-			int(window.viewport.width), int(window.viewport.height), SDL_WINDOW_VULKAN | SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
+			int(window.viewport.width), int(window.viewport.height), SDL_WINDOW_VULKAN | SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_INPUT_FOCUS);
 
 		if (window.sdl_ptr == nullptr)
 		{
 			printf("Window could not be created! SDL_Error: %s\n", SDL_GetError());
 		}
+
+		SDL_RaiseWindow(window.sdl_ptr);
+
+		window.isPrepared = true;
+	}
+
+	void ContextBase::CreateSynchronizationPrimitives() 
+	{
+		for (int i = 0; i < gMaxFramesInFlight; ++i)
+		{
+			inFlightFences[i] = vk::init::CreateFence(device.logical);
+			presentCompleteSemaphores[i] = vk::init::CreateSemaphore(this->device.logical);
+			renderCompleteSemaphores[i] = vk::init::CreateSemaphore(this->device.logical);
+		}
 	}
 	
-	void ContextBase::UpdateUI() 
-	{
-		//do nothing, yaya!!!
-	}
+	void ContextBase::UpdateUI() {}
+
+	void ContextBase::ResizeWindowDerived() {}
 
 	void ContextBase::ResizeWindow() 
 	{
-		assert(_Application != NULL);
+		//std::cout << "resizing window\n";
+
+		if (window.isMinimized)
+		{
+			window.isPrepared = false;
+			return;
+		}
 
 		VK_CHECK_RESULT(vkDeviceWaitIdle(this->device.logical));
+		
 
-		VkSurfaceCapabilitiesKHR deviceCapabilities;
-		VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(this->device.physical, window.surface, &deviceCapabilities));
+		VkSurfaceCapabilitiesKHR surfaceCapabilities;
+		VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(this->device.physical, window.surface, &surfaceCapabilities));
 
-		currentExtent = deviceCapabilities.currentExtent;
-		window.UpdateExtents(currentExtent);
+		window.UpdateExtents(surfaceCapabilities.currentExtent);
 
-		this->swapChain.Recreate(this->mPipeline.mRenderPass, window);
+		swapChain.Recreate(renderPass, window);
+
+		for (int i = 0; i < gMaxFramesInFlight; ++i)
+		{
+			vkDestroySemaphore(this->device.logical, presentCompleteSemaphores[i], nullptr);
+			presentCompleteSemaphores[i] = VK_NULL_HANDLE;
+
+			vkDestroySemaphore(this->device.logical, renderCompleteSemaphores[i], nullptr);
+			renderCompleteSemaphores[i] = VK_NULL_HANDLE;
+
+			vkDestroyFence(device.logical, inFlightFences[i], nullptr);
+			inFlightFences[i] = VK_NULL_HANDLE;
+		}
+
+		CreateSynchronizationPrimitives();
+
+		ResizeWindowDerived();
+
+		window.isPrepared = true;
+		
 	}
 
 	//initializers
@@ -303,7 +340,7 @@ namespace vk
 		renderPassCI.dependencyCount = dependencies.size();
 		renderPassCI.pDependencies = dependencies.data();
 
-		VK_CHECK_RESULT(vkCreateRenderPass(device.logical, &renderPassCI, nullptr, &this->mPipeline.mRenderPass));
+		VK_CHECK_RESULT(vkCreateRenderPass(device.logical, &renderPassCI, nullptr, &renderPass));
 	}
 
 	void ContextBase::FillOutGraphicsContextInfo() 
@@ -313,20 +350,13 @@ namespace vk
 		mInfo.physicalDevice = device.physical;
 		mInfo.graphicsQueue = device.graphicsQueue;
 
-		mInfo.contextUIPtr = &UIOverlay;
+		if (settings.UIEnabled) 
+		{
+			mInfo.contextUIPtr = &UIOverlay;
+		}
 	}
 
 	//getter(s)
-	vk::Queue ContextBase::GraphicsQueue()
-	{
-		return this->device.graphicsQueue;
-	}
-
-	const VkPipeline ContextBase::Pipeline() const
-	{
-		return this->mPipeline.Handle();
-	}
-
 	const VkPhysicalDevice ContextBase::PhysicalDevice() const 
 	{
 		return this->device.physical;
@@ -337,14 +367,14 @@ namespace vk
 		return this->device.logical;
 	}
 
-	VkDescriptorPool ContextBase::DescriptorPool() const 
-	{
-		return this->descriptorPool;
-	}
-
 	Camera& ContextBase::GetCamera()
 	{
 		return this->mCamera;
+	}
+
+	vk::Window& ContextBase::GetWindow() 
+	{
+		return this->window;
 	}
 
 	GraphicsContextInfo ContextBase::GetGraphicsContextInfo() 
@@ -354,7 +384,7 @@ namespace vk
 
 	void ContextBase::WaitForDevice()
 	{
-		if (this->isInitialized) 
+		if (this->device.logical)
 		{
 			VK_CHECK_RESULT(vkDeviceWaitIdle(this->device.logical));
 		}
@@ -363,25 +393,31 @@ namespace vk
 	void ContextBase::PrepareFrame() 
 	{
 		//add synchronization calls here.
-		vkWaitForFences(device.logical, 1, &inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
-		vkResetFences(device.logical, 1, &inFlightFences[currentFrame]);
+		VK_CHECK_RESULT(vkWaitForFences(device.logical, 1, &inFlightFences[currentFrame], VK_TRUE, UINT64_MAX));
+		VK_CHECK_RESULT(vkResetFences(device.logical, 1, &inFlightFences[currentFrame]));
 
-		UIOverlay.Prepare();
-		if (!ImGui::Begin("CWKVulkanEngine"))
+		if (settings.UIEnabled) 
 		{
-			ImGui::End();
-		}
-		else 
-		{
-			UpdateUI();
-			ImGui::End();
+			UIOverlay.Prepare();
+			if (!ImGui::Begin("CWKVulkanEngine"))
+			{
+				ImGui::End();
+			}
+			else
+			{
+				UpdateUI();
+				ImGui::End();
+			}
 		}
 
 		VkResult result = vkAcquireNextImageKHR(device.logical, swapChain.handle, UINT64_MAX, presentCompleteSemaphores[currentFrame], (VkFence)nullptr, &currentImageIndex);
-
+	
 		if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
 		{
-			ResizeWindow();
+			if (result == VK_ERROR_OUT_OF_DATE_KHR) 
+			{
+				ResizeWindow();
+			}
 			return;
 		}
 		else
@@ -405,7 +441,7 @@ namespace vk
 		submitInfo.pCommandBuffers = &this->commandBuffers[currentFrame];
 		VK_CHECK_RESULT(vkQueueSubmit(this->device.graphicsQueue.handle, 1, &submitInfo, inFlightFences[currentFrame]))
 
-			VkPresentInfoKHR presentInfo{};
+		VkPresentInfoKHR presentInfo{};
 		presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
 		presentInfo.waitSemaphoreCount = 1;
 		presentInfo.pWaitSemaphores = &renderCompleteSemaphores[currentImageIndex];
@@ -415,7 +451,10 @@ namespace vk
 		VkResult result = vkQueuePresentKHR(this->device.presentQueue.handle, &presentInfo);
 		if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
 		{
-			ResizeWindow();
+			if (result == VK_ERROR_OUT_OF_DATE_KHR) 
+			{
+				ResizeWindow();
+			}
 			return;
 		}
 		else
@@ -423,7 +462,12 @@ namespace vk
 			VK_CHECK_RESULT(result);
 		}
 
-		currentFrame = (currentFrame + 1) % maxFramesInFlight;
+		currentFrame = (currentFrame + 1) % settings.maxFramesInFlight;
 
+	}
+
+	void ContextBase::ToggleRendering()
+	{
+		window.isPrepared = !window.isPrepared;
 	}
 }

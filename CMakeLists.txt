@@ -6,10 +6,9 @@ project("${PROJECT_NAME}" LANGUAGES CXX C)
 
 #------------------SOURCES----------------------
 set(SOURCE_FILES src/Application.cpp 
-                   src/BlinnPhong.cpp 
+									src/pch.cpp
                    src/Camera.cpp 
                    src/Common.cpp
-                   src/Debug.cpp
                    src/Main.cpp
                    src/Object.cpp
                    src/Physics.cpp
@@ -19,7 +18,6 @@ set(SOURCE_FILES src/Application.cpp
 				   src/ObjectManager.cpp
 				   src/ApplicationGlobal.cpp
 				   src/CameraController.cpp
-				   src/HotReloader.cpp
 				   src/UserInterface.cpp
 )
 							
@@ -31,17 +29,16 @@ set(VULKAN_ENGINE_SRC src/vkDebug.cpp
 					  src/vkSwapChain.cpp
 					  src/vkBuffer.cpp
 					  src/vkTexture.cpp
-					  src/vkPipeline.cpp
 					  src/vkDevice.cpp
 					  src/vkMesh.cpp
+					  src/vkWindow.cpp
+					  src/vkPipelineManager.cpp
 )
 
 set(VULKAN_ENGINE_SCENES_SOURCE 
 src/vkFreddyHeadContext.cpp
 src/vkDeferredShadingContext.cpp
 src/vkShadowMapContext.cpp)
-
-
 
 
 source_group("Source Files/VulkanSources" FILES ${VULKAN_ENGINE_SRC})			
@@ -58,21 +55,15 @@ set(IM_GUI_FILES src/External/libraries/imgui/imgui_demo.cpp
                    src/External/libraries/imgui/backends/imgui_impl_sdl2.cpp
                    src/External/libraries/imgui/backends/imgui_impl_vulkan.cpp)
 
-if (WIN32)
-	#currently doesn't work..
-	list(APPEND ${IM_GUI_FILES} src/External/libraries/imgui/backends/imgui_impl_win32.cpp)
-endif()
-
 source_group("Source Files/ImGui" FILES ${IM_GUI_FILES})			
 list(APPEND SOURCE_FILES ${IM_GUI_FILES})					 
 
 #------------------HEADERS----------------------
 set(HEADER_FILES 
 src/Include/Application.h
-src/Include/BlinnPhong.h
+src/Include/pch.h
 src/Include/Camera.h
 src/Include/Common.h
-src/Include/Debug.h
 src/Include/Object.h
 src/Include/Vertex.h
 src/Include/Physics.h
@@ -83,7 +74,6 @@ src/Include/TextureManager.h
 src/Include/ApplicationGlobal.h
 src/Include/Controller.h
 src/Include/SpirvHelper.h
-src/Include/HotReloader.h
 src/Include/UserInterface.h
 )
 				 
@@ -99,11 +89,10 @@ src/Include/vkBuffer.h
 src/Include/vkTexture.h
 src/Include/vkSwapChain.h
 src/Include/vkMesh.h
-src/Include/vkPipeline.h
 src/Include/vkDevice.h
 src/Include/vkShadowMap.h
 src/Include/vkDevice.h
-)
+src/Include/vkPipelineManager.h)
 
 
 set(VULKAN_ENGINE_SCENES_HEADERS
@@ -148,8 +137,7 @@ endif()
 #-------------------------------------------MAKE THE PROJECT--------------------------------------
 add_executable("${PROJECT_NAME}" ${SOURCE_FILES} ${SHADER_FILES} ${HEADER_FILES})
 
-
-target_precompile_headers("${PROJECT_NAME}" PUBLIC "src/Include/pch.h")
+target_precompile_headers("${PROJECT_NAME}" PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src/Include/pch.h")
 
 set_property(TARGET "${PROJECT_NAME}" PROPERTY CXX_STANDARD 20)
 
@@ -159,8 +147,6 @@ find_package(Vulkan REQUIRED)
 
 if (UNIX)
 
-	find_package(ReactPhysics3D REQUIRED)
-
 	find_package(SDL2 REQUIRED CONFIG REQUIRED COMPONENTS SDL2)
 
 	# 1. Look for a SDL2 package, 2. Look for the SDL2maincomponent and 3. DO NOT fail when SDL2main is not available
@@ -169,7 +155,8 @@ if (UNIX)
 endif()
 
 
-target_include_directories("${PROJECT_NAME}" PRIVATE src/Include
+target_include_directories(${PROJECT_NAME} PRIVATE 
+src/Include
 src/External/libraries
 src/External/libraries/imgui
 src/External/libraries/stb
@@ -178,13 +165,14 @@ src/External/libraries/ReactPhysics3D/include)
 if (WIN32)
 	target_include_directories(${PROJECT_NAME} PRIVATE $ENV{VULKAN_SDK}/Include)
 
-	target_link_libraries("${PROJECT_NAME}" SDL2.lib
+	target_link_libraries("${PROJECT_NAME}" 
+	SDL2.lib
 	vulkan-1.lib
 	SDL2main.lib)
 
 	target_link_libraries(${PROJECT_NAME} debug reactphysics3dd.lib general reactphysics3d.lib)
 
-	target_link_libraries(${PROJECT_NAME} debug shaderc_combinedd.lib)
+	target_link_libraries(${PROJECT_NAME} debug shaderc_combinedd.lib general shaderc_combined.lib)
 
 	target_link_directories("${PROJECT_NAME}" PRIVATE $ENV{VULKAN_SDK}/Lib src/External/libraries/ReactPhysics3D/lib)
 
@@ -195,10 +183,19 @@ elseif (UNIX)
 		target_link_libraries(${PROJECT_NAME} SDL2::SDL2main)
 	endif()
 
-	target_link_libraries(${PROJECT_NAME} ${Vulkan_LIBRARIES} SDL2::SDL2 reactphysics3d shaderc_combined)
 
-	#~/libraries contains reactphysics3d and shaderc_combined
-	target_link_directories("${PROJECT_NAME}" PRIVATE Vulkan::Vulkan ~/libraries/)
+	set(GIT_LIBRARIES $ENV{HOME}/vkEngineLibraries)
+	target_include_directories(${PROJECT_NAME} PRIVATE 
+		${GIT_LIBRARIES}/shaderc/libshaderc/include
+		${GIT_LIBRARIES}/reactphysics3d/include/reactphysics3d)
+	
+	target_link_libraries(${PROJECT_NAME} ${Vulkan_LIBRARIES} SDL2::SDL2 reactphysics3d libshaderc_combined.a)
+	
+	target_link_directories(${PROJECT_NAME} PRIVATE 
+		Vulkan::Vulkan
+		${GIT_LIBRARIES}/shaderc/build/libshaderc
+		${GIT_LIBRARIES}/reactphysics3d/build/
+	)
 
 	target_compile_options(${PROJECT_NAME} PRIVATE -fsanitize=address)
 	target_link_options(${PROJECT_NAME} PRIVATE -fsanitize=address)

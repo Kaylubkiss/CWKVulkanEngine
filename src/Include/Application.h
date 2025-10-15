@@ -1,7 +1,6 @@
 #pragma once
 #include "Timer.h"
 #include "Camera.h"
-#include "Debug.h"
 #include "ObjectManager.h"
 #include "vkWindow.h"
 #include "vkContextBase.h"
@@ -20,6 +19,7 @@ public:
 
 	const Timer& GetTime();
 	void RequestExit();
+	void ResizeWindow();
 
 	void SelectWorldObjects(const vk::Window& appWindow,
 							Camera& camera, const uTransformObject& uTransform, PhysicsSystem& physics);

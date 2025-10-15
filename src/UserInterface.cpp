@@ -30,35 +30,40 @@ namespace vk {
 		init_info.RenderPass = initInfo.renderPass;
 		init_info.Subpass = 0;
 		init_info.MinImageCount = 2;
-		init_info.ImageCount = 2; //TODO: we assume that there is a backbuffer to render into.
+		init_info.ImageCount = initInfo.minImages; //TODO: we assume that there is a backbuffer to render into.
 		init_info.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
 		init_info.Allocator = nullptr;
 		init_info.CheckVkResultFn = vk::util::check_vk_result;
 		ImGui_ImplVulkan_Init(&init_info);
 
+		isInitialized = true;
+
 	}
 
 	void UserInterface::Destroy() 
 	{
-		for (auto texture : displayTextures) 
+		if (isInitialized) 
 		{
-			ImGui_ImplVulkan_RemoveTexture(texture);
+			for (auto texture : displayTextures)
+			{
+				ImGui_ImplVulkan_RemoveTexture(texture);
+			}
+
+			ImGui_ImplVulkan_Shutdown();
+			ImGui_ImplSDL2_Shutdown();
+			ImGui::DestroyContext();
+
+			vkDestroyDescriptorPool(contextLogicalDevice, this->UIDescriptorPool, nullptr);
 		}
-
-		ImGui_ImplVulkan_Shutdown();
-		ImGui_ImplSDL2_Shutdown();
-		ImGui::DestroyContext();
-
-		vkDestroyDescriptorPool(contextLogicalDevice, this->UIDescriptorPool, nullptr);
 	}
 
 	void UserInterface::InitializeUIDescriptorPool() 
 	{
 		std::vector<VkDescriptorPoolSize> poolSizes = {
-			vk::init::DescriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1) 
+			vk::init::DescriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, gMaxFramesInFlight * max_textures) 
 		};
 
-		VkDescriptorPoolCreateInfo descriptorPoolCI = vk::init::DescriptorPoolCreateInfo(poolSizes, maxFramesInFlight * max_textures); //2 for swapchain image count. 
+		VkDescriptorPoolCreateInfo descriptorPoolCI = vk::init::DescriptorPoolCreateInfo(poolSizes, gMaxFramesInFlight * max_textures); //2 for swapchain image count. 
 
 		VK_CHECK_RESULT(vkCreateDescriptorPool(this->contextLogicalDevice, &descriptorPoolCI, nullptr, &UIDescriptorPool));
 
@@ -92,7 +97,7 @@ namespace vk {
 	{
 		for (auto texture : displayTextures) {
 
-			ImGui::Image(texture, ImVec2(128, 128));
+			ImGui::Image(texture, ImVec2(64, 64));
 			ImGui::SameLine();
 		}
 
@@ -105,14 +110,20 @@ namespace vk {
 
 	void UserInterface::AddImage(const vk::Texture& texture) 
 	{
+		std::cout << "adding image to UI\n";
+
+		if (texture.mTextureImageView == VK_NULL_HANDLE)
+		{
+			std::cout << "huh\n" << std::endl;
+		}
+
 		displayTextures.emplace_back(
 			ImGui_ImplVulkan_AddTexture(
-				texture.mTextureSampler, 
-				texture.mTextureImageView, 
+				texture.mTextureSampler,
+				texture.mTextureImageView,
 				VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
 			)
 		);
-
 	}
 
 	void UserInterface::Prepare() 
@@ -120,18 +131,13 @@ namespace vk {
 		ImGui_ImplVulkan_NewFrame();
 		ImGui_ImplSDL2_NewFrame();
 		ImGui::NewFrame();
-
-
 	}
 
 	void UserInterface::Render(VkCommandBuffer cmdBuffer) 
 	{
-	
-		ImGui::ShowDemoWindow();
+		//ImGui::ShowDemoWindow();
 		ImGui::Render();
-
 		ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), cmdBuffer);
-
 	}
 
 

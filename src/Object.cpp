@@ -74,10 +74,6 @@ Object::Object(const VkPhysicalDevice p_device, const VkDevice l_device,
     std::cout << numVertices << " vertices loaded in." << std::endl << std::endl;*/
 }
 
-void Object::SetDebugDraw(bool option) 
-{
-    this->debugDraw = option;
-}
 
 void Object::InitPhysics(PhysicsSystem& appPhysics)
 {
@@ -155,31 +151,23 @@ void Object::Update(const float& interpFactor)
 
 void Object::Draw(VkCommandBuffer cmdBuffer, VkPipelineLayout pipelineLayout)
 {  
-    if (debugDraw == false)
+    if (pipelineLayout != VK_NULL_HANDLE)
     {
-        if (pipelineLayout != VK_NULL_HANDLE)
-        {
-            vkCmdPushConstants(cmdBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::mat4), (void*)(&this->modelTransform));
-        }
-
-        if (this->textureDescriptorSet != VK_NULL_HANDLE) 
-        {
-            vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &this->textureDescriptorSet, 0, nullptr);
-        }
-
-        VkDeviceSize offsets[1] = { 0 };
-
-        vkCmdBindVertexBuffers(cmdBuffer, 0, 1, &mMesh.buffer.vertex.handle, offsets);
-
-        vkCmdBindIndexBuffer(cmdBuffer, mMesh.buffer.index.handle, 0, VK_INDEX_TYPE_UINT16);
-
-        vkCmdDrawIndexed(cmdBuffer, static_cast<uint32_t>(this->mMesh.data.indices.size()), 1, 0, 0, 0);
-
+        vkCmdPushConstants(cmdBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::mat4), (void*)(&this->modelTransform));
     }
-    else {
-
-        //..draw debug shape!
+    
+    if (this->textureDescriptorSet != VK_NULL_HANDLE) 
+    {
+        vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &this->textureDescriptorSet, 0, nullptr);
     }
+    
+    VkDeviceSize offsets[1] = { 0 };
+    
+    vkCmdBindVertexBuffers(cmdBuffer, 0, 1, &mMesh.buffer.vertex.handle, offsets);
+    
+    vkCmdBindIndexBuffer(cmdBuffer, mMesh.buffer.index.handle, 0, VK_INDEX_TYPE_UINT16);
+    
+    vkCmdDrawIndexed(cmdBuffer, static_cast<uint32_t>(this->mMesh.data.indices.size()), 1, 0, 0, 0);
 }
 
 void Object::UpdatePhysicsComponent(const PhysicsComponent* physComp)

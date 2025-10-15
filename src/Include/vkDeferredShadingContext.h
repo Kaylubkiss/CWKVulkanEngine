@@ -5,6 +5,11 @@ namespace vk
 {
 	class DeferredContext : public ContextBase 
 	{
+		enum DeferredPipelines
+		{
+			LIGHTPASS = 0,
+			MRT
+		};
 
 		struct UniformDataMRT
 		{
@@ -43,9 +48,7 @@ namespace vk
 		} descriptorSets{};
 
 
-		VkSampler colorSampler = VK_NULL_HANDLE;
-
-		VkPipeline deferredMRTPipeline = VK_NULL_HANDLE;
+		VkSampler colorSampler = VK_NULL_HANDLE; //for the attachments created at the end of MRT pass
 
 		Texture defaultTexture;
 
@@ -56,7 +59,7 @@ namespace vk
 		virtual void RecordCommandBuffers() override;
 		virtual void UpdateUI() override;
 		virtual void InitializeScene(ObjectManager& objManager) override;
-		void ResizeWindow() override;
+		virtual void ResizeWindowDerived() override;
 
 		virtual void Render() override;
 
@@ -72,7 +75,8 @@ namespace vk
 		void IntializeDeferredFramebuffer();
 		void IntializeColorSampler();
 		void InitializeUniforms();
-		void UpdateUniforms();
+		void UpdateScreenUniforms();
+		void UpdateSceneUniforms();
 
 	};
 

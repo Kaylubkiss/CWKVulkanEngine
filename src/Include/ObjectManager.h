@@ -3,7 +3,7 @@
 #include <map>
 #include <thread>
 #include "Object.h"
-#include "Threadpool.h"
+#include "ThreadPool.h"
 #include "TextureManager.h"
 
 struct str_cmp 

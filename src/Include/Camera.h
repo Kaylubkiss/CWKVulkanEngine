@@ -1,7 +1,4 @@
 #pragma once
-#define GLM_FORCE_RADIANS
-#define GLM_FORCE_DEFAULT_ALIGNED_GENTYPES
-#include <glm/glm.hpp>
 #include <reactphysics3d/reactphysics3d.h>
 using namespace reactphysics3d;
 

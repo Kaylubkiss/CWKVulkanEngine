@@ -24,7 +24,10 @@ namespace vk
 			std::vector<VkFramebuffer> frameBuffers;
 
 			SwapChain() = default;
-			SwapChain(Device* devicePtr, const std::array<uint32_t, 2>& queueFamilies, const vk::Window& appWindow);
+			~SwapChain() = default;
+
+			void Init(Device* devicePtr, const vk::Window& appWindow);
+			void Create(const vk::Window& appWindow);
 			
 			void Destroy();
 

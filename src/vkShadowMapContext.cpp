@@ -6,6 +6,10 @@ namespace vk
 {
 	ShadowMapScene::ShadowMapScene() 
 	{
+		std::cout << "this scene is still under construction due to core rewrites, and will probably crash : )\n";
+		_Application->RequestExit();
+		return;
+
 		uLightObject& light = uniformDataScene.light;
 
 		light.pos = { 0,10, 10 };
@@ -45,8 +49,6 @@ namespace vk
 		vkDestroyRenderPass(device.logical, offscreenPass.renderPass, nullptr);
 		vkDestroyFramebuffer(device.logical, offscreenPass.frameBuffer, nullptr);
 		vkDestroySampler(device.logical, offscreenPass.depthSampler, nullptr);
-		vkDestroyPipeline(device.logical, offscreenPipeline, nullptr);
-		vkDestroyPipeline(device.logical, offscreenDebugPipeline, nullptr);
 	}
 
 	void ShadowMapScene::UpdateSceneUniforms() 
@@ -75,7 +77,7 @@ namespace vk
 
 	void ShadowMapScene::RecordCommandBuffers() 
 	{
-		vk::ObjectManager& objManager = _Application->ObjectManager();
+		/*vk::ObjectManager& objManager = _Application->ObjectManager();
 
 		VkCommandBuffer cmdBuffer = commandBuffers[currentFrame];
 		VkCommandBufferBeginInfo cmdBeginInfo = vk::init::CommandBufferBeginInfo();
@@ -108,11 +110,11 @@ namespace vk
 				depthBiasConstant, 0.f, 
 				depthBiasSlope);
 
-			vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, offscreenPipeline);
+			vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineManager.Get(Pipelines::OFFSCREEN));
 
-			vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mPipeline.layout, 0, 1, &descriptorSets.offscreen, 0, nullptr);
+			vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets.offscreen, 0, nullptr);
 
-			objManager.DrawObjects(cmdBuffer, mPipeline.layout);
+			objManager.DrawObjects(cmdBuffer, pipelineLayout);
 
 			vkCmdEndRenderPass(cmdBuffer);
 
@@ -125,28 +127,28 @@ namespace vk
 
 			VkRenderPassBeginInfo sceneRenderPassInfo = vk::init::RenderPassBeginInfo();
 			sceneRenderPassInfo.framebuffer = swapChain.frameBuffers[currentFrame];
-			sceneRenderPassInfo.renderPass = mPipeline.mRenderPass;
-			sceneRenderPassInfo.renderArea.extent = currentExtent;
+			sceneRenderPassInfo.renderPass = renderPass;
+			sceneRenderPassInfo.renderArea.extent = {(uint32_t)window.viewport.width, (uint32_t)window.viewport.height};
 			sceneRenderPassInfo.clearValueCount = 2;
 			sceneRenderPassInfo.pClearValues = clearValue;
 
 			vkCmdBeginRenderPass(cmdBuffer, &sceneRenderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-			VkViewport sceneViewport = vk::init::Viewport(currentExtent.width, currentExtent.height);
+			VkViewport sceneViewport = window.viewport;
 			vkCmdSetViewport(cmdBuffer, 0, 1, &sceneViewport);
 
-			VkRect2D sceneScissor = vk::init::Rect2D(currentExtent.width, currentExtent.height);
+			VkRect2D sceneScissor = window.scissor;
 			vkCmdSetScissor(cmdBuffer, 0, 1, &sceneScissor);
 
 
 			if (!showDebug) {
-				vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mPipeline.handle);
-				vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mPipeline.layout, 0, 1, &descriptorSets.scene, 0, nullptr);
-				objManager.DrawObjects(cmdBuffer, mPipeline.layout);
+				vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineManager.Get(Pipelines::FORWARD_RENDER));
+				vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets.scene, 0, nullptr);
+				objManager.DrawObjects(cmdBuffer, pipelineLayout);
 			}
 			else 
 			{
-				vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mPipeline.layout, 0, 1, &descriptorSets.offscreenDebug, 0,nullptr);
+				vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets.offscreenDebug, 0,nullptr);
 				vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, offscreenDebugPipeline);
 				vkCmdDraw(cmdBuffer, 3, 1, 0, 0);
 			}
@@ -154,7 +156,7 @@ namespace vk
 			vkCmdEndRenderPass(cmdBuffer);
 		}
 
-		VK_CHECK_RESULT(vkEndCommandBuffer(cmdBuffer));
+		VK_CHECK_RESULT(vkEndCommandBuffer(cmdBuffer));*/
 
 	}
 
@@ -208,107 +210,110 @@ namespace vk
 	void ShadowMapScene::InitializePipeline(std::string vsFile, std::string fsFile)
 	{
 
-		(void)vsFile;
-		(void)fsFile;
+		//(void)vsFile;
+		//(void)fsFile;
 
-		std::vector<VkPushConstantRange> pushConstantRanges = {
-			vk::init::PushConstantRange(0, sizeof(glm::mat4), VK_SHADER_STAGE_VERTEX_BIT)
-		};
+		//std::vector<VkPushConstantRange> pushConstantRanges = {
+		//	vk::init::PushConstantRange(0, sizeof(glm::mat4), VK_SHADER_STAGE_VERTEX_BIT)
+		//};
 
-		VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = vk::init::PipelineLayoutCreateInfo();
-		pipelineLayoutCreateInfo.pSetLayouts = &sceneDescriptorLayout;
-		pipelineLayoutCreateInfo.setLayoutCount = 1;
-		pipelineLayoutCreateInfo.pushConstantRangeCount = pushConstantRanges.size();
-		pipelineLayoutCreateInfo.pPushConstantRanges = pushConstantRanges.data();
-		VK_CHECK_RESULT(vkCreatePipelineLayout(device.logical, &pipelineLayoutCreateInfo, nullptr, &this->mPipeline.layout));
+		//VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = vk::init::PipelineLayoutCreateInfo();
+		//pipelineLayoutCreateInfo.pSetLayouts = &sceneDescriptorLayout;
+		//pipelineLayoutCreateInfo.setLayoutCount = 1;
+		//pipelineLayoutCreateInfo.pushConstantRangeCount = pushConstantRanges.size();
+		//pipelineLayoutCreateInfo.pPushConstantRanges = pushConstantRanges.data();
+		//VK_CHECK_RESULT(vkCreatePipelineLayout(device.logical, &pipelineLayoutCreateInfo, nullptr, &pipelineLayout));
 
-		VkPipelineInputAssemblyStateCreateInfo inputAssemblyStateCI = vk::init::PipelineInputAssemblyStateCreateInfo(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, 0, VK_FALSE);
-		VkPipelineRasterizationStateCreateInfo rasterizationStateCI = vk::init::PipelineRasterizationStateCreateInfo(VK_POLYGON_MODE_FILL, VK_CULL_MODE_BACK_BIT, VK_FRONT_FACE_COUNTER_CLOCKWISE);
-		VkPipelineColorBlendAttachmentState blendAttachmentState = vk::init::PipelineColorBlendAttachmentState(0xf, VK_FALSE);
-		VkPipelineColorBlendStateCreateInfo colorBlendStateCI = vk::init::PipelineColorBlendStateCreateInfo(1, &blendAttachmentState);
-		VkPipelineDepthStencilStateCreateInfo depthStencilStateCI = vk::init::PipelineDepthStencilStateCreateInfo(VK_TRUE, VK_TRUE, VK_COMPARE_OP_LESS_OR_EQUAL);
-		VkPipelineViewportStateCreateInfo viewportStateCI = vk::init::PipelineViewportStateCreateInfo(1,1);
-		VkPipelineMultisampleStateCreateInfo multiplesampleStateCI = vk::init::PipelineMultisampleCreateInfo(VK_SAMPLE_COUNT_1_BIT);
-		std::vector<VkDynamicState> dynamicStates = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
-		VkPipelineDynamicStateCreateInfo dynamicStateCI = vk::init::PipelineDynamicStateCreateInfo(dynamicStates);
+		//VkPipelineInputAssemblyStateCreateInfo inputAssemblyStateCI = vk::init::PipelineInputAssemblyStateCreateInfo(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, 0, VK_FALSE);
+		//VkPipelineRasterizationStateCreateInfo rasterizationStateCI = vk::init::PipelineRasterizationStateCreateInfo(VK_POLYGON_MODE_FILL, VK_CULL_MODE_BACK_BIT, VK_FRONT_FACE_COUNTER_CLOCKWISE);
+		//VkPipelineColorBlendAttachmentState blendAttachmentState = vk::init::PipelineColorBlendAttachmentState(0xf, VK_FALSE);
+		//VkPipelineColorBlendStateCreateInfo colorBlendStateCI = vk::init::PipelineColorBlendStateCreateInfo(1, &blendAttachmentState);
+		//VkPipelineDepthStencilStateCreateInfo depthStencilStateCI = vk::init::PipelineDepthStencilStateCreateInfo(VK_TRUE, VK_TRUE, VK_COMPARE_OP_LESS_OR_EQUAL);
+		//VkPipelineViewportStateCreateInfo viewportStateCI = vk::init::PipelineViewportStateCreateInfo(1,1);
+		//VkPipelineMultisampleStateCreateInfo multiplesampleStateCI = vk::init::PipelineMultisampleCreateInfo(VK_SAMPLE_COUNT_1_BIT);
+		//std::vector<VkDynamicState> dynamicStates = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
+		//VkPipelineDynamicStateCreateInfo dynamicStateCI = vk::init::PipelineDynamicStateCreateInfo(dynamicStates);
 
-		std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages;
+		//std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages;
 
-		VkGraphicsPipelineCreateInfo pipelineCI = vk::init::PipelineCreateInfo(this->mPipeline.layout, this->mPipeline.mRenderPass);
-		pipelineCI.pInputAssemblyState = &inputAssemblyStateCI;
-		pipelineCI.pRasterizationState = &rasterizationStateCI;
-		pipelineCI.pColorBlendState = &colorBlendStateCI;
-		pipelineCI.pDepthStencilState = &depthStencilStateCI;
-		pipelineCI.pMultisampleState = &multiplesampleStateCI;
-		pipelineCI.pDynamicState = &dynamicStateCI;
-		pipelineCI.pViewportState = &viewportStateCI;
-		pipelineCI.stageCount = static_cast<uint32_t>(shaderStages.size());
-		pipelineCI.pStages = shaderStages.data();
+		//VkGraphicsPipelineCreateInfo pipelineCI = vk::init::PipelineCreateInfo(pipelineLayout, renderPass);
+		//pipelineCI.pInputAssemblyState = &inputAssemblyStateCI;
+		//pipelineCI.pRasterizationState = &rasterizationStateCI;
+		//pipelineCI.pColorBlendState = &colorBlendStateCI;
+		//pipelineCI.pDepthStencilState = &depthStencilStateCI;
+		//pipelineCI.pMultisampleState = &multiplesampleStateCI;
+		//pipelineCI.pDynamicState = &dynamicStateCI;
+		//pipelineCI.pViewportState = &viewportStateCI;
+		//pipelineCI.stageCount = static_cast<uint32_t>(shaderStages.size());
+		//pipelineCI.pStages = shaderStages.data();
 
-		//TODO: make this more extensible. 
-		VkVertexInputBindingDescription vertexBindingDescription = vk::init::VertexInputBindingDescription();
-		auto vertexInputAttributeDescriptions = Vertex::InputAttributeDescriptions();
+		////TODO: make this more extensible. 
+		//VkVertexInputBindingDescription vertexBindingDescription = vk::init::VertexInputBindingDescription();
+		//auto vertexInputAttributeDescriptions = Vertex::InputAttributeDescriptions();
 
-		VkPipelineVertexInputStateCreateInfo vertexInputStateCI = vk::init::PipelineVertexInputStateCreateInfo();
-		vertexInputStateCI.pVertexBindingDescriptions = &vertexBindingDescription;
-		vertexInputStateCI.vertexBindingDescriptionCount = 1;
-		vertexInputStateCI.pVertexAttributeDescriptions = vertexInputAttributeDescriptions.data();
-		vertexInputStateCI.vertexAttributeDescriptionCount = vertexInputAttributeDescriptions.size();
-		
-		pipelineCI.pVertexInputState = &vertexInputStateCI;
-		pipelineCI.renderPass = mPipeline.mRenderPass;
+		//VkPipelineVertexInputStateCreateInfo vertexInputStateCI = vk::init::PipelineVertexInputStateCreateInfo();
+		//vertexInputStateCI.pVertexBindingDescriptions = &vertexBindingDescription;
+		//vertexInputStateCI.vertexBindingDescriptionCount = 1;
+		//vertexInputStateCI.pVertexAttributeDescriptions = vertexInputAttributeDescriptions.data();
+		//vertexInputStateCI.vertexAttributeDescriptionCount = vertexInputAttributeDescriptions.size();
+		//
+		//pipelineCI.pVertexInputState = &vertexInputStateCI;
+		//pipelineCI.renderPass = mPipeline.mRenderPass;
 
-		////////////////////////////////////
-		//pipline #1: scene rendering pipeline with shadows applied, no filter
-		ShaderModuleInfo vertShaderInfo(device.logical, "sceneShadowMap.vert", VK_SHADER_STAGE_VERTEX_BIT);
-		ShaderModuleInfo fragShaderInfo(device.logical, "sceneShadowMap.frag", VK_SHADER_STAGE_FRAGMENT_BIT, shaderc_fragment_shader);
-		mPipeline.AddModule(vertShaderInfo).AddModule(fragShaderInfo);	//just for memory management...
+		//////////////////////////////////////
+		////pipline #1: scene rendering pipeline with shadows applied, no filter
+		//ShaderModuleInfo vertShaderInfo(device.logical, "sceneShadowMap.vert", VK_SHADER_STAGE_VERTEX_BIT);
+		//ShaderModuleInfo fragShaderInfo(device.logical, "sceneShadowMap.frag", VK_SHADER_STAGE_FRAGMENT_BIT, shaderc_fragment_shader);
+		//mPipeline.AddModule(vertShaderInfo).AddModule(fragShaderInfo);	//just for memory management...
 
-		shaderStages[0] = vk::init::PipelineShaderStageCreateInfo(vertShaderInfo.mHandle, vertShaderInfo.mFlags);
-		shaderStages[1] = vk::init::PipelineShaderStageCreateInfo(fragShaderInfo.mHandle, fragShaderInfo.mFlags);
-		
-		//pSpecializationInfo on the fragment stage for filtering toggle...?
-		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device.logical, VK_NULL_HANDLE, 1, &pipelineCI, nullptr, &mPipeline.handle));
+		//shaderStages[0] = vk::init::PipelineShaderStageCreateInfo(vertShaderInfo.mHandle, vertShaderInfo.mFlags);
+		//shaderStages[1] = vk::init::PipelineShaderStageCreateInfo(fragShaderInfo.mHandle, fragShaderInfo.mFlags);
+		//
+		////pSpecializationInfo on the fragment stage for filtering toggle...?
+		//VK_CHECK_RESULT(vkCreateGraphicsPipelines(device.logical, VK_NULL_HANDLE, 1, &pipelineCI, nullptr, &mPipeline.handle));
 
-		////////////////////////
-		//pipeline #2: debug screen for shadow mapping
-		rasterizationStateCI.cullMode = VK_CULL_MODE_NONE; //make sure all faces contribute to shadow rendering.
+		//////////////////////////
+		////pipeline #2: debug screen for shadow mapping
+		//rasterizationStateCI.cullMode = VK_CULL_MODE_NONE; //make sure all faces contribute to shadow rendering.
 
-		VkPipelineVertexInputStateCreateInfo emptyVertexInputStateCI = vk::init::PipelineVertexInputStateCreateInfo();
-		pipelineCI.pVertexInputState = &emptyVertexInputStateCI;
+		//VkPipelineVertexInputStateCreateInfo emptyVertexInputStateCI = vk::init::PipelineVertexInputStateCreateInfo();
+		//pipelineCI.pVertexInputState = &emptyVertexInputStateCI;
 
 
-		vertShaderInfo = ShaderModuleInfo(device.logical, "debugShadowMap.vert", VK_SHADER_STAGE_VERTEX_BIT);
-		fragShaderInfo = ShaderModuleInfo(device.logical, "debugShadowMap.frag", VK_SHADER_STAGE_FRAGMENT_BIT, shaderc_fragment_shader);
-		mPipeline.AddModule(vertShaderInfo).AddModule(fragShaderInfo); //for memory management purposes
+		//vertShaderInfo = ShaderModuleInfo(device.logical, "debugShadowMap.vert", VK_SHADER_STAGE_VERTEX_BIT);
+		//fragShaderInfo = ShaderModuleInfo(device.logical, "debugShadowMap.frag", VK_SHADER_STAGE_FRAGMENT_BIT, shaderc_fragment_shader);
+		//pipelineManager.AddModule(Pipelines::OFFSCREEN_DEBUG, vertShaderInfo);
+		//pipelineManager.AddModule(Pipelines::OFFSCREEN_DEBUG, fragShaderInfo); //for memory management purposes
 
-		shaderStages[0] = vk::init::PipelineShaderStageCreateInfo(vertShaderInfo.mHandle, vertShaderInfo.mFlags);
-		shaderStages[1] = vk::init::PipelineShaderStageCreateInfo(fragShaderInfo.mHandle, fragShaderInfo.mFlags);
+		//shaderStages[0] = vk::init::PipelineShaderStageCreateInfo(vertShaderInfo.mHandle, vertShaderInfo.mFlags);
+		//shaderStages[1] = vk::init::PipelineShaderStageCreateInfo(fragShaderInfo.mHandle, fragShaderInfo.mFlags);
 
-		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device.logical, VK_NULL_HANDLE, 1, &pipelineCI, nullptr, &offscreenDebugPipeline));
-		
-		/////////////////////////////
-		//pipline #3: shadow scene rendering (only need the vertex processing stage)
-		vertShaderInfo = ShaderModuleInfo(device.logical, "offscreenShadowMap.vert", VK_SHADER_STAGE_VERTEX_BIT);
-		mPipeline.AddModule(vertShaderInfo);
+		//VkPipeline offscreenDebugPipeline = VK_NULL_HANDLE;
+		//VK_CHECK_RESULT(vkCreateGraphicsPipelines(device.logical, VK_NULL_HANDLE, 1, &pipelineCI, nullptr, &offscreenDebugPipeline));
+		//pipelineManager.AddPipeline(Pipelines::OFFSCREEN_DEBUG, offscreenDebugPipeline);
 
-		shaderStages[0] = vk::init::PipelineShaderStageCreateInfo(vertShaderInfo.mHandle, vertShaderInfo.mFlags);
-		pipelineCI.stageCount = 1;
-		//no color attachment.
-		colorBlendStateCI.attachmentCount = 0;				
-		depthStencilStateCI.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
+		///////////////////////////////
+		////pipline #3: shadow scene rendering (only need the vertex processing stage)
+		//vertShaderInfo = ShaderModuleInfo(device.logical, "offscreenShadowMap.vert", VK_SHADER_STAGE_VERTEX_BIT);
+		//pipelineManager.AddModule(Pipelines::OFFSCREEN, vertShaderInfo);
 
-		//enable depth bias, which is used to combat z-fighting by offsetting all the fragments
-		//generated through rasterization.
-		rasterizationStateCI.depthBiasEnable = VK_TRUE;		
-		dynamicStates.push_back(VK_DYNAMIC_STATE_DEPTH_BIAS);
-		dynamicStateCI = vk::init::PipelineDynamicStateCreateInfo(dynamicStates);
+		//shaderStages[0] = vk::init::PipelineShaderStageCreateInfo(vertShaderInfo.mHandle, vertShaderInfo.mFlags);
+		//pipelineCI.stageCount = 1;
+		////no color attachment.
+		//colorBlendStateCI.attachmentCount = 0;				
+		//depthStencilStateCI.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
 
-		pipelineCI.pVertexInputState = &vertexInputStateCI;
-		pipelineCI.renderPass = offscreenPass.renderPass;
-		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device.logical, VK_NULL_HANDLE, 1, &pipelineCI, nullptr, &offscreenPipeline));
+		////enable depth bias, which is used to combat z-fighting by offsetting all the fragments
+		////generated through rasterization.
+		//rasterizationStateCI.depthBiasEnable = VK_TRUE;		
+		//dynamicStates.push_back(VK_DYNAMIC_STATE_DEPTH_BIAS);
+		//dynamicStateCI = vk::init::PipelineDynamicStateCreateInfo(dynamicStates);
 
-		
+		//pipelineCI.pVertexInputState = &vertexInputStateCI;
+		//pipelineCI.renderPass = offscreenPass.renderPass;
+		//VK_CHECK_RESULT(vkCreateGraphicsPipelines(device.logical, VK_NULL_HANDLE, 1, &pipelineCI, nullptr, &offscreenPipeline));
+
+		//
 
 	}
 
@@ -509,13 +514,6 @@ namespace vk
 		UpdateSceneUniforms();
 		RecordCommandBuffers();
 		ContextBase::SubmitFrame();
-	}
-
-	void ShadowMapScene::ResizeWindow() 
-	{
-		//won't need to resize the framebuffer for the offscreen pass
-		//since it's a fixed size.
-		ContextBase::ResizeWindow();
 	}
 	
 }
