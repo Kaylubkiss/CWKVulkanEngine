@@ -172,7 +172,6 @@ namespace vk
 		createInfo.enabledLayerCount = static_cast<uint32_t>(instanceLayers.size());
 		createInfo.ppEnabledLayerNames = instanceLayers.data();
 	
-
 		//create instance.
 		//this function, if successful, will create a "handle object"
 		//and make pInstance the handle. A handle is always 64-bits wide.  
