@@ -50,7 +50,7 @@ namespace vk
 
 		ObjectCreateInfo objectCI;
 		objectCI.objName = "freddy.obj";
-		objectCI.textureFileName = "myfeesh.JPG";
+		objectCI.textureFileName = "myface.JPG";
 		objectCI.pModelTransform = &modelTransform;
 
 		objManager.LoadObject(objectCI);

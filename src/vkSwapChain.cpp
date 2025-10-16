@@ -61,7 +61,6 @@ namespace vk
 		createInfo.queueFamilyIndexCount = 0;
 		createInfo.pQueueFamilyIndices = nullptr;
 
-
 	}
 
 	void SwapChain::Create(const vk::Window& appWindow) 
@@ -94,8 +93,33 @@ namespace vk
 			createInfo.imageUsage |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 		}
 
-		createInfo.preTransform = deviceCapabilities.currentTransform;
+
+		if (deviceCapabilities.supportedTransforms & VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR) {
+
+			createInfo.preTransform = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
+		}
+		else 
+		{
+			createInfo.preTransform = deviceCapabilities.currentTransform;
+		}
+
 		createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+		std::array<VkCompositeAlphaFlagBitsKHR, 4> compositeAlphaFlags = {
+			VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
+			VK_COMPOSITE_ALPHA_PRE_MULTIPLIED_BIT_KHR,
+			VK_COMPOSITE_ALPHA_POST_MULTIPLIED_BIT_KHR,
+			VK_COMPOSITE_ALPHA_INHERIT_BIT_KHR,
+		};
+
+		for (auto& compositeAlphaFlag : compositeAlphaFlags) {
+
+			if (deviceCapabilities.supportedCompositeAlpha & compositeAlphaFlag) 
+			{
+				createInfo.compositeAlpha = compositeAlphaFlag;
+				break;
+			}
+		}
+
 		createInfo.presentMode = VK_PRESENT_MODE_FIFO_KHR; //this is always guaranteed.
 		createInfo.clipped = VK_TRUE;
 		createInfo.oldSwapchain = oldSwapchain; //resizing needs a reference to the old swap chain

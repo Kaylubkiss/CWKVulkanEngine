@@ -188,10 +188,8 @@ namespace vk
 		deviceCreateInfo.enabledExtensionCount = static_cast<uint32_t>(std::size(deviceExtensions));
 		deviceCreateInfo.ppEnabledExtensionNames = deviceExtensions;
 
-		//won't do many other optional features for now.
 		VkPhysicalDeviceFeatures deviceFeatures = {};
 		deviceFeatures.geometryShader = VK_TRUE;
-		/*	deviceFeatures.tessellationShader = VK_TRUE;*/
 		deviceFeatures.samplerAnisotropy = VK_TRUE;
 
 		deviceCreateInfo.pEnabledFeatures = &deviceFeatures; //call vkGetPhysicalDeviceFeatures to set additional features.
