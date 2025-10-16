@@ -170,11 +170,12 @@ if (WIN32)
 	vulkan-1.lib
 	SDL2main.lib)
 
+	target_link_directories("${PROJECT_NAME}" PUBLIC $ENV{VULKAN_SDK}/Lib src/External/libraries/ReactPhysics3D/lib)
+	
 	target_link_libraries(${PROJECT_NAME} debug reactphysics3dd.lib general reactphysics3d.lib)
-
 	target_link_libraries(${PROJECT_NAME} debug shaderc_combinedd.lib general shaderc_combined.lib)
-
-	target_link_directories("${PROJECT_NAME}" PRIVATE $ENV{VULKAN_SDK}/Lib src/External/libraries/ReactPhysics3D/lib)
+	target_link_options(${PROJECT_NAME} PRIVATE "/NODEFAULTLIB:msvcrt" "/ignore:4099") #to prevent conflict with SDL2Main
+	target_link_options(${PROJECT_NAME} PRIVATE "/ignore:4099") #reactphysics, SDL2, and shaderc_combined are missing their debug information. Just ignore it.
 
 elseif (UNIX)
 
