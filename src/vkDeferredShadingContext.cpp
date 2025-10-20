@@ -37,7 +37,7 @@ namespace vk
 
 		vkDestroyRenderPass(device.logical, deferredPass.renderPass, nullptr);
 		vkDestroyFramebuffer(device.logical, deferredPass.framebuffer, nullptr);
-		vkDestroySampler(device.logical, colorSampler, nullptr);
+		vkDestroySampler(device.logical, deferredPass.sampler, nullptr);
 
 		vkDestroyDescriptorSetLayout(device.logical, this->sceneDescriptorSetLayout, nullptr);
 	}
@@ -65,7 +65,7 @@ namespace vk
 
 		objectCI = {};
 		objectCI.objName = "cube.obj";
-		objectCI.textureFileName = "";
+		objectCI.textureFileName = "texture.jpg";
 		objectCI.pPhysicsComponent = &physicsComponent;
 		objectCI.pModelTransform = &modelTransform;
 
@@ -110,17 +110,17 @@ namespace vk
 		//position descriptor
 		descriptorImage[0].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 		descriptorImage[0].imageView = deferredPass.position.imageView;
-		descriptorImage[0].sampler = colorSampler;
+		descriptorImage[0].sampler = deferredPass.sampler;
 
 		//normal descriptor
 		descriptorImage[1].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 		descriptorImage[1].imageView = deferredPass.normal.imageView;
-		descriptorImage[1].sampler = colorSampler;
+		descriptorImage[1].sampler = deferredPass.sampler;
 
 		//albedo
 		descriptorImage[2].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 		descriptorImage[2].imageView = deferredPass.albedo.imageView;
-		descriptorImage[2].sampler = colorSampler;
+		descriptorImage[2].sampler = deferredPass.sampler;
 
 		std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
 			vk::init::WriteDescriptorSet(descriptorSets.composition, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, &descriptorImage[0]),
@@ -140,7 +140,6 @@ namespace vk
 	void DeferredContext::InitializeDeferredRenderPass()
 	{
 		VkRenderPassCreateInfo createInfo = vk::init::RenderPassCreateInfo();
-
 
 		std::array<VkAttachmentDescription, 4> attachmentDesc = {};
 
@@ -175,7 +174,7 @@ namespace vk
 		VkAttachmentReference depthReference = { 3, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL };
 
 
-		std::array<VkSubpassDependency,3> dependencies = {};
+		std::array<VkSubpassDependency,4> dependencies = {};
 		
 		dependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL;
 		dependencies[0].dstSubpass = 0;
@@ -183,7 +182,6 @@ namespace vk
 		dependencies[0].dstStageMask = VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
 		dependencies[0].srcAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
 		dependencies[0].dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT;
-
 
 
 		dependencies[1].srcSubpass = VK_SUBPASS_EXTERNAL;
@@ -203,6 +201,12 @@ namespace vk
 		dependencies[2].srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
 		dependencies[2].dstAccessMask = VK_ACCESS_MEMORY_READ_BIT; //next subpass will then take these color attachments and finally render them.
 		
+		dependencies[3].srcSubpass = 0;
+		dependencies[3].dstSubpass = VK_SUBPASS_EXTERNAL;
+		dependencies[3].srcStageMask = VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
+		dependencies[3].dstStageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+		dependencies[3].srcAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+		dependencies[3].dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
 
 		VkSubpassDescription subpass = {};
 		subpass.colorAttachmentCount = colorReferences.size();
@@ -234,7 +238,7 @@ namespace vk
 		samplerCI.addressModeW = samplerCI.addressModeU;
 		samplerCI.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
 
-		VK_CHECK_RESULT(vkCreateSampler(device.logical, &samplerCI, nullptr, &colorSampler));
+		VK_CHECK_RESULT(vkCreateSampler(device.logical, &samplerCI, nullptr, &deferredPass.sampler));
 
 	}
 
@@ -304,30 +308,23 @@ namespace vk
 		framebuffer.renderPass = deferredPass.renderPass;
 
 		
-		VK_CHECK_RESULT(vkCreateFramebuffer(this->device.logical, &framebuffer, nullptr, &deferredPass.framebuffer));
+		VK_CHECK_RESULT(vkCreateFramebuffer(this->device.logical, &framebuffer, nullptr, &deferredPass.handle));
 
 	}
 
 	void DeferredContext::InitializeDescriptors() 
 	{
-		assert(colorSampler != VK_NULL_HANDLE);
+		assert(deferredPass.sampler != VK_NULL_HANDLE);
 
 		const uint32_t num_pipelines = 2;
 		std::vector<VkDescriptorPoolSize> descriptorPoolSize = {
 			vk::init::DescriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,  gMaxFramesInFlight * (2 * 3)), //2 UB/set * 3 sets -- uniform buffer in deferredMRT.vert, and deferredLightPass.frag
-			vk::init::DescriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, gMaxFramesInFlight * (3 * 3)) //3 samplers (3 CI/set * 3 sets)-- in composition pipeline, +1 for freddy head texture.			
+			vk::init::DescriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, gMaxFramesInFlight * (3 * 4)) //3 samplers (3 CI/set * 3 sets)-- in composition pipeline, +1 for freddy head texture, +1 for gman head texture.			
 		};
 
 		VkDescriptorPoolCreateInfo descriptorPoolCI = vk::init::DescriptorPoolCreateInfo(descriptorPoolSize, (num_pipelines + 1) * gMaxFramesInFlight); //+1 for the freddy head texture.
 		VK_CHECK_RESULT(vkCreateDescriptorPool(device.logical, &descriptorPoolCI, nullptr, &descriptorPool));
 		
-		// VkPhysicalDeviceProperties deviceProps;
-		// vkGetPhysicalDeviceProperties(device.physical, &deviceProps);
-		// VkPhysicalDeviceLimits limits = deviceProps.limits;
-
-		// std::cout << "maximum UNIFORM descriptors: " << limits.maxDescriptorSetUniformBuffers << std::endl;
-		// 	std::cout << "maximum COMBINED IMAGE descriptors: " << limits.maxDescriptorSetSampledImages << std::endl;
-
 		std::vector<VkDescriptorSetLayoutBinding> descriptorSetLayoutBindings = {
 			vk::init::DescriptorLayoutBinding(0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT), //transformUBO
 			vk::init::DescriptorLayoutBinding(1, 1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT), //position
@@ -348,7 +345,7 @@ namespace vk
 		VkDescriptorImageInfo albedoImageSampler = {};
 		albedoImageSampler.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 		albedoImageSampler.imageView = defaultTexture.mTextureImageView;
-		albedoImageSampler.sampler = colorSampler;
+		albedoImageSampler.sampler = deferredPass.sampler;
 
 		std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
 			vk::init::WriteDescriptorSet(descriptorSets.deferred, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &uniformBuffers.deferredMRT.descriptor),
@@ -368,17 +365,17 @@ namespace vk
 		//position descriptor
 		descriptorImage[0].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 		descriptorImage[0].imageView = deferredPass.position.imageView;
-		descriptorImage[0].sampler = colorSampler;
+		descriptorImage[0].sampler = deferredPass.sampler;
 
 		//normal descriptor
 		descriptorImage[1].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 		descriptorImage[1].imageView = deferredPass.normal.imageView;
-		descriptorImage[1].sampler = colorSampler;
+		descriptorImage[1].sampler = deferredPass.sampler;
 
 		//albedo descriptor
 		descriptorImage[2].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 		descriptorImage[2].imageView = deferredPass.albedo.imageView;
-		descriptorImage[2].sampler = colorSampler;
+		descriptorImage[2].sampler = deferredPass.sampler;
 
 
 		writeDescriptorSets = {
@@ -656,7 +653,7 @@ namespace vk
 			vkCmdEndRenderPass(cmdBuffer);
 		}
 
-		//light pass rendering
+		//light pass rendering - composition
 		{
 			clearValues[0].color = { 0,0,0,0 };
 			clearValues[1].depthStencil = { 1.f, 0 };
@@ -684,7 +681,7 @@ namespace vk
 
 			if (settings.UIEnabled) 
 			{
-				UIOverlay.Render(cmdBuffer); //TODO: fix the recording of this. Seems to cause queuesubmit some trouble.
+				UIOverlay.Render(cmdBuffer);
 			}
 
 			vkCmdEndRenderPass(cmdBuffer);
@@ -703,7 +700,7 @@ namespace vk
 		{
 			UIOverlay.CheckBox("box test", &option);
 			UIOverlay.SeparatorText("light position");
-			UIOverlay.Slider("", uniformDataLightPass.light.pos);
+			UIOverlay.Slider("light 1", uniformDataLightPass.light.pos);
 			UIOverlay.SeparatorText("textures in scene");
 			UIOverlay.DisplayImages();
 		}

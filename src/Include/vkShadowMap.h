@@ -1,8 +1,5 @@
 #pragma once
 
-#include "Common.h"
-#include "vkBuffer.h"
-
 namespace vk {
 
 	/* stores information unique to shadow mapping. */

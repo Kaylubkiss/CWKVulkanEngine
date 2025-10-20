@@ -1,8 +1,9 @@
 #pragma once
 
+#include "vkDevice.h"
 #include "vkSwapChain.h"
 #include "vkPipelineManager.h"
-#include "vkDevice.h"
+#include "vkFramebuffer.h"
 #include "UserInterface.h"
 #include "Camera.h"
 
@@ -83,7 +84,6 @@ namespace vk
 			//operations
 			void WaitForDevice();
 			void SubmitFrame();
-			void ToggleRendering();
 			void ResizeWindow();
 
 		protected:

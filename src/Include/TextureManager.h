@@ -1,10 +1,6 @@
 #pragma once
 
 #include "vkTexture.h"
-#include "vkContextBase.h"
-#include <vector>
-#include <mutex>
-#include "Object.h"
 
 namespace vk 
 {

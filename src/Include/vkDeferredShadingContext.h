@@ -3,6 +3,8 @@
 
 namespace vk 
 {
+	#define LIGHT_COUNT 2
+
 	class DeferredContext : public ContextBase 
 	{
 		enum DeferredPipelines
@@ -25,6 +27,7 @@ namespace vk
 		struct
 		{
 			vk::Buffer deferredMRT;
+			vk::Buffer deferredShadow;
 			vk::Buffer deferredLightPass;
 		} uniformBuffers{};
 
@@ -32,23 +35,13 @@ namespace vk
 
 		//NOTE: this will all be done offscreen because we have a main renderpass from the swapchain we'll 
 		//read the results of this from
-		struct Framebuffer {
-			int32_t width = 0;
-			int32_t height = 0;
-			VkFramebuffer framebuffer = VK_NULL_HANDLE;
-			FramebufferAttachment position, normal, albedo;
-			FramebufferAttachment depth;
-			VkRenderPass renderPass = VK_NULL_HANDLE;
-		} deferredPass;
+		Framebuffer deferredPass;
 
 		struct 
 		{
 			VkDescriptorSet deferred;
 			VkDescriptorSet composition;
 		} descriptorSets{};
-
-
-		VkSampler colorSampler = VK_NULL_HANDLE; //for the attachments created at the end of MRT pass
 
 		Texture defaultTexture;
 

@@ -18,12 +18,9 @@ namespace vk
 			throw std::runtime_error("could not create window surface! " + std::string(SDL_GetError()));
 		}
 		
-		device.Initialize(instance, window.surface);
-		window.contextPhysicalDevice = device.physical;
+		device.Init(instance, window.surface);
 
-		std::array<uint32_t, 2> queueFamilies = { device.graphicsQueue.family, device.presentQueue.family };
 		swapChain.Init(&this->device, window); //need window for its surface and viewport info.
-		
 		swapChain.Create(window);
 
 		//conforms to higher frame counts to prevent flickering.
@@ -288,7 +285,7 @@ namespace vk
 		attachments[0].finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 
 		//depth attachment
-		attachments[1].format = swapChain.depthAttachment.format;
+		attachments[1].format = VK_FORMAT_D24_UNORM_S8_UINT;
 		attachments[1].samples = VK_SAMPLE_COUNT_1_BIT;
 		attachments[1].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 		attachments[1].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
@@ -467,8 +464,4 @@ namespace vk
 
 	}
 
-	void ContextBase::ToggleRendering()
-	{
-		window.isPrepared = !window.isPrepared;
-	}
 }

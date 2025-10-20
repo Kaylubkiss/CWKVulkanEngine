@@ -1,6 +1,4 @@
 #pragma once
-
-#include <map>
 #include <thread>
 #include "Object.h"
 #include "ThreadPool.h"
@@ -34,71 +32,36 @@ namespace vk
 
 	class ObjectManager
 	{
-	public:
+		public:
 
-		ObjectManager();
-		void Init(TextureManager* textureManager, VkPhysicalDevice physicalDevice, VkDevice device);
-		~ObjectManager() = default;
+			ObjectManager();
+			void Init(TextureManager* textureManager, VkPhysicalDevice physicalDevice, VkDevice device);
+			~ObjectManager() = default;
 
-		void Destroy(const VkDevice l_device) 
-		{
-			this->mThreadWorkers.Terminate();
+			void Destroy(const VkDevice l_device);
 
-			for (auto& obj : objects) 
+			void LoadObject(const ObjectCreateInfo& objectCI);
+
+			void DrawObjects(VkCommandBuffer cmdBuffer, VkPipelineLayout pipelineLayout = VK_NULL_HANDLE);
+
+			void Update(float dt);
+
+		private:
+
+			ThreadPool mThreadWorkers;
+			std::mutex map_mutex;
+
+			struct ObjectInfo 
 			{
-				Object* curr_obj = obj.second.obj;
+				bool isDoneLoading;
+				Object* obj;
+			};
 
-				if (curr_obj != nullptr)
-				{
-					curr_obj->Destroy(l_device);
-				}
-			}
-		}
+			std::map<const char*, ObjectInfo, str_cmp> objects;
+			
+			VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
+			VkDevice logicalDevice = VK_NULL_HANDLE;
 
-		void LoadObject(const ObjectCreateInfo& objectCI);
-
-		Object* operator[](const char* name)
-		{
-			size_t count = objects.count(name);
-
-			if (objects.count(name) > 0)
-			{
-				return objects[name].obj;
-			}
-			else
-			{
-				return nullptr;
-			}
-		}
-
-
-		size_t size()
-		{
-			return this->objects.size();
-		}
-
-
-		void DrawObjects(VkCommandBuffer cmdBuffer, VkPipelineLayout pipelineLayout = VK_NULL_HANDLE);
-
-		void Update(float dt);
-
-	private:
-
-	//variables.
-		ThreadPool mThreadWorkers;
-		std::mutex map_mutex;
-
-		struct ObjectInfo 
-		{
-			bool isDoneLoading;
-			Object* obj;
-		};
-
-		std::map<const char*, ObjectInfo, str_cmp> objects;
-		
-		VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
-		VkDevice logicalDevice = VK_NULL_HANDLE;
-
-		TextureManager* textureSys = nullptr;
+			TextureManager* textureSys = nullptr;
 	};
 }

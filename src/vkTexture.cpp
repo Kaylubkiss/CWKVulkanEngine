@@ -1,7 +1,5 @@
 #include "vkTexture.h"
 #include "vkUtility.h"
-#include "vkInit.h"
-#include "vkBuffer.h"
 #include <stb_image.h>
 
 namespace vk {

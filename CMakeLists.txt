@@ -33,6 +33,7 @@ set(VULKAN_ENGINE_SRC src/vkDebug.cpp
 					  src/vkMesh.cpp
 					  src/vkWindow.cpp
 					  src/vkPipelineManager.cpp
+					  src/vkFramebuffer.cpp
 )
 
 set(VULKAN_ENGINE_SCENES_SOURCE 
@@ -92,7 +93,8 @@ src/Include/vkMesh.h
 src/Include/vkDevice.h
 src/Include/vkShadowMap.h
 src/Include/vkDevice.h
-src/Include/vkPipelineManager.h)
+src/Include/vkPipelineManager.h
+src/Include/vkFramebuffer.h)
 
 
 set(VULKAN_ENGINE_SCENES_HEADERS
@@ -123,6 +125,9 @@ src/Shaders/deferredMRT.vert
 src/Shaders/deferredMRT.frag
 src/Shaders/deferredLightPass.vert
 src/Shaders/deferredLightPass.frag
+#deferred shadowing
+src/Shaders/deferredShadow.geom
+src/Shaders/deferredShadow.vert
 )
 								 
 #-----COMPILATION OPTIONS DEPENDING ON PLATFORM---------

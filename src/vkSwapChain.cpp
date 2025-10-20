@@ -129,13 +129,10 @@ namespace vk
 
 		if (oldSwapchain != VK_NULL_HANDLE)
 		{
-			for (unsigned i = 0; i < this->images.size(); ++i)
+			for (auto& framebuffer : framebuffers)
 			{
-				vkDestroyImageView(devicePtr->logical, this->imageViews[i], nullptr);
-				imageViews[i] = VK_NULL_HANDLE;
+				framebuffer.Destroy();
 			}
-
-			this->depthAttachment.Destroy(devicePtr->logical);
 
 			vkDestroySwapchainKHR(devicePtr->logical, oldSwapchain, nullptr);
 		}
@@ -145,97 +142,57 @@ namespace vk
 
 		this->images.resize(imageCount);
 		VK_CHECK_RESULT(vkGetSwapchainImagesKHR(devicePtr->logical, this->handle, &imageCount, this->images.data()));
-
-		SwapChain::CreateImageViews();
-
-		this->depthAttachment = devicePtr->CreateFramebufferAttachment(appWindow.viewport, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT);		
-
 	}
 	
 	void SwapChain::Recreate(const VkRenderPass renderPass, const vk::Window& appWindow)
 	{
 		SwapChain::Create(appWindow);
-
-		for (auto& framebuffer : frameBuffers) 
-		{
-			vkDestroyFramebuffer(devicePtr->logical, framebuffer, nullptr);
-			framebuffer = VK_NULL_HANDLE;
-		}
-
 		SwapChain::CreateFrameBuffers(appWindow.viewport, renderPass);
-
 	}
 
 	void SwapChain::Destroy() 
 	{
 		assert(devicePtr);
 
-		for (unsigned i = 0; i < this->images.size(); ++i)
+		for (auto& framebuffer : framebuffers)
 		{
-			vkDestroyImageView(devicePtr->logical, this->imageViews[i], nullptr);
-			imageViews[i] = VK_NULL_HANDLE;
-			vkDestroyFramebuffer(devicePtr->logical, this->frameBuffers[i], nullptr);
-			frameBuffers[i] = VK_NULL_HANDLE;
+			framebuffer.Destroy();
 		}
-
-		depthAttachment.Destroy(devicePtr->logical);
 
 		vkDestroySwapchainKHR(devicePtr->logical, this->handle, nullptr);
 		handle = VK_NULL_HANDLE;
 	}
 
-	void SwapChain::CreateImageViews()
-	{
-		this->imageViews.resize(this->images.size());
-
-		//this is nothing fancy, we won't be editing the color interpretation.
-		VkComponentMapping componentMapping =
-		{
-			VK_COMPONENT_SWIZZLE_IDENTITY,
-			VK_COMPONENT_SWIZZLE_IDENTITY,
-			VK_COMPONENT_SWIZZLE_IDENTITY,
-			VK_COMPONENT_SWIZZLE_IDENTITY,
-		};
-
-		//the view can only refer to one aspect of the parent image.
-		VkImageSubresourceRange subresourceRange =
-		{
-			VK_IMAGE_ASPECT_COLOR_BIT,
-			0, //base mip level
-			1, //levelCount for mip levels
-			0, //baseArrayLayer -> layer not an array image
-			1, //layerCount for image array. 
-		};
-
-		for (unsigned i = 0; i < this->imageViews.size(); ++i)
-		{
-			VkImageViewCreateInfo imageViewCreateInfo =
-			{
-				VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
-				nullptr, //pNext
-				0, //flags
-				images[i], //the created image above
-				VK_IMAGE_VIEW_TYPE_2D, //view image type
-				createInfo.imageFormat, //as long as the same bits per pixel, the parent and view will compatible.
-				componentMapping,
-				subresourceRange
-			};
-
-			VK_CHECK_RESULT(vkCreateImageView(devicePtr->logical, &imageViewCreateInfo, nullptr, &imageViews[i]));
-		}
-
-	}
-
 	void SwapChain::CreateFrameBuffers(const VkViewport& vp, const VkRenderPass renderPass)
 	{
 		assert(renderPass != VK_NULL_HANDLE);
-		//assert(vp.width != 0 && vp.height != 0);
 		
-		this->frameBuffers.resize(this->images.size());
+		this->framebuffers.resize(this->images.size());
 
-		for (unsigned i = 0; i < this->images.size(); ++i) {
+		vk::FramebufferAttachmentCreateInfo attachmentInfo = {};
+		attachmentInfo.width = static_cast<uint32_t>(vp.width);
+		attachmentInfo.height = static_cast<uint32_t>(vp.height);
 
-			VkImageView attachments[2] = { imageViews[i], this->depthAttachment.imageView };
+		for (unsigned i = 0; i < this->images.size(); ++i) 
+		{
+
+			attachmentInfo.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+			attachmentInfo.format = createInfo.imageFormat;
+			attachmentInfo.alreadyAllocatedImage = images[i];
+
+			framebuffers[i].AddAttachment(attachmentInfo);
+
+			attachmentInfo.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+			attachmentInfo.format = VK_FORMAT_D24_UNORM_S8_UINT;
+			attachmentInfo.alreadyAllocatedImage = VK_NULL_HANDLE;
+
+			framebuffers[i].AddAttachment(attachmentInfo);
+
+			std::vector<VkImageView> imageViews(framebuffers[i].attachments.size());
+			for (size_t i = 0; i < framebuffers[i].attachments.size(); ++i)
+			{
+				imageViews[i] = framebuffers[i].attachments[i].imageView;
+			}
 
 			//create framebuffer info
 			VkFramebufferCreateInfo framebufferCreateInfo =
@@ -244,14 +201,14 @@ namespace vk
 				nullptr, //pNext
 				0, //reserved for future expansion.. flags are zero now.
 				renderPass,
-				2,// attachmentCount
-				attachments, //attachments
+				imageViews.size(),// attachmentCount
+				imageViews.data(), //attachments
 				static_cast<uint32_t>(vp.width), //width
 				static_cast<uint32_t>(vp.height), //height
 				1 //1 layer
 			};
 
-			VK_CHECK_RESULT(vkCreateFramebuffer(devicePtr->logical, &framebufferCreateInfo, nullptr, &this->frameBuffers[i]));
+			VK_CHECK_RESULT(vkCreateFramebuffer(devicePtr->logical, &framebufferCreateInfo, nullptr, &this->framebuffers[i].handle));
 		}
 
 	}

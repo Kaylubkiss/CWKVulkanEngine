@@ -3,12 +3,8 @@
 	* author: Caleb Kissinger
 */
 #pragma once
-#include <vector>
 #include <list>
-#include <map>
-
 #include "shaderc/shaderc.hpp"
-#include "vkWindow.h"
 
 //ShaderModuleInfo 
 namespace vk 

@@ -1,7 +1,5 @@
 #pragma once
 
-#include <iostream>
-#include <string>
 #include "Physics.h"
 #include "vkMesh.h"
 

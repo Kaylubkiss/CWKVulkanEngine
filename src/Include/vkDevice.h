@@ -1,9 +1,5 @@
 #pragma once
 
-
-#include "vkBuffer.h"
-#include "vkGlobal.h"
-
 namespace vk 
 {
 	struct Device {
@@ -16,13 +12,12 @@ namespace vk
 
 		VkPhysicalDeviceMemoryProperties memoryProperties;
 
-		void Initialize(VkInstance instance, VkSurfaceKHR surface);
+		void Init(VkInstance instance, VkSurfaceKHR surface);
 		void Destroy();
 
 		//functionality
 		uint32_t GetMemoryType(uint32_t typeBits, VkMemoryPropertyFlags properties);
 		Buffer CreateBuffer(size_t size, VkBufferUsageFlags usage, VkMemoryPropertyFlags flags, void* data);
-		FramebufferAttachment CreateFramebufferAttachment(const VkViewport& viewport, VkImageUsageFlagBits usage, VkFormat format = VK_FORMAT_UNDEFINED);
 
 		//helpers
 		private:

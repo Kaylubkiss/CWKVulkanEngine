@@ -1,5 +1,4 @@
 #pragma once
-#include <thread>
 #include <functional>
 #include <queue>
 #include <condition_variable>

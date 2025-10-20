@@ -1,9 +1,6 @@
 #pragma once
 
-#include <vulkan/vulkan.h>
-#include "vkWindow.h"
-#include "vkDevice.h"
-#include "vkGlobal.h"
+#include "vkFramebuffer.h"
 
 namespace vk 
 {
@@ -18,10 +15,7 @@ namespace vk
 			VkSwapchainCreateInfoKHR createInfo = {};
 			
 			std::vector<VkImage> images;
-			std::vector<VkImageView> imageViews;
-			
-			FramebufferAttachment depthAttachment;
-			std::vector<VkFramebuffer> frameBuffers;
+			std::vector<vk::Framebuffer> framebuffers;
 
 			SwapChain() = default;
 			~SwapChain() = default;
@@ -34,11 +28,6 @@ namespace vk
 			void Recreate(const VkRenderPass renderPass, const vk::Window& appWindow);
 
 			void CreateFrameBuffers(const VkViewport& vp, const VkRenderPass renderPass);
-			
-
-
-		private:
-			void CreateImageViews();
 
 	};
 

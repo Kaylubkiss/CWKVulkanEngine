@@ -16,11 +16,11 @@ namespace vk {
 				VkFormatProperties properties;
 				vkGetPhysicalDeviceFormatProperties(p_device, format, &properties);
 
-				if (tiling == VK_IMAGE_TILING_LINEAR && (properties.linearTilingFeatures & features) == features)
+				if (tiling == VK_IMAGE_TILING_LINEAR && (properties.linearTilingFeatures & features))
 				{
 					return format;
 				}
-				else if (tiling == VK_IMAGE_TILING_OPTIMAL && (properties.optimalTilingFeatures & features) == features)
+				else if (tiling == VK_IMAGE_TILING_OPTIMAL && (properties.optimalTilingFeatures & features))
 				{
 					return format;
 				}
@@ -29,6 +29,24 @@ namespace vk {
 
 			throw std::runtime_error("couldn't find a suitable format supported on the physical device.");
 		}
+
+		bool FormatIsSupported(const VkPhysicalDevice p_device, VkFormat format, VkImageTiling tiling, VkFormatFeatureFlags features)
+		{
+			VkFormatProperties properties;
+			vkGetPhysicalDeviceFormatProperties(p_device, format, &properties);
+
+			if (tiling == VK_IMAGE_TILING_LINEAR)
+			{
+				return (properties.linearTilingFeatures & features);
+			}
+			else if (tiling == VK_IMAGE_TILING_OPTIMAL)
+			{
+				return (properties.optimalTilingFeatures & features);
+			}
+
+			throw std::runtime_error("specified VkFormat " + std::to_string(format) + " is not supported on the physical device.");
+		}
+
 
 		bool FormatIsFilterable(const VkPhysicalDevice p_device, VkFormat format, VkImageTiling tiling) 
 		{

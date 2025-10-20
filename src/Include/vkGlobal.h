@@ -65,23 +65,7 @@ namespace vk
 		vk::UserInterface* contextUIPtr = nullptr;
 	};
 
-	struct FramebufferAttachment
-	{
-		VkImage image = VK_NULL_HANDLE;
-		VkDeviceMemory imageMemory = VK_NULL_HANDLE;
-		VkImageView imageView = VK_NULL_HANDLE;
-		VkFormat format = {};
-
-		void Destroy(VkDevice l_device)
-		{
-			vkDestroyImageView(l_device, this->imageView, nullptr);
-			this->imageView = VK_NULL_HANDLE;
-			vkDestroyImage(l_device, this->image, nullptr);
-			this->image = VK_NULL_HANDLE;
-			vkFreeMemory(l_device, this->imageMemory, nullptr);
-			this->imageMemory = VK_NULL_HANDLE;
-		}
-	};
+	
 
 	VkCommandBuffer beginSingleTimeCommand(const VkDevice l_device, const VkCommandPool cmdPool);
 

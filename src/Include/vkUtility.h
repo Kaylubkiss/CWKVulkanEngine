@@ -31,6 +31,8 @@ namespace vk
 		VkFormat findSupportedFormat(const VkPhysicalDevice p_device, const std::vector<VkFormat>& possibleFormats,
 			VkImageTiling tiling, VkFormatFeatureFlags features);
 
+		bool FormatIsSupported(const VkPhysicalDevice p_device, VkFormat format, VkImageTiling tiling, VkFormatFeatureFlags features);
+
 		//BEGIN TODO: move this into a device-specific class.
 		//use command pool
 		void TransitionImageLayout(const VkDevice l_device, const VkCommandPool cmdPool, 
