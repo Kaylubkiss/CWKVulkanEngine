@@ -13,6 +13,13 @@ namespace vk
 			MRT
 		};
 
+		enum DeferredRenderTargets 
+		{
+			RT_POSITION = 0,
+			RT_NORMAL,
+			RT_ALBEDO
+		};
+
 		struct UniformDataMRT
 		{
 			uTransformObject uTransform;
@@ -35,7 +42,7 @@ namespace vk
 
 		//NOTE: this will all be done offscreen because we have a main renderpass from the swapchain we'll 
 		//read the results of this from
-		Framebuffer deferredPass;
+		Framebuffer deferredPassFB;
 
 		struct 
 		{

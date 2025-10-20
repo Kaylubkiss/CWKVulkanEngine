@@ -6,8 +6,9 @@ namespace vk
 	DeferredContext::DeferredContext()
 	{
 
-		deferredPass.width = window.viewport.width;
-		deferredPass.height = window.viewport.height;
+		deferredPassFB.width = window.viewport.width;
+		deferredPassFB.height = window.viewport.height;
+		deferredPassFB.Init(&this->device);
 
 		defaultTexture = Texture(&this->mInfo, "wood-floor.png");
 		if (settings.UIEnabled) 
@@ -17,7 +18,6 @@ namespace vk
 
 		DeferredContext::InitializeUniforms();
 		DeferredContext::IntializeDeferredFramebuffer();
-		DeferredContext::IntializeColorSampler();
 		DeferredContext::InitializeDescriptors();
 		DeferredContext::InitializePipeline();
 
@@ -35,9 +35,7 @@ namespace vk
 
 		defaultTexture.Destroy(device.logical);
 
-		vkDestroyRenderPass(device.logical, deferredPass.renderPass, nullptr);
-		vkDestroyFramebuffer(device.logical, deferredPass.framebuffer, nullptr);
-		vkDestroySampler(device.logical, deferredPass.sampler, nullptr);
+		deferredPassFB.Destroy();
 
 		vkDestroyDescriptorSetLayout(device.logical, this->sceneDescriptorSetLayout, nullptr);
 	}
@@ -91,41 +89,33 @@ namespace vk
 
 	void DeferredContext::ResizeWindowDerived() 
 	{
-		deferredPass.width = window.viewport.width;
-		deferredPass.height = window.viewport.height;
+		deferredPassFB.width = window.viewport.width;
+		deferredPassFB.height = window.viewport.height;
 
-		vkDestroyRenderPass(device.logical, deferredPass.renderPass, nullptr);
-		vkDestroyFramebuffer(device.logical, deferredPass.framebuffer, nullptr);
-
-		deferredPass.position.Destroy(device.logical);
-		deferredPass.normal.Destroy(device.logical);
-		deferredPass.albedo.Destroy(device.logical);
-		deferredPass.depth.Destroy(device.logical);
+		deferredPassFB.Destroy();
 
 		DeferredContext::IntializeDeferredFramebuffer();
 
-		//must also update the descriptors as they are still pointing to the old image views.
-		std::array<VkDescriptorImageInfo, 3> descriptorImage;
+		std::vector<VkDescriptorImageInfo> descriptorImage; //position, normal, and albedo attachments
 
-		//position descriptor
-		descriptorImage[0].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-		descriptorImage[0].imageView = deferredPass.position.imageView;
-		descriptorImage[0].sampler = deferredPass.sampler;
+		for (const auto& attachment : deferredPassFB.attachments)
+		{
+			if (attachment.flags & VKC_ATTACHMENT_IS_COLOR)
+			{
+				VkDescriptorImageInfo descInfo = {};
+				descInfo.imageLayout = attachment.description.finalLayout;
+				descInfo.imageView = attachment.imageView;
+				descInfo.sampler = deferredPassFB.sampler;
 
-		//normal descriptor
-		descriptorImage[1].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-		descriptorImage[1].imageView = deferredPass.normal.imageView;
-		descriptorImage[1].sampler = deferredPass.sampler;
+				descriptorImage.push_back(descInfo);
+			}
+		}
 
-		//albedo
-		descriptorImage[2].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-		descriptorImage[2].imageView = deferredPass.albedo.imageView;
-		descriptorImage[2].sampler = deferredPass.sampler;
-
-		std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
-			vk::init::WriteDescriptorSet(descriptorSets.composition, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, &descriptorImage[0]),
-			vk::init::WriteDescriptorSet(descriptorSets.composition, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 2, &descriptorImage[1]),
-			vk::init::WriteDescriptorSet(descriptorSets.composition, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 3, &descriptorImage[2])
+		std::vector<VkWriteDescriptorSet>  writeDescriptorSets = {
+			vk::init::WriteDescriptorSet(descriptorSets.composition, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, &descriptorImage[RT_POSITION]),
+			vk::init::WriteDescriptorSet(descriptorSets.composition, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 2, &descriptorImage[RT_NORMAL]),
+			vk::init::WriteDescriptorSet(descriptorSets.composition, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 3, &descriptorImage[RT_ALBEDO]),
+			vk::init::WriteDescriptorSet(descriptorSets.composition, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 4, &uniformBuffers.deferredLightPass.descriptor)
 		};
 		vkUpdateDescriptorSets(device.logical, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, nullptr);
 	}
@@ -135,111 +125,6 @@ namespace vk
 		mInfo.descriptorPool = this->descriptorPool;
 		mInfo.descriptorSetLayout = this->sceneDescriptorSetLayout;
 		mInfo.samplerBinding = 3;
-	}
-
-	void DeferredContext::InitializeDeferredRenderPass()
-	{
-		VkRenderPassCreateInfo createInfo = vk::init::RenderPassCreateInfo();
-
-		std::array<VkAttachmentDescription, 4> attachmentDesc = {};
-
-		for (int i = 0; i < attachmentDesc.size(); ++i) 
-		{
-			attachmentDesc[i].samples = VK_SAMPLE_COUNT_1_BIT;
-			attachmentDesc[i].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-			attachmentDesc[i].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-			attachmentDesc[i].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-			attachmentDesc[i].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-			attachmentDesc[i].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-			if (i == 3) 
-			{
-				attachmentDesc[i].finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL; //the depth won't be read from in the composition pass
-			}
-			else 
-			{
-				attachmentDesc[i].finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL; //cause this will be read by the contextbase's renderpass.
-			}
-		}
-
-		attachmentDesc[0].format = deferredPass.position.format;
-		attachmentDesc[1].format = deferredPass.normal.format;
-		attachmentDesc[2].format = deferredPass.albedo.format;
-		attachmentDesc[3].format = deferredPass.depth.format;
-
-		std::array<VkAttachmentReference, 3> colorReferences;
-		colorReferences[0] = { 0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL }; //position
-		colorReferences[1] = { 1, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL }; //normals
-		colorReferences[2] = { 2, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL }; //albedo
-
-		VkAttachmentReference depthReference = { 3, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL };
-
-
-		std::array<VkSubpassDependency,4> dependencies = {};
-		
-		dependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL;
-		dependencies[0].dstSubpass = 0;
-		dependencies[0].srcStageMask = VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
-		dependencies[0].dstStageMask = VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
-		dependencies[0].srcAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
-		dependencies[0].dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT;
-
-
-		dependencies[1].srcSubpass = VK_SUBPASS_EXTERNAL;
-		dependencies[1].dstSubpass = 0;
-		dependencies[1].srcStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
-		dependencies[1].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-		//all of the memory reads needs to be done. We're just going to overwrite whatever was written so don't need to "oversynchronize" 
-		dependencies[1].srcAccessMask = VK_ACCESS_MEMORY_READ_BIT;
-		dependencies[1].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-
-		dependencies[2].srcSubpass = 0;
-		dependencies[2].dstSubpass = VK_SUBPASS_EXTERNAL;
-		dependencies[2].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-		dependencies[2].dstStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
-		//we're waiting for all reads and writes to be completed (since the l-buffer will be reading the color attachments, 
-		// and these color attachments also need to be written to prior).
-		dependencies[2].srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-		dependencies[2].dstAccessMask = VK_ACCESS_MEMORY_READ_BIT; //next subpass will then take these color attachments and finally render them.
-		
-		dependencies[3].srcSubpass = 0;
-		dependencies[3].dstSubpass = VK_SUBPASS_EXTERNAL;
-		dependencies[3].srcStageMask = VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
-		dependencies[3].dstStageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
-		dependencies[3].srcAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
-		dependencies[3].dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-
-		VkSubpassDescription subpass = {};
-		subpass.colorAttachmentCount = colorReferences.size();
-		subpass.pColorAttachments = colorReferences.data();
-		subpass.pDepthStencilAttachment = &depthReference;
-		subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-
-		createInfo.pSubpasses = &subpass;
-		createInfo.subpassCount = 1;
-		createInfo.pAttachments = attachmentDesc.data();
-		createInfo.attachmentCount = attachmentDesc.size();
-		createInfo.pDependencies = dependencies.data();
-		createInfo.dependencyCount = dependencies.size();
-
-
-		VK_CHECK_RESULT(vkCreateRenderPass(device.logical, &createInfo, nullptr, &deferredPass.renderPass));
-	}
-
-	void DeferredContext::IntializeColorSampler() 
-	{
-		VkSamplerCreateInfo samplerCI = vk::init::SamplerCreateInfo();
-		samplerCI.magFilter = VK_FILTER_LINEAR;
-		samplerCI.minFilter = VK_FILTER_LINEAR;
-		samplerCI.mipLodBias = 0.f;
-		samplerCI.minLod = 0.0f;
-		samplerCI.maxLod = 1.0f;
-		samplerCI.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-		samplerCI.addressModeV = samplerCI.addressModeU;
-		samplerCI.addressModeW = samplerCI.addressModeU;
-		samplerCI.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
-
-		VK_CHECK_RESULT(vkCreateSampler(device.logical, &samplerCI, nullptr, &deferredPass.sampler));
-
 	}
 
 	void DeferredContext::InitializeUniforms() 
@@ -284,40 +169,46 @@ namespace vk
 	void DeferredContext::IntializeDeferredFramebuffer() 
 	{
 		VkFramebufferCreateInfo framebuffer = vk::init::FramebufferCreateInfo();
-		framebuffer.width = deferredPass.width;
-		framebuffer.height = deferredPass.height;
+		framebuffer.width = deferredPassFB.width;
+		framebuffer.height = deferredPassFB.height;
 		framebuffer.layers = 1;
 		
-		deferredPass.position = device.CreateFramebufferAttachment(window.viewport, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, VK_FORMAT_R16G16B16A16_SFLOAT);
-		deferredPass.normal = device.CreateFramebufferAttachment(window.viewport, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, VK_FORMAT_R16G16B16A16_SFLOAT);
-		deferredPass.albedo = device.CreateFramebufferAttachment(window.viewport, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, VK_FORMAT_R8G8B8A8_UNORM);
-		deferredPass.depth = device.CreateFramebufferAttachment(window.viewport, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT);
+		vk::FramebufferAttachmentCreateInfo attachmentCI = {};
 
-		std::array<VkImageView, 4> attachments =
-		{
-			deferredPass.position.imageView, 
-			deferredPass.normal.imageView,
-			deferredPass.albedo.imageView,
-			deferredPass.depth.imageView
-		};
-
-		framebuffer.pAttachments = attachments.data();
-		framebuffer.attachmentCount = attachments.size();
+		//position attachment
+		attachmentCI.format = VK_FORMAT_R16G16B16A16_SFLOAT;
+		attachmentCI.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+		attachmentCI.width = framebuffer.width;
+		attachmentCI.height = framebuffer.height;
+		deferredPassFB.AddAttachment(attachmentCI);
 		
-		DeferredContext::InitializeDeferredRenderPass();
-		framebuffer.renderPass = deferredPass.renderPass;
+		//normal attachment
+		deferredPassFB.AddAttachment(attachmentCI);
 
-		
-		VK_CHECK_RESULT(vkCreateFramebuffer(this->device.logical, &framebuffer, nullptr, &deferredPass.handle));
+		//albedo attachment
+		attachmentCI.format = VK_FORMAT_R8G8B8A8_UNORM;
+		deferredPassFB.AddAttachment(attachmentCI);
+
+		//depth attachment
+		attachmentCI.format = VK_FORMAT_D24_UNORM_S8_UINT;
+		attachmentCI.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+		deferredPassFB.AddAttachment(attachmentCI);
+
+		deferredPassFB.CreateSampler(VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE);
+
+		deferredPassFB.CreateRenderPass();
+
+		deferredPassFB.CreateFramebuffer();
 
 	}
 
 	void DeferredContext::InitializeDescriptors() 
 	{
-		assert(deferredPass.sampler != VK_NULL_HANDLE);
+		assert(deferredPassFB.sampler != VK_NULL_HANDLE);
 
 		const uint32_t num_pipelines = 2;
-		std::vector<VkDescriptorPoolSize> descriptorPoolSize = {
+		std::vector<VkDescriptorPoolSize> descriptorPoolSize = 
+		{
 			vk::init::DescriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,  gMaxFramesInFlight * (2 * 3)), //2 UB/set * 3 sets -- uniform buffer in deferredMRT.vert, and deferredLightPass.frag
 			vk::init::DescriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, gMaxFramesInFlight * (3 * 4)) //3 samplers (3 CI/set * 3 sets)-- in composition pipeline, +1 for freddy head texture, +1 for gman head texture.			
 		};
@@ -345,7 +236,7 @@ namespace vk
 		VkDescriptorImageInfo albedoImageSampler = {};
 		albedoImageSampler.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 		albedoImageSampler.imageView = defaultTexture.mTextureImageView;
-		albedoImageSampler.sampler = deferredPass.sampler;
+		albedoImageSampler.sampler = deferredPassFB.sampler; //reusing sampler from special framebuffer, same requirements
 
 		std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
 			vk::init::WriteDescriptorSet(descriptorSets.deferred, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &uniformBuffers.deferredMRT.descriptor),
@@ -360,28 +251,26 @@ namespace vk
 		//deferred l-pass descriptor set
 		VK_CHECK_RESULT(vkAllocateDescriptorSets(device.logical, &descriptorSetInfo, &descriptorSets.composition));
 
-		std::array<VkDescriptorImageInfo, 3> descriptorImage;
-			
-		//position descriptor
-		descriptorImage[0].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-		descriptorImage[0].imageView = deferredPass.position.imageView;
-		descriptorImage[0].sampler = deferredPass.sampler;
+		std::vector<VkDescriptorImageInfo> descriptorImage; //position, normal, and albedo attachments
+		
 
-		//normal descriptor
-		descriptorImage[1].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-		descriptorImage[1].imageView = deferredPass.normal.imageView;
-		descriptorImage[1].sampler = deferredPass.sampler;
+		for (const auto& attachment : deferredPassFB.attachments)
+		{
+			if (attachment.flags & VKC_ATTACHMENT_IS_COLOR)
+			{
+				VkDescriptorImageInfo descInfo = {};
+				descInfo.imageLayout = attachment.description.finalLayout;
+				descInfo.imageView = attachment.imageView;
+				descInfo.sampler = deferredPassFB.sampler;
 
-		//albedo descriptor
-		descriptorImage[2].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-		descriptorImage[2].imageView = deferredPass.albedo.imageView;
-		descriptorImage[2].sampler = deferredPass.sampler;
-
+				descriptorImage.push_back(descInfo);
+			}
+		}
 
 		writeDescriptorSets = {
-			vk::init::WriteDescriptorSet(descriptorSets.composition, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, &descriptorImage[0]),
-			vk::init::WriteDescriptorSet(descriptorSets.composition, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 2, &descriptorImage[1]),
-			vk::init::WriteDescriptorSet(descriptorSets.composition, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 3, &descriptorImage[2]),
+			vk::init::WriteDescriptorSet(descriptorSets.composition, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, &descriptorImage[RT_POSITION]),
+			vk::init::WriteDescriptorSet(descriptorSets.composition, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 2, &descriptorImage[RT_NORMAL]),
+			vk::init::WriteDescriptorSet(descriptorSets.composition, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 3, &descriptorImage[RT_ALBEDO]),
 			vk::init::WriteDescriptorSet(descriptorSets.composition, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 4, &uniformBuffers.deferredLightPass.descriptor)
 		};
 		vkUpdateDescriptorSets(device.logical, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, nullptr);
@@ -513,7 +402,7 @@ namespace vk
 
 		rasterizationStateCI.cullMode = VK_CULL_MODE_BACK_BIT;
 
-		pipelineCI.renderPass = deferredPass.renderPass;
+		pipelineCI.renderPass = deferredPassFB.renderPass;
 
 		//there are three color outputs in this stage.
 		std::array<VkPipelineColorBlendAttachmentState, 3> blendAttachmentStates = {
@@ -584,7 +473,7 @@ namespace vk
 
 				std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages;
 
-				VkGraphicsPipelineCreateInfo pipelineCI = vk::init::PipelineCreateInfo(pipelineLayout, deferredPass.renderPass);
+				VkGraphicsPipelineCreateInfo pipelineCI = vk::init::PipelineCreateInfo(pipelineLayout, deferredPassFB.renderPass);
 
 				pipelineCI.pInputAssemblyState = &inputAssemblyStateCI;
 				pipelineCI.pRasterizationState = &rasterizationStateCI;
@@ -632,16 +521,16 @@ namespace vk
 			VkRenderPassBeginInfo renderPassBeginInfo = vk::init::RenderPassBeginInfo();
 			renderPassBeginInfo.clearValueCount = 4;
 			renderPassBeginInfo.pClearValues = clearValues;
-			renderPassBeginInfo.renderArea.extent = { (uint32_t)deferredPass.width, (uint32_t)deferredPass.height };
-			renderPassBeginInfo.renderPass = deferredPass.renderPass;
-			renderPassBeginInfo.framebuffer = deferredPass.framebuffer;
+			renderPassBeginInfo.renderArea.extent = { (uint32_t)deferredPassFB.width, (uint32_t)deferredPassFB.height };
+			renderPassBeginInfo.renderPass = deferredPassFB.renderPass;
+			renderPassBeginInfo.framebuffer = deferredPassFB.handle;
 
 			vkCmdBeginRenderPass(cmdBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-			VkViewport deferredMRTViewport = vk::init::Viewport(deferredPass.width, deferredPass.height);
+			VkViewport deferredMRTViewport = vk::init::Viewport(deferredPassFB.width, deferredPassFB.height);
 			vkCmdSetViewport(cmdBuffer, 0, 1, &deferredMRTViewport);
 
-			VkRect2D deferredMRTScissor = vk::init::Rect2D(deferredPass.width, deferredPass.height);
+			VkRect2D deferredMRTScissor = vk::init::Rect2D(deferredPassFB.width, deferredPassFB.height);
 			vkCmdSetScissor(cmdBuffer, 0, 1, &deferredMRTScissor);
 
 			vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineManager.Get(DeferredPipelines::MRT));
@@ -663,7 +552,7 @@ namespace vk
 			renderPassBeginInfo.pClearValues = clearValues;
 			renderPassBeginInfo.renderArea.extent = {(uint32_t)window.viewport.width, (uint32_t)window.viewport.height};
 			renderPassBeginInfo.renderPass = renderPass;
-			renderPassBeginInfo.framebuffer = swapChain.frameBuffers[currentFrame];
+			renderPassBeginInfo.framebuffer = swapChain.framebuffers[currentFrame].handle;
 
 			vkCmdBeginRenderPass(cmdBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 

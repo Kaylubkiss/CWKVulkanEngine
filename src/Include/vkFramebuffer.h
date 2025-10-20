@@ -4,7 +4,7 @@
 
 namespace vk 
 {
-	typedef enum FramebufferAttachmentFlag
+	typedef enum FramebufferAttachmentFlagBits
 	{
 		VKC_ATTACHMENT_IS_NULL = 0,
 		VKC_ATTACHMENT_IS_COLOR = 1,
@@ -12,17 +12,18 @@ namespace vk
 		VKC_ATTACHMENT_IS_STENCIL = 4,
 		VKC_ATTACHMENT_IS_DEPTH_STENCIL = VKC_ATTACHMENT_IS_DEPTH | VKC_ATTACHMENT_IS_STENCIL,
 		VKC_ATTACHMENT_IS_SWAPCHAIN_IMAGE = 8
-	} FramebufferAttachmentFlag;
-	typedef VkFlags FramebufferAttachmentFlag;
+	} FramebufferAttachmentFlagBits;
+	typedef uint32_t FramebufferAttachmentFlags;
 
 	//NOTE: if alreadyAllocatedImage is not null: width, height, and sampleCount are not used.
 	struct FramebufferAttachmentCreateInfo 
 	{
-		uint32_t width, height = 0;
+		uint32_t width = 0;
+		uint32_t height = 0;
 		uint32_t layerCount = 1;
 		VkFormat format = VK_FORMAT_UNDEFINED;
 		VkSampleCountFlagBits sampleCount = VK_SAMPLE_COUNT_1_BIT;		
-		VkImageUsageFlagBits usage = {};	
+		VkImageUsageFlags usage = {};	
 
 		VkImage alreadyAllocatedImage = VK_NULL_HANDLE;
 	};
@@ -35,8 +36,8 @@ namespace vk
 		VkImageView imageView = VK_NULL_HANDLE;
 		VkFormat format = {};
 		VkImageSubresourceRange subresourceRange = {};
-		VkAttachmentDescription description;
-		FramebufferAttachmentFlag flagBit = 0;
+		VkAttachmentDescription description = {};
+		FramebufferAttachmentFlags flags = 0;
 
 		void Destroy(VkDevice l_device);
 	};
@@ -45,7 +46,8 @@ namespace vk
 	struct Framebuffer 
 	{
 		public:
-			uint32_t width, height = 0;
+			uint32_t width = 0;
+			uint32_t height = 0;
 			VkFramebuffer handle = VK_NULL_HANDLE;
 			VkRenderPass renderPass = VK_NULL_HANDLE;
 			VkSampler sampler = VK_NULL_HANDLE;
@@ -59,7 +61,7 @@ namespace vk
 			void Destroy();
 			void CreateSampler(VkFilter minFilter, VkFilter magFilter, VkSamplerAddressMode addressMode);
 			void CreateRenderPass();
+			void CreateFramebuffer();
 			void AddAttachment(const vk::FramebufferAttachmentCreateInfo& createInfo);
-
 	};
 }

@@ -10,7 +10,7 @@ namespace vk
 		vk::Queue graphicsQueue;
 		vk::Queue presentQueue;
 
-		VkPhysicalDeviceMemoryProperties memoryProperties;
+		VkPhysicalDeviceMemoryProperties memoryProperties = {};
 
 		void Init(VkInstance instance, VkSurfaceKHR surface);
 		void Destroy();

@@ -6,12 +6,16 @@ namespace vk
 	{
 		vkDestroyImageView(l_device, this->imageView, nullptr);
 		this->imageView = VK_NULL_HANDLE;
-		vkDestroyImage(l_device, this->image, nullptr);
-		this->image = VK_NULL_HANDLE;
+
+		if ((flags & VKC_ATTACHMENT_IS_SWAPCHAIN_IMAGE) == 0) 
+		{
+			vkDestroyImage(l_device, this->image, nullptr);
+			this->image = VK_NULL_HANDLE;
+		}
+
 		vkFreeMemory(l_device, this->imageMemory, nullptr);
 		this->imageMemory = VK_NULL_HANDLE;
 	}
-
 
 	inline bool FormatHasDepth(VkFormat format) 
 	{
@@ -39,7 +43,6 @@ namespace vk
 
 	}
 
-
 	void Framebuffer::Init(vk::Device* contextDevice)
 	{
 		assert(contextDevice != nullptr);
@@ -53,6 +56,8 @@ namespace vk
 		{
 			attachment.Destroy(contextDevice->logical);
 		}
+
+		attachments.resize(0);
 
 		if (sampler) 
 		{
@@ -93,40 +98,40 @@ namespace vk
 	{
 		VkRenderPassCreateInfo createInfo = vk::init::RenderPassCreateInfo();
 
-		std::vector<VkAttachmentDescription> attachmentDesc(attachments.size());
-		
+		std::vector<VkAttachmentReference> colorReferences;
+		VkAttachmentReference depthReference = {};
+		depthReference.layout = VK_IMAGE_LAYOUT_UNDEFINED;
 
-		for (int i = 0; i < attachmentDesc.size(); ++i)
+		std::vector<VkAttachmentDescription> attachmentDescriptions;
+
+		for (size_t i = 0; i < attachments.size(); ++i) 
 		{
-			attachmentDesc[i].samples = VK_SAMPLE_COUNT_1_BIT;
-			attachmentDesc[i].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-			attachmentDesc[i].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-			attachmentDesc[i].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-			attachmentDesc[i].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-			attachmentDesc[i].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-			if (i == 3)
+			VkAttachmentReference attachmentReference;
+
+			if (attachments[i].flags & VKC_ATTACHMENT_IS_DEPTH_STENCIL)
 			{
-				attachmentDesc[i].finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL; //the depth won't be read from in the composition pass
+				if (depthReference.layout != VK_IMAGE_LAYOUT_UNDEFINED)
+				{
+					throw std::runtime_error("more than 1 depth attachment in framebuffer\n");
+				}
+
+				depthReference.attachment = i;
+				depthReference.layout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_STENCIL_READ_ONLY_OPTIMAL; 
+
 			}
-			else
+			else if (attachments[i].flags & VKC_ATTACHMENT_IS_COLOR)
 			{
-				attachmentDesc[i].finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL; //cause this will be read by the contextbase's renderpass.
+				VkAttachmentReference colorReference = {};
+				colorReference.attachment = i;
+				colorReference.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+				colorReferences.push_back(colorReference);
 			}
+
+			attachmentDescriptions.push_back(attachments[i].description);
 		}
 
-		attachmentDesc[0].format = deferredPass.position.format;
-		attachmentDesc[1].format = deferredPass.normal.format;
-		attachmentDesc[2].format = deferredPass.albedo.format;
-		attachmentDesc[3].format = deferredPass.depth.format;
-
-		std::array<VkAttachmentReference, 3> colorReferences;
-		colorReferences[0] = { 0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL }; //position
-		colorReferences[1] = { 1, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL }; //normals
-		colorReferences[2] = { 2, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL }; //albedo
-
-		VkAttachmentReference depthReference = { 3, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL };
-
-
+		//initializing synchronization with subpass dependencies
 		std::array<VkSubpassDependency, 4> dependencies = {};
 
 		dependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL;
@@ -161,21 +166,48 @@ namespace vk
 		dependencies[3].srcAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
 		dependencies[3].dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
 
+		//initialize the subpass
 		VkSubpassDescription subpass = {};
 		subpass.colorAttachmentCount = colorReferences.size();
 		subpass.pColorAttachments = colorReferences.data();
-		subpass.pDepthStencilAttachment = &depthReference;
+
+		if (depthReference.layout != VK_IMAGE_LAYOUT_UNDEFINED) 
+		{
+			subpass.pDepthStencilAttachment = &depthReference;
+		}
+
 		subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
 
 		createInfo.pSubpasses = &subpass;
 		createInfo.subpassCount = 1;
-		createInfo.pAttachments = attachmentDesc.data();
-		createInfo.attachmentCount = attachmentDesc.size();
+		createInfo.pAttachments = attachmentDescriptions.data();
+		createInfo.attachmentCount = attachmentDescriptions.size();
 		createInfo.pDependencies = dependencies.data();
 		createInfo.dependencyCount = dependencies.size();
 
 
 		VK_CHECK_RESULT(vkCreateRenderPass(contextDevice->logical, &createInfo, nullptr, &renderPass));
+	}
+
+	void Framebuffer::CreateFramebuffer() 
+	{
+		VkFramebufferCreateInfo framebufferCI = vk::init::FramebufferCreateInfo();
+		framebufferCI.width = width;
+		framebufferCI.height = height;
+		framebufferCI.layers = 1;
+
+		std::vector<VkImageView> imageViews(attachments.size());
+
+		for (size_t i = 0; i < imageViews.size(); ++i) 
+		{
+			imageViews[i] = attachments[i].imageView;
+		}
+
+		framebufferCI.attachmentCount = imageViews.size();
+		framebufferCI.pAttachments = imageViews.data();
+		framebufferCI.renderPass = renderPass;
+
+		VK_CHECK_RESULT(vkCreateFramebuffer(contextDevice->logical, &framebufferCI, nullptr, &handle));
 	}
 
 	void Framebuffer::AddAttachment(const vk::FramebufferAttachmentCreateInfo& createInfo)
@@ -187,6 +219,7 @@ namespace vk
 		if (createInfo.usage & VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT)
 		{
 			aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+			attachment.flags |= VKC_ATTACHMENT_IS_COLOR;
 
 		}
 		else if (createInfo.usage & VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT)
@@ -194,24 +227,25 @@ namespace vk
 			if (FormatHasDepth(createInfo.format))
 			{
 				aspectMask |= VK_IMAGE_ASPECT_DEPTH_BIT;
-				attachment.flagBit |= VKC_ATTACHMENT_IS_DEPTH;
+				attachment.flags |= VKC_ATTACHMENT_IS_DEPTH;
 			}
 
 			if (FormatHasStencil(createInfo.format))
 			{
 				aspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
-				attachment.flagBit |= VKC_ATTACHMENT_IS_STENCIL;
+				attachment.flags |= VKC_ATTACHMENT_IS_STENCIL;
 			}
 		}
 		
 
 		assert(aspectMask > 0);
+		assert(attachment.flags > 0);
 
 		assert
 		(
 			vk::util::FormatIsSupported(contextDevice->physical, createInfo.format,
 				VK_IMAGE_TILING_OPTIMAL,
-				VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT)
+				VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BIT)
 		);
 
 		if (createInfo.alreadyAllocatedImage == VK_NULL_HANDLE)
@@ -243,7 +277,7 @@ namespace vk
 		else
 		{
 			attachment.image = createInfo.alreadyAllocatedImage;
-			attachment.flagBit |= VKC_ATTACHMENT_IS_SWAPCHAIN_IMAGE;
+			attachment.flags |= VKC_ATTACHMENT_IS_SWAPCHAIN_IMAGE;
 		}
 
 
@@ -287,7 +321,7 @@ namespace vk
 		attachment.description.format = createInfo.format;
 		attachment.description.samples = createInfo.sampleCount;
 		
-		if (attachment.flagBit & VKC_ATTACHMENT_IS_DEPTH_STENCIL) 
+		if (attachment.flags & VKC_ATTACHMENT_IS_DEPTH_STENCIL)
 		{
 			attachment.description.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
 		}

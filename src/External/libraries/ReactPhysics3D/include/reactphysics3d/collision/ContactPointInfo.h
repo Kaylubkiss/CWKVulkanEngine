@@ -59,7 +59,7 @@ struct ContactPointInfo {
         Vector3 localPoint2;
 
         /// Penetration depth of the contact
-        decimal penetrationDepth;
+        decimal penetrationDepth = 0;
 
 };
 

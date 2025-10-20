@@ -175,6 +175,7 @@ namespace vk
 
 		for (unsigned i = 0; i < this->images.size(); ++i) 
 		{
+			framebuffers[i].Init(this->devicePtr);
 
 			attachmentInfo.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 			attachmentInfo.format = createInfo.imageFormat;
@@ -189,9 +190,9 @@ namespace vk
 			framebuffers[i].AddAttachment(attachmentInfo);
 
 			std::vector<VkImageView> imageViews(framebuffers[i].attachments.size());
-			for (size_t i = 0; i < framebuffers[i].attachments.size(); ++i)
+			for (size_t j = 0; j < framebuffers[i].attachments.size(); ++j)
 			{
-				imageViews[i] = framebuffers[i].attachments[i].imageView;
+				imageViews[j] = framebuffers[i].attachments[j].imageView;
 			}
 
 			//create framebuffer info
@@ -201,7 +202,7 @@ namespace vk
 				nullptr, //pNext
 				0, //reserved for future expansion.. flags are zero now.
 				renderPass,
-				imageViews.size(),// attachmentCount
+				static_cast<uint32_t>(imageViews.size()),// attachmentCount
 				imageViews.data(), //attachments
 				static_cast<uint32_t>(vp.width), //width
 				static_cast<uint32_t>(vp.height), //height
