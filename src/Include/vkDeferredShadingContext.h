@@ -71,9 +71,7 @@ namespace vk
 
 
 	private:
-		void InitializeDeferredRenderPass();
 		void IntializeDeferredFramebuffer();
-		void IntializeColorSampler();
 		void InitializeUniforms();
 		void UpdateScreenUniforms();
 		void UpdateSceneUniforms();

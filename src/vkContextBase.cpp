@@ -228,8 +228,6 @@ namespace vk
 
 	void ContextBase::ResizeWindow() 
 	{
-		//std::cout << "resizing window\n";
-
 		if (window.isMinimized)
 		{
 			window.isPrepared = false;

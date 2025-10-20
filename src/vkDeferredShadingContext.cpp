@@ -92,9 +92,40 @@ namespace vk
 		deferredPassFB.width = window.viewport.width;
 		deferredPassFB.height = window.viewport.height;
 
-		deferredPassFB.Destroy();
+		for (auto& attachment : deferredPassFB.attachments)
+		{
+			attachment.Destroy(device.logical);
+		}
 
-		DeferredContext::IntializeDeferredFramebuffer();
+		deferredPassFB.attachments.resize(0);
+
+		VkFramebufferCreateInfo framebuffer = vk::init::FramebufferCreateInfo();
+		framebuffer.width = deferredPassFB.width;
+		framebuffer.height = deferredPassFB.height;
+		framebuffer.layers = 1;
+
+		vk::FramebufferAttachmentCreateInfo attachmentCI = {};
+
+		//position attachment
+		attachmentCI.format = VK_FORMAT_R16G16B16A16_SFLOAT;
+		attachmentCI.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+		attachmentCI.width = framebuffer.width;
+		attachmentCI.height = framebuffer.height;
+		deferredPassFB.AddAttachment(attachmentCI);
+
+		//normal attachment
+		deferredPassFB.AddAttachment(attachmentCI);
+
+		//albedo attachment
+		attachmentCI.format = VK_FORMAT_R8G8B8A8_UNORM;
+		deferredPassFB.AddAttachment(attachmentCI);
+
+		//depth attachment
+		attachmentCI.format = VK_FORMAT_D24_UNORM_S8_UINT;
+		attachmentCI.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+		deferredPassFB.AddAttachment(attachmentCI);
+
+		deferredPassFB.CreateFramebuffer();
 
 		std::vector<VkDescriptorImageInfo> descriptorImage; //position, normal, and albedo attachments
 
@@ -118,6 +149,8 @@ namespace vk
 			vk::init::WriteDescriptorSet(descriptorSets.composition, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 4, &uniformBuffers.deferredLightPass.descriptor)
 		};
 		vkUpdateDescriptorSets(device.logical, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, nullptr);
+
+
 	}
 
 	void DeferredContext::FillOutGraphicsContextInfo() 
