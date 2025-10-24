@@ -21,6 +21,7 @@ struct uLightObject
 	glm::vec3 ambient = glm::vec3(0.f); /* scene color */
 	glm::vec3 albedo = glm::vec3(0.f); /* base color of light */
 	glm::vec3 specular = glm::vec3(0.f); /* reflectivity of the light */
+
 };
 
 
@@ -54,7 +55,7 @@ namespace vk
 	//it's a little janky.
 	struct GraphicsContextInfo 
 	{
-		std::vector<VkWriteDescriptorSet> sceneWriteDescriptorSets;
+		std::vector<VkWriteDescriptorSet> sceneWriteDescriptorSets; //2d array because of multiple swapchains
 		VkDescriptorSetLayout descriptorSetLayout = VK_NULL_HANDLE;
 		VkDescriptorPool descriptorPool = VK_NULL_HANDLE;
 		VkDevice logicalDevice = VK_NULL_HANDLE;

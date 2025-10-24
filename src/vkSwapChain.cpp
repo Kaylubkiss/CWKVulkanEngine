@@ -79,6 +79,7 @@ namespace vk
 			desiredImageCount = deviceCapabilities.maxImageCount;
 		}
 
+		createInfo.surface = appWindow.surface;
 		createInfo.minImageCount = desiredImageCount;
 		createInfo.imageExtent = deviceCapabilities.currentExtent;
 		createInfo.imageArrayLayers = 1;
@@ -88,11 +89,11 @@ namespace vk
 		{
 			createInfo.imageUsage |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
 		}
+
 		if (deviceCapabilities.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_DST_BIT) 
 		{
 			createInfo.imageUsage |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 		}
-
 
 		if (deviceCapabilities.supportedTransforms & VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR) {
 
@@ -135,6 +136,7 @@ namespace vk
 			}
 
 			vkDestroySwapchainKHR(devicePtr->logical, oldSwapchain, nullptr);
+			oldSwapchain = VK_NULL_HANDLE;
 		}
 		
 		uint32_t imageCount = 0;
@@ -173,9 +175,11 @@ namespace vk
 		attachmentInfo.width = static_cast<uint32_t>(vp.width);
 		attachmentInfo.height = static_cast<uint32_t>(vp.height);
 
+		VkExtent2D windowExtent = { attachmentInfo.width, attachmentInfo.height };
+
 		for (unsigned i = 0; i < this->images.size(); ++i) 
 		{
-			framebuffers[i].Init(this->devicePtr);
+			framebuffers[i].Init(this->devicePtr, windowExtent);
 
 			attachmentInfo.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 			attachmentInfo.format = createInfo.imageFormat;
@@ -204,8 +208,8 @@ namespace vk
 				renderPass,
 				static_cast<uint32_t>(imageViews.size()),// attachmentCount
 				imageViews.data(), //attachments
-				static_cast<uint32_t>(vp.width), //width
-				static_cast<uint32_t>(vp.height), //height
+				windowExtent.width, //width
+				windowExtent.height, //height
 				1 //1 layer
 			};
 

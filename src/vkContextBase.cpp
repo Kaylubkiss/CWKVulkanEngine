@@ -170,6 +170,8 @@ namespace vk
 
 		createInfo.enabledLayerCount = static_cast<uint32_t>(instanceLayers.size());
 		createInfo.ppEnabledLayerNames = instanceLayers.data();
+
+		createInfo.enabledLayerCount = 0;
 	
 		//create instance.
 		//this function, if successful, will create a "handle object"
@@ -234,8 +236,9 @@ namespace vk
 			return;
 		}
 
+		window.isPrepared = false;
+
 		VK_CHECK_RESULT(vkDeviceWaitIdle(this->device.logical));
-		
 
 		VkSurfaceCapabilitiesKHR surfaceCapabilities;
 		VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(this->device.physical, window.surface, &surfaceCapabilities));
@@ -412,15 +415,15 @@ namespace vk
 		{
 			if (result == VK_ERROR_OUT_OF_DATE_KHR) 
 			{
-				ResizeWindow();
+				ResizeWindow();			
 			}
-			return;
 		}
 		else
 		{
 			VK_CHECK_RESULT(result);
 		}
 
+	
 	}
 
 	void ContextBase::SubmitFrame() 
@@ -447,11 +450,12 @@ namespace vk
 		VkResult result = vkQueuePresentKHR(this->device.presentQueue.handle, &presentInfo);
 		if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
 		{
+			ResizeWindow();
 			if (result == VK_ERROR_OUT_OF_DATE_KHR) 
 			{
-				ResizeWindow();
+				return;
 			}
-			return;
+			
 		}
 		else
 		{

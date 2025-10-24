@@ -8,18 +8,20 @@
 class Object 
 {
 	private:
+		vk::Device* devicePtr = nullptr;
+
 		Mesh mMesh;
 		
 		glm::mat4  modelTransform = glm::mat4(1.f);
 
 		PhysicsComponent mPhysicsComponent;
 
-		VkDescriptorSet textureDescriptorSet = VK_NULL_HANDLE;
-
+		std::array<VkDescriptorSet, gMaxFramesInFlight> descriptorSets = {};
 	public:
 		Object(const VkPhysicalDevice p_device, const VkDevice l_device,
 			const char* fileName, bool willDebugDraw = false);
-	
+		
+		Object(vk::Device* device);
 		void UpdatePhysicsComponent(const PhysicsComponent* physComp);
 		void UpdateModelTransform(const glm::mat4* modelTransform);
 		void UpdateMesh(const Mesh* mesh);
@@ -32,7 +34,7 @@ class Object
 		void Draw(VkCommandBuffer cmdBuffer, VkPipelineLayout pipelineLayout = VK_NULL_HANDLE);
 		void InitPhysics(PhysicsSystem& appPhysics);
 
-		void AddTextureDescriptorSet(VkDescriptorSet textureDscSet);
+		void UpdateDescriptorSets(std::vector<VkWriteDescriptorSet>& writeDescriptors, VkDescriptorSetAllocateInfo* descriptorSetAI = nullptr);
 };
 
 

@@ -21,6 +21,7 @@ struct ObjectCreateInfo
 	Mesh* pMesh = nullptr;
 	PhysicsComponent* pPhysicsComponent = nullptr;
 	glm::mat4* pModelTransform = nullptr;
+	vk::Device* devicePtr = nullptr;
 	bool debugWillDraw = false;
 };
 

@@ -20,6 +20,8 @@ namespace vk
 		~Window();
 
 		void UpdateExtents(const VkExtent2D& area);
+
+		VkExtent2D Extents();
 	};
 
 }

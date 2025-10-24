@@ -8,7 +8,7 @@ namespace vk
 
 	void ObjectManager::LoadObject(const ObjectCreateInfo& objectCI)
 	{
-		Object* newObject = new Object();
+		Object* newObject = new Object(objectCI.devicePtr);
 		//just get the texture now to avoid asynchronous issues.
 		this->textureSys->BindTextureToObject(objectCI.textureFileName, *newObject);
 

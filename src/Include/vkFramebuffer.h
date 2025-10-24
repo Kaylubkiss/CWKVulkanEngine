@@ -11,7 +11,8 @@ namespace vk
 		VKC_ATTACHMENT_IS_DEPTH = 2,
 		VKC_ATTACHMENT_IS_STENCIL = 4,
 		VKC_ATTACHMENT_IS_DEPTH_STENCIL = VKC_ATTACHMENT_IS_DEPTH | VKC_ATTACHMENT_IS_STENCIL,
-		VKC_ATTACHMENT_IS_SWAPCHAIN_IMAGE = 8
+		VKC_ATTACHMENT_IS_SWAPCHAIN_IMAGE = 8,
+		VKC_ATTACHMENT_IS_SAMPLED = 16
 	} FramebufferAttachmentFlagBits;
 	typedef uint32_t FramebufferAttachmentFlags;
 
@@ -57,7 +58,7 @@ namespace vk
 			vk::Device* contextDevice = nullptr;
 
 		public:
-			void Init(vk::Device* contextDevice);
+			void Init(vk::Device* contextDevice, VkExtent2D extents);
 			void Destroy();
 			void CreateSampler(VkFilter minFilter, VkFilter magFilter, VkSamplerAddressMode addressMode);
 			void CreateRenderPass();

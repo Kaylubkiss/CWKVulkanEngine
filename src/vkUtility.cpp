@@ -360,12 +360,14 @@ namespace vk {
 		std::string ReadSourceAndWriteToSprv(std::string fileNamePath, shaderc_shader_kind shader_kind) 
 		{
 
-			std::cout << "WARNING: make sure to load .spv instead of .vert in release!\n";
+			//std::cout << "WARNING: make sure to load .spv instead of .vert in release!\n";
+			
 			//vertex shader reading and compilation
 			vk::shader::CompilationInfo shaderInfo = {};
 			shaderInfo.source = vk::util::ReadFile(fileNamePath);
 			if (shaderInfo.source.empty()) 
 			{
+				std::cerr << "[ERROR] Couldn't successfully read shader file " << fileNamePath << '\n';
 				return "";
 			}
 
@@ -376,6 +378,7 @@ namespace vk {
 
 			if (output.empty()) 
 			{
+				std::cerr << "[ERROR] Couldn't successfully read shader file " << fileNamePath << '\n';
 				return std::string();
 			}
 
@@ -394,8 +397,10 @@ namespace vk {
 
 			if (shader_kind == shaderc_vertex_shader) { fileNamePath += "vert"; }
 			else if (shader_kind == shaderc_fragment_shader) { fileNamePath += "frag"; }
+			else if (shader_kind == shaderc_geometry_shader) { fileNamePath += "geom"; }
 			else {
 				std::cerr << "unsupported shader type: " << shader_kind << '\n';
+				std::cerr << "[ERROR] Couldn't successfully read shader file " << fileNamePath << '\n';
 				return std::string();
 			}
 

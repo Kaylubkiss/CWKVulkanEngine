@@ -18,8 +18,7 @@ namespace vk
 		std::string shaderPath = vk::util::ReadSourceAndWriteToSprv(SHADER_PATH + filename, shaderc_kind);
 	
 		if (shaderPath.empty())
-		{
-			std::cerr << "[ERROR] Couldn't successfully read shader file " << filename << '\n';
+		{			
 			return;
 		}
 		else 

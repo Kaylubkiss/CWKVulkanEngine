@@ -43,11 +43,12 @@ namespace vk
 
 	}
 
-	void Framebuffer::Init(vk::Device* contextDevice)
+	void Framebuffer::Init(vk::Device* contextDevice, VkExtent2D extents)
 	{
 		assert(contextDevice != nullptr);
 
 		this->contextDevice = contextDevice;
+
 	}
 
 	void Framebuffer::Destroy() 
@@ -177,7 +178,6 @@ namespace vk
 		}
 
 		subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-
 		createInfo.pSubpasses = &subpass;
 		createInfo.subpassCount = 1;
 		createInfo.pAttachments = attachmentDescriptions.data();
@@ -206,6 +206,11 @@ namespace vk
 		framebufferCI.attachmentCount = imageViews.size();
 		framebufferCI.pAttachments = imageViews.data();
 		framebufferCI.renderPass = renderPass;
+		
+		for (auto& attachment : attachments) 
+		{
+			framebufferCI.layers = std::max(framebufferCI.layers, attachment.subresourceRange.layerCount);
+		}
 
 		VK_CHECK_RESULT(vkCreateFramebuffer(contextDevice->logical, &framebufferCI, nullptr, &handle));
 	}
@@ -260,7 +265,6 @@ namespace vk
 			imageCreateInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
 			imageCreateInfo.usage = createInfo.usage;
 
-
 			VK_CHECK_RESULT(vkCreateImage(contextDevice->logical, &imageCreateInfo, nullptr, &attachment.image));
 
 			VkMemoryRequirements memRequirements;
@@ -294,15 +298,15 @@ namespace vk
 		}
 
 		viewInfo.format = createInfo.format;
-		viewInfo.subresourceRange.aspectMask = aspectMask;
+		viewInfo.subresourceRange.aspectMask = (aspectMask & VK_IMAGE_ASPECT_DEPTH_BIT) ? VK_IMAGE_ASPECT_DEPTH_BIT : aspectMask;
 		viewInfo.subresourceRange.levelCount = 1;
 		viewInfo.subresourceRange.layerCount = createInfo.layerCount;
 
 		VK_CHECK_RESULT(vkCreateImageView(contextDevice->logical, &viewInfo, nullptr, &attachment.imageView));
 
 		//initializing some other information...
-		attachment.subresourceRange = viewInfo.subresourceRange;
 		attachment.format = createInfo.format;
+		attachment.subresourceRange = viewInfo.subresourceRange;
 
 		//initializing the description...
 		attachment.description = {};
@@ -311,6 +315,7 @@ namespace vk
 		if (createInfo.usage & VK_IMAGE_USAGE_SAMPLED_BIT) 
 		{
 			attachment.description.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+			attachment.flags |= VKC_ATTACHMENT_IS_SAMPLED;
 		}
 		else 
 		{

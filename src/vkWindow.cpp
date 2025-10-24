@@ -19,4 +19,9 @@ namespace vk
 		scissor.extent.width = area.width;
 		scissor.extent.height = area.height;
 	}
+
+	VkExtent2D Window::Extents() 
+	{
+		return { (uint32_t)viewport.width, (uint32_t)viewport.height };
+	}
 }

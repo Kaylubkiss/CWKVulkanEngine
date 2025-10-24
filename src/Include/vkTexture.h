@@ -15,7 +15,6 @@ namespace vk
 		VkImageView mTextureImageView = VK_NULL_HANDLE;
 		VkSampler mTextureSampler = VK_NULL_HANDLE; //different mip-levels might need different samplers
 
-		VkDescriptorSet descriptorSet = VK_NULL_HANDLE;
 		VkDescriptorImageInfo descriptor = {};
 
 		static VkImageView CreateTextureView(const VkDevice l_device, const VkImage& textureImage, uint32_t mipLevels);

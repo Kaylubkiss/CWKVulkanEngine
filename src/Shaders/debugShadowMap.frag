@@ -9,26 +9,6 @@ layout (location = 0) in vec2 inUV;
 
 layout (location = 0) out vec4 outFragColor;
 
-layout (binding = 0) uniform UBO 
-{
-	//standard transformations.
-	mat4 view;
-	mat4 proj;
-
-	//lightWorld
-	mat4 depthVP;
-	
-	//camera
-	vec3 camPos;
-
-	float padding; //TODO: remove this by fixing the structure placement!!
-	float lightShininess; /* exponent value */
-	vec3 lightPos; /* position of light */
-	vec3 lightAmbient; /* scene color */
-	vec3 lightAlbedo; /* base color of light */
-	vec3 lightSpecular; /* reflectivity of the light */
-} ubo;
-
 float LinearizeDepth(float depth)
 {
   float n = 1.0f;
