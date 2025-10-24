@@ -179,7 +179,7 @@ if (WIN32)
 	
 	target_link_libraries(${PROJECT_NAME} debug reactphysics3dd.lib general reactphysics3d.lib)
 	target_link_libraries(${PROJECT_NAME} debug shaderc_combinedd.lib general shaderc_combined.lib)
-	target_link_options(${PROJECT_NAME} PRIVATE "/NODEFAULTLIB:msvcrt" "/ignore:4099") #to prevent conflict with SDL2Main
+	#target_link_options(${PROJECT_NAME} PRIVATE "/NODEFAULTLIB:msvcrt" "/ignore:4099") #this was initially added to prevent SDL2Main conflicts, but then it caused errs with shaderc_combined
 	target_link_options(${PROJECT_NAME} PRIVATE "/ignore:4099") #reactphysics, SDL2, and shaderc_combined are missing their debug information. Just ignore it.
 
 elseif (UNIX)
