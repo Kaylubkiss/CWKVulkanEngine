@@ -171,15 +171,18 @@ namespace vk
 		
 		this->framebuffers.resize(this->images.size());
 
-		vk::FramebufferAttachmentCreateInfo attachmentInfo = {};
-		attachmentInfo.width = static_cast<uint32_t>(vp.width);
-		attachmentInfo.height = static_cast<uint32_t>(vp.height);
+		uint32_t width = static_cast<uint32_t>(vp.width);
+		uint32_t height = static_cast<uint32_t>(vp.height);
 
-		VkExtent2D windowExtent = { attachmentInfo.width, attachmentInfo.height };
+		vk::FramebufferAttachmentCreateInfo attachmentInfo = {};
+		attachmentInfo.width = width;
+		attachmentInfo.height = height;
 
 		for (unsigned i = 0; i < this->images.size(); ++i) 
 		{
-			framebuffers[i].Init(this->devicePtr, windowExtent);
+			framebuffers[i].Init(this->devicePtr);
+			framebuffers[i].width = width;
+			framebuffers[i].height = height;
 
 			attachmentInfo.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 			attachmentInfo.format = createInfo.imageFormat;
@@ -208,8 +211,8 @@ namespace vk
 				renderPass,
 				static_cast<uint32_t>(imageViews.size()),// attachmentCount
 				imageViews.data(), //attachments
-				windowExtent.width, //width
-				windowExtent.height, //height
+				framebuffers[i].width, //width
+				framebuffers[i].height, //height
 				1 //1 layer
 			};
 
