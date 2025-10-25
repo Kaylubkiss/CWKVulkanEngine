@@ -21,6 +21,7 @@ struct uLightObject
 	glm::vec3 ambient = glm::vec3(0.f); /* scene color */
 	glm::vec3 albedo = glm::vec3(0.f); /* base color of light */
 	glm::vec3 specular = glm::vec3(0.f); /* reflectivity of the light */
+
 };
 
 
@@ -54,7 +55,7 @@ namespace vk
 	//it's a little janky.
 	struct GraphicsContextInfo 
 	{
-		std::vector<VkWriteDescriptorSet> sceneWriteDescriptorSets;
+		std::vector<VkWriteDescriptorSet> sceneWriteDescriptorSets; //2d array because of multiple swapchains
 		VkDescriptorSetLayout descriptorSetLayout = VK_NULL_HANDLE;
 		VkDescriptorPool descriptorPool = VK_NULL_HANDLE;
 		VkDevice logicalDevice = VK_NULL_HANDLE;
@@ -65,23 +66,7 @@ namespace vk
 		vk::UserInterface* contextUIPtr = nullptr;
 	};
 
-	struct FramebufferAttachment
-	{
-		VkImage image = VK_NULL_HANDLE;
-		VkDeviceMemory imageMemory = VK_NULL_HANDLE;
-		VkImageView imageView = VK_NULL_HANDLE;
-		VkFormat format = {};
-
-		void Destroy(VkDevice l_device)
-		{
-			vkDestroyImageView(l_device, this->imageView, nullptr);
-			this->imageView = VK_NULL_HANDLE;
-			vkDestroyImage(l_device, this->image, nullptr);
-			this->image = VK_NULL_HANDLE;
-			vkFreeMemory(l_device, this->imageMemory, nullptr);
-			this->imageMemory = VK_NULL_HANDLE;
-		}
-	};
+	
 
 	VkCommandBuffer beginSingleTimeCommand(const VkDevice l_device, const VkCommandPool cmdPool);
 

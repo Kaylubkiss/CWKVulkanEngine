@@ -75,6 +75,13 @@ Object::Object(const VkPhysicalDevice p_device, const VkDevice l_device,
 }
 
 
+Object::Object(vk::Device* device) 
+{
+    assert(device);
+
+    devicePtr = device;
+}
+
 void Object::InitPhysics(PhysicsSystem& appPhysics)
 {
 
@@ -156,11 +163,6 @@ void Object::Draw(VkCommandBuffer cmdBuffer, VkPipelineLayout pipelineLayout)
         vkCmdPushConstants(cmdBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::mat4), (void*)(&this->modelTransform));
     }
     
-    if (this->textureDescriptorSet != VK_NULL_HANDLE) 
-    {
-        vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &this->textureDescriptorSet, 0, nullptr);
-    }
-    
     VkDeviceSize offsets[1] = { 0 };
     
     vkCmdBindVertexBuffers(cmdBuffer, 0, 1, &mMesh.buffer.vertex.handle, offsets);
@@ -182,11 +184,6 @@ void Object::UpdatePhysicsComponent(const PhysicsComponent* physComp)
     }
 }
 
-void Object::AddTextureDescriptorSet(VkDescriptorSet textureDscSet)
-{
-    textureDescriptorSet = textureDscSet;
-}
-
 void Object::UpdateModelTransform(const glm::mat4* modelTransform) 
 {
     if (modelTransform) 
@@ -203,5 +200,24 @@ void Object::UpdateMesh(const Mesh* mesh)
     }
 }
 
+
+void Object::UpdateDescriptorSets(std::vector<VkWriteDescriptorSet>& writeDescriptors, VkDescriptorSetAllocateInfo* descriptorSetAI)
+{
+    for (size_t i = 0; i < descriptorSets.size(); ++i)
+    {
+        if (descriptorSets[i] == VK_NULL_HANDLE)
+        {
+            assert(descriptorSetAI);
+            vkAllocateDescriptorSets(devicePtr->logical, descriptorSetAI, &descriptorSets[i]);
+        }
+
+        for (size_t j = 0; j < writeDescriptors.size(); ++j)
+        {
+            writeDescriptors[j].dstSet = descriptorSets[i];
+        }
+
+        vkUpdateDescriptorSets(devicePtr->logical, writeDescriptors.size(), writeDescriptors.data(), 0, nullptr);
+    }
+}
 
 

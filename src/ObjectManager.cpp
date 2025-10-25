@@ -3,14 +3,14 @@
 #include "vkInit.h"
 #include "vkUtility.h"
 
-namespace vk 
+namespace vk
 {
 
 	void ObjectManager::LoadObject(const ObjectCreateInfo& objectCI)
 	{
-		Object* newObject = new Object();
+		Object* newObject = new Object(objectCI.devicePtr);
 		//just get the texture now to avoid asynchronous issues.
-		this->textureSys->BindTextureToObject(objectCI.textureFileName, *newObject); 
+		this->textureSys->BindTextureToObject(objectCI.textureFileName, *newObject);
 
 		ObjectCreateInfo deepyCopyCI = objectCI;
 		deepyCopyCI.pModelTransform = objectCI.pModelTransform ? new glm::mat4(*objectCI.pModelTransform) : nullptr;
@@ -28,7 +28,7 @@ namespace vk
 
 			delete deepyCopyCI.pModelTransform;
 			delete deepyCopyCI.pPhysicsComponent;
-		};
+			};
 
 		mThreadWorkers.EnqueueTask(parallelFunction);
 	}
@@ -49,6 +49,21 @@ namespace vk
 		this->logicalDevice = device;
 	}
 
+	void ObjectManager::Destroy(const VkDevice l_device) 
+	{
+		this->mThreadWorkers.Terminate();
+
+		for (auto& obj : objects)
+		{
+			Object* curr_obj = obj.second.obj;
+
+			if (curr_obj != nullptr)
+			{
+				curr_obj->Destroy(l_device);
+			}
+		}
+	}
+
 	void ObjectManager::Update(float dt) 
 	{
 		for (auto& obj : objects)
@@ -57,7 +72,6 @@ namespace vk
 			curr_obj->Update(dt);
 		}
 	}
-
 
 	void ObjectManager::DrawObjects(VkCommandBuffer cmdBuffer, VkPipelineLayout pipelineLayout)
 	{

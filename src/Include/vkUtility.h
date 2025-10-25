@@ -22,7 +22,7 @@ namespace vk
 				return;
 			//fun fact: fprintf will return the length of the string it outputted..
 			//https://stackoverflow.com/questions/29931016/return-value-of-fprintf
-			int result = fprintf(stderr, "[vulkan] Error: VkResult = %d\n", err);
+			int result = fprintf(stderr, "[Vulkan] Error: VkResult = %d\n", err);
 
 			if (err < 0)
 				abort();
@@ -30,6 +30,8 @@ namespace vk
 
 		VkFormat findSupportedFormat(const VkPhysicalDevice p_device, const std::vector<VkFormat>& possibleFormats,
 			VkImageTiling tiling, VkFormatFeatureFlags features);
+
+		bool FormatIsSupported(const VkPhysicalDevice p_device, VkFormat format, VkImageTiling tiling, VkFormatFeatureFlags features);
 
 		//BEGIN TODO: move this into a device-specific class.
 		//use command pool

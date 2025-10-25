@@ -1,6 +1,5 @@
 #include "TextureManager.h"
 #include "vkUtility.h"
-#include "vkBuffer.h"
 #include "vkInit.h"
 #include "ApplicationGlobal.h"
 
@@ -75,8 +74,15 @@ namespace vk
 	{
 		if (fileName != "")
 		{
-			int index = TextureManager::GetTextureIndexByName(fileName.c_str());
+			std::vector<VkWriteDescriptorSet> descriptorWrites = graphicsContextInfo.sceneWriteDescriptorSets; //TODO: copying a vector...inefficient.
 
+			VkDescriptorSetAllocateInfo descriptorSetInfo = vk::init::DescriptorSetAllocateInfo
+			(
+				graphicsContextInfo.descriptorPool,
+				&graphicsContextInfo.descriptorSetLayout, 1
+			);
+
+			int index = TextureManager::GetTextureIndexByName(fileName.c_str());
 			if (index < 0)
 			{
 				std::cout << "adding texture...\n";
@@ -88,41 +94,21 @@ namespace vk
 					return;
 				}
 
-				VkDescriptorSetAllocateInfo descriptorSetInfo = vk::init::DescriptorSetAllocateInfo
-				(
-					graphicsContextInfo.descriptorPool, 
-					&graphicsContextInfo.descriptorSetLayout, 1
-				);
-
-				VK_CHECK_RESULT(vkAllocateDescriptorSets(graphicsContextInfo.logicalDevice, &descriptorSetInfo, &mTextures.back().descriptorSet));
-
-				std::vector<VkWriteDescriptorSet> descriptorWrites = graphicsContextInfo.sceneWriteDescriptorSets; //TODO: copying a vector...inefficient.
-
-				//need to make sure the descriptor set pointed at by the writes is the texture's.
-				for (int i = 0; i < descriptorWrites.size(); ++i)
-				{
-					descriptorWrites[i].dstSet = mTextures.back().descriptorSet;
-				}
-
-				//writing the texture sampler.
-				VkWriteDescriptorSet dscWrite = vk::init::WriteDescriptorSet(
-					mTextures.back().descriptorSet, 
-					VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 
-					graphicsContextInfo.samplerBinding, 
-					&mTextures.back().descriptor
-				);
-
-			
-				descriptorWrites.push_back(dscWrite);
-				
-
-				vkUpdateDescriptorSets(graphicsContextInfo.logicalDevice, descriptorWrites.size(), descriptorWrites.data(), 0, nullptr);
-
 				index = mTextures.size() - 1;
 
 			}
 
-			obj.AddTextureDescriptorSet(mTextures[index].descriptorSet);
+			VkWriteDescriptorSet dscWrite = vk::init::WriteDescriptorSet
+			(
+				VK_NULL_HANDLE,
+				VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+				graphicsContextInfo.samplerBinding,
+				&mTextures[index].descriptor
+			);
+
+			descriptorWrites.push_back(dscWrite);
+
+			obj.UpdateDescriptorSets(descriptorWrites, &descriptorSetInfo);
 		}
 
 	}

@@ -48,7 +48,6 @@ namespace vk
 
 		}
 
-
 		VkDescriptorSetLayout DescriptorSetLayout(VkDevice logicalDevice, VkDescriptorSetLayoutBinding* bindings, uint32_t sizeOfBindings)
 		{
 
@@ -99,7 +98,6 @@ namespace vk
 			return nInfo;
 		}
 
-
 		VkDescriptorSetLayoutCreateInfo DescriptorSetLayoutCreateInfo(const std::vector<VkDescriptorSetLayoutBinding>& bindings)
 		{
 			VkDescriptorSetLayoutCreateInfo nInfo = {};
@@ -108,7 +106,6 @@ namespace vk
 			nInfo.bindingCount = (uint32_t)bindings.size();
 			return nInfo;
 		}
-
 
 		VkRenderPassCreateInfo RenderPassCreateInfo() 
 		{
@@ -669,7 +666,6 @@ namespace vk
 			nInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
 			return nInfo;
 		}
-
 
 		VkViewport Viewport(uint32_t width, uint32_t height, float minDepth, float maxDepth) 
 		{

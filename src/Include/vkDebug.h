@@ -37,17 +37,6 @@ namespace vk
 			return VK_FALSE;
 		}
 
-		//static void BindMessengerToInstance(VkInstance& instance, VkDebugUtilsMessengerEXT& debugMessenger)
-		//{
-		//	VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo = vk::init::DebugMessengerCreateInfo();
-
-		//	VK_CHECK_RESULT(vkCreateDebugUtilsMessengerEXT(instance, &debugCreateInfo, nullptr, &debugMessenger))
-
-		//	//cheating here real quick.
-		//	
-
-		//}
-
 		static void SetInstanceDebugObject(VkInstance instance, VkDevice l_device, VkDebugUtilsObjectNameInfoEXT&  instanceDebug)
 		{
 			auto SetDebugUtilsObjectName = reinterpret_cast<PFN_vkSetDebugUtilsObjectNameEXT>(vkGetInstanceProcAddr(instance, "vkSetDebugUtilsObjectNameEXT"));

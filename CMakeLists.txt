@@ -33,6 +33,7 @@ set(VULKAN_ENGINE_SRC src/vkDebug.cpp
 					  src/vkMesh.cpp
 					  src/vkWindow.cpp
 					  src/vkPipelineManager.cpp
+					  src/vkFramebuffer.cpp
 )
 
 set(VULKAN_ENGINE_SCENES_SOURCE 
@@ -92,7 +93,8 @@ src/Include/vkMesh.h
 src/Include/vkDevice.h
 src/Include/vkShadowMap.h
 src/Include/vkDevice.h
-src/Include/vkPipelineManager.h)
+src/Include/vkPipelineManager.h
+src/Include/vkFramebuffer.h)
 
 
 set(VULKAN_ENGINE_SCENES_HEADERS
@@ -123,6 +125,9 @@ src/Shaders/deferredMRT.vert
 src/Shaders/deferredMRT.frag
 src/Shaders/deferredLightPass.vert
 src/Shaders/deferredLightPass.frag
+#deferred shadowing
+src/Shaders/deferredShadow.geom
+src/Shaders/deferredShadow.vert
 )
 								 
 #-----COMPILATION OPTIONS DEPENDING ON PLATFORM---------
@@ -170,11 +175,12 @@ if (WIN32)
 	vulkan-1.lib
 	SDL2main.lib)
 
+	target_link_directories("${PROJECT_NAME}" PUBLIC $ENV{VULKAN_SDK}/Lib src/External/libraries/ReactPhysics3D/lib)
+	
 	target_link_libraries(${PROJECT_NAME} debug reactphysics3dd.lib general reactphysics3d.lib)
-
 	target_link_libraries(${PROJECT_NAME} debug shaderc_combinedd.lib general shaderc_combined.lib)
-
-	target_link_directories("${PROJECT_NAME}" PRIVATE $ENV{VULKAN_SDK}/Lib src/External/libraries/ReactPhysics3D/lib)
+	#target_link_options(${PROJECT_NAME} PRIVATE "/NODEFAULTLIB:msvcrt" "/ignore:4099") #this was initially added to prevent SDL2Main conflicts, but then it caused errs with shaderc_combined
+	target_link_options(${PROJECT_NAME} PRIVATE "/ignore:4099") #reactphysics, SDL2, and shaderc_combined are missing their debug information. Just ignore it.
 
 elseif (UNIX)
 

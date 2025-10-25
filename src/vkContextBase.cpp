@@ -18,12 +18,9 @@ namespace vk
 			throw std::runtime_error("could not create window surface! " + std::string(SDL_GetError()));
 		}
 		
-		device.Initialize(instance, window.surface);
-		window.contextPhysicalDevice = device.physical;
+		device.Init(instance, window.surface);
 
-		std::array<uint32_t, 2> queueFamilies = { device.graphicsQueue.family, device.presentQueue.family };
 		swapChain.Init(&this->device, window); //need window for its surface and viewport info.
-		
 		swapChain.Create(window);
 
 		//conforms to higher frame counts to prevent flickering.
@@ -144,6 +141,8 @@ namespace vk
 
 		const VkLayerSettingEXT settings[] = {
 			{layerName, "validate_core", VK_LAYER_SETTING_TYPE_BOOL32_EXT, 1, &setting_validate_core},
+			{layerName, "duplicate_message_limit", VK_LAYER_SETTING_TYPE_INT32_EXT, 1, &setting_duplicate_message_limit},
+			{layerName, "report_flags", VK_LAYER_SETTING_TYPE_STRING_EXT, static_cast<uint32_t>(std::size(setting_report_flags)), setting_report_flags},
 			/*{layerName, "validate_sync", VK_LAYER_SETTING_TYPE_BOOL32_EXT, 1, &setting_validate_sync},
 			{layerName, "thread_safety", VK_LAYER_SETTING_TYPE_BOOL32_EXT, 1, &setting_thread_safety},
 			{layerName, "debug_action", VK_LAYER_SETTING_TYPE_STRING_EXT, 1, setting_debug_action},
@@ -171,8 +170,9 @@ namespace vk
 
 		createInfo.enabledLayerCount = static_cast<uint32_t>(instanceLayers.size());
 		createInfo.ppEnabledLayerNames = instanceLayers.data();
-	
 
+		createInfo.enabledLayerCount = 0;
+	
 		//create instance.
 		//this function, if successful, will create a "handle object"
 		//and make pInstance the handle. A handle is always 64-bits wide.  
@@ -230,16 +230,15 @@ namespace vk
 
 	void ContextBase::ResizeWindow() 
 	{
-		//std::cout << "resizing window\n";
-
 		if (window.isMinimized)
 		{
 			window.isPrepared = false;
 			return;
 		}
 
+		window.isPrepared = false;
+
 		VK_CHECK_RESULT(vkDeviceWaitIdle(this->device.logical));
-		
 
 		VkSurfaceCapabilitiesKHR surfaceCapabilities;
 		VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(this->device.physical, window.surface, &surfaceCapabilities));
@@ -287,7 +286,7 @@ namespace vk
 		attachments[0].finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 
 		//depth attachment
-		attachments[1].format = swapChain.depthAttachment.format;
+		attachments[1].format = VK_FORMAT_D24_UNORM_S8_UINT;
 		attachments[1].samples = VK_SAMPLE_COUNT_1_BIT;
 		attachments[1].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 		attachments[1].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
@@ -416,15 +415,15 @@ namespace vk
 		{
 			if (result == VK_ERROR_OUT_OF_DATE_KHR) 
 			{
-				ResizeWindow();
+				ResizeWindow();			
 			}
-			return;
 		}
 		else
 		{
 			VK_CHECK_RESULT(result);
 		}
 
+	
 	}
 
 	void ContextBase::SubmitFrame() 
@@ -451,11 +450,12 @@ namespace vk
 		VkResult result = vkQueuePresentKHR(this->device.presentQueue.handle, &presentInfo);
 		if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
 		{
+			ResizeWindow();
 			if (result == VK_ERROR_OUT_OF_DATE_KHR) 
 			{
-				ResizeWindow();
+				return;
 			}
-			return;
+			
 		}
 		else
 		{
@@ -466,8 +466,4 @@ namespace vk
 
 	}
 
-	void ContextBase::ToggleRendering()
-	{
-		window.isPrepared = !window.isPrepared;
-	}
 }

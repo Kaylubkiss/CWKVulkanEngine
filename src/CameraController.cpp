@@ -28,8 +28,6 @@ void Controller::MoveCamera(Camera& camera, const float& dt)
 	SDL_Event e;
 	while (SDL_PollEvent(&e))
 	{
-		ImGui_ImplSDL2_ProcessEvent(&e);
-
 		if (e.type == SDL_WINDOWEVENT) 
 		{
 			switch (e.window.event) 
@@ -37,46 +35,43 @@ void Controller::MoveCamera(Camera& camera, const float& dt)
 				case SDL_WINDOWEVENT_CLOSE:
 					//it should exit.
 					_Application->RequestExit();
-					return;
+					break;
 				case SDL_WINDOWEVENT_MINIMIZED:
 					//std::cout << "window is minimized\n\n";	
 					_GraphicsContext->GetWindow().isMinimized = true;
-					break;
+					return;
 				case SDL_WINDOWEVENT_MAXIMIZED:
 					//std::cout << "window is maximized\n\n";
-					break;
+					_Application->ResizeWindow();
+					return;
 				case SDL_WINDOWEVENT_RESTORED:
 					//std::cout << "window is restored\n\n";
-					if (_GraphicsContext->GetWindow().isMinimized) 
-					{
-						_GraphicsContext->GetWindow().isMinimized = false;
-						
-						_Application->ResizeWindow();
-					}
-					break;
+					_GraphicsContext->GetWindow().isMinimized = false;
+					_Application->ResizeWindow();
+					return;
 				case SDL_WINDOWEVENT_SIZE_CHANGED:
-					//std::cout << "window size changed\n\n";
+					std::cout << "window size changed\n\n";
 					//_Application->ResizeWindow();
 					_GraphicsContext->GetWindow().isPrepared = false;
+					_Application->ResizeWindow();
 					break;
 				case SDL_WINDOWEVENT_FOCUS_GAINED:
 					//std::cout << "window focus gained\n\n";
 					break;
 				case SDL_WINDOWEVENT_FOCUS_LOST:
 					//std::cout << "window focus lost\n\n";
-					break;
+					break;	
 				case SDL_WINDOWEVENT_RESIZED:
-					//std::cout << "window is resized\n\n";
+					std::cout << "window is resized\n\n";
 					_GraphicsContext->GetWindow().isPrepared = true;
 					_Application->ResizeWindow();
-					break;
-
+					return;
 				default:
 					break;
-
-					
 			}
 		}
+
+		ImGui_ImplSDL2_ProcessEvent(&e);
 
 		ImGuiIO& io = ImGui::GetIO();
 		if (io.WantCaptureMouse || io.WantCaptureKeyboard)

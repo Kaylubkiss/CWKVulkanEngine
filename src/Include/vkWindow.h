@@ -10,8 +10,6 @@ namespace vk
 		SDL_Window* sdl_ptr = nullptr;
 		VkSurfaceKHR surface = VK_NULL_HANDLE;
 
-		VkPhysicalDevice contextPhysicalDevice = VK_NULL_HANDLE;
-
 		int center_x = 0.f;
 		int center_y = 0.f;
 
@@ -22,6 +20,8 @@ namespace vk
 		~Window();
 
 		void UpdateExtents(const VkExtent2D& area);
+
+		VkExtent2D Extents();
 	};
 
 }

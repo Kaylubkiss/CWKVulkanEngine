@@ -16,11 +16,11 @@ namespace vk {
 				VkFormatProperties properties;
 				vkGetPhysicalDeviceFormatProperties(p_device, format, &properties);
 
-				if (tiling == VK_IMAGE_TILING_LINEAR && (properties.linearTilingFeatures & features) == features)
+				if (tiling == VK_IMAGE_TILING_LINEAR && (properties.linearTilingFeatures & features))
 				{
 					return format;
 				}
-				else if (tiling == VK_IMAGE_TILING_OPTIMAL && (properties.optimalTilingFeatures & features) == features)
+				else if (tiling == VK_IMAGE_TILING_OPTIMAL && (properties.optimalTilingFeatures & features))
 				{
 					return format;
 				}
@@ -29,6 +29,24 @@ namespace vk {
 
 			throw std::runtime_error("couldn't find a suitable format supported on the physical device.");
 		}
+
+		bool FormatIsSupported(const VkPhysicalDevice p_device, VkFormat format, VkImageTiling tiling, VkFormatFeatureFlags features)
+		{
+			VkFormatProperties properties;
+			vkGetPhysicalDeviceFormatProperties(p_device, format, &properties);
+
+			if (tiling == VK_IMAGE_TILING_LINEAR)
+			{
+				return (properties.linearTilingFeatures & features);
+			}
+			else if (tiling == VK_IMAGE_TILING_OPTIMAL)
+			{
+				return (properties.optimalTilingFeatures & features);
+			}
+
+			throw std::runtime_error("specified VkFormat " + std::to_string(format) + " is not supported on the physical device.");
+		}
+
 
 		bool FormatIsFilterable(const VkPhysicalDevice p_device, VkFormat format, VkImageTiling tiling) 
 		{
@@ -342,12 +360,14 @@ namespace vk {
 		std::string ReadSourceAndWriteToSprv(std::string fileNamePath, shaderc_shader_kind shader_kind) 
 		{
 
-			std::cout << "WARNING: make sure to load .spv instead of .vert in release!\n";
+			//std::cout << "WARNING: make sure to load .spv instead of .vert in release!\n";
+			
 			//vertex shader reading and compilation
 			vk::shader::CompilationInfo shaderInfo = {};
 			shaderInfo.source = vk::util::ReadFile(fileNamePath);
 			if (shaderInfo.source.empty()) 
 			{
+				std::cerr << "[ERROR] Couldn't successfully read shader file " << fileNamePath << '\n';
 				return "";
 			}
 
@@ -358,6 +378,7 @@ namespace vk {
 
 			if (output.empty()) 
 			{
+				std::cerr << "[ERROR] Couldn't successfully read shader file " << fileNamePath << '\n';
 				return std::string();
 			}
 
@@ -376,8 +397,10 @@ namespace vk {
 
 			if (shader_kind == shaderc_vertex_shader) { fileNamePath += "vert"; }
 			else if (shader_kind == shaderc_fragment_shader) { fileNamePath += "frag"; }
+			else if (shader_kind == shaderc_geometry_shader) { fileNamePath += "geom"; }
 			else {
 				std::cerr << "unsupported shader type: " << shader_kind << '\n';
+				std::cerr << "[ERROR] Couldn't successfully read shader file " << fileNamePath << '\n';
 				return std::string();
 			}
 

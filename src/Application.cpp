@@ -141,6 +141,7 @@ void Application::loop()
 	//render graphics.
 	while (exitApplication == false)
 	{	
+
 		double dt = mTime.CalculateDeltaTime();
 
 		Controller::MoveCamera(graphicsContext->GetCamera() , dt);

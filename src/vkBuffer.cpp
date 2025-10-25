@@ -44,13 +44,7 @@ namespace vk
 		result = vkAllocateMemory(l_device, &vmai, nullptr, &this->memory);
 		assert(result == VK_SUCCESS);
 
-
-		result = vkBindBufferMemory(l_device, this->handle, this->memory, 0);
-		assert(result == VK_SUCCESS);
-
-
-		//fill data buffer --> THIS COULD BE ITS OWN MODULE...
-		if (data != NULL)
+		if (data != nullptr)
 		{
 			Buffer::Map();
 			
@@ -68,6 +62,9 @@ namespace vk
 		}
 
 		Buffer::SetDescriptor(this->size, 0);
+
+		result = vkBindBufferMemory(l_device, this->handle, this->memory, 0);
+		assert(result == VK_SUCCESS);
 	}
 
 	void Buffer::SetDescriptor(VkDeviceSize size, VkDeviceSize offset) 
@@ -91,13 +88,13 @@ namespace vk
 		VkMappedMemoryRange mappedRange = vk::init::MappedMemoryRange();
 		mappedRange.memory = this->memory;
 		mappedRange.offset = 0;
-		mappedRange.size = this->size;
+		mappedRange.size = VK_WHOLE_SIZE;
 		vkFlushMappedMemoryRanges(this->logicalDevice, 1, &mappedRange);
 	}
 
 	void Buffer::UnMap() 
 	{
-		if (this->mappedMemory) 
+		if (this->mappedMemory != nullptr) 
 		{
 			vkUnmapMemory(this->logicalDevice, this->memory);
 			this->mappedMemory = nullptr;
@@ -109,13 +106,13 @@ namespace vk
 	{
 		assert(logicalDevice != VK_NULL_HANDLE);
 
-		if (this->memory)
+		if (this->memory != VK_NULL_HANDLE)
 		{
 			vkFreeMemory(logicalDevice, this->memory, nullptr);
 			this->memory = VK_NULL_HANDLE;
 		}
 
-		if (this->handle)
+		if (this->handle != VK_NULL_HANDLE)
 		{
 			vkDestroyBuffer(logicalDevice, this->handle, nullptr);
 			this->handle = VK_NULL_HANDLE;
