@@ -13,5 +13,4 @@ void main()
 {
 
 	gl_Position = modelMatrix * vec4(aPos,1);
-	//wait to assign gl_Position in geometry shader
 }

@@ -73,7 +73,6 @@ namespace vk
 		}
 	}
 
-
 	void ObjectManager::DrawObjects(VkCommandBuffer cmdBuffer, VkPipelineLayout pipelineLayout)
 	{
 		for (auto& obj : objects)

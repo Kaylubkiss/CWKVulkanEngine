@@ -104,8 +104,6 @@ namespace vk
 		VkExtent2D windowExtents = window.Extents();
 
 		//MRT resizing...
-	/*	deferredMRTFB.width = windowExtents.width;
-		deferredMRTFB.height = windowExtents.height;*/
 
 		for (auto& attachment : deferredMRTFB.attachments)
 		{
@@ -293,8 +291,7 @@ namespace vk
 
 	void DeferredContext::IntializeDeferredFramebuffer() 
 	{
-		VkExtent2D windowExtents = window.Extents();
-		deferredMRTFB.Init(&this->device, windowExtents);
+		deferredMRTFB.Init(&this->device);
 
 		VkFramebufferCreateInfo framebuffer = vk::init::FramebufferCreateInfo();
 		framebuffer.width = deferredMRTFB.width;
@@ -332,8 +329,7 @@ namespace vk
 
 	void DeferredContext::InitializeDeferredShadowFramebuffer() 
 	{
-		VkExtent2D windowExtents = window.Extents();
-		deferredShadowFB.Init(&this->device, windowExtents);
+		deferredShadowFB.Init(&this->device);
 
 		vk::FramebufferAttachmentCreateInfo attachmentCI = {};
 

@@ -58,7 +58,7 @@ namespace vk
 			vk::Device* contextDevice = nullptr;
 
 		public:
-			void Init(vk::Device* contextDevice, VkExtent2D extents);
+			void Init(vk::Device* contextDevice);
 			void Destroy();
 			void CreateSampler(VkFilter minFilter, VkFilter magFilter, VkSamplerAddressMode addressMode);
 			void CreateRenderPass();

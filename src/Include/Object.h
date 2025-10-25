@@ -12,7 +12,7 @@ class Object
 
 		Mesh mMesh;
 		
-		glm::mat4  modelTransform = glm::mat4(1.f);
+		glm::mat4 modelTransform = glm::mat4(1.f);
 
 		PhysicsComponent mPhysicsComponent;
 
@@ -25,6 +25,7 @@ class Object
 		void UpdatePhysicsComponent(const PhysicsComponent* physComp);
 		void UpdateModelTransform(const glm::mat4* modelTransform);
 		void UpdateMesh(const Mesh* mesh);
+		void UpdateDescriptorSets(std::vector<VkWriteDescriptorSet>& writeDescriptors, VkDescriptorSetAllocateInfo* descriptorSetAI = nullptr);
 
 		Object() = default;
 		~Object() = default;
@@ -34,7 +35,6 @@ class Object
 		void Draw(VkCommandBuffer cmdBuffer, VkPipelineLayout pipelineLayout = VK_NULL_HANDLE);
 		void InitPhysics(PhysicsSystem& appPhysics);
 
-		void UpdateDescriptorSets(std::vector<VkWriteDescriptorSet>& writeDescriptors, VkDescriptorSetAllocateInfo* descriptorSetAI = nullptr);
 };
 
 

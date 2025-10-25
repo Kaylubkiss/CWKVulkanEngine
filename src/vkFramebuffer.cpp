@@ -43,7 +43,7 @@ namespace vk
 
 	}
 
-	void Framebuffer::Init(vk::Device* contextDevice, VkExtent2D extents)
+	void Framebuffer::Init(vk::Device* contextDevice)
 	{
 		assert(contextDevice != nullptr);
 

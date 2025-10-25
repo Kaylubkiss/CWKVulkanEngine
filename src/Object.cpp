@@ -184,25 +184,6 @@ void Object::UpdatePhysicsComponent(const PhysicsComponent* physComp)
     }
 }
 
-void Object::UpdateDescriptorSets(std::vector<VkWriteDescriptorSet>& writeDescriptors, VkDescriptorSetAllocateInfo* descriptorSetAI)
-{
-    for (size_t i = 0; i < descriptorSets.size(); ++i) 
-    {
-        if (descriptorSets[i] == VK_NULL_HANDLE) 
-        {
-            assert(descriptorSetAI);
-            vkAllocateDescriptorSets(devicePtr->logical, descriptorSetAI, &descriptorSets[i]);
-        }
-
-        for (size_t j = 0; j < writeDescriptors.size(); ++j) 
-        {
-            writeDescriptors[j].dstSet = descriptorSets[i];
-        }        
-
-        vkUpdateDescriptorSets(devicePtr->logical, writeDescriptors.size(), writeDescriptors.data(), 0, nullptr);
-    }
-}
-
 void Object::UpdateModelTransform(const glm::mat4* modelTransform) 
 {
     if (modelTransform) 
@@ -219,5 +200,24 @@ void Object::UpdateMesh(const Mesh* mesh)
     }
 }
 
+
+void Object::UpdateDescriptorSets(std::vector<VkWriteDescriptorSet>& writeDescriptors, VkDescriptorSetAllocateInfo* descriptorSetAI)
+{
+    for (size_t i = 0; i < descriptorSets.size(); ++i)
+    {
+        if (descriptorSets[i] == VK_NULL_HANDLE)
+        {
+            assert(descriptorSetAI);
+            vkAllocateDescriptorSets(devicePtr->logical, descriptorSetAI, &descriptorSets[i]);
+        }
+
+        for (size_t j = 0; j < writeDescriptors.size(); ++j)
+        {
+            writeDescriptors[j].dstSet = descriptorSets[i];
+        }
+
+        vkUpdateDescriptorSets(devicePtr->logical, writeDescriptors.size(), writeDescriptors.data(), 0, nullptr);
+    }
+}
 
 
