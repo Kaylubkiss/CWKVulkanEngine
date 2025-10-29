@@ -62,8 +62,10 @@ namespace vk
 
 		//NOTE: this will all be done offscreen because we have a main renderpass from the swapchain we'll 
 		//read the results of this from
-		Framebuffer deferredMRTFB;
-		Framebuffer deferredShadowFB;
+		struct {
+			Framebuffer deMRT;
+			Framebuffer deShadow;
+		} framebuffers;
 
 		struct DescriptorSets
 		{

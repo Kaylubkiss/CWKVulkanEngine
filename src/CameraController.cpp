@@ -28,6 +28,8 @@ void Controller::MoveCamera(Camera& camera, const float& dt)
 	SDL_Event e;
 	while (SDL_PollEvent(&e))
 	{
+	
+
 		if (e.type == SDL_WINDOWEVENT) 
 		{
 			switch (e.window.event) 
@@ -37,15 +39,15 @@ void Controller::MoveCamera(Camera& camera, const float& dt)
 					_Application->RequestExit();
 					break;
 				case SDL_WINDOWEVENT_MINIMIZED:
-					//std::cout << "window is minimized\n\n";	
+					std::cout << "window is minimized\n\n";	
 					_GraphicsContext->GetWindow().isMinimized = true;
 					return;
 				case SDL_WINDOWEVENT_MAXIMIZED:
-					//std::cout << "window is maximized\n\n";
+					std::cout << "window is maximized\n\n";
 					_Application->ResizeWindow();
 					return;
 				case SDL_WINDOWEVENT_RESTORED:
-					//std::cout << "window is restored\n\n";
+					std::cout << "window is restored\n\n";
 					_GraphicsContext->GetWindow().isMinimized = false;
 					_Application->ResizeWindow();
 					return;
@@ -56,10 +58,10 @@ void Controller::MoveCamera(Camera& camera, const float& dt)
 					_Application->ResizeWindow();
 					break;
 				case SDL_WINDOWEVENT_FOCUS_GAINED:
-					//std::cout << "window focus gained\n\n";
+					std::cout << "window focus gained\n\n";
 					break;
 				case SDL_WINDOWEVENT_FOCUS_LOST:
-					//std::cout << "window focus lost\n\n";
+					std::cout << "window focus lost\n\n";
 					break;	
 				case SDL_WINDOWEVENT_RESIZED:
 					std::cout << "window is resized\n\n";
@@ -67,18 +69,11 @@ void Controller::MoveCamera(Camera& camera, const float& dt)
 					_Application->ResizeWindow();
 					return;
 				default:
+					std::cout << "some event\n";
 					break;
 			}
 		}
-
-		ImGui_ImplSDL2_ProcessEvent(&e);
-
-		ImGuiIO& io = ImGui::GetIO();
-		if (io.WantCaptureMouse || io.WantCaptureKeyboard)
-		{
-			return;
-		}
-		
+	
 		const SDL_Keycode& keySymbol = e.key.keysym.sym;
 		if (e.type == SDL_KEYDOWN)
 		{
@@ -135,7 +130,12 @@ void Controller::MoveCamera(Camera& camera, const float& dt)
 		}
 	
 	
-		
+		ImGui_ImplSDL2_ProcessEvent(&e);
+		ImGuiIO& io = ImGui::GetIO();
+		if (io.WantCaptureMouse || io.WantCaptureKeyboard)
+		{
+			return;
+		}
 
 		if (e.button.button == SDL_BUTTON(SDL_BUTTON_LEFT) && e.button.state == SDL_PRESSED)
 		{

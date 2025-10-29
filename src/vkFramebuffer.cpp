@@ -328,12 +328,14 @@ namespace vk
 		
 		if (attachment.flags & VKC_ATTACHMENT_IS_DEPTH_STENCIL)
 		{
-			attachment.description.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
+			attachment.description.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;		
 		}
 		else 
 		{
 			attachment.description.finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 		}
+
+		attachment.layout = attachment.description.finalLayout;
 
 
 		this->attachments.push_back(attachment);

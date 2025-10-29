@@ -6,11 +6,11 @@ namespace vk
 	DeferredContext::DeferredContext()
 	{
 
-		deferredMRTFB.width = 2048;
-		deferredMRTFB.height = 2048;
+		framebuffers.deMRT.width = 2048;
+		framebuffers.deMRT.height = 2048;
 
-		deferredShadowFB.width = 2048;
-		deferredShadowFB.height = 2048;
+		framebuffers.deShadow.width = 2048;
+		framebuffers.deShadow.height = 2048;
 
 
 		defaultTexture = Texture(&this->mInfo, "wood-floor.png");
@@ -42,9 +42,9 @@ namespace vk
 
 		defaultTexture.Destroy(device.logical);
 
-		deferredMRTFB.Destroy();
+		framebuffers.deMRT.Destroy();
 		
-		deferredShadowFB.Destroy();
+		framebuffers.deMRT.Destroy();
 
 		vkDestroyDescriptorSetLayout(device.logical, this->sceneDescriptorSetLayout, nullptr);
 	}
@@ -105,16 +105,16 @@ namespace vk
 
 		//MRT resizing...
 
-		for (auto& attachment : deferredMRTFB.attachments)
+		for (auto& attachment : framebuffers.deMRT.attachments)
 		{
 			attachment.Destroy(device.logical);
 		}
 
-		deferredMRTFB.attachments.resize(0);
+		framebuffers.deMRT.attachments.resize(0);
 
 		VkFramebufferCreateInfo framebuffer = vk::init::FramebufferCreateInfo();
-		framebuffer.width = deferredMRTFB.width;
-		framebuffer.height = deferredMRTFB.height;
+		framebuffer.width = framebuffers.deMRT.width;
+		framebuffer.height = framebuffers.deMRT.height;
 		framebuffer.layers = 1;
 
 		vk::FramebufferAttachmentCreateInfo attachmentCI = {};
@@ -124,62 +124,62 @@ namespace vk
 		attachmentCI.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
 		attachmentCI.width = framebuffer.width;
 		attachmentCI.height = framebuffer.height;
-		deferredMRTFB.AddAttachment(attachmentCI);
+		framebuffers.deMRT.AddAttachment(attachmentCI);
 
 		//normal attachment
-		deferredMRTFB.AddAttachment(attachmentCI);
+		framebuffers.deMRT.AddAttachment(attachmentCI);
 
 		//albedo attachment
 		attachmentCI.format = VK_FORMAT_R8G8B8A8_UNORM;
-		deferredMRTFB.AddAttachment(attachmentCI);
+		framebuffers.deMRT.AddAttachment(attachmentCI);
 
 		//depth attachment
 		attachmentCI.format = VK_FORMAT_D24_UNORM_S8_UINT;
 		attachmentCI.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
-		deferredMRTFB.AddAttachment(attachmentCI);
+		framebuffers.deMRT.AddAttachment(attachmentCI);
 
-		deferredMRTFB.CreateFramebuffer();
+		framebuffers.deMRT.CreateFramebuffer();
 
 		//shadow resizing...
 
-		for (auto& attachment : deferredShadowFB.attachments)
+		for (auto& attachment : framebuffers.deShadow.attachments)
 		{
 			attachment.Destroy(device.logical);
 		}
 
-		deferredShadowFB.attachments.resize(0);
+		framebuffers.deShadow.attachments.resize(0);
 
 		attachmentCI = {};
 		attachmentCI.format = VK_FORMAT_D32_SFLOAT_S8_UINT;
-		attachmentCI.width = deferredShadowFB.width;
-		attachmentCI.height = deferredShadowFB.height;
+		attachmentCI.width = framebuffers.deShadow.width;
+		attachmentCI.height = framebuffers.deShadow.height;
 		attachmentCI.layerCount = LIGHT_COUNT;
 		attachmentCI.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
 
-		deferredShadowFB.AddAttachment(attachmentCI);
+		framebuffers.deShadow.AddAttachment(attachmentCI);
 
-		deferredShadowFB.CreateFramebuffer();
+		framebuffers.deShadow.CreateFramebuffer();
 
 		//writing descriptor sets
 		std::vector<VkDescriptorImageInfo> descriptorImage; //position, normal, and albedo attachments
 
-		for (const auto& attachment : deferredMRTFB.attachments)
+		for (const auto& attachment : framebuffers.deMRT.attachments)
 		{
 			if (attachment.flags & VKC_ATTACHMENT_IS_COLOR)
 			{
 				VkDescriptorImageInfo descInfo = {};
 				descInfo.imageLayout = attachment.description.finalLayout;
 				descInfo.imageView = attachment.imageView;
-				descInfo.sampler = deferredMRTFB.sampler;
+				descInfo.sampler = framebuffers.deMRT.sampler;
 
 				descriptorImage.push_back(descInfo);
 			}
 		}
 
 		VkDescriptorImageInfo shadowMapDescriptor;
-		shadowMapDescriptor.imageLayout = deferredShadowFB.attachments[0].description.finalLayout;
-		shadowMapDescriptor.imageView = deferredShadowFB.attachments[0].imageView;
-		shadowMapDescriptor.sampler = deferredShadowFB.sampler;
+		shadowMapDescriptor.imageLayout = framebuffers.deShadow.attachments[0].layout;
+		shadowMapDescriptor.imageView = framebuffers.deShadow.attachments[0].imageView;
+		shadowMapDescriptor.sampler = framebuffers.deShadow.sampler;
 
 
 		for (size_t i = 0; i < descriptorSets.size(); ++i) 
@@ -291,11 +291,11 @@ namespace vk
 
 	void DeferredContext::IntializeDeferredFramebuffer() 
 	{
-		deferredMRTFB.Init(&this->device);
+		framebuffers.deMRT.Init(&this->device);
 
 		VkFramebufferCreateInfo framebuffer = vk::init::FramebufferCreateInfo();
-		framebuffer.width = deferredMRTFB.width;
-		framebuffer.height = deferredMRTFB.height;
+		framebuffer.width = framebuffers.deMRT.width;
+		framebuffer.height = framebuffers.deMRT.height;
 		framebuffer.layers = 1;
 		
 		vk::FramebufferAttachmentCreateInfo attachmentCI = {};
@@ -305,53 +305,51 @@ namespace vk
 		attachmentCI.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
 		attachmentCI.width = framebuffer.width;
 		attachmentCI.height = framebuffer.height;
-		deferredMRTFB.AddAttachment(attachmentCI);
+		framebuffers.deMRT.AddAttachment(attachmentCI);
 		
 		//normal attachment
-		deferredMRTFB.AddAttachment(attachmentCI);
+		framebuffers.deMRT.AddAttachment(attachmentCI);
 
 		//albedo attachment
 		attachmentCI.format = VK_FORMAT_R8G8B8A8_UNORM;
-		deferredMRTFB.AddAttachment(attachmentCI);
+		framebuffers.deMRT.AddAttachment(attachmentCI);
 
 		//depth attachment
 		attachmentCI.format = VK_FORMAT_D24_UNORM_S8_UINT;
 		attachmentCI.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
-		deferredMRTFB.AddAttachment(attachmentCI);
+		framebuffers.deMRT.AddAttachment(attachmentCI);
 
-		deferredMRTFB.CreateSampler(VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE);
+		framebuffers.deMRT.CreateSampler(VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE);
 
-		deferredMRTFB.CreateRenderPass();
+		framebuffers.deMRT.CreateRenderPass();
 
-		deferredMRTFB.CreateFramebuffer();
+		framebuffers.deMRT.CreateFramebuffer();
 
 	}
 
 	void DeferredContext::InitializeDeferredShadowFramebuffer() 
 	{
-		deferredShadowFB.Init(&this->device);
+		framebuffers.deShadow.Init(&this->device);
 
 		vk::FramebufferAttachmentCreateInfo attachmentCI = {};
 
 		attachmentCI.format = VK_FORMAT_D32_SFLOAT_S8_UINT;
-		attachmentCI.width = deferredShadowFB.width;
-		attachmentCI.height = deferredShadowFB.height;
+		attachmentCI.width = framebuffers.deShadow.width;
+		attachmentCI.height = framebuffers.deShadow.height;
 		attachmentCI.layerCount = LIGHT_COUNT;
 		attachmentCI.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
 
-		deferredShadowFB.AddAttachment(attachmentCI);
+		framebuffers.deShadow.AddAttachment(attachmentCI);
 
-		deferredShadowFB.CreateSampler(VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE);
+		framebuffers.deShadow.CreateSampler(VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE);
 
-		deferredShadowFB.CreateRenderPass();
+		framebuffers.deShadow.CreateRenderPass();
 
-		deferredShadowFB.CreateFramebuffer();
+		framebuffers.deShadow.CreateFramebuffer();
 	}
 
 	void DeferredContext::InitializeDescriptors() 
 	{
-		assert(deferredMRTFB.sampler != VK_NULL_HANDLE);
-
 		const uint32_t num_pipelines = 3;
 		/* const uint32_t */
 		std::vector<VkDescriptorPoolSize> descriptorPoolSize = 
@@ -382,28 +380,28 @@ namespace vk
 		VkDescriptorSetAllocateInfo descriptorSetInfo = vk::init::DescriptorSetAllocateInfo(descriptorPool, &this->sceneDescriptorSetLayout, 1);
 		
 		std::vector<VkDescriptorImageInfo> descriptorImage; //position, normal, and albedo attachments
-		for (const auto& attachment : deferredMRTFB.attachments)
+		for (const auto& attachment : framebuffers.deMRT.attachments)
 		{
 			if (attachment.flags & VKC_ATTACHMENT_IS_SAMPLED)
 			{
 				VkDescriptorImageInfo descInfo = {};
 				descInfo.imageLayout = attachment.description.finalLayout;
 				descInfo.imageView = attachment.imageView;
-				descInfo.sampler = deferredMRTFB.sampler;
+				descInfo.sampler = framebuffers.deMRT.sampler;
 
 				descriptorImage.push_back(descInfo);
 			}
 		}
 
 		VkDescriptorImageInfo shadowMapDescriptor;
-		shadowMapDescriptor.imageLayout = deferredShadowFB.attachments[0].description.finalLayout;
-		shadowMapDescriptor.imageView = deferredShadowFB.attachments[0].imageView;
-		shadowMapDescriptor.sampler = deferredShadowFB.sampler;
+		shadowMapDescriptor.imageLayout = framebuffers.deShadow.attachments[0].layout;
+		shadowMapDescriptor.imageView = framebuffers.deShadow.attachments[0].imageView;
+		shadowMapDescriptor.sampler = framebuffers.deShadow.sampler;
 
 		VkDescriptorImageInfo albedoImageSampler = {};
 		albedoImageSampler.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 		albedoImageSampler.imageView = defaultTexture.mTextureImageView;
-		albedoImageSampler.sampler = deferredMRTFB.sampler; //reusing sampler from special framebuffer, same requirements
+		albedoImageSampler.sampler = framebuffers.deMRT.sampler; //reusing sampler from special framebuffer, same requirements
 
 		for (uint32_t i = 0; i < descriptorSets.size(); ++i) 
 		{
@@ -569,7 +567,7 @@ namespace vk
 
 		rasterizationStateCI.cullMode = VK_CULL_MODE_BACK_BIT;
 
-		pipelineCI.renderPass = deferredMRTFB.renderPass;
+		pipelineCI.renderPass = framebuffers.deMRT.renderPass;
 
 		//there are three color outputs in this stage.
 		std::array<VkPipelineColorBlendAttachmentState, 3> blendAttachmentStates = {
@@ -644,7 +642,7 @@ namespace vk
 
 				std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages;
 
-				VkGraphicsPipelineCreateInfo pipelineCI = vk::init::PipelineCreateInfo(pipelineLayout, deferredMRTFB.renderPass);
+				VkGraphicsPipelineCreateInfo pipelineCI = vk::init::PipelineCreateInfo(pipelineLayout, framebuffers.deMRT.renderPass);
 
 				pipelineCI.pInputAssemblyState = &inputAssemblyStateCI;
 				pipelineCI.pRasterizationState = &rasterizationStateCI;
@@ -688,7 +686,7 @@ namespace vk
 		dynamicStates.push_back(VK_DYNAMIC_STATE_DEPTH_BIAS);
 		dynamicStateCI = vk::init::PipelineDynamicStateCreateInfo(dynamicStates);
 
-		pipelineCI.renderPass = deferredShadowFB.renderPass;
+		pipelineCI.renderPass = framebuffers.deShadow.renderPass;
 		
 		pipelineManager.AddModule(DeferredPipelines::SHADOW, vertShaderInfo);
 		pipelineManager.AddModule(DeferredPipelines::SHADOW, geoShaderInfo);
@@ -721,16 +719,16 @@ namespace vk
 			VkRenderPassBeginInfo renderPassBI = vk::init::RenderPassBeginInfo();
 			renderPassBI.clearValueCount = 1;
 			renderPassBI.pClearValues = clearValues;
-			renderPassBI.renderArea.extent = { (uint32_t)deferredShadowFB.width, (uint32_t)deferredShadowFB.height };
-			renderPassBI.renderPass = deferredShadowFB.renderPass;
-			renderPassBI.framebuffer = deferredShadowFB.handle;
+			renderPassBI.renderArea.extent = { (uint32_t)framebuffers.deShadow.width, (uint32_t)framebuffers.deShadow.height };
+			renderPassBI.renderPass = framebuffers.deShadow.renderPass;
+			renderPassBI.framebuffer = framebuffers.deShadow.handle;
 
 			vkCmdBeginRenderPass(cmdBuffer, &renderPassBI, VK_SUBPASS_CONTENTS_INLINE);
 
-			VkViewport deferredShadowViewport = vk::init::Viewport(deferredShadowFB.width, deferredShadowFB.height);
+			VkViewport deferredShadowViewport = vk::init::Viewport(framebuffers.deShadow.width, framebuffers.deShadow.height);
 			vkCmdSetViewport(cmdBuffer, 0, 1, &deferredShadowViewport);
 
-			VkRect2D deferredShadowScissor = vk::init::Rect2D(deferredShadowFB.width, deferredShadowFB.height);
+			VkRect2D deferredShadowScissor = vk::init::Rect2D(framebuffers.deShadow.width, framebuffers.deShadow.height);
 			vkCmdSetScissor(cmdBuffer, 0, 1, &deferredShadowScissor);
 
 			vkCmdSetDepthBias(cmdBuffer, depthBiasConstant, 0.f, depthBiasSlope);
@@ -755,16 +753,16 @@ namespace vk
 			VkRenderPassBeginInfo renderPassBeginInfo = vk::init::RenderPassBeginInfo();
 			renderPassBeginInfo.clearValueCount = 4;
 			renderPassBeginInfo.pClearValues = clearValues;
-			renderPassBeginInfo.renderArea.extent = { (uint32_t)deferredMRTFB.width, (uint32_t)deferredMRTFB.height };
-			renderPassBeginInfo.renderPass = deferredMRTFB.renderPass;
-			renderPassBeginInfo.framebuffer = deferredMRTFB.handle;
+			renderPassBeginInfo.renderArea.extent = { (uint32_t)framebuffers.deMRT.width, (uint32_t)framebuffers.deMRT.height };
+			renderPassBeginInfo.renderPass = framebuffers.deMRT.renderPass;
+			renderPassBeginInfo.framebuffer = framebuffers.deMRT.handle;
 
 			vkCmdBeginRenderPass(cmdBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-			VkViewport deferredMRTViewport = vk::init::Viewport(deferredMRTFB.width, deferredMRTFB.height);
+			VkViewport deferredMRTViewport = vk::init::Viewport(framebuffers.deMRT.width, framebuffers.deMRT.height);
 			vkCmdSetViewport(cmdBuffer, 0, 1, &deferredMRTViewport);
 
-			VkRect2D deferredMRTScissor = vk::init::Rect2D(deferredMRTFB.width, deferredMRTFB.height);
+			VkRect2D deferredMRTScissor = vk::init::Rect2D(framebuffers.deMRT.width, framebuffers.deMRT.height);
 			vkCmdSetScissor(cmdBuffer, 0, 1, &deferredMRTScissor);
 
 			vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineManager.Get(DeferredPipelines::MRT));

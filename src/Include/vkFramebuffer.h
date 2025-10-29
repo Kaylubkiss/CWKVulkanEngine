@@ -38,6 +38,7 @@ namespace vk
 		VkFormat format = {};
 		VkImageSubresourceRange subresourceRange = {};
 		VkAttachmentDescription description = {};
+		VkImageLayout layout;
 		FramebufferAttachmentFlags flags = 0;
 
 		void Destroy(VkDevice l_device);
