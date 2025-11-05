@@ -55,5 +55,5 @@ Ensure to have the correct drivers installed for Vulkan 1.4 and above according 
 
 # Works In Progress (Updated 11/5/25)
 <ul>
-  <li><a href="https://www.khronos.org/gltf/">GLTF</a> loading in order to support more robust materials, animation, and faster runtime loading. The current format used is .obj, and was for a long time so I could focus on learning the basics of Vulkan Rendering</li>
+  <li><a href="https://www.khronos.org/gltf/">GLTF</a> loading in order to support more robust materials, animation, and faster runtime loading. The current format used is .obj, and was for a long time so I could focus on learning the basics of Vulkan Rendering. Right now I am integrating the <a href="https://github.com/spnda/fastgltf">fastgltf</a> library to get the most out of the format and fulfill the performance goals of this project.</li>
 </ul>
