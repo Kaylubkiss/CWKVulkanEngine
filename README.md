@@ -7,7 +7,7 @@ Hi, welcome to my Github page! As of September 25th, 2025, I've made this reposi
   <p><em>A shadow mapping implementation written under my codebase</em></p>
 </div>
 
-## Goals for this project are as follows
+# Goals for this project
 
 Learning and exploring...
 * the basics of Vulkan
@@ -52,3 +52,8 @@ Ensure to have the correct drivers installed for Vulkan 1.4 and above according 
   <li>Go to build folder, run the produced executable ("CKVulkan"), mess with it, etc.</li>
   <li>Start Coding</li>
 </ol> 
+
+# Works In Progress (Updated 11/5/25)
+<ul>
+  <li><a href="https://www.khronos.org/gltf/">GLTF</a> loading in order to support more robust materials, animation, and faster runtime loading. The current format used is .obj, and was for a long time so I could focus on learning the basics of Vulkan Rendering</li>
+</ul>
