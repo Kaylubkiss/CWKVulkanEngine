@@ -1,39 +1,29 @@
 #pragma once
 
 
-#include "Vertex.h"
-
 namespace vk 
 {
 	struct MeshBuffers 
 	{
 		vk::Buffer vertex;
+		uint32_t indexCount = 0;
 		vk::Buffer index;
 	};
 }
-
-struct MeshData
-{
-	std::vector<Vertex> vertices;
-	std::vector<uint16_t> indices;
-};
 
 struct Mesh
 {
 
 	vk::MeshBuffers buffer;
-	MeshData data;
 
 	glm::vec3 center = glm::vec3(0.f);
 
 	glm::vec3 maxLocalPoints = glm::vec3(0.f);
 	glm::vec3 minLocalPoints = glm::vec3(0.f);
 
-	static Mesh GenerateCube(int stacks, int slices);
-	static Mesh GeneratePlane(int stacks, int slices);
 	bool LoadOBJMesh(const char* filePath);
-	void ComputeVertices();
-	void ComputeVertexNormals();
+	void ComputeVertices(std::vector<Vertex>& vertexBuffer, std::vector<uint16_t>& indexBuffer);
+	void ComputeVertexNormals(std::vector<Vertex>& vertexBuffer, std::vector<uint16_t>& indexBuffer);
 
 	void Destroy(const VkDevice l_device) 
 	{

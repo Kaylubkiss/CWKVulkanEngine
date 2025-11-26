@@ -1,9 +1,7 @@
-#include "Application.h"
 #include "Controller.h"
 #include "vkFreddyHeadContext.h"
 #include "vkShadowMapContext.h"
 #include "vkDeferredShadingContext.h"
-
 
 //NOTE: to remove pesky warnings from visual studio, on dynamically allocated arrays,
 //I've used the syntax: *(array + i) to access the array instead of array[i].
@@ -48,11 +46,10 @@ void Application::run()
 
 void Application::init() 
 {
+
 	this->graphicsContext = std::make_unique<vk::DeferredContext>();
 
-	vk::DeferredContext* freddyScene = static_cast<vk::DeferredContext*>(graphicsContext.get());
-
-	this->mTextureManager.Init(this->graphicsContext.get());
+	this->mTextureManager.Init(graphicsContext.get()->GetGraphicsContextInfo());
 
 	this->objectManager.Init(
 		&this->mTextureManager, 
@@ -138,31 +135,36 @@ void Application::ResizeWindow()
 
 void Application::loop()
 {
-	//render graphics.
-	while (exitApplication == false)
-	{	
+	if (graphicsContext != nullptr) 
+	{
+		//render graphics.
+		while (exitApplication == false)
+		{
 
-		double dt = mTime.CalculateDeltaTime();
+			double dt = mTime.CalculateDeltaTime();
 
-		Controller::MoveCamera(graphicsContext->GetCamera() , dt);
+			Controller::MoveCamera(graphicsContext->GetCamera(), dt);
 
-		mPhysics.Update(dt);
+			mPhysics.Update(dt);
 
-		objectManager.Update(mPhysics.InterpFactor());
+			objectManager.Update(mPhysics.InterpFactor());
 
-		//sync this up with primary command buffer in graphics system...
-		graphicsContext->Render();
+			//sync this up with primary command buffer in graphics system...
+			graphicsContext->Render();
+		}
+
+		//when we're done with the loop, we should make sure the logical device is flushed.
+		graphicsContext->WaitForDevice();
 	}
-	
-	//when we're done with the loop, we should make sure the logical device is flushed.
-	graphicsContext->WaitForDevice();
 }
 
 
 void Application::exit()
 {
-	mTextureManager.Destroy(graphicsContext->LogicalDevice());
-	objectManager.Destroy(graphicsContext->LogicalDevice());
+	if (graphicsContext != nullptr) 
+	{
+		objectManager.Destroy(graphicsContext->LogicalDevice());
+	}
 }
 
 

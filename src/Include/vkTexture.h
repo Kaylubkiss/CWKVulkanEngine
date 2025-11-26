@@ -1,36 +1,38 @@
 #pragma once
 
+#include <fastgltf/core.hpp>
+#include <fastgltf/types.hpp>
 
 #define TEXTURE_PATH "External/textures/"
 
 namespace vk 
 {
-
 	struct Texture
 	{
 		//member variables
+		VkDevice cLogicalDevice = VK_NULL_HANDLE;
+
 		std::string mName = "";
-		VkImage mTextureImage = VK_NULL_HANDLE;
-		VkDeviceMemory mTextureMemory = VK_NULL_HANDLE;
-		VkImageView mTextureImageView = VK_NULL_HANDLE;
-		VkSampler mTextureSampler = VK_NULL_HANDLE; //different mip-levels might need different samplers
+		VkImage mImage = VK_NULL_HANDLE;
+		VkDeviceMemory mMemory = VK_NULL_HANDLE;
+		VkImageView mImageView = VK_NULL_HANDLE;
+		VkSampler mSampler = VK_NULL_HANDLE; //different mip-levels might need different samplers
 
 		VkDescriptorImageInfo descriptor = {};
 
-		static VkImageView CreateTextureView(const VkDevice l_device, const VkImage& textureImage, uint32_t mipLevels);
-		static VkSampler CreateTextureSampler(const VkPhysicalDevice p_device, const VkDevice l_device, uint32_t mipLevels);
+		static VkImageView CreateImageView(const VkDevice l_device, const VkImage& textureImage, uint32_t mipLevels);
+		static VkSampler CreateSampler(const VkPhysicalDevice p_device, const VkDevice l_device, uint32_t mipLevels);
 
 		Texture() = default;
-		~Texture() = default;
-		Texture(GraphicsContextInfo* graphicsContextInfo, const std::string& fileName);
+		Texture& operator=(const Texture& other) = delete;
+		Texture(const Texture& other) = delete;
+		~Texture();
 
-		void Destroy(const VkDevice l_device) {
+		//From filename
+		Texture(vk::Device* devicePtr, const std::string& fileName);
 
-			vkDestroySampler(l_device, mTextureSampler, nullptr);
-			vkDestroyImageView(l_device, mTextureImageView, nullptr);
-			vkDestroyImage(l_device, mTextureImage, nullptr);
-			vkFreeMemory(l_device, mTextureMemory, nullptr);
-		}
+		//From Gltf file
+		Texture(vk::Device* devicePtr, const fastgltf::Asset& asset, fastgltf::Image& gltfImage);
 	};
 
 }

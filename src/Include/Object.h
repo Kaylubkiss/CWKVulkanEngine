@@ -1,6 +1,5 @@
 #pragma once
 
-#include "Physics.h"
 #include "vkMesh.h"
 
 #define OBJECT_PATH "External/objects/"
@@ -16,7 +15,7 @@ class Object
 
 		PhysicsComponent mPhysicsComponent;
 
-		std::array<VkDescriptorSet, gMaxFramesInFlight> descriptorSets = {};
+		std::shared_ptr<VkDescriptorSet> textureDescriptorSet = nullptr;
 	public:
 		Object(const VkPhysicalDevice p_device, const VkDevice l_device,
 			const char* fileName, bool willDebugDraw = false);
@@ -25,7 +24,7 @@ class Object
 		void UpdatePhysicsComponent(const PhysicsComponent* physComp);
 		void UpdateModelTransform(const glm::mat4* modelTransform);
 		void UpdateMesh(const Mesh* mesh);
-		void UpdateDescriptorSets(std::vector<VkWriteDescriptorSet>& writeDescriptors, VkDescriptorSetAllocateInfo* descriptorSetAI = nullptr);
+		void UpdateDescriptorSet(std::vector<VkWriteDescriptorSet>& writeDescriptors, std::shared_ptr<VkDescriptorSet> descriptorSet);
 
 		Object() = default;
 		~Object() = default;

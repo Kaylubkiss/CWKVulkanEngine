@@ -1,6 +1,7 @@
- cmake_minimum_required(VERSION 3.22)
+cmake_minimum_required(VERSION 3.22)
 
 set(PROJECT_NAME "CKVulkan")
+set(CMAKE_TOOLCHAIN_FILE $ENV{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake)
 
 project("${PROJECT_NAME}" LANGUAGES CXX C)
 
@@ -19,6 +20,7 @@ set(SOURCE_FILES src/Application.cpp
 				   src/ApplicationGlobal.cpp
 				   src/CameraController.cpp
 				   src/UserInterface.cpp
+				   src/GLTFLoading.cpp
 )
 							
 set(VULKAN_ENGINE_SRC src/vkDebug.cpp
@@ -76,7 +78,7 @@ src/Include/ApplicationGlobal.h
 src/Include/Controller.h
 src/Include/SpirvHelper.h
 src/Include/UserInterface.h
-)
+src/Include/GLTFLoading.h)
 				 
 
 set(VULKAN_ENGINE_HEADERS 
@@ -150,6 +152,10 @@ set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT "
 
 find_package(Vulkan REQUIRED)
 
+find_package(fastgltf CONFIG REQUIRED)
+
+
+
 if (UNIX)
 
 	find_package(SDL2 REQUIRED CONFIG REQUIRED COMPONENTS SDL2)
@@ -173,9 +179,13 @@ if (WIN32)
 	target_link_libraries("${PROJECT_NAME}" 
 	SDL2.lib
 	vulkan-1.lib
-	SDL2main.lib)
+	SDL2main.lib
+	fastgltf::fastgltf)
 
-	target_link_directories("${PROJECT_NAME}" PUBLIC $ENV{VULKAN_SDK}/Lib src/External/libraries/ReactPhysics3D/lib)
+	target_link_libraries("${PROJECT_NAME}" )
+
+	target_link_directories("${PROJECT_NAME}" PUBLIC $ENV{VULKAN_SDK}/Lib 
+	src/External/libraries/ReactPhysics3D/lib)
 	
 	target_link_libraries(${PROJECT_NAME} debug reactphysics3dd.lib general reactphysics3d.lib)
 	target_link_libraries(${PROJECT_NAME} debug shaderc_combinedd.lib general shaderc_combined.lib)

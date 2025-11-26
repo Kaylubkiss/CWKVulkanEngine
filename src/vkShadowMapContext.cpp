@@ -371,62 +371,62 @@ namespace vk
 
 	void ShadowMapScene::InitializeDescriptors() 
 	{
-		const uint32_t num_shaders = 3;
+		//const uint32_t num_shaders = 3;
 
-		std::vector<VkDescriptorPoolSize> poolSizes = {
-			vk::init::DescriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, num_shaders),
-			vk::init::DescriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, num_shaders)
-		};
-		VkDescriptorPoolCreateInfo poolCreateInfo = vk::init::DescriptorPoolCreateInfo(poolSizes, num_shaders);
-		VK_CHECK_RESULT(vkCreateDescriptorPool(device.logical, &poolCreateInfo, nullptr, &this->descriptorPool));
+		//std::vector<VkDescriptorPoolSize> poolSizes = {
+		//	vk::init::DescriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, num_shaders),
+		//	vk::init::DescriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, num_shaders)
+		//};
+		//VkDescriptorPoolCreateInfo poolCreateInfo = vk::init::DescriptorPoolCreateInfo(poolSizes, num_shaders);
+		//VK_CHECK_RESULT(vkCreateDescriptorPool(device.logical, &poolCreateInfo, nullptr, &this->descriptorPool));
 
-		std::vector<VkDescriptorSetLayoutBinding> setLayoutBinding = 
-		{
-			vk::init::DescriptorLayoutBinding(0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT),
-			//sampler (shadow map)
-			vk::init::DescriptorLayoutBinding(1, 1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT)
-		};
-		VkDescriptorSetLayoutCreateInfo layoutCreateInfo = vk::init::DescriptorSetLayoutCreateInfo(setLayoutBinding);
-		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device.logical, &layoutCreateInfo, nullptr, &sceneDescriptorLayout));
+		//std::vector<VkDescriptorSetLayoutBinding> setLayoutBinding = 
+		//{
+		//	vk::init::DescriptorLayoutBinding(0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT),
+		//	//sampler (shadow map)
+		//	vk::init::DescriptorLayoutBinding(1, 1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT)
+		//};
+		//VkDescriptorSetLayoutCreateInfo layoutCreateInfo = vk::init::DescriptorSetLayoutCreateInfo(setLayoutBinding);
+		//VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device.logical, &layoutCreateInfo, nullptr, &sceneDescriptorLayout));
 
 
-		VkDescriptorImageInfo shadowMapDescriptor = {};
-		shadowMapDescriptor.imageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
-		shadowMapDescriptor.imageView = offscreenPass.depth.imageView;
-		shadowMapDescriptor.sampler = offscreenPass.depthSampler;
+		//VkDescriptorImageInfo shadowMapDescriptor = {};
+		//shadowMapDescriptor.imageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
+		//shadowMapDescriptor.imageView = offscreenPass.depth.imageView;
+		//shadowMapDescriptor.sampler = offscreenPass.depthSampler;
 
-		//offscreen rendering
-		VkDescriptorSetAllocateInfo allocInfo = vk::init::DescriptorSetAllocateInfo(descriptorPool, &sceneDescriptorLayout, 1);
-		VK_CHECK_RESULT(vkAllocateDescriptorSets(device.logical, &allocInfo, &descriptorSets.offscreen));
+		////offscreen rendering
+		//VkDescriptorSetAllocateInfo allocInfo = vk::init::DescriptorSetAllocateInfo(descriptorPool, &sceneDescriptorLayout, 1);
+		//VK_CHECK_RESULT(vkAllocateDescriptorSets(device.logical, &allocInfo, &descriptorSets.offscreen));
 
-		std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
-			vk::init::WriteDescriptorSet(descriptorSets.offscreen, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &uniformBuffers.offscreen.descriptor)
-		};
+		//std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
+		//	vk::init::WriteDescriptorSet(descriptorSets.offscreen, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &uniformBuffers.offscreen.descriptor)
+		//};
 
-		vkUpdateDescriptorSets(device.logical, (uint32_t)writeDescriptorSets.size(), writeDescriptorSets.data(), 0, nullptr);
+		//vkUpdateDescriptorSets(device.logical, (uint32_t)writeDescriptorSets.size(), writeDescriptorSets.data(), 0, nullptr);
 
-		//offscreen render debug 
-		VK_CHECK_RESULT(vkAllocateDescriptorSets(device.logical, &allocInfo, &descriptorSets.offscreenDebug));
-		writeDescriptorSets = {
-			vk::init::WriteDescriptorSet(descriptorSets.offscreenDebug, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &uniformBuffers.scene.descriptor),
-			vk::init::WriteDescriptorSet(descriptorSets.offscreenDebug, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, &shadowMapDescriptor)
-		};
-		vkUpdateDescriptorSets(device.logical, (uint32_t)writeDescriptorSets.size(), writeDescriptorSets.data(), 0, nullptr);
+		////offscreen render debug 
+		//VK_CHECK_RESULT(vkAllocateDescriptorSets(device.logical, &allocInfo, &descriptorSets.offscreenDebug));
+		//writeDescriptorSets = {
+		//	vk::init::WriteDescriptorSet(descriptorSets.offscreenDebug, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &uniformBuffers.scene.descriptor),
+		//	vk::init::WriteDescriptorSet(descriptorSets.offscreenDebug, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, &shadowMapDescriptor)
+		//};
+		//vkUpdateDescriptorSets(device.logical, (uint32_t)writeDescriptorSets.size(), writeDescriptorSets.data(), 0, nullptr);
 
-		//scene descriptor with shadow applied
-		VK_CHECK_RESULT(vkAllocateDescriptorSets(device.logical, &allocInfo, &descriptorSets.scene));
-		writeDescriptorSets = {
-			//uniform transforms...
-			vk::init::WriteDescriptorSet(descriptorSets.scene, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &uniformBuffers.scene.descriptor),
-			// object texture...?
-			//shadow map texture
-			vk::init::WriteDescriptorSet(descriptorSets.scene, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, &shadowMapDescriptor)
-		};
+		////scene descriptor with shadow applied
+		//VK_CHECK_RESULT(vkAllocateDescriptorSets(device.logical, &allocInfo, &descriptorSets.scene));
+		//writeDescriptorSets = {
+		//	//uniform transforms...
+		//	vk::init::WriteDescriptorSet(descriptorSets.scene, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &uniformBuffers.scene.descriptor),
+		//	// object texture...?
+		//	//shadow map texture
+		//	vk::init::WriteDescriptorSet(descriptorSets.scene, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, &shadowMapDescriptor)
+		//};
 
-		//TODO: janky mInfo....
-		mInfo.sceneWriteDescriptorSets = writeDescriptorSets;
+		////TODO: janky mInfo....
+		//mInfo.sceneWriteDescriptorSets = writeDescriptorSets;
 
-		vkUpdateDescriptorSets(device.logical, (uint32_t)writeDescriptorSets.size(), writeDescriptorSets.data(), 0, nullptr);
+		//vkUpdateDescriptorSets(device.logical, (uint32_t)writeDescriptorSets.size(), writeDescriptorSets.data(), 0, nullptr);
 	}
 
 	void ShadowMapScene::FillOutGraphicsContextInfo() 

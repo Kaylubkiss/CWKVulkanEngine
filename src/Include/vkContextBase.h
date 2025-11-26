@@ -1,11 +1,9 @@
 #pragma once
 
-#include "vkDevice.h"
+#include "vkWindow.h"
 #include "vkSwapChain.h"
-#include "vkPipelineManager.h"
 #include "vkFramebuffer.h"
-#include "UserInterface.h"
-#include "Camera.h"
+#include "vkPipelineManager.h"
 
 namespace vk
 {
@@ -20,10 +18,11 @@ namespace vk
 			GraphicsContextInfo mInfo;//this is for textureManager and potentially any other discrete systems.
 			//WARNING: context specific!!!
 
-			struct {
+			struct Settings {
 				uint32_t maxFramesInFlight = 2;
 				bool minimized = false;
-				const bool UIEnabled = true;
+				bool UIEnabled = true;
+				bool validationLayers = true;
 			} settings;
 
 			vk::Window window;
@@ -37,7 +36,6 @@ namespace vk
 			uint32_t currentFrame = 0;
 			uint32_t currentImageIndex = 0;
 
-			VkCommandPool commandPool = VK_NULL_HANDLE;
 			std::array<VkCommandBuffer, gMaxFramesInFlight> commandBuffers;
 
 			std::array<VkSemaphore, gMaxFramesInFlight> presentCompleteSemaphores;
@@ -88,7 +86,7 @@ namespace vk
 
 		protected:
 
-			void PrepareFrame();
+			bool PrepareFrame();
 			//more pure virtual function(s)
 			virtual void InitializePipeline(std::string vsFile = "", std::string fsFile = "") = 0;
 			virtual void InitializeDescriptors() = 0;

@@ -110,17 +110,16 @@ namespace vk {
 
 	void UserInterface::AddImage(const vk::Texture& texture) 
 	{
-		std::cout << "adding image to UI\n";
-
-		if (texture.mTextureImageView == VK_NULL_HANDLE)
+		if (texture.mImageView == VK_NULL_HANDLE)
 		{
-			std::cout << "huh\n" << std::endl;
+			std::cerr << "texture not intialized\n";
+			throw std::runtime_error("UserInterface::AddImage() failed\n");
 		}
 
 		displayTextures.emplace_back(
 			ImGui_ImplVulkan_AddTexture(
-				texture.mTextureSampler,
-				texture.mTextureImageView,
+				texture.mSampler,
+				texture.mImageView,
 				VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
 			)
 		);

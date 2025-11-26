@@ -19,6 +19,8 @@ namespace vk
 
 		vkGetDeviceQueue(this->logical, graphicsQueue.family, 0, &graphicsQueue.handle);
 		vkGetDeviceQueue(this->logical, presentQueue.family, 0, &presentQueue.handle);
+
+		this->commandPool = vk::init::CommandPool(this->logical, VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT, graphicsQueue.family);
 	}
 
 	void Device::Destroy() 
@@ -227,4 +229,51 @@ namespace vk
 		return Buffer(this->physical,this->logical, size, usage, flags, data);
 	}
 
+	VkCommandBuffer Device::CreateCommandBuffer(VkCommandBufferLevel level, bool begin) 
+	{
+
+		VkCommandBufferAllocateInfo cmdBufAllocateInfo = vk::init::CommandBufferAllocateInfo();
+		cmdBufAllocateInfo.commandPool = commandPool;
+		cmdBufAllocateInfo.level = level;
+		cmdBufAllocateInfo.commandBufferCount = 1;
+		
+		VkCommandBuffer cmdBuffer;
+		VK_CHECK_RESULT(vkAllocateCommandBuffers(this->logical, &cmdBufAllocateInfo, &cmdBuffer));
+
+		if (begin) 
+		{
+			VkCommandBufferBeginInfo cmdBufInfo = vk::init::CommandBufferBeginInfo();
+			VK_CHECK_RESULT(vkBeginCommandBuffer(cmdBuffer, &cmdBufInfo));
+		}
+
+		return cmdBuffer;
+	}
+
+	void Device::FlushCommandBuffer(VkCommandBuffer cmdBuffer, VkQueue queue, VkCommandPool pool, bool free) 
+	{
+		//create a fence, submit the work to the gpu, and then delete the fence and free the command buffer
+
+		VkSubmitInfo submitInfo = vk::init::SubmitInfo();
+		submitInfo.commandBufferCount = 1;
+		submitInfo.pCommandBuffers = &cmdBuffer;
+
+		VK_CHECK_RESULT(vkEndCommandBuffer(cmdBuffer)); 
+
+		VkFenceCreateInfo fenceCI = vk::init::FenceCreateInfo();
+		VkFence fence;
+		VK_CHECK_RESULT(vkCreateFence(this->logical, &fenceCI, nullptr, &fence));	
+
+		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, fence));
+
+		VK_CHECK_RESULT(vkWaitForFences(this->logical, 1, &fence, VK_TRUE, UINT64_MAX));
+
+		vkDestroyFence(this->logical, fence, nullptr);
+
+		if (free) 
+		{
+			vkFreeCommandBuffers(this->logical, pool, 1, &cmdBuffer);
+			cmdBuffer = VK_NULL_HANDLE;
+		}
+
+	}
 }

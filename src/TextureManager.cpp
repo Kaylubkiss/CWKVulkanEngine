@@ -6,28 +6,28 @@
 namespace vk 
 {
 	
-	void TextureManager::Init(ContextBase* context)
+	void TextureManager::Init(GraphicsContextInfo contextInfo)
 	{
-		assert(context != nullptr);
-		//this->graphicsContext = context;
-		graphicsContextInfo = context->GetGraphicsContextInfo();
+		assert(contextInfo.devicePtr != nullptr);
+		graphicsContextInfo = contextInfo;
 	}
 
 	bool TextureManager::AddTexture(GraphicsContextInfo* graphicsContextInfo, const std::string& fileName)
 	{
 		if (graphicsContextInfo)
 		{
-			Texture newTexture = Texture(graphicsContextInfo, fileName);
+			std::unique_ptr<Texture> newTexture = std::make_unique<Texture>(graphicsContextInfo->devicePtr, fileName);
 
-			if (newTexture.mTextureImage != VK_NULL_HANDLE) 
+			if (newTexture.get()->mImage != VK_NULL_HANDLE) 
 			{
-				this->mTextures.push_back(newTexture);
-
 				UserInterface* UI = graphicsContextInfo->contextUIPtr;
+
 				if (UI)
 				{
-					UI->AddImage(newTexture);
+					UI->AddImage(*newTexture.get());
 				}
+
+				this->mTextures[fileName].first = std::move(newTexture);
 
 				return true;
 			}
@@ -36,37 +36,16 @@ namespace vk
 		return false;
 	}
 
-	void TextureManager::Destroy(const VkDevice l_device) 
+	VkDescriptorImageInfo TextureManager::GetTextureDescriptorSet(const char* fileName)
 	{
-		for (size_t i = 0; i < mTextures.size(); ++i)
+		if (mTextures.count(fileName) == 1) 
 		{
-			mTextures[i].Destroy(l_device);
-		}
-	}
-
-	const Texture& TextureManager::GetTextureObject(size_t index) const
-	{
-		if (index < 0 || index >= mTextures.size()) 
-		{
-			throw std::runtime_error("could not find specified texture!\n");
-		}
-
-		return mTextures[index];
-	}
-
-	int TextureManager::GetTextureIndexByName(const char* fileName) const 
-	{
-		for (size_t i = 0; i < mTextures.size(); ++i)
-		{
-			if (strcmp(fileName, mTextures[i].mName.c_str()) == 0)
-			{
-				return i;
-			}
+			return mTextures[fileName].first.get()->descriptor;
 		}
 
 		std::cerr << "could not find specified texture!\n";
 
-		return -1;
+		return {};
 
 	}
 
@@ -74,28 +53,30 @@ namespace vk
 	{
 		if (fileName != "")
 		{
-			std::vector<VkWriteDescriptorSet> descriptorWrites = graphicsContextInfo.sceneWriteDescriptorSets; //TODO: copying a vector...inefficient.
+			auto descriptorWrites = graphicsContextInfo.sceneWriteDescriptorSets; //TODO: copying a 2D vector...inefficient.
 
 			VkDescriptorSetAllocateInfo descriptorSetInfo = vk::init::DescriptorSetAllocateInfo
 			(
 				graphicsContextInfo.descriptorPool,
 				&graphicsContextInfo.descriptorSetLayout, 1
 			);
-
-			int index = TextureManager::GetTextureIndexByName(fileName.c_str());
-			if (index < 0)
+			
+			if (mTextures.count(fileName) == 0)
 			{
-				std::cout << "adding texture...\n";
+				bool result = AddTexture(&graphicsContextInfo, fileName);
 
-				bool result  = AddTexture(&graphicsContextInfo, fileName);
-
-				if (!result) 
+				if (!result)
 				{
+					std::cerr << "Could not load " << fileName << std::endl;
+					std::cerr << "BindTextureToObject() failed\n";
 					return;
 				}
 
-				index = mTextures.size() - 1;
 
+				VkDescriptorSet nDescriptorSet = VK_NULL_HANDLE;
+				VK_CHECK_RESULT(vkAllocateDescriptorSets(graphicsContextInfo.devicePtr->logical, &descriptorSetInfo, &nDescriptorSet));
+
+				mTextures[fileName].second = std::make_shared<VkDescriptorSet>(nDescriptorSet);
 			}
 
 			VkWriteDescriptorSet dscWrite = vk::init::WriteDescriptorSet
@@ -103,19 +84,14 @@ namespace vk
 				VK_NULL_HANDLE,
 				VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
 				graphicsContextInfo.samplerBinding,
-				&mTextures[index].descriptor
+				&mTextures[fileName].first.get()->descriptor
 			);
-
+			
 			descriptorWrites.push_back(dscWrite);
 
-			obj.UpdateDescriptorSets(descriptorWrites, &descriptorSetInfo);
+			obj.UpdateDescriptorSet(descriptorWrites, mTextures[fileName].second);
 		}
 
 	}
 
-
-	const std::vector<vk::Texture>& TextureManager::Textures() const 
-	{
-		return this->mTextures;
-	}
 }

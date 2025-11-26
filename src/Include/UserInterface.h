@@ -1,7 +1,4 @@
 #pragma once
-
-#include "vkTexture.h"
-
 namespace vk 
 {
 	struct UserInterfaceInitInfo 

@@ -1,9 +1,6 @@
 #pragma once
 
 #include "shaderc/shaderc.hpp"
-#include <vector>
-#include <stdexcept>
-#include <iostream>
 
 namespace vk 
 {

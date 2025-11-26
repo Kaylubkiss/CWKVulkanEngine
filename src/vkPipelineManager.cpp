@@ -47,7 +47,9 @@ namespace vk
 
 	void PipelineManager::Init(const GraphicsContextInfo& contextInfo)
 	{
-		contextLogicalDevice = contextInfo.logicalDevice;
+		assert(contextInfo.devicePtr);
+
+		contextLogicalDevice = contextInfo.devicePtr->logical;
 	}
 
 	void PipelineManager::Destroy()
@@ -78,25 +80,6 @@ namespace vk
 		{
 			pipelines[pipeline].createFunc = std::move(createFunc);
 		}
-	}
-
-	//TODO: remove this entirely, only serviced the freddy head scene.
-	void PipelineManager::Finalize(const VkDevice l_device, const VkPhysicalDevice p_device, const vk::Window& appWindow, VkPrimitiveTopology topology)
-	{
-		/*this->mTopology = topology;
-
-		std::vector<VkPipelineShaderStageCreateInfo> shaderStageCreateInfo;
-
-		for (size_t i = 0; i < shaderModules.size(); ++i){
-			shaderStageCreateInfo.push_back(vk::init::PipelineShaderStageCreateInfo(shaderModules[i].mHandle, shaderModules[i].mFlags));
-		}
-
-		this->handle = vk::init::CreateGraphicsPipeline(l_device, this->layout, this->mRenderPass,
-												shaderStageCreateInfo.data(), 
-												shaderStageCreateInfo.size(), 
-												this->mTopology);
-
-		return *this;*/
 	}
 
 	void PipelineManager::HotReloadShaders() 

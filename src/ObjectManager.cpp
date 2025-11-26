@@ -28,7 +28,7 @@ namespace vk
 
 			delete deepyCopyCI.pModelTransform;
 			delete deepyCopyCI.pPhysicsComponent;
-			};
+		};
 
 		mThreadWorkers.EnqueueTask(parallelFunction);
 	}
@@ -53,13 +53,16 @@ namespace vk
 	{
 		this->mThreadWorkers.Terminate();
 
-		for (auto& obj : objects)
+		if (l_device != VK_NULL_HANDLE) 
 		{
-			Object* curr_obj = obj.second.obj;
-
-			if (curr_obj != nullptr)
+			for (auto& obj : objects)
 			{
-				curr_obj->Destroy(l_device);
+				Object* curr_obj = obj.second.obj;
+
+				if (curr_obj != nullptr)
+				{
+					curr_obj->Destroy(l_device);
+				}
 			}
 		}
 	}

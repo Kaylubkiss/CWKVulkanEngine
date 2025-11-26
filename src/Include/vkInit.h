@@ -1,7 +1,5 @@
 #pragma once
 
-#include <vector>
-
 namespace vk
 {
 	namespace init 
@@ -23,6 +21,8 @@ namespace vk
 		VkSemaphore CreateSemaphore(const VkDevice l_device);
 
 		VkFence CreateFence(const VkDevice l_device);
+
+		VkFenceCreateInfo FenceCreateInfo(VkFenceCreateFlags flags = 0);
 
 		VkPipelineLayout CreatePipelineLayout(const VkDevice l_device, const VkDescriptorSetLayout descriptorSetLayout, std::vector<VkPushConstantRange>& pushConstantRanges);
 
@@ -98,6 +98,8 @@ namespace vk
 		VkRect2D Rect2D(uint32_t width, uint32_t height, int32_t offset_x = 0, int32_t offset_y = 0);
 
 		VkCommandBufferAllocateInfo CommandBufferAllocateInfo();
+
+		VkSubmitInfo SubmitInfo();
 
 		//special engine-specific resources
 		VkImage CreateImage

@@ -1,7 +1,5 @@
-#include "vkUtility.h"
-#include <string>
-#include <fstream>
 #include "SpirvHelper.h"
+#include <fstream>
 
 namespace vk {
 
@@ -414,7 +412,7 @@ namespace vk {
 		bool CheckLayerSupport(const char* layers[], int layersSize)
 		{
 			uint32_t layerCount = 0;
-    	vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
+    		vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
 
 			std::vector<VkLayerProperties> availableLayers(layerCount);
 			vkEnumerateInstanceLayerProperties(&layerCount, availableLayers.data());

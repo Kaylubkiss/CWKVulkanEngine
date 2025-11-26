@@ -39,8 +39,6 @@ namespace vk
 	{
 		sceneUniformBuffer.Destroy();
 
-		defaultTexture.Destroy(device.logical);
-
 		vkDestroyDescriptorSetLayout(this->device.logical, this->descriptorSetLayout, nullptr);
 	}
 
@@ -94,52 +92,52 @@ namespace vk
 	void FreddyHeadScene::InitializeDescriptors()
 	{
 
-		std::vector<VkDescriptorPoolSize> poolSizes = {
-			vk::init::DescriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 2 * 2),
-			//we are concerned about the fragment stage, so we double the descriptor count here.
-			vk::init::DescriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1 * 2) //max numbers of frames in flight times two to accomodate the gui.
-		};
+		//std::vector<VkDescriptorPoolSize> poolSizes = {
+		//	vk::init::DescriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 2 * 2),
+		//	//we are concerned about the fragment stage, so we double the descriptor count here.
+		//	vk::init::DescriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1 * 2) //max numbers of frames in flight times two to accomodate the gui.
+		//};
 
-		VkDescriptorPoolCreateInfo poolInfo = vk::init::DescriptorPoolCreateInfo(poolSizes, 4);
-		descriptorPool = vk::init::DescriptorPool(device.logical, poolInfo);
-
-
-		FillOutGraphicsContextInfo();
-		defaultTexture = Texture(&mInfo, "myface.JPG");
-
-		std::vector<VkDescriptorSetLayoutBinding> dscSetLayoutBindings = {
-			//for the scene transform and kight transform
-			vk::init::DescriptorLayoutBinding(0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT),
-			//for the texture sampler
-			vk::init::DescriptorLayoutBinding(1, 1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT),
-		};
-
-		this->descriptorSetLayout = vk::init::DescriptorSetLayout(device.logical, dscSetLayoutBindings.data(), (uint32_t)dscSetLayoutBindings.size());
-
-		sceneDescriptorSet = vk::init::DescriptorSet(device.logical, descriptorPool, descriptorSetLayout);
+		//VkDescriptorPoolCreateInfo poolInfo = vk::init::DescriptorPoolCreateInfo(poolSizes, 4);
+		//descriptorPool = vk::init::DescriptorPool(device.logical, poolInfo);
 
 
-		VkDescriptorImageInfo defaultTextureDescriptor = {};
-		defaultTextureDescriptor.imageLayout = VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL;
-		defaultTextureDescriptor.imageView = defaultTexture.mTextureImageView;
-		defaultTextureDescriptor.sampler = defaultTexture.mTextureSampler;
+		//FillOutGraphicsContextInfo();
+		//defaultTexture = Texture(&mInfo, "myface.JPG");
 
-		std::vector<VkWriteDescriptorSet> writeDescriptorSets =
-		{
-			//uniform transforms
-			vk::init::WriteDescriptorSet(sceneDescriptorSet, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &sceneUniformBuffer.descriptor),
-			vk::init::WriteDescriptorSet(sceneDescriptorSet, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, &defaultTextureDescriptor)
-		};
+		//std::vector<VkDescriptorSetLayoutBinding> dscSetLayoutBindings = {
+		//	//for the scene transform and kight transform
+		//	vk::init::DescriptorLayoutBinding(0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT),
+		//	//for the texture sampler
+		//	vk::init::DescriptorLayoutBinding(1, 1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT),
+		//};
 
-		vkUpdateDescriptorSets(device.logical, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, nullptr);
+		//this->descriptorSetLayout = vk::init::DescriptorSetLayout(device.logical, dscSetLayoutBindings.data(), (uint32_t)dscSetLayoutBindings.size());
 
-		//TODO: janky mInfo stuff for texturemanager......
-		writeDescriptorSets = 
-		{
-			vk::init::WriteDescriptorSet(sceneDescriptorSet, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &sceneUniformBuffer.descriptor)
-		};
+		//sceneDescriptorSet = vk::init::DescriptorSet(device.logical, descriptorPool, descriptorSetLayout);
 
-		mInfo.sceneWriteDescriptorSets = writeDescriptorSets;
+
+		//VkDescriptorImageInfo defaultTextureDescriptor = {};
+		//defaultTextureDescriptor.imageLayout = VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL;
+		//defaultTextureDescriptor.imageView = defaultTexture.mTextureImageView;
+		//defaultTextureDescriptor.sampler = defaultTexture.mTextureSampler;
+
+		//std::vector<VkWriteDescriptorSet> writeDescriptorSets =
+		//{
+		//	//uniform transforms
+		//	vk::init::WriteDescriptorSet(sceneDescriptorSet, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &sceneUniformBuffer.descriptor),
+		//	vk::init::WriteDescriptorSet(sceneDescriptorSet, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, &defaultTextureDescriptor)
+		//};
+
+		//vkUpdateDescriptorSets(device.logical, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, nullptr);
+
+		////TODO: janky mInfo stuff for texturemanager......
+		//writeDescriptorSets = 
+		//{
+		//	vk::init::WriteDescriptorSet(sceneDescriptorSet, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &sceneUniformBuffer.descriptor)
+		//};
+
+		//mInfo.sceneWriteDescriptorSets = writeDescriptorSets;
 	}
 
 	void FreddyHeadScene::FillOutGraphicsContextInfo() 

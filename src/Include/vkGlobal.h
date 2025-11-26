@@ -1,7 +1,10 @@
 #pragma once
 
-#include <queue>
+#include "Vertex.h"
 #include "vkBuffer.h"
+#include "vkDevice.h"
+#include "vkTexture.h"
+#include "UserInterface.h"
 
 const uint32_t gMaxFramesInFlight = 3;
 
@@ -24,52 +27,36 @@ struct uLightObject
 
 };
 
-
 namespace vk
 {
-	class UserInterface;
 
 	static const char* instanceExtensions[1] =
 	{
 		VK_EXT_DEBUG_UTILS_EXTENSION_NAME
 	};
 
-	struct Queue 
-	{
-		VkQueue handle = VK_NULL_HANDLE;
-		uint32_t family = uint32_t(-1);
-	};
-
-	struct UniformTransform 
-	{
-		uTransformObject data;
-		vk::Buffer buffer;
-	};
-
-
-
 	//created in response to the need of texture manager. It needs a lot of graphics context state, but the calls to 
 	//function methods of the context to get this information seemed inconvenient.
 	//in turn, I've had to create this data structure which contains all the information that
 	//texture manager needs of the current context.
 	//it's a little janky.
-	struct GraphicsContextInfo 
+	struct GraphicsContextInfo
 	{
-		std::vector<VkWriteDescriptorSet> sceneWriteDescriptorSets; //2d array because of multiple swapchains
+		std::vector<VkWriteDescriptorSet> sceneWriteDescriptorSets; //2D array because multiple descriptor sets.
 		VkDescriptorSetLayout descriptorSetLayout = VK_NULL_HANDLE;
 		VkDescriptorPool descriptorPool = VK_NULL_HANDLE;
-		VkDevice logicalDevice = VK_NULL_HANDLE;
-		VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
-		vk::Queue graphicsQueue = {};
-		uint32_t samplerBinding = 0; //TODO: what if there are multiple sampler bindings across different objects?
+		uint32_t samplerBinding = 0;
+		vk::Device* devicePtr = nullptr;
 
 		vk::UserInterface* contextUIPtr = nullptr;
 	};
 
-	
 
 	VkCommandBuffer beginSingleTimeCommand(const VkDevice l_device, const VkCommandPool cmdPool);
 
 	void endSingleTimeCommand(const VkDevice l_device, VkCommandBuffer commandBuffer, const VkCommandPool cmdPool, const VkQueue gfxQueue);
 }
+
+
+
 

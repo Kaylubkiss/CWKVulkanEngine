@@ -79,7 +79,7 @@ namespace vk
 	{
 		if (this->mappedMemory == nullptr) 
 		{
-			VK_CHECK_RESULT(vkMapMemory(this->logicalDevice, this->memory, 0, VK_WHOLE_SIZE, 0, &this->mappedMemory));
+			VK_CHECK_RESULT(vkMapMemory(this->logicalDevice, this->memory, 0, this->size, 0, &this->mappedMemory));
 		}
 	}
 
@@ -88,7 +88,7 @@ namespace vk
 		VkMappedMemoryRange mappedRange = vk::init::MappedMemoryRange();
 		mappedRange.memory = this->memory;
 		mappedRange.offset = 0;
-		mappedRange.size = VK_WHOLE_SIZE;
+		mappedRange.size = this->size;
 		vkFlushMappedMemoryRanges(this->logicalDevice, 1, &mappedRange);
 	}
 
@@ -104,18 +104,19 @@ namespace vk
 
 	void Buffer::Destroy() 
 	{
-		assert(logicalDevice != VK_NULL_HANDLE);
-
-		if (this->memory != VK_NULL_HANDLE)
+		if (logicalDevice != VK_NULL_HANDLE) 
 		{
-			vkFreeMemory(logicalDevice, this->memory, nullptr);
-			this->memory = VK_NULL_HANDLE;
-		}
+			if (this->memory != VK_NULL_HANDLE)
+			{
+				vkFreeMemory(logicalDevice, this->memory, nullptr);
+				this->memory = VK_NULL_HANDLE;
+			}
 
-		if (this->handle != VK_NULL_HANDLE)
-		{
-			vkDestroyBuffer(logicalDevice, this->handle, nullptr);
-			this->handle = VK_NULL_HANDLE;
+			if (this->handle != VK_NULL_HANDLE)
+			{
+				vkDestroyBuffer(logicalDevice, this->handle, nullptr);
+				this->handle = VK_NULL_HANDLE;
+			}
 		}
 	}
 }

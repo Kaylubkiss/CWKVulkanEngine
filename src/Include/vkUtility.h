@@ -1,11 +1,6 @@
 #pragma once
 
-#include <array>
-#include <cassert>
-#include <iostream>
-#include <cmath>
-#include <string>
-#include <vector>
+
 #include "shaderc/shaderc.h"
 
 #define VK_CHECK_RESULT(function) {VkResult check = function; if (check != VK_SUCCESS) {std::cout << check << '\n';} assert(check == VK_SUCCESS);}

@@ -1,11 +1,12 @@
 #pragma once
 #include "Timer.h"
 #include "Camera.h"
-#include "vkWindow.h"
-#include "vkContextBase.h"
-#include "ObjectManager.h"
-#include "TextureManager.h"
 #include "Physics.h"
+#include "Object.h"
+#include "TextureManager.h"
+#include "ObjectManager.h"
+#include "vkContextBase.h"
+#include "GLTFLoading.h"
 
 class Application
 {
@@ -32,13 +33,18 @@ public:
 
 private:
 
+	//this MUST be declared at the top so that it's destructor is called last.
+	std::unique_ptr<vk::ContextBase> graphicsContext;
+
 	Timer mTime;
 	PhysicsSystem mPhysics;
 
 	vk::TextureManager mTextureManager;
 	vk::ObjectManager objectManager;
 
-	std::unique_ptr<vk::ContextBase> graphicsContext;
+
+	//TEMPORARY
+	
 
 	void init();
 	void loop();

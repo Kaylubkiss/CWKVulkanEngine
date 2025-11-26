@@ -34,11 +34,10 @@ namespace vk
 
 		CreateSynchronizationPrimitives();
 
-		this->commandPool = vk::init::CommandPool(device.logical, VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
 		//each swapchain should have its own command buffer
 		VkCommandBufferAllocateInfo cmdBufferAllocateInfo = vk::init::CommandBufferAllocateInfo();
 		cmdBufferAllocateInfo.commandBufferCount = (uint32_t)this->commandBuffers.size();
-		cmdBufferAllocateInfo.commandPool = this->commandPool;
+		cmdBufferAllocateInfo.commandPool = this->device.commandPool;
 		cmdBufferAllocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
 		VK_CHECK_RESULT(vkAllocateCommandBuffers(device.logical, &cmdBufferAllocateInfo, commandBuffers.data()));
 
@@ -67,29 +66,32 @@ namespace vk
 	//destructor
 	ContextBase::~ContextBase()
 	{
-		pipelineManager.Destroy();
-		swapChain.Destroy();
-		UIOverlay.Destroy();
-
-		vkDestroyPipelineLayout(device.logical, pipelineLayout, nullptr);
-		vkDestroyDescriptorPool(device.logical, this->descriptorPool, nullptr);
-
-		vkFreeCommandBuffers(device.logical, this->commandPool, this->commandBuffers.size(), this->commandBuffers.data());
-		vkDestroyCommandPool(device.logical, this->commandPool, nullptr);
-
-		//semaphores
-		for (int i = 0; i < gMaxFramesInFlight; ++i)
+		if (device.logical != VK_NULL_HANDLE) 
 		{
-			vkDestroySemaphore(this->device.logical, presentCompleteSemaphores[i], nullptr);
-			vkDestroySemaphore(this->device.logical, renderCompleteSemaphores[i], nullptr);
+			pipelineManager.Destroy();
+			swapChain.Destroy();
+			UIOverlay.Destroy();
 
-			vkDestroyFence(device.logical, inFlightFences[i], nullptr);
+			vkDestroyPipelineLayout(device.logical, pipelineLayout, nullptr);
+			vkDestroyDescriptorPool(device.logical, this->descriptorPool, nullptr);
+
+			vkFreeCommandBuffers(device.logical, this->device.commandPool, this->commandBuffers.size(), this->commandBuffers.data());
+			vkDestroyCommandPool(device.logical, this->device.commandPool, nullptr);
+
+			//semaphores
+			for (int i = 0; i < gMaxFramesInFlight; ++i)
+			{
+				vkDestroySemaphore(this->device.logical, presentCompleteSemaphores[i], nullptr);
+				vkDestroySemaphore(this->device.logical, renderCompleteSemaphores[i], nullptr);
+
+				vkDestroyFence(device.logical, inFlightFences[i], nullptr);
+			}
+
+			device.Destroy();
+
+			vkDestroySurfaceKHR(this->instance, this->window.surface, nullptr);
+			vkDestroyInstance(this->instance, nullptr);
 		}
-
-		device.Destroy();
-		
-		vkDestroySurfaceKHR(this->instance, this->window.surface, nullptr);
-		vkDestroyInstance(this->instance, nullptr);
 	}
 
 	//helper(s)
@@ -111,6 +113,7 @@ namespace vk
 
 		createInfo.pApplicationInfo = &appInfo;
 
+		//must get the SDL extensions to use SDL2
 		unsigned int sdl_extensionCount = 0;
 		if (SDL_Vulkan_GetInstanceExtensions(window.sdl_ptr, &sdl_extensionCount, nullptr) != SDL_TRUE)
 		{
@@ -118,7 +121,6 @@ namespace vk
 		}
 
 		std::vector<const char*> extensionNames(sdl_extensionCount);
-
 		if (SDL_Vulkan_GetInstanceExtensions(window.sdl_ptr, &sdl_extensionCount, extensionNames.data()) != SDL_TRUE)
 		{
 			throw std::runtime_error("could not grab extensions from SDL!");
@@ -127,63 +129,53 @@ namespace vk
 		createInfo.enabledExtensionCount = extensionNames.size();
 		createInfo.ppEnabledExtensionNames = extensionNames.data();
 
-
 		//enabling validation layers
- 		const char* layerName = "VK_LAYER_KHRONOS_validation";
-
-		const VkBool32 setting_validate_core = VK_TRUE;
-		const VkBool32 setting_validate_sync = VK_TRUE;
-		const VkBool32 setting_thread_safety = VK_TRUE;
-		const char* setting_debug_action[] = { "VK_DBG_LAYER_ACTION_LOG_MSG" };
-		const char* setting_report_flags[] = { "error"  };
-		const VkBool32 setting_enable_message_limit = VK_TRUE;
-		const int32_t setting_duplicate_message_limit = 3;
-
-		const VkLayerSettingEXT settings[] = {
-			{layerName, "validate_core", VK_LAYER_SETTING_TYPE_BOOL32_EXT, 1, &setting_validate_core},
-			{layerName, "duplicate_message_limit", VK_LAYER_SETTING_TYPE_INT32_EXT, 1, &setting_duplicate_message_limit},
-			{layerName, "report_flags", VK_LAYER_SETTING_TYPE_STRING_EXT, static_cast<uint32_t>(std::size(setting_report_flags)), setting_report_flags},
-			/*{layerName, "validate_sync", VK_LAYER_SETTING_TYPE_BOOL32_EXT, 1, &setting_validate_sync},
-			{layerName, "thread_safety", VK_LAYER_SETTING_TYPE_BOOL32_EXT, 1, &setting_thread_safety},
-			{layerName, "debug_action", VK_LAYER_SETTING_TYPE_STRING_EXT, 1, setting_debug_action},
-			{layerName, "report_flags", VK_LAYER_SETTING_TYPE_STRING_EXT, static_cast<uint32_t>(std::size(setting_report_flags)), setting_report_flags},
-			{layerName, "enable_message_limit", VK_LAYER_SETTING_TYPE_BOOL32_EXT, 1, &setting_enable_message_limit},
-			{layerName, "duplicate_message_limit", VK_LAYER_SETTING_TYPE_INT32_EXT, 1, &setting_duplicate_message_limit} */
-		};
-
-		const VkLayerSettingsCreateInfoEXT layer_settings_create_info = {
-			VK_STRUCTURE_TYPE_LAYER_SETTINGS_CREATE_INFO_EXT, nullptr,
-			static_cast<uint32_t>(std::size(settings)), settings };
-
-
-		createInfo.pNext = &layer_settings_create_info;
-
-		std::array<const char*, 1> instanceLayers =
+		if (settings.validationLayers) 
 		{
-			layerName
-		};
+			const char* layerName = "VK_LAYER_KHRONOS_validation";
 
-		if (!vk::util::CheckLayerSupport(instanceLayers.data(), instanceLayers.size()))
-		{
-			throw std::runtime_error("one or more layers are not supported\n");
+			const VkBool32 setting_validate_core = VK_TRUE;
+			const VkBool32 setting_validate_sync = VK_TRUE;
+			const VkBool32 setting_thread_safety = VK_TRUE;
+			const char* setting_debug_action[] = { "VK_DBG_LAYER_ACTION_LOG_MSG" };
+			const char* setting_report_flags[] = { "error" };
+			const VkBool32 setting_enable_message_limit = VK_TRUE;
+			const int32_t setting_duplicate_message_limit = 100;
+
+			std::vector<VkLayerSettingEXT> settings = {
+				{layerName, "validate_core", VK_LAYER_SETTING_TYPE_BOOL32_EXT, 1, &setting_validate_core},
+				{layerName, "duplicate_message_limit", VK_LAYER_SETTING_TYPE_INT32_EXT, 1, &setting_duplicate_message_limit},
+				{layerName, "report_flags", VK_LAYER_SETTING_TYPE_STRING_EXT, static_cast<uint32_t>(std::size(setting_report_flags)), setting_report_flags},
+			};
+
+			const VkLayerSettingsCreateInfoEXT layer_settings_create_info = 
+			{
+				VK_STRUCTURE_TYPE_LAYER_SETTINGS_CREATE_INFO_EXT, nullptr,
+				static_cast<uint32_t>(settings.size()), settings.data() 
+			};
+
+
+			createInfo.pNext = &layer_settings_create_info;
+
+			std::vector<const char*> instanceLayers =
+			{
+				layerName
+			};
+
+			if (!vk::util::CheckLayerSupport(instanceLayers.data(), instanceLayers.size()))
+			{
+				throw std::runtime_error("one or more layers are not supported\n");
+			}
+
+			createInfo.enabledLayerCount = static_cast<uint32_t>(instanceLayers.size());
+			createInfo.ppEnabledLayerNames = instanceLayers.data();
+
+			VK_CHECK_RESULT(vkCreateInstance(&createInfo, nullptr, &this->instance));
 		}
-
-		createInfo.enabledLayerCount = static_cast<uint32_t>(instanceLayers.size());
-		createInfo.ppEnabledLayerNames = instanceLayers.data();
-
-		createInfo.enabledLayerCount = 0;
-	
-		//create instance.
-		//this function, if successful, will create a "handle object"
-		//and make pInstance the handle. A handle is always 64-bits wide.  
-
-		//also, setting the pAllocator to null will make vulkan do its
-		//own memory management, whereas we can create our own allocator
-		//for vulkan to use
-
-		VK_CHECK_RESULT(vkCreateInstance(&createInfo, nullptr, &this->instance))
-
-
+		else //no layers.
+		{
+			VK_CHECK_RESULT(vkCreateInstance(&createInfo, nullptr, &this->instance));
+		}
 	}
 
 	void ContextBase::CreateWindow() 
@@ -230,6 +222,8 @@ namespace vk
 
 	void ContextBase::ResizeWindow() 
 	{
+		std::cout << "resizing window\n\n\n\n";
+
 		if (window.isMinimized)
 		{
 			window.isPrepared = false;
@@ -345,9 +339,7 @@ namespace vk
 	void ContextBase::FillOutGraphicsContextInfo() 
 	{
 		//TODO: a little janky way to initialize as more of mInfo is filled with derived classes.
-		mInfo.logicalDevice = device.logical;
-		mInfo.physicalDevice = device.physical;
-		mInfo.graphicsQueue = device.graphicsQueue;
+		mInfo.devicePtr = &this->device;
 
 		if (settings.UIEnabled) 
 		{
@@ -383,13 +375,16 @@ namespace vk
 
 	void ContextBase::WaitForDevice()
 	{
-		if (this->device.logical)
+		if (device.logical != VK_NULL_HANDLE) 
 		{
-			VK_CHECK_RESULT(vkDeviceWaitIdle(this->device.logical));
+			if (this->device.logical)
+			{
+				VK_CHECK_RESULT(vkDeviceWaitIdle(this->device.logical));
+			}
 		}
 	}
 
-	void ContextBase::PrepareFrame() 
+	bool ContextBase::PrepareFrame() 
 	{
 		//add synchronization calls here.
 		VK_CHECK_RESULT(vkWaitForFences(device.logical, 1, &inFlightFences[currentFrame], VK_TRUE, UINT64_MAX));
@@ -415,7 +410,8 @@ namespace vk
 		{
 			if (result == VK_ERROR_OUT_OF_DATE_KHR) 
 			{
-				ResizeWindow();			
+				//ResizeWindow();
+				window.isPrepared = false;
 			}
 		}
 		else
@@ -423,7 +419,8 @@ namespace vk
 			VK_CHECK_RESULT(result);
 		}
 
-	
+
+		return result == VK_SUCCESS;
 	}
 
 	void ContextBase::SubmitFrame() 
@@ -450,7 +447,8 @@ namespace vk
 		VkResult result = vkQueuePresentKHR(this->device.presentQueue.handle, &presentInfo);
 		if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
 		{
-			ResizeWindow();
+			//ResizeWindow();
+			window.isPrepared = false;
 			if (result == VK_ERROR_OUT_OF_DATE_KHR) 
 			{
 				return;

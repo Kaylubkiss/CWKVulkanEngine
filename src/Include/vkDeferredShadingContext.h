@@ -75,8 +75,9 @@ namespace vk
 		};
 		
 		std::array<DescriptorSets, gMaxFramesInFlight> descriptorSets;
+		//VkDescriptorSet objectTexture; //TODO: in deferred pass
 
-		Texture defaultTexture;
+		std::unique_ptr<Texture> defaultTexture;
 
 		float depthBiasConstant = 1.25f;
 		float depthBiasSlope = 1.75f;
@@ -89,6 +90,8 @@ namespace vk
 			glm::vec3 cubePosition = { 0, 20, -5.f };
 			glm::vec3 freddyPosition = { 1.0f, 0, 5.f };
 		} sceneSettings{};
+
+		vkGltf::Model testGltfModel;
 
 	public:
 		DeferredContext();

@@ -1,7 +1,5 @@
 #pragma once
 
-#include "vkTexture.h"
-
 namespace vk 
 {
 	class TextureManager 
@@ -10,17 +8,11 @@ namespace vk
 			TextureManager() = default;
 			~TextureManager() = default;
 
-			void Destroy(const VkDevice l_device);
+			void Init(GraphicsContextInfo contextInfo);
 
-			void Init(ContextBase* context);
-
-			int GetTextureIndexByName(const char* fileName) const;
-			
-			const Texture& GetTextureObject(size_t index) const;
+			VkDescriptorImageInfo GetTextureDescriptorSet(const char* fileName);
 
 			void BindTextureToObject(const std::string& fileName, Object& obj);
-
-			const std::vector<vk::Texture>& Textures() const;
 
 		private:
 
@@ -28,7 +20,7 @@ namespace vk
 
 			vk::GraphicsContextInfo graphicsContextInfo;
 
-			std::vector<vk::Texture> mTextures;
+			std::unordered_map<std::string, std::pair<std::unique_ptr<vk::Texture>, std::shared_ptr<VkDescriptorSet>>> mTextures;
 	};
 
 }

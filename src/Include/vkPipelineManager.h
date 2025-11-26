@@ -3,12 +3,13 @@
 	* author: Caleb Kissinger
 */
 #pragma once
-#include <list>
 #include "shaderc/shaderc.hpp"
+
 
 //ShaderModuleInfo 
 namespace vk 
 {
+	struct GraphicsContextInfo;
 
 	struct ShaderModuleInfo
 	{
@@ -16,8 +17,8 @@ namespace vk
 		time_t lastModificationTime = 0;
 		std::string mFilePath = "";
 
-		VkShaderStageFlagBits mFlags;
-		shaderc_shader_kind mShaderKind; /*arguments in runtime shader compilation */
+		VkShaderStageFlagBits mFlags = VK_SHADER_STAGE_ALL;
+		shaderc_shader_kind mShaderKind = shaderc_glsl_infer_from_source; /*arguments in runtime shader compilation */
 
 		/*
 			*@brief intializer list for a ShaderModuleInfo object. Compiles the specified shader source to sprv and also sets the shader stage flags.
@@ -27,6 +28,7 @@ namespace vk
 			*@param shaderFlags: specifies what shader stage the source file is working in.
 			*@param shaderc_kind: similar to shaderFlags, argument needed for shader compilation to sprv.
 		*/
+		ShaderModuleInfo() = default;
 		ShaderModuleInfo(const VkDevice l_device, std::string filename, VkShaderStageFlagBits shaderFlags, shaderc_shader_kind shaderc_kind = shaderc_vertex_shader);
 
 
@@ -73,21 +75,6 @@ namespace vk
 			void AddModule(uint32_t pipeline, const ShaderModuleInfo& shaderModuleInfo);
 
 			void AddPipeline(uint32_t pipeline, const VkPipeline handle, std::function<void()> createFunc = nullptr);
-
-			/*void InitRenderDepthInformation(const VkDevice l_device, const VkFormat& depthFormat);
-
-			void InitRenderPass(const VkDevice l_device, const VkFormat& depthFormat);*/
-
-			/*
-				*@brief Creates the pipeline handle with the user provided shader modules.
-				*
-				*@param l_device: logical device associated with the application's vulkan instance.
-				*@param renderPass: the thing rendering into the framebuffer after shader processing, argument needed for pipeline creation.
-				*@param topology: the geometric shape of a rendered object.
-				*
-				* @return void
-			*/
-			void Finalize(const VkDevice l_device, const VkPhysicalDevice p_device, const vk::Window& appWindow, VkPrimitiveTopology topology);
 
 			void HotReloadShaders();
 			

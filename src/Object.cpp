@@ -1,9 +1,4 @@
 #include "Object.h"
-#include <fstream>
-#include <sstream>
-#include <algorithm>
-#include <unordered_map>
-#include "vkGlobal.h"
 
 Object::Object(const VkPhysicalDevice p_device, const VkDevice l_device, 
                 const char* fileName, bool willDebugDraw)
@@ -16,62 +11,6 @@ Object::Object(const VkPhysicalDevice p_device, const VkDevice l_device,
     {
         throw std::runtime_error("could not load requested object " + std::string(fileName));
     }
-    
-    /*int numVertices = static_cast<int>(this->mMesh.data.vertices.size());
-    
-    glm::vec3 min_points(0.f);
-    glm::vec3 max_points(0.f);
-    
-    for (unsigned i = 0; i < this->mMesh.data.vertices.size(); ++i)
-    {
-    
-        min_points.x = std::min(min_points.x, this->mMesh.data.vertices[i].pos.x);
-        min_points.y = std::min(min_points.y, this->mMesh.data.vertices[i].pos.y);
-        min_points.z = std::min(min_points.z, this->mMesh.data.vertices[i].pos.z);
-    
-        max_points.x = std::max(max_points.x, this->mMesh.data.vertices[i].pos.x);
-        max_points.y = std::max(max_points.y, this->mMesh.data.vertices[i].pos.y);
-        max_points.z = std::max(max_points.z, this->mMesh.data.vertices[i].pos.z);
-    
-        this->mMesh.data.vertices[i].nrm = glm::vec3(0, 0, 0.f);
-    
-        this->mMesh.center += this->mMesh.data.vertices[i].pos;
-    }
-    
-    this->mMesh.center /= this->mMesh.data.vertices.size();
-    
-    float unitScale = std::max({ glm::length(max_points.x - min_points.x), glm::length(max_points.y - min_points.y), glm::length(max_points.z - min_points.z) });
-    
-    max_points = { -std::numeric_limits<float>::min(),  -std::numeric_limits<float>::min() , -std::numeric_limits<float>::min() };
-    min_points = { std::numeric_limits<float>::max(), std::numeric_limits<float>::max(), std::numeric_limits<float>::max() };
-    
-    for (size_t i = 0; i < this->mMesh.data.vertices.size(); ++i)
-    {
-        this->mMesh.data.vertices[i].pos = (this->mMesh.data.vertices[i].pos - this->mMesh.center) / unitScale;
-    
-        max_points.x = std::max(max_points.x, this->mMesh.data.vertices[i].pos.x);
-        max_points.y = std::max(max_points.y, this->mMesh.data.vertices[i].pos.y);
-        max_points.z = std::max(max_points.z, this->mMesh.data.vertices[i].pos.z);
-    
-        min_points.x = std::min(min_points.x, this->mMesh.data.vertices[i].pos.x);
-        min_points.y = std::min(min_points.y, this->mMesh.data.vertices[i].pos.y);
-        min_points.z = std::min(min_points.z, this->mMesh.data.vertices[i].pos.z);
-    }
-    
-    this->mMesh.maxLocalPoints = max_points;
-    this->mMesh.minLocalPoints = min_points;
-    
-    Object::ComputeVertexNormals();
-    
-    size_t sizeOfVertexBuffer = sizeof(std::vector<Vertex>) + (sizeof(Vertex) * this->mMesh.data.vertices.size());
-    this->mMesh.buffer.vertex = vk::Buffer(p_device, l_device, sizeOfVertexBuffer, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, this->mMesh.data.vertices.data());
-    
-    size_t sizeOfIndexBuffer = sizeof(std::vector<uint16_t>) + (sizeof(uint16_t) * this->mMesh.data.indices.size());
-    this->mMesh.buffer.index = vk::Buffer(p_device, l_device, sizeOfIndexBuffer, VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, this->mMesh.data.indices.data());
-    
-    std::cout << std::endl;
-    std::cout << "loaded in " + std::string(fileName) << std::endl;
-    std::cout << numVertices << " vertices loaded in." << std::endl << std::endl;*/
 }
 
 
@@ -162,14 +101,21 @@ void Object::Draw(VkCommandBuffer cmdBuffer, VkPipelineLayout pipelineLayout)
     {
         vkCmdPushConstants(cmdBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::mat4), (void*)(&this->modelTransform));
     }
-    
+
+    //////unmoving texture.
+    //if (textureDescriptorSet != VK_NULL_HANDLE) 
+    //{
+    //    vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, textureDescriptorSet.get(), 0, nullptr);
+    //}
+    //
+
     VkDeviceSize offsets[1] = { 0 };
     
     vkCmdBindVertexBuffers(cmdBuffer, 0, 1, &mMesh.buffer.vertex.handle, offsets);
     
     vkCmdBindIndexBuffer(cmdBuffer, mMesh.buffer.index.handle, 0, VK_INDEX_TYPE_UINT16);
     
-    vkCmdDrawIndexed(cmdBuffer, static_cast<uint32_t>(this->mMesh.data.indices.size()), 1, 0, 0, 0);
+    vkCmdDrawIndexed(cmdBuffer, mMesh.buffer.indexCount, 1, 0, 0, 0);
 }
 
 void Object::UpdatePhysicsComponent(const PhysicsComponent* physComp)
@@ -201,19 +147,16 @@ void Object::UpdateMesh(const Mesh* mesh)
 }
 
 
-void Object::UpdateDescriptorSets(std::vector<VkWriteDescriptorSet>& writeDescriptors, VkDescriptorSetAllocateInfo* descriptorSetAI)
+void Object::UpdateDescriptorSet(std::vector<VkWriteDescriptorSet>& writeDescriptors, 
+    std::shared_ptr<VkDescriptorSet> descriptorSet)
 {
-    for (size_t i = 0; i < descriptorSets.size(); ++i)
+    if (descriptorSet != VK_NULL_HANDLE) 
     {
-        if (descriptorSets[i] == VK_NULL_HANDLE)
-        {
-            assert(descriptorSetAI);
-            vkAllocateDescriptorSets(devicePtr->logical, descriptorSetAI, &descriptorSets[i]);
-        }
+        textureDescriptorSet = descriptorSet;
 
         for (size_t j = 0; j < writeDescriptors.size(); ++j)
         {
-            writeDescriptors[j].dstSet = descriptorSets[i];
+            writeDescriptors[j].dstSet = *textureDescriptorSet.get();     
         }
 
         vkUpdateDescriptorSets(devicePtr->logical, writeDescriptors.size(), writeDescriptors.data(), 0, nullptr);

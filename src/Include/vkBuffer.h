@@ -4,14 +4,12 @@ namespace vk
 {
 	struct Buffer
 	{
-
 		VkDevice logicalDevice = VK_NULL_HANDLE;
 
 		VkBuffer handle = VK_NULL_HANDLE;
 		VkDeviceMemory memory = VK_NULL_HANDLE;
 		VkDeviceSize size = 0;
 		
-
 		VkDescriptorBufferInfo descriptor = {};
 
 		void* mappedMemory = NULL;

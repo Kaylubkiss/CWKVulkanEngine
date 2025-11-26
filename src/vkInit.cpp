@@ -209,6 +209,15 @@ namespace vk
 			return nFence;
 		}
 
+		VkFenceCreateInfo FenceCreateInfo(VkFenceCreateFlags flags) 
+		{
+			VkFenceCreateInfo fenceCI = {};
+			fenceCI.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+			fenceCI.flags = flags;
+
+			return fenceCI;
+		}
+
 		VkShaderModule ShaderModule(const VkDevice& l_device, const char* filename)
 		{
 			
@@ -709,6 +718,13 @@ namespace vk
 		{
 			VkCommandBufferBeginInfo nInfo = {};
 			nInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+			return nInfo;
+		}
+
+		VkSubmitInfo SubmitInfo() 
+		{
+			VkSubmitInfo nInfo = {};
+			nInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 			return nInfo;
 		}
 
