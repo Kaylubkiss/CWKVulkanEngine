@@ -75,8 +75,8 @@ namespace vk
 		};
 		
 		std::array<DescriptorSets, gMaxFramesInFlight> descriptorSets;
-		//VkDescriptorSet objectTexture; //TODO: in deferred pass
 
+		VkDescriptorSet objectTexture; //TODO: in deferred pass
 		std::unique_ptr<Texture> defaultTexture;
 
 		float depthBiasConstant = 1.25f;

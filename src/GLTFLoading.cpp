@@ -48,6 +48,11 @@ namespace vkGltf
 			LoadMesh(mesh, vertices, indices);
 		}
 
+		for (auto& image : m_asset.images) 
+		{
+			
+		}
+
 		size_t vertexBufferSize = vertices.size() * sizeof(vertices[0]);
 		size_t indexBufferSize = indices.size() * sizeof(indices[0]);
 
@@ -170,11 +175,11 @@ namespace vkGltf
 
 	void Model::LoadImages()
 	{
-		vk::GraphicsContextInfo graphicsContextInfo = _Application->Context()->GetGraphicsContextInfo();
+		/*vk::GraphicsContextInfo graphicsContextInfo = _Application->Context()->GetGraphicsContextInfo();
 		vk::TextureManager& textureManager = _Application->TextureManager();
 
 		
-		/*for (auto& image : m_asset.images)
+		for (auto& image : m_asset.images)
 		{
 			textureManager.
 
@@ -291,4 +296,14 @@ namespace vkGltf
 		m_meshes.push_back(newMesh);
 	}
 
+
+	void Model::LoadImage(fastgltf::Image& image) 
+	{
+		std::visit(fastgltf::visitor{
+			[](auto& arg) {},
+			[&](fastgltf::sources::URI& filePath) {
+
+			},
+		}, image.data);
+	}
 }

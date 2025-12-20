@@ -287,17 +287,20 @@ namespace vk
 
 		VkImageViewCreateInfo viewInfo = vk::init::ImageViewCreateInfo();
 		viewInfo.image = attachment.image;
-
-		if (createInfo.layerCount == 1)
-		{
-			viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-		}
-		else 
-		{
-			viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D_ARRAY;
-		}
+		viewInfo.viewType = createInfo.layerCount == 1 ? VK_IMAGE_VIEW_TYPE_2D : VK_IMAGE_VIEW_TYPE_2D_ARRAY;
 
 		viewInfo.format = createInfo.format;
+		if (attachment.flags & VKC_ATTACHMENT_IS_SWAPCHAIN_IMAGE) 
+		{
+			viewInfo.components =
+			{
+				VK_COMPONENT_SWIZZLE_R,
+				VK_COMPONENT_SWIZZLE_G,
+				VK_COMPONENT_SWIZZLE_B,
+				VK_COMPONENT_SWIZZLE_A
+			};
+		}
+
 		viewInfo.subresourceRange.aspectMask = (aspectMask & VK_IMAGE_ASPECT_DEPTH_BIT) ? VK_IMAGE_ASPECT_DEPTH_BIT : aspectMask;
 		viewInfo.subresourceRange.levelCount = 1;
 		viewInfo.subresourceRange.layerCount = createInfo.layerCount;

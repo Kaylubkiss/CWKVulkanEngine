@@ -1,6 +1,5 @@
 #include "vkInit.h"
 #include "vkUtility.h"
-#include "vkDebug.h"
 #include "Vertex.h"
 #include <SDL2/SDL_vulkan.h>
 
@@ -8,26 +7,6 @@ namespace vk
 {
 	namespace init 
 	{
-		VkDebugUtilsMessengerCreateInfoEXT DebugMessengerCreateInfo()
-		{
-			VkDebugUtilsMessengerCreateInfoEXT createInfo = {};
-
-			createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
-			createInfo.messageSeverity =
-				VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |
-				VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
-				VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
-			createInfo.messageType =
-				VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
-				VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
-				VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
-
-			createInfo.pfnUserCallback = vk::debug::debugMessengerCallback;
-
-			return createInfo;
-		}
-
-
 		VkVertexInputBindingDescription VertexInputBindingDescription(uint32_t binding) 
 		{
 			return { binding, sizeof(Vertex), VK_VERTEX_INPUT_RATE_VERTEX };

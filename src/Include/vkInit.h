@@ -4,7 +4,6 @@ namespace vk
 {
 	namespace init 
 	{
-		VkDebugUtilsMessengerCreateInfoEXT DebugMessengerCreateInfo();
 
 		VkVertexInputBindingDescription VertexInputBindingDescription(uint32_t binding = 0);
 

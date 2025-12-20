@@ -23,8 +23,7 @@ set(SOURCE_FILES src/Application.cpp
 				   src/GLTFLoading.cpp
 )
 							
-set(VULKAN_ENGINE_SRC src/vkDebug.cpp
-					  src/vkUtility.cpp
+set(VULKAN_ENGINE_SRC src/vkUtility.cpp
 					  src/vkInit.cpp
                       src/vkGlobal.cpp
                       src/vkContextBase.cpp
@@ -83,7 +82,6 @@ src/Include/GLTFLoading.h)
 
 set(VULKAN_ENGINE_HEADERS 
 src/Include/vkUtility.h
-src/Include/vkDebug.h
 src/Include/vkGlobal.h
 src/Include/vkInit.h
 src/Include/vkWindow.h
