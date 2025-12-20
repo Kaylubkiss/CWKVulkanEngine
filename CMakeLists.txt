@@ -91,7 +91,6 @@ src/Include/vkTexture.h
 src/Include/vkSwapChain.h
 src/Include/vkMesh.h
 src/Include/vkDevice.h
-src/Include/vkShadowMap.h
 src/Include/vkDevice.h
 src/Include/vkPipelineManager.h
 src/Include/vkFramebuffer.h)
