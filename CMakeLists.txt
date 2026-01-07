@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.22)
 
 set(PROJECT_NAME "CKVulkan")
-set(CMAKE_TOOLCHAIN_FILE $ENV{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake)
+set(CMAKE_TOOLCHAIN_FILE C:/vcpkg/scripts/buildsystems/vcpkg.cmake)
 
 project("${PROJECT_NAME}" LANGUAGES CXX C)
 

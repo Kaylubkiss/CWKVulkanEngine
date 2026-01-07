@@ -6,6 +6,9 @@ winget install --id=KhronosGroup.VulkanSDK  -e
 ::make sure cmake is installed.
 winget install --id Kitware.CMake -e
 
+::make sure fastgltf is installed
+vcpkg install fastgltf
+
 set previous_directory=%cd%
 
 cd %VULKAN_SDK%
