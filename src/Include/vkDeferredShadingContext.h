@@ -38,7 +38,6 @@ namespace vk
 			uTransformObject uTransform;
 		} uniformDataMRT{};
 
-		
 		struct UniformDataLightPass {
 			std::array<Light, LIGHT_COUNT> lights;
 			glm::vec3 viewPosition;
@@ -58,7 +57,23 @@ namespace vk
 
 		std::array<UniformBuffers, gMaxFramesInFlight> uniformBuffers;
 
-		VkDescriptorSetLayout sceneDescriptorSetLayout = VK_NULL_HANDLE;
+		//Descriptor Buffer Stuff
+		struct DescriptorData 
+		{
+			VkDescriptorSetLayout layout = VK_NULL_HANDLE;
+			vk::Buffer buffer; //descriptors are stored in BUFFERS, not VkDescriptorSet
+			VkDeviceSize size = 0ull;
+			VkDeviceSize offset = 0ull;
+			void Destroy() 
+			{
+				buffer.Destroy();
+				vkDestroyDescriptorSetLayout(buffer.logicalDevice, layout, nullptr);
+			}
+		};
+
+		DescriptorData uMRTBindingDescriptor;
+		DescriptorData uShadowBindingDescriptor;
+		DescriptorData imageBindingDescriptor;
 
 		//NOTE: this will all be done offscreen because we have a main renderpass from the swapchain we'll 
 		//read the results of this from
@@ -76,7 +91,6 @@ namespace vk
 		
 		std::array<DescriptorSets, gMaxFramesInFlight> descriptorSets;
 
-		VkDescriptorSet objectTexture; //TODO: in deferred pass
 		std::unique_ptr<Texture> defaultTexture;
 
 		float depthBiasConstant = 1.25f;
@@ -101,7 +115,6 @@ namespace vk
 		virtual void UpdateUI() override;
 		virtual void InitializeScene(ObjectManager& objManager) override;
 		virtual void ResizeWindowDerived() override;
-
 		virtual void Render() override;
 
 	protected:

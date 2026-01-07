@@ -40,7 +40,9 @@ namespace vk
 
 			void LoadObject(const ObjectCreateInfo& objectCI);
 
-			void DrawObjects(VkCommandBuffer cmdBuffer, VkPipelineLayout pipelineLayout = VK_NULL_HANDLE);
+			void DrawObjects(VkCommandBuffer cmdBuffer, 
+				VkPipelineLayout pipelineLayout = VK_NULL_HANDLE, 
+				VkDescriptorSet defaultDescriptorSet = VK_NULL_HANDLE);
 
 			void Update(float dt);
 

@@ -13,7 +13,7 @@ namespace vk
 		framebuffers.deShadow.height = 2048;
 
 
-		defaultTexture = std::make_unique<Texture>(mInfo.devicePtr, "testTexture.png");
+		defaultTexture = std::make_unique<Texture>(mInfo.devicePtr, "wood-floor.png");
 
 		if (settings.UIEnabled) 
 		{
@@ -49,7 +49,9 @@ namespace vk
 
 		testGltfModel.Destroy();
 
-		vkDestroyDescriptorSetLayout(device.logical, this->sceneDescriptorSetLayout, nullptr);
+		uMRTBindingDescriptor.Destroy();
+		uShadowBindingDescriptor.Destroy();
+		imageBindingDescriptor.Destroy();
 	}
 
 	void DeferredContext::InitializeScene(ObjectManager& objManager) 
@@ -60,7 +62,7 @@ namespace vk
 		//object 1 - freddy
 		ObjectCreateInfo objectCI;
 		objectCI.objName = "freddy.obj";
-		objectCI.textureFileName = "myface.JPG";
+		/*objectCI.textureFileName = "myface.JPG";*/
 		objectCI.pModelTransform = &modelTransform;
 		objectCI.devicePtr = &this->device;
 
@@ -74,9 +76,10 @@ namespace vk
 		physicsComponent.bodyType = BodyType::DYNAMIC;
 		physicsComponent.colliderType = PhysicsComponent::ColliderType::CUBE;
 
+		//NOTE: this cube doesn't have UVs.
 		objectCI = {};
 		objectCI.objName = "cube.obj";
-		objectCI.textureFileName = "texture.jpg";
+		objectCI.textureFileName = "";
 		objectCI.pPhysicsComponent = &physicsComponent;
 		objectCI.pModelTransform = &modelTransform;
 		objectCI.devicePtr = &this->device;
@@ -93,7 +96,7 @@ namespace vk
 
 		objectCI = {};
 		objectCI.objName = "base.obj";
-		objectCI.textureFileName = "";
+		//objectCI.textureFileName = "texture.jpg";
 		objectCI.pPhysicsComponent = &physicsComponent;
 		objectCI.pModelTransform = &modelTransform;
 		objectCI.devicePtr = &this->device;
@@ -210,7 +213,7 @@ namespace vk
 	void DeferredContext::FillOutGraphicsContextInfo() 
 	{
 		mInfo.descriptorPool = this->descriptorPool;
-		mInfo.descriptorSetLayout = this->sceneDescriptorSetLayout;
+		//mInfo.descriptorSetLayout = this->sceneDescriptorSetLayout;
 		mInfo.samplerBinding = 3;
 
 		//TODO: a little janky way to initialize as more of mInfo is filled with derived classes.
@@ -236,8 +239,8 @@ namespace vk
 
 
 			//initializing light positions
-			uniformDataLightPass.lights[0].pos = { 9, 9, 21 };
-			uniformDataLightPass.lights[1].pos = { 52, 3, 9 };
+			uniformDataLightPass.lights[0].pos = { 3, 27, -14 };
+			uniformDataLightPass.lights[1].pos = { 33, 33, 30 };
 
 			//////////////////////////////////
 			//#2 - deferred shadow
@@ -363,101 +366,41 @@ namespace vk
 		framebuffers.deShadow.CreateFramebuffer();
 	}
 
+	inline VkDeviceSize AlignedSize(VkDeviceSize size, VkDeviceSize alignment) 
+	{
+		return (size + alignment - 1) & ~(alignment - 1);
+	}
+
 	void DeferredContext::InitializeDescriptors() 
 	{
-		const uint32_t num_pipelines = 3;
+		//MOVING TO BINDLESS RENDERING
+		VkDescriptorSetLayoutBinding setLayoutBinding = {};
+		VkDescriptorSetLayoutCreateInfo setLayoutCreateInfo = vk::init::DescriptorSetLayoutCreateInfo(&setLayoutBinding, 1);
+		setLayoutCreateInfo.flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_DESCRIPTOR_BUFFER_BIT_EXT;
 
-		std::vector<VkDescriptorPoolSize> descriptorPoolSize = 
-		{
-			vk::init::DescriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,  gMaxFramesInFlight * (3)), //1 UB/set * 3 sets -- uniform buffer in deferredMRT.vert, and deferredLightPass.frag, + 1 for freddy head texture, + 1 for gman head texture
-			vk::init::DescriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, gMaxFramesInFlight * 4 * 4) //3 samplers (3 CI/set * 3 sets)-- in composition pipeline, +1 for freddy head texture, +1 for gman head texture.			
+		//for deferredMRT scene uniforms
+		setLayoutBinding = vk::init::DescriptorLayoutBinding(0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT);
+		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(this->device.logical, &setLayoutCreateInfo, nullptr, &uMRTBindingDescriptor.layout));
+
+		setLayoutBinding = vk::init::DescriptorLayoutBinding(0, 1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
+		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(this->device.logical, &setLayoutCreateInfo, nullptr, &imageBindingDescriptor.layout));
+
+		//for shadow calculations
+		setLayoutBinding = vk::init::DescriptorLayoutBinding(0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_GEOMETRY_BIT);
+		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(this->device.logical, &setLayoutCreateInfo, nullptr, &uShadowBindingDescriptor.layout));
+
+		std::vector<VkPushConstantRange> pushConstantRanges = {
+			vk::init::PushConstantRange(0, sizeof(glm::mat4), VK_SHADER_STAGE_VERTEX_BIT)
 		};
 
-		VkDescriptorPoolCreateInfo descriptorPoolCI = vk::init::DescriptorPoolCreateInfo(descriptorPoolSize, (num_pipelines + 2) * gMaxFramesInFlight); //+1 for the freddy head texture, +1 for gman texture
+		std::array<VkDescriptorSetLayout, 3> layouts = { uMRTBindingDescriptor.layout, imageBindingDescriptor.layout, uShadowBindingDescriptor.layout };
 
-		VK_CHECK_RESULT(vkCreateDescriptorPool(device.logical, &descriptorPoolCI, nullptr, &descriptorPool));
-		
-		std::vector<VkDescriptorSetLayoutBinding> descriptorSetLayoutBindings = {
-			//since each uniform is in their own pipeline, just create one layout for binding 0
-			vk::init::DescriptorLayoutBinding(0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 
-				VK_SHADER_STAGE_VERTEX_BIT | //transformUBO
-				VK_SHADER_STAGE_FRAGMENT_BIT | //lightUBO
-				VK_SHADER_STAGE_GEOMETRY_BIT), //shadowMVP UBO
-			vk::init::DescriptorLayoutBinding(1, 1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT), //position
-			vk::init::DescriptorLayoutBinding(2, 1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT), //normal
-			vk::init::DescriptorLayoutBinding(3, 1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT), //UV
-			vk::init::DescriptorLayoutBinding(4, 1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT) //shadow map
-		};
-		
-		VkDescriptorSetLayoutCreateInfo descriptorSetLayoutCI = vk::init::DescriptorSetLayoutCreateInfo(descriptorSetLayoutBindings);
-		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device.logical, &descriptorSetLayoutCI, nullptr, &this->sceneDescriptorSetLayout));
-
-		VkDescriptorSetAllocateInfo descriptorSetInfo = vk::init::DescriptorSetAllocateInfo(descriptorPool, &this->sceneDescriptorSetLayout, 1);
-		
-		std::vector<VkDescriptorImageInfo> descriptorImage; //position, normal, and albedo attachments
-		for (const auto& attachment : framebuffers.deMRT.attachments)
-		{
-			if (attachment.flags & VKC_ATTACHMENT_IS_SAMPLED)
-			{
-				VkDescriptorImageInfo descInfo = {};
-				descInfo.imageLayout = attachment.description.finalLayout;
-				descInfo.imageView = attachment.imageView;
-				descInfo.sampler = framebuffers.deMRT.sampler;
-
-				descriptorImage.push_back(descInfo);
-			}
-		}
-
-		VkDescriptorImageInfo shadowMapDescriptor;
-		shadowMapDescriptor.imageLayout = framebuffers.deShadow.attachments[0].layout;
-		shadowMapDescriptor.imageView = framebuffers.deShadow.attachments[0].imageView;
-		shadowMapDescriptor.sampler = framebuffers.deShadow.sampler;
-
-		VkDescriptorImageInfo albedoImageSampler = {};
-		albedoImageSampler.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-		albedoImageSampler.imageView = defaultTexture.get()->mImageView;
-		albedoImageSampler.sampler = defaultTexture.get()->mSampler;
-
-		std::vector<VkWriteDescriptorSet> writeDescriptorSets;
-
-		for (uint32_t i = 0; i < descriptorSets.size(); ++i) 
-		{
-			//deferredMRT descriptor set
-			{
-				VK_CHECK_RESULT(vkAllocateDescriptorSets(device.logical, &descriptorSetInfo, &descriptorSets[i].deferred));
-
-				writeDescriptorSets = {
-					vk::init::WriteDescriptorSet(descriptorSets[i].deferred, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &uniformBuffers[i].deferredMRT.descriptor),
-					vk::init::WriteDescriptorSet(descriptorSets[i].deferred, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 3, &albedoImageSampler)
-				};
-
-				vkUpdateDescriptorSets(device.logical, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, nullptr);
-			}
-
-			//deferred l-pass descriptor set
-			{
-				VK_CHECK_RESULT(vkAllocateDescriptorSets(device.logical, &descriptorSetInfo, &descriptorSets[i].composition));
-
-				writeDescriptorSets = {
-					vk::init::WriteDescriptorSet(descriptorSets[i].composition, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &uniformBuffers[i].composition.descriptor),
-					vk::init::WriteDescriptorSet(descriptorSets[i].composition, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, &descriptorImage[RT_POSITION]),
-					vk::init::WriteDescriptorSet(descriptorSets[i].composition, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 2, &descriptorImage[RT_NORMAL]),
-					vk::init::WriteDescriptorSet(descriptorSets[i].composition, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 3, &descriptorImage[RT_ALBEDO]),
-					vk::init::WriteDescriptorSet(descriptorSets[i].composition, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 4, &shadowMapDescriptor)
-				};
-				vkUpdateDescriptorSets(device.logical, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, nullptr);
-			}
-
-			//deferred shadowing
-			{
-				VK_CHECK_RESULT(vkAllocateDescriptorSets(device.logical, &descriptorSetInfo, &descriptorSets[i].deferredShadow));
-
-				writeDescriptorSets = {
-					vk::init::WriteDescriptorSet(descriptorSets[i].deferredShadow, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &uniformBuffers[i].deferredShadow.descriptor),
-				};
-				vkUpdateDescriptorSets(device.logical, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, nullptr);
-			}
-		}
+		VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = vk::init::PipelineLayoutCreateInfo();
+		pipelineLayoutCreateInfo.pSetLayouts = layouts.data();
+		pipelineLayoutCreateInfo.setLayoutCount = layouts.size();
+		pipelineLayoutCreateInfo.pushConstantRangeCount = pushConstantRanges.size();
+		pipelineLayoutCreateInfo.pPushConstantRanges = pushConstantRanges.data();
+		VK_CHECK_RESULT(vkCreatePipelineLayout(device.logical, &pipelineLayoutCreateInfo, nullptr, &pipelineLayout));
 
 	}
 	
@@ -465,17 +408,6 @@ namespace vk
 	{
 		(void)vsFile;
 		(void)fsFile;
-
-		std::vector<VkPushConstantRange> pushConstantRanges = {
-			vk::init::PushConstantRange(0, sizeof(glm::mat4), VK_SHADER_STAGE_VERTEX_BIT)
-		};
-
-		VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = vk::init::PipelineLayoutCreateInfo();
-		pipelineLayoutCreateInfo.pSetLayouts = &sceneDescriptorSetLayout;
-		pipelineLayoutCreateInfo.setLayoutCount = 1;
-		pipelineLayoutCreateInfo.pushConstantRangeCount = pushConstantRanges.size();
-		pipelineLayoutCreateInfo.pPushConstantRanges = pushConstantRanges.data();
-		VK_CHECK_RESULT(vkCreatePipelineLayout(device.logical, &pipelineLayoutCreateInfo, nullptr, &pipelineLayout));
 
 		VkPipelineInputAssemblyStateCreateInfo inputAssemblyStateCI = vk::init::PipelineInputAssemblyStateCreateInfo(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, 0, VK_FALSE);
 		VkPipelineRasterizationStateCreateInfo rasterizationStateCI = vk::init::PipelineRasterizationStateCreateInfo(VK_POLYGON_MODE_FILL, VK_CULL_MODE_BACK_BIT, VK_FRONT_FACE_COUNTER_CLOCKWISE);
@@ -799,8 +731,10 @@ namespace vk
 			vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineManager.Get(DeferredPipelines::MRT));
 
 			vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &currentDescriptorSet.deferred, 0, nullptr);
+			objManager.DrawObjects(cmdBuffer, pipelineLayout, currentDescriptorSet.deferred);
 
-			objManager.DrawObjects(cmdBuffer, pipelineLayout);
+			//reset the bound descriptor set to the default one.
+			vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &currentDescriptorSet.deferred, 0, nullptr);
 			testGltfModel.Draw(cmdBuffer, pipelineLayout); //TODO: TEMPORARY
 
 			vkCmdEndRenderPass(cmdBuffer);

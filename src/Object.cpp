@@ -62,6 +62,11 @@ void Object::InitPhysics(PhysicsSystem& appPhysics)
     this->mPhysicsComponent.prevTransform = this->mPhysicsComponent.rigidBody->getTransform();
 }
 
+bool Object::HasTexture() 
+{
+    return textureDescriptorSet != VK_NULL_HANDLE;
+}
+
 void Object::Destroy(const VkDevice l_device) 
 {
     this->mMesh.Destroy(l_device);
@@ -103,11 +108,11 @@ void Object::Draw(VkCommandBuffer cmdBuffer, VkPipelineLayout pipelineLayout)
     }
 
     //////unmoving texture.
-    //if (textureDescriptorSet != VK_NULL_HANDLE) 
-    //{
-    //    vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, textureDescriptorSet.get(), 0, nullptr);
-    //}
-    //
+    if (textureDescriptorSet != VK_NULL_HANDLE) 
+    {
+        vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, textureDescriptorSet.get(), 0, nullptr);
+    }
+    
 
     VkDeviceSize offsets[1] = { 0 };
     
@@ -145,7 +150,6 @@ void Object::UpdateMesh(const Mesh* mesh)
         this->mMesh = *mesh;
     }
 }
-
 
 void Object::UpdateDescriptorSet(std::vector<VkWriteDescriptorSet>& writeDescriptors, 
     std::shared_ptr<VkDescriptorSet> descriptorSet)

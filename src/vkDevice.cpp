@@ -13,8 +13,23 @@ namespace vk
 		assert(instance != VK_NULL_HANDLE && windowSurface != VK_NULL_HANDLE);
 
 		FindPhysicalDevices(instance);
+		
+		CheckRequestedExtensions();
+
+		//device properties
 		vkGetPhysicalDeviceMemoryProperties(this->physical, &memoryProperties);
+		
+		//descriptor buffer info
+		VkPhysicalDeviceProperties2KHR deviceProperties2 = {};
+		descriptorBufferProperties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_BUFFER_PROPERTIES_EXT;
+		deviceProperties2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2_KHR;
+		deviceProperties2.pNext = &descriptorBufferProperties;
+		vkGetPhysicalDeviceProperties2(this->physical, &deviceProperties2);
+
+		assert(descriptorBufferProperties.maxDescriptorBufferBindings >= 2);
+
 		FindQueueFamilies(windowSurface);
+
 		InitializeLogicalDevice();
 
 		vkGetDeviceQueue(this->logical, graphicsQueue.family, 0, &graphicsQueue.handle);
@@ -141,6 +156,7 @@ namespace vk
 	{
 		assert(graphicsQueue.family != -1 && presentQueue.family != -1);
 
+
 		std::vector<VkDeviceQueueCreateInfo> deviceQueueCreateInfos; //presentation and graphics.
 
 		uint32_t uniqueQueueFamilies[2] = { graphicsQueue.family, presentQueue.family };
@@ -180,15 +196,8 @@ namespace vk
 		deviceCreateInfo.flags = 0;
 		deviceCreateInfo.pNext = nullptr;
 
-
-		static const char* deviceExtensions[1] =
-		{
-			"VK_KHR_swapchain"
-		};
-
-		//maybe don't assume extensions are there!!!!	
-		deviceCreateInfo.enabledExtensionCount = static_cast<uint32_t>(std::size(deviceExtensions));
-		deviceCreateInfo.ppEnabledExtensionNames = deviceExtensions;
+		deviceCreateInfo.enabledExtensionCount = static_cast<uint32_t>(requestedExtensions.size());
+		deviceCreateInfo.ppEnabledExtensionNames = requestedExtensions.data();
 
 		VkPhysicalDeviceFeatures deviceFeatures = {};
 		deviceFeatures.geometryShader = VK_TRUE;
@@ -203,7 +212,29 @@ namespace vk
 
 	}
 
+	void Device::CheckRequestedExtensions() 
+	{
+		uint32_t extension_count = 0;
+		vkEnumerateDeviceExtensionProperties(this->physical, nullptr, &extension_count, nullptr);
 
+		std::vector<VkExtensionProperties> supportedExtensions(extension_count);
+		vkEnumerateDeviceExtensionProperties(this->physical, nullptr, &extension_count, supportedExtensions.data());
+
+		for (auto& e : requestedExtensions) 
+		{
+			bool foundExtension = false;
+			for (auto& se : supportedExtensions) 
+			{
+				if (strcmp(se.extensionName, e) == 0) 
+				{
+					foundExtension = true;
+					break;
+				}
+			}
+
+			assert(foundExtension == true); //TODO: write a logger to report generic errors like this.
+		}
+	}
 
 	uint32_t Device::GetMemoryType(uint32_t typeBits, VkMemoryPropertyFlags properties) {
 
@@ -252,7 +283,6 @@ namespace vk
 	void Device::FlushCommandBuffer(VkCommandBuffer cmdBuffer, VkQueue queue, VkCommandPool pool, bool free) 
 	{
 		//create a fence, submit the work to the gpu, and then delete the fence and free the command buffer
-
 		VkSubmitInfo submitInfo = vk::init::SubmitInfo();
 		submitInfo.commandBufferCount = 1;
 		submitInfo.pCommandBuffers = &cmdBuffer;
@@ -275,5 +305,19 @@ namespace vk
 			cmdBuffer = VK_NULL_HANDLE;
 		}
 
+	}
+
+	void Device::AddExtension(const char* name) 
+	{
+		//gotta save memory.
+		for (auto& extension : requestedExtensions) 
+		{
+			if (strcmp(extension, name) == 0)
+			{
+				return;
+			}
+		}
+
+		requestedExtensions.push_back(name);
 	}
 }

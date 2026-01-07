@@ -5,10 +5,10 @@
 layout(triangles, invocations = LIGHT_COUNT) in;
 layout(triangle_strip, max_vertices = 3) out;
 
-layout (binding = 0) uniform UBO 
+layout (set = 0, binding = 0) uniform lightUBO 
 {
 	mat4 depthVP[LIGHT_COUNT]; 
-} lightUBO;
+} ubo;
 
 void main()
 {
@@ -16,7 +16,7 @@ void main()
 	gl_Layer = gl_InvocationID;
 	for (int i = 0; i < gl_in.length(); ++i) //gl_in.length() returns 3 in this case as we are to process triangles
 	{	
-		gl_Position = lightUBO.depthVP[gl_Layer] * gl_in[i].gl_Position;
+		gl_Position = ubo.depthVP[gl_Layer] * gl_in[i].gl_Position;
 		EmitVertex();
 	}
 	EndPrimitive();

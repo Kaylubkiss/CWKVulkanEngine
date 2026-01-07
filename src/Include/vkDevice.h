@@ -9,7 +9,7 @@ namespace vk
 	};
 
 	struct Device {
-		
+
 		//data
 		VkPhysicalDevice physical = VK_NULL_HANDLE;
 		VkDevice logical = VK_NULL_HANDLE;
@@ -17,8 +17,6 @@ namespace vk
 		vk::Queue presentQueue;
 
 		VkCommandPool commandPool = VK_NULL_HANDLE;
-
-		VkPhysicalDeviceMemoryProperties memoryProperties = {};
 
 		void Init(VkInstance instance, VkSurfaceKHR surface);
 		void Destroy();
@@ -28,12 +26,23 @@ namespace vk
 		Buffer CreateBuffer(size_t size, VkBufferUsageFlags usage, VkMemoryPropertyFlags flags, void* data);
 		VkCommandBuffer CreateCommandBuffer(VkCommandBufferLevel level, bool begin);
 		void FlushCommandBuffer(VkCommandBuffer cmdBuffer, VkQueue queue, VkCommandPool pool, bool free);
+		void AddExtension(const char* name);
 
 		//helpers
 		private:
 			void FindPhysicalDevices(VkInstance instance);
 			void FindQueueFamilies(VkSurfaceKHR windowSurface);
 			void InitializeLogicalDevice();
+			void CheckRequestedExtensions();
+
+		//private data
+		private:
+			std::vector<const char*> requestedExtensions;
+
+			//properties
+			VkPhysicalDeviceMemoryProperties memoryProperties = {};
+			VkPhysicalDeviceDescriptorBufferPropertiesEXT descriptorBufferProperties = {};
+
 	};
 
 }

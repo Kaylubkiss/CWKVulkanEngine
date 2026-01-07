@@ -1,7 +1,7 @@
 #include "ApplicationGlobal.h"
 #include "vkShadowMapContext.h"
 
-
+//TODO: THIS SCENE IS BROKEN
 namespace vk 
 {
 	ShadowMapScene::ShadowMapScene() 

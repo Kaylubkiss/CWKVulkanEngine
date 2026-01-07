@@ -59,11 +59,11 @@ namespace vkGltf
 
 		private:
 			void LoadGLTF();
-			void LoadImages();
 
 			void LoadMesh(fastgltf::Mesh& mesh, 
 				std::vector<Vertex>& vertexBuffer,
 				std::vector<uint16_t>& indexBuffer);
+
 			void LoadImage(fastgltf::Image& image);
 		
 	};

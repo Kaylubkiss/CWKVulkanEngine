@@ -121,7 +121,7 @@ namespace vk
 			}
 		}
 
-		createInfo.presentMode = VK_PRESENT_MODE_FIFO_KHR; //this is always guaranteed.
+		createInfo.presentMode = VK_PRESENT_MODE_FIFO_KHR; //this is always guaranteed.+
 		createInfo.clipped = VK_TRUE;
 		createInfo.oldSwapchain = oldSwapchain; //resizing needs a reference to the old swap chain
 

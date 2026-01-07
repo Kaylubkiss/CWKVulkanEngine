@@ -12,12 +12,13 @@ namespace vk
 
 		CreateWindow();
 		CreateInstance();
-
 		if (SDL_Vulkan_CreateSurface(window.sdl_ptr, instance, &window.surface) != SDL_TRUE)
 		{
 			throw std::runtime_error("could not create window surface! " + std::string(SDL_GetError()));
 		}
 		
+		device.AddExtension(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
+		device.AddExtension(VK_EXT_DESCRIPTOR_BUFFER_EXTENSION_NAME);
 		device.Init(instance, window.surface);
 
 		swapChain.Init(&this->device, window); //need window for its surface and viewport info.
@@ -114,7 +115,7 @@ namespace vk
 		createInfo.pApplicationInfo = &appInfo;
 
 		//must get the SDL extensions to use SDL2
-		unsigned int sdl_extensionCount = 0;
+		uint32_t sdl_extensionCount = 0;
 		if (SDL_Vulkan_GetInstanceExtensions(window.sdl_ptr, &sdl_extensionCount, nullptr) != SDL_TRUE)
 		{
 			throw std::runtime_error("could not grab extensions from SDL!");
@@ -130,39 +131,12 @@ namespace vk
 		createInfo.ppEnabledExtensionNames = extensionNames.data();
 
 		//enabling validation layers
-		if (settings.validationLayers) 
+		if (settings.validationLayers == true) 
 		{
-			const char* layerName = "VK_LAYER_KHRONOS_validation";
+			std::vector<const char*> instanceLayers;
+			instanceLayers.push_back("VK_LAYER_KHRONOS_validation");
 
-			const VkBool32 setting_validate_core = VK_TRUE;
-			const VkBool32 setting_validate_sync = VK_TRUE;
-			const VkBool32 setting_thread_safety = VK_TRUE;
-			const char* setting_debug_action[] = { "VK_DBG_LAYER_ACTION_LOG_MSG" };
-			const char* setting_report_flags[] = { "error" };
-			const VkBool32 setting_enable_message_limit = VK_TRUE;
-			const int32_t setting_duplicate_message_limit = 100;
-
-			std::vector<VkLayerSettingEXT> settings = {
-				{layerName, "validate_core", VK_LAYER_SETTING_TYPE_BOOL32_EXT, 1, &setting_validate_core},
-				{layerName, "duplicate_message_limit", VK_LAYER_SETTING_TYPE_INT32_EXT, 1, &setting_duplicate_message_limit},
-				{layerName, "report_flags", VK_LAYER_SETTING_TYPE_STRING_EXT, static_cast<uint32_t>(std::size(setting_report_flags)), setting_report_flags},
-			};
-
-			const VkLayerSettingsCreateInfoEXT layer_settings_create_info = 
-			{
-				VK_STRUCTURE_TYPE_LAYER_SETTINGS_CREATE_INFO_EXT, nullptr,
-				static_cast<uint32_t>(settings.size()), settings.data() 
-			};
-
-
-			createInfo.pNext = &layer_settings_create_info;
-
-			std::vector<const char*> instanceLayers =
-			{
-				layerName
-			};
-
-			if (!vk::util::CheckLayerSupport(instanceLayers.data(), instanceLayers.size()))
+			if (!vk::util::CheckInstanceLayerSupport(instanceLayers.data(), instanceLayers.size()))
 			{
 				throw std::runtime_error("one or more layers are not supported\n");
 			}

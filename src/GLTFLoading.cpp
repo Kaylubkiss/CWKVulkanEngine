@@ -38,7 +38,6 @@ namespace vkGltf
 		this->devicePtr = device;
 
 		LoadGLTF();
-		//LoadImages();
 
 		std::vector<Vertex> vertices;
 		std::vector<uint16_t> indices;
@@ -50,7 +49,7 @@ namespace vkGltf
 
 		for (auto& image : m_asset.images) 
 		{
-			
+			LoadImage(image);
 		}
 
 		size_t vertexBufferSize = vertices.size() * sizeof(vertices[0]);
@@ -173,21 +172,6 @@ namespace vkGltf
 
 	}
 
-	void Model::LoadImages()
-	{
-		/*vk::GraphicsContextInfo graphicsContextInfo = _Application->Context()->GetGraphicsContextInfo();
-		vk::TextureManager& textureManager = _Application->TextureManager();
-
-		
-		for (auto& image : m_asset.images)
-		{
-			textureManager.
-
-			m_textures.push_back(newTexture);
-		}*/
-
-	}
-
 	void Model::LoadMesh(fastgltf::Mesh& mesh, std::vector<Vertex>& vertexBuffer,
 	std::vector<uint16_t>& indexBuffer)
 	{
@@ -302,8 +286,15 @@ namespace vkGltf
 		std::visit(fastgltf::visitor{
 			[](auto& arg) {},
 			[&](fastgltf::sources::URI& filePath) {
+				assert(filePath.fileByteOffset == 0);
 
+				m_textures.emplace_back(std::make_shared<vk::Texture>(devicePtr, std::string(filePath.uri.c_str())));
 			},
 		}, image.data);
+
+
+		//TODO if texture ends up empty, assign it a default (checkerboard) texture.
+
+
 	}
 }

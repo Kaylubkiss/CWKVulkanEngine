@@ -1,8 +1,7 @@
 #version 450
+#extension GL_KHR_vulkan_glsl : enable
 
-//TODO: sampler for albedo here...
-
-layout(binding = 3) uniform sampler2D colorSampler;
+layout(set = 1, binding = 0) uniform sampler2D colorSampler;
 
 layout( location = 0 ) in vec4 inWorldPosition;
 layout( location = 1 ) in vec4 inWorldNormal;

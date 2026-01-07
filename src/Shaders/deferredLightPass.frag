@@ -1,5 +1,5 @@
 #version 450
-
+#extension GL_KHR_vulkan_glsl : enable
 
 layout(binding = 1) uniform sampler2D samplerPosition;
 layout(binding = 2) uniform sampler2D samplerNormal;
@@ -23,7 +23,7 @@ struct Light
 	mat4 viewMatrix; /* projects a point to the light's POV */
 };
 
-layout(binding = 0) uniform UBO
+layout(set = 2, binding = 0) uniform UBO
 {
 	Light lights[LIGHT_COUNT];
 	vec3 viewPosition; /* position of the camera (for view direction calculation) */

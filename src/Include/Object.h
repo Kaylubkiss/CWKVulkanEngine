@@ -34,6 +34,8 @@ class Object
 		void Draw(VkCommandBuffer cmdBuffer, VkPipelineLayout pipelineLayout = VK_NULL_HANDLE);
 		void InitPhysics(PhysicsSystem& appPhysics);
 
+		bool HasTexture();
+
 };
 
 

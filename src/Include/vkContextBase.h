@@ -54,7 +54,7 @@ namespace vk
 			Camera mCamera;
 			vk::UserInterface UIOverlay;
 
-			bool isInitialized = false;
+		
 
 		public: 
 
@@ -87,6 +87,7 @@ namespace vk
 		protected:
 
 			bool PrepareFrame();
+
 			//more pure virtual function(s)
 			virtual void InitializePipeline(std::string vsFile = "", std::string fsFile = "") = 0;
 			virtual void InitializeDescriptors() = 0;

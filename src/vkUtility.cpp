@@ -409,7 +409,7 @@ namespace vk {
 			return fileNamePath;
 		}	
 
-		bool CheckLayerSupport(const char* layers[], int layersSize)
+		bool CheckInstanceLayerSupport(const char* layers[], int layersSize)
 		{
 			uint32_t layerCount = 0;
     		vkEnumerateInstanceLayerProperties(&layerCount, nullptr);

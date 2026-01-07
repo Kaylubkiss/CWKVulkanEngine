@@ -61,8 +61,6 @@ namespace vk
 
 		std::string ReadSourceAndWriteToSprv(std::string fileName, shaderc_shader_kind shader_kind);
 
-		uint32_t GetMemoryType(uint32_t typeBits, VkMemoryPropertyFlags properties);
-
-		bool CheckLayerSupport(const char* layers[], int layersSize);
+		bool CheckInstanceLayerSupport(const char* layers[], int layersSize);
 	}
 }

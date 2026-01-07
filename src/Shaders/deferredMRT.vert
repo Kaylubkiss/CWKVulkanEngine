@@ -1,11 +1,11 @@
 #version 450
+#extension GL_KHR_vulkan_glsl : enable
 
-
-layout(std140, binding = 0) uniform uTransformObject
+layout(set = 0, binding = 0) uniform sceneUBO
 {
 	mat4 view;
 	mat4 proj;
-} ubo;
+} camera;
 
 layout (push_constant) uniform pc
 {
@@ -23,7 +23,7 @@ layout( location = 3 ) out vec4 outColor;
 
 void main()
 {
-	gl_Position = ubo.proj * ubo.view * modelMatrix * vec4(aPos, 1);
+	gl_Position = camera.proj * camera.view * modelMatrix * vec4(aPos, 1);
 	
 	outWorldNormal = normalize(transpose(inverse(modelMatrix)) * vec4(aNorm, 0));
 	outWorldPosition = modelMatrix * vec4(aPos, 1);
