@@ -23,6 +23,7 @@ namespace vk
 
 		//functionality
 		uint32_t GetMemoryType(uint32_t typeBits, VkMemoryPropertyFlags properties);
+		VkPhysicalDeviceDescriptorBufferPropertiesEXT DescriptorBufferProperties();
 		Buffer CreateBuffer(size_t size, VkBufferUsageFlags usage, VkMemoryPropertyFlags flags, void* data);
 		VkCommandBuffer CreateCommandBuffer(VkCommandBufferLevel level, bool begin);
 		void FlushCommandBuffer(VkCommandBuffer cmdBuffer, VkQueue queue, VkCommandPool pool, bool free);

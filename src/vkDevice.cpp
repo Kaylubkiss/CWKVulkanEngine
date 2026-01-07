@@ -255,6 +255,11 @@ namespace vk
 		throw std::runtime_error("couldn't find the requested memory type on device");
 	}
 
+	VkPhysicalDeviceDescriptorBufferPropertiesEXT Device::DescriptorBufferProperties() 
+	{
+		return descriptorBufferProperties;
+	}
+
 	Buffer Device::CreateBuffer(size_t size, VkBufferUsageFlags usage, VkMemoryPropertyFlags flags, void* data) 
 	{
 		return Buffer(this->physical,this->logical, size, usage, flags, data);

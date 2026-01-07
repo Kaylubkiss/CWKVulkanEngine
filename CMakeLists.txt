@@ -1,7 +1,11 @@
 cmake_minimum_required(VERSION 3.22)
 
 set(PROJECT_NAME "CKVulkan")
-set(CMAKE_TOOLCHAIN_FILE C:/vcpkg/scripts/buildsystems/vcpkg.cmake)
+
+#vcpkg will install fastgltf
+if (WIN32)
+	set(CMAKE_TOOLCHAIN_FILE C:/vcpkg/scripts/buildsystems/vcpkg.cmake)
+endif()
 
 project("${PROJECT_NAME}" LANGUAGES CXX C)
 

@@ -393,7 +393,9 @@ namespace vk
 			vk::init::PushConstantRange(0, sizeof(glm::mat4), VK_SHADER_STAGE_VERTEX_BIT)
 		};
 
-		std::array<VkDescriptorSetLayout, 3> layouts = { uMRTBindingDescriptor.layout, imageBindingDescriptor.layout, uShadowBindingDescriptor.layout };
+		std::array<VkDescriptorSetLayout, 3> layouts = { 
+			uMRTBindingDescriptor.layout, imageBindingDescriptor.layout, uShadowBindingDescriptor.layout 
+		};
 
 		VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = vk::init::PipelineLayoutCreateInfo();
 		pipelineLayoutCreateInfo.pSetLayouts = layouts.data();
@@ -402,12 +404,28 @@ namespace vk
 		pipelineLayoutCreateInfo.pPushConstantRanges = pushConstantRanges.data();
 		VK_CHECK_RESULT(vkCreatePipelineLayout(device.logical, &pipelineLayoutCreateInfo, nullptr, &pipelineLayout));
 
+		vkGetDescriptorSetLayoutSizeEXT(device.logical, uMRTBindingDescriptor.layout, &uMRTBindingDescriptor.size);
+		vkGetDescriptorSetLayoutSizeEXT(device.logical, imageBindingDescriptor.layout, &imageBindingDescriptor.size);
+		vkGetDescriptorSetLayoutSizeEXT(device.logical, uShadowBindingDescriptor.layout, &uShadowBindingDescriptor.size);
+
+		VkDeviceSize descriptorBufferOffsetAlignment = device.DescriptorBufferProperties().descriptorBufferOffsetAlignment;
+
+		uMRTBindingDescriptor.size = AlignedSize(uMRTBindingDescriptor.size, descriptorBufferOffsetAlignment);
+		imageBindingDescriptor.size = AlignedSize(imageBindingDescriptor.size, descriptorBufferOffsetAlignment);
+		uShadowBindingDescriptor.size = AlignedSize(uShadowBindingDescriptor.size, descriptorBufferOffsetAlignment);
+
+		vkGetDescriptorSetLayoutBindingOffsetEXT(device.logical, uMRTBindingDescriptor.layout, 0u, &uMRTBindingDescriptor.offset);
+		vkGetDescriptorSetLayoutBindingOffsetEXT(device.logical, imageBindingDescriptor.layout, 0u, &imageBindingDescriptor.offset);
+		vkGetDescriptorSetLayoutBindingOffsetEXT(device.logical, uShadowBindingDescriptor.layout, 0u, &uShadowBindingDescriptor.offset);
+
 	}
 	
 	void DeferredContext::InitializePipeline(std::string vsFile, std::string fsFile)
 	{
 		(void)vsFile;
 		(void)fsFile;
+
+
 
 		VkPipelineInputAssemblyStateCreateInfo inputAssemblyStateCI = vk::init::PipelineInputAssemblyStateCreateInfo(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, 0, VK_FALSE);
 		VkPipelineRasterizationStateCreateInfo rasterizationStateCI = vk::init::PipelineRasterizationStateCreateInfo(VK_POLYGON_MODE_FILL, VK_CULL_MODE_BACK_BIT, VK_FRONT_FACE_COUNTER_CLOCKWISE);
@@ -421,7 +439,7 @@ namespace vk
 
 		std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages;
 
-		VkGraphicsPipelineCreateInfo pipelineCI = vk::init::PipelineCreateInfo(pipelineLayout, renderPass);
+		VkGraphicsPipelineCreateInfo pipelineCI = vk::init::PipelineCreateInfo(pipelineLayout, renderPass, VK_PIPELINE_CREATE_DESCRIPTOR_BUFFER_BIT_EXT);
 		pipelineCI.pInputAssemblyState = &inputAssemblyStateCI;
 		pipelineCI.pRasterizationState = &rasterizationStateCI;
 		pipelineCI.pColorBlendState = &colorBlendStateCI;
@@ -800,7 +818,6 @@ namespace vk
 	void DeferredContext::Render() 
 	{
 		pipelineManager.HotReloadShaders();
-
 		if (window.isPrepared) 
 		{
 			if (ContextBase::PrepareFrame()) 
