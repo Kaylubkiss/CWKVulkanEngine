@@ -67,13 +67,21 @@ namespace vk
 		assert(result == VK_SUCCESS);
 	}
 
+
+	VkDeviceAddress Buffer::GetDeviceAddress() const
+	{
+		VkBufferDeviceAddressInfo bufferAddress = {};
+		bufferAddress.sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO;
+		bufferAddress.buffer = this->handle;
+		return vkGetBufferDeviceAddress(this->logicalDevice, &bufferAddress);
+	}
+
 	void Buffer::SetDescriptor(VkDeviceSize size, VkDeviceSize offset) 
 	{
 		descriptor.buffer = this->handle;
 		descriptor.range = size;
 		descriptor.offset = offset;
 	}
-
 
 	void Buffer::Map() 
 	{
@@ -107,7 +115,8 @@ namespace vk
 		if (logicalDevice != VK_NULL_HANDLE) 
 		{
 			if (this->memory != VK_NULL_HANDLE)
-			{
+			{		
+				UnMap(); //already checks if the mapped memory is null before freeing.
 				vkFreeMemory(logicalDevice, this->memory, nullptr);
 				this->memory = VK_NULL_HANDLE;
 			}

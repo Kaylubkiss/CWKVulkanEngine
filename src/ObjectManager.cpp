@@ -76,18 +76,17 @@ namespace vk
 		}
 	}
 
+	std::map<const char*, ObjectInfo, str_cmp>& ObjectManager::Objects()
+	{
+		return objects;
+	}
+
 	void ObjectManager::DrawObjects(VkCommandBuffer cmdBuffer, 
-		VkPipelineLayout pipelineLayout, 
-		VkDescriptorSet defaultDescriptorSet)
+		VkPipelineLayout pipelineLayout)
 	{
 		for (auto& obj : objects)
 		{
 			Object* curr_obj = obj.second.obj;
-			
-			if (curr_obj->HasTexture() == false && defaultDescriptorSet != VK_NULL_HANDLE)
-			{
-				vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &defaultDescriptorSet, 0, nullptr);
-			}
 
 			curr_obj->Draw(cmdBuffer, pipelineLayout);
 		}

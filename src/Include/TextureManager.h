@@ -10,17 +10,22 @@ namespace vk
 
 			void Init(GraphicsContextInfo contextInfo);
 
-			VkDescriptorImageInfo GetTextureDescriptorSet(const char* fileName);
+			VkDescriptorImageInfo GetTextureDescriptorInfo(const char* fileName);
 
 			void BindTextureToObject(const std::string& fileName, Object& obj);
 
 		private:
+			bool AddTexture(GraphicsContextInfo& graphicsContextInfo, const std::string& fileName);
 
-			bool AddTexture(GraphicsContextInfo* graphicsContextInfo, const std::string& fileName);
+			vk::GraphicsContextInfo graphicsContextInfo = {};
 
-			vk::GraphicsContextInfo graphicsContextInfo;
+			struct TextureInfo 
+			{
+				std::unique_ptr<vk::Texture> handle;
+				uint32_t index;
+			};
 
-			std::unordered_map<std::string, std::pair<std::unique_ptr<vk::Texture>, std::shared_ptr<VkDescriptorSet>>> mTextures;
+			std::unordered_map<std::string, TextureInfo> mTextures;
 	};
 
 }

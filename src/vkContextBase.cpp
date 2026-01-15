@@ -19,6 +19,7 @@ namespace vk
 		
 		device.AddExtension(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
 		device.AddExtension(VK_EXT_DESCRIPTOR_BUFFER_EXTENSION_NAME);
+		device.AddExtension(VK_EXT_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME);
 		device.Init(instance, window.surface);
 
 		swapChain.Init(&this->device, window); //need window for its surface and viewport info.
@@ -73,7 +74,6 @@ namespace vk
 			swapChain.Destroy();
 			UIOverlay.Destroy();
 
-			vkDestroyPipelineLayout(device.logical, pipelineLayout, nullptr);
 			vkDestroyDescriptorPool(device.logical, this->descriptorPool, nullptr);
 
 			vkFreeCommandBuffers(device.logical, this->device.commandPool, this->commandBuffers.size(), this->commandBuffers.data());

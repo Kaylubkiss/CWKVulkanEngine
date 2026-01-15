@@ -143,8 +143,6 @@ namespace vk
 
 	void FreddyHeadScene::FillOutGraphicsContextInfo() 
 	{
-		mInfo.descriptorPool = this->descriptorPool;
-		mInfo.descriptorSetLayout = this->descriptorSetLayout;
 		ContextBase::FillOutGraphicsContextInfo();
 	}
 

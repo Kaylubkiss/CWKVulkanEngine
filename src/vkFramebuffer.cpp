@@ -277,6 +277,29 @@ namespace vk
 
 			VK_CHECK_RESULT(vkAllocateMemory(contextDevice->logical, &memAllocInfo, nullptr, &attachment.imageMemory));
 			VK_CHECK_RESULT(vkBindImageMemory(contextDevice->logical, attachment.image, attachment.imageMemory, 0));
+
+			//VkCommandBuffer commandBuffer = contextDevice->CreateCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
+
+
+			////transition the image layouts for presentation.
+			//VkImageMemoryBarrier barrier = {};
+			//barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+			//barrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+			//barrier.newLayout = attachment.flags & VKC_ATTACHMENT_IS_DEPTH_STENCIL ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+			//barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+			//barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+			//barrier.image = attachment.image;
+			//barrier.subresourceRange.aspectMask = aspectMask;
+			//barrier.subresourceRange.baseMipLevel = 0;
+			//barrier.subresourceRange.levelCount = 1;
+			//barrier.subresourceRange.baseArrayLayer = 0;
+			//barrier.subresourceRange.layerCount = 1;
+
+			//vkCmdPipelineBarrier(commandBuffer,
+			//	VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+			//	0, 0, nullptr, 0, nullptr, 1, &barrier);
+
+			//contextDevice->FlushCommandBuffer(commandBuffer, contextDevice->graphicsQueue.handle, contextDevice->commandPool, true);
 		}
 		else
 		{
@@ -287,7 +310,7 @@ namespace vk
 
 		VkImageViewCreateInfo viewInfo = vk::init::ImageViewCreateInfo();
 		viewInfo.image = attachment.image;
-		viewInfo.viewType = createInfo.layerCount == 1 ? VK_IMAGE_VIEW_TYPE_2D : VK_IMAGE_VIEW_TYPE_2D_ARRAY;
+		viewInfo.viewType = createInfo.layerCount > 1 ? VK_IMAGE_VIEW_TYPE_2D_ARRAY : VK_IMAGE_VIEW_TYPE_2D;
 
 		viewInfo.format = createInfo.format;
 		if (attachment.flags & VKC_ATTACHMENT_IS_SWAPCHAIN_IMAGE) 

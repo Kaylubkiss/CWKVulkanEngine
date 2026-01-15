@@ -5,7 +5,7 @@
 layout(triangles, invocations = LIGHT_COUNT) in;
 layout(triangle_strip, max_vertices = 3) out;
 
-layout (set = 0, binding = 0) uniform lightUBO 
+layout (std140, set = 0, binding = 0) uniform lightUBO 
 {
 	mat4 depthVP[LIGHT_COUNT]; 
 } ubo;

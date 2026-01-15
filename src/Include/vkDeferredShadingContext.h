@@ -5,31 +5,33 @@ namespace vk
 {
 	#define LIGHT_COUNT 2
 
+	//This scene is statically 5 MB!!!
 	class DeferredContext : public ContextBase 
 	{
-		enum DeferredPipelines
+		enum dePipeline
 		{
-			LIGHTPASS = 0,
+			COMPOSITION = 0,
 			MRT,
-			SHADOW
+			SHADOW,
+			PIPELINE_COUNT
 		};
 
 		enum DeferredRenderTargets 
 		{
 			RT_POSITION = 0,
 			RT_NORMAL,
-			RT_ALBEDO
+			RT_ALBEDO,
+			RT_COUNT
 		};
 
 		struct Light
 		{
 			float shininess = 0.f; /* exponent value */
-
+			float _pad0[3];
 			glm::vec3 pos = glm::vec3(0.f); /* position of light */
 			glm::vec3 ambient = glm::vec3(0.f); /* scene color */
 			glm::vec3 albedo = glm::vec3(0.f); /* base color of light */
 			glm::vec3 specular = glm::vec3(0.f); /* reflectivity of the light */
-
 			glm::mat4 viewMatrix;
 		};
 
@@ -50,30 +52,33 @@ namespace vk
 
 		struct UniformBuffers
 		{
-			vk::Buffer deferredMRT;
-			vk::Buffer deferredShadow;
+			vk::Buffer mrt;
+			vk::Buffer shadow;
 			vk::Buffer composition;
 		};
 
 		std::array<UniformBuffers, gMaxFramesInFlight> uniformBuffers;
 
-		//Descriptor Buffer Stuff
-		struct DescriptorData 
+		struct DescriptorBufferData //240 BYTES!!!
 		{
+			std::array<vk::Buffer, gMaxFramesInFlight> buffers; //descriptors are stored in BUFFERS, not VkDescriptorSet
+			std::vector<VkDeviceSize> binding_offsets = {0ull}; //at least 1 binding (binding 0)
 			VkDescriptorSetLayout layout = VK_NULL_HANDLE;
-			vk::Buffer buffer; //descriptors are stored in BUFFERS, not VkDescriptorSet
 			VkDeviceSize size = 0ull;
-			VkDeviceSize offset = 0ull;
 			void Destroy() 
 			{
-				buffer.Destroy();
-				vkDestroyDescriptorSetLayout(buffer.logicalDevice, layout, nullptr);
+				for (auto& b : buffers) 
+				{
+					b.Destroy();
+				}
+				vkDestroyDescriptorSetLayout(buffers[0].logicalDevice, layout, nullptr);
 			}
 		};
 
-		DescriptorData uMRTBindingDescriptor;
-		DescriptorData uShadowBindingDescriptor;
-		DescriptorData imageBindingDescriptor;
+		std::array<DescriptorBufferData, dePipeline::PIPELINE_COUNT> uniformBindingDescriptors;
+		//might be an abuse of map? Big memory cost.
+		DescriptorBufferData textureBindingDescriptor;
+		DescriptorBufferData compositionImageBindingDescriptor; //multiple frames in flight.
 
 		//NOTE: this will all be done offscreen because we have a main renderpass from the swapchain we'll 
 		//read the results of this from
@@ -82,16 +87,9 @@ namespace vk
 			Framebuffer deShadow;
 		} framebuffers;
 
-		struct DescriptorSets
-		{
-			VkDescriptorSet deferred;
-			VkDescriptorSet deferredShadow;
-			VkDescriptorSet composition;
-		};
-		
-		std::array<DescriptorSets, gMaxFramesInFlight> descriptorSets;
-
 		std::unique_ptr<Texture> defaultTexture;
+
+		std::array<VkPipelineLayout, PIPELINE_COUNT> pipelineLayouts;
 
 		float depthBiasConstant = 1.25f;
 		float depthBiasSlope = 1.75f;
@@ -101,8 +99,8 @@ namespace vk
 		float lightFOV = 100.f;
 
 		struct {
-			glm::vec3 cubePosition = { 0, 20, -5.f };
-			glm::vec3 freddyPosition = { 1.0f, 0, 5.f };
+			glm::vec3 cubePosition = { 1.0, 20, -5.f };
+			glm::vec3 freddyPosition = { 1.0f, 1.0, 5.f };
 		} sceneSettings{};
 
 		vkGltf::Model testGltfModel;
@@ -128,8 +126,11 @@ namespace vk
 		void IntializeDeferredFramebuffer();
 		void InitializeDeferredShadowFramebuffer();
 		void InitializeUniforms();
+		void InitializeDescriptorBuffers();
+		void InitializeDescriptorLayouts();
 		void UpdateScreenUniforms();
-		void UpdateSceneUniforms();
+		void UpdateLights();
+		void DrawObjectsWithTexture(VkCommandBuffer cmdBuffer, VkPipelineLayout pipelineLayout, ObjectManager& objManager);
 
 	};
 

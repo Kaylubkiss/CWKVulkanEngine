@@ -1,14 +1,14 @@
 #version 450
 #extension GL_KHR_vulkan_glsl : enable
 
-layout(binding = 1) uniform sampler2D samplerPosition;
-layout(binding = 2) uniform sampler2D samplerNormal;
-layout(binding = 3) uniform sampler2D samplerAlbedo;
-layout(binding = 4) uniform sampler2DArray samplerShadowMap;
-
 layout(location = 0) in vec2 inUV;
 
 layout(location = 0) out vec4 fragColor;
+
+layout(set = 0, binding = 0) uniform sampler2D samplerPosition;
+layout(set = 0, binding = 1) uniform sampler2D samplerNormal;
+layout(set = 0, binding = 2) uniform sampler2D samplerAlbedo;
+layout(set = 0, binding = 3) uniform sampler2DArray samplerShadowMap;
 
 #define LIGHT_COUNT 2
 #define AMBIENT_COLOR .5
@@ -23,35 +23,36 @@ struct Light
 	mat4 viewMatrix; /* projects a point to the light's POV */
 };
 
-layout(set = 2, binding = 0) uniform UBO
+layout(set = 1, binding = 0) uniform UBO
 {
 	Light lights[LIGHT_COUNT];
 	vec3 viewPosition; /* position of the camera (for view direction calculation) */
-
 } ubo;
+
 
 float ShadowSampling(vec4 fragPos)
 {
-	float factor = 1.f;
+	float shadow = 1.0;
 
 	for (int layer = 0; layer < LIGHT_COUNT; ++layer)
 	{
 		vec4 shadowClip = ubo.lights[layer].viewMatrix * fragPos;
-		vec4 shadowCoord = shadowClip / shadowClip.w; //persp divide
-		shadowCoord.st = shadowCoord.st * 0.5 + 0.5; //now in texture space
+		vec3 shadowCoord = shadowClip.xyz / shadowClip.w;
 
-		if (shadowCoord.z > -1.f && shadowCoord.z < 1.f)
+		shadowCoord.xy = shadowCoord.xy * 0.5 + 0.5;
+
+		if (shadowCoord.z >= 0.0 && shadowCoord.z <= 1.0)
 		{
-			float dist = texture(samplerShadowMap, vec3(shadowCoord.st, layer)).r;
+		    float dist = texture(samplerShadowMap, vec3(shadowCoord.xy, layer)).r;
 
-			if (shadowCoord.w > 0.f && dist < shadowCoord.z)
+		    if (dist < shadowCoord.z)
 			{
-				factor *= .25f;
+				shadow *= AMBIENT_COLOR;
 			}
 		}
 	}
 
-	return factor;
+    return shadow;
 }
 
 
@@ -62,7 +63,7 @@ void main()
 	vec3 normal = texture(samplerNormal, inUV).rgb;
 	vec3 albedo = texture(samplerAlbedo, inUV).rgb;
 
-	fragColor.rgb = AMBIENT_COLOR * albedo;
+	fragColor.rgb = vec3(AMBIENT_COLOR) * vec3(albedo);
 
 	float shadowFactor = ShadowSampling(vec4(position, 1));
 
@@ -77,10 +78,10 @@ void main()
 		
 		float diffuse = max(dot(normal, lightDir), 0.0f);
 
-		fragColor.rgb += (diffuse + specular) * albedo; 
+		fragColor.rgb += (diffuse + specular) * vec3(albedo); 
 	}
 
-	fragColor.rgb *= shadowFactor; 
+	fragColor.rgb *= vec3(shadowFactor);
 
 	fragColor.a = 1.f;
 }

@@ -15,7 +15,8 @@ class Object
 
 		PhysicsComponent mPhysicsComponent;
 
-		std::shared_ptr<VkDescriptorSet> textureDescriptorSet = nullptr;
+		uint32_t textureIndex = 0;
+		
 	public:
 		Object(const VkPhysicalDevice p_device, const VkDevice l_device,
 			const char* fileName, bool willDebugDraw = false);
@@ -24,7 +25,7 @@ class Object
 		void UpdatePhysicsComponent(const PhysicsComponent* physComp);
 		void UpdateModelTransform(const glm::mat4* modelTransform);
 		void UpdateMesh(const Mesh* mesh);
-		void UpdateDescriptorSet(std::vector<VkWriteDescriptorSet>& writeDescriptors, std::shared_ptr<VkDescriptorSet> descriptorSet);
+		void UpdateTextureDescriptorOffset(uint32_t offset);
 
 		Object() = default;
 		~Object() = default;
@@ -33,8 +34,7 @@ class Object
 		void Update(const float& interpFactor);
 		void Draw(VkCommandBuffer cmdBuffer, VkPipelineLayout pipelineLayout = VK_NULL_HANDLE);
 		void InitPhysics(PhysicsSystem& appPhysics);
-
-		bool HasTexture();
+		uint32_t TextureIndex();
 
 };
 

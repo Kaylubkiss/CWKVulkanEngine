@@ -28,6 +28,12 @@ namespace vk
 	typedef const char* ObjectName;
 	typedef std::string TextureFileName;
 
+	struct ObjectInfo
+	{
+		bool isDoneLoading;
+		Object* obj;
+	};
+
 	class ObjectManager
 	{
 		public:
@@ -41,21 +47,16 @@ namespace vk
 			void LoadObject(const ObjectCreateInfo& objectCI);
 
 			void DrawObjects(VkCommandBuffer cmdBuffer, 
-				VkPipelineLayout pipelineLayout = VK_NULL_HANDLE, 
-				VkDescriptorSet defaultDescriptorSet = VK_NULL_HANDLE);
+				VkPipelineLayout pipelineLayout = VK_NULL_HANDLE);
 
 			void Update(float dt);
+
+			std::map<const char*, ObjectInfo, str_cmp>& Objects();
 
 		private:
 
 			ThreadPool mThreadWorkers;
 			std::mutex map_mutex;
-
-			struct ObjectInfo 
-			{
-				bool isDoneLoading;
-				Object* obj;
-			};
 
 			std::map<const char*, ObjectInfo, str_cmp> objects;
 			

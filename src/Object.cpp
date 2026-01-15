@@ -62,9 +62,9 @@ void Object::InitPhysics(PhysicsSystem& appPhysics)
     this->mPhysicsComponent.prevTransform = this->mPhysicsComponent.rigidBody->getTransform();
 }
 
-bool Object::HasTexture() 
+uint32_t Object::TextureIndex() 
 {
-    return textureDescriptorSet != VK_NULL_HANDLE;
+    return this->textureIndex;
 }
 
 void Object::Destroy(const VkDevice l_device) 
@@ -107,19 +107,10 @@ void Object::Draw(VkCommandBuffer cmdBuffer, VkPipelineLayout pipelineLayout)
         vkCmdPushConstants(cmdBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::mat4), (void*)(&this->modelTransform));
     }
 
-    //////unmoving texture.
-    if (textureDescriptorSet != VK_NULL_HANDLE) 
-    {
-        vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, textureDescriptorSet.get(), 0, nullptr);
-    }
-    
-
     VkDeviceSize offsets[1] = { 0 };
     
     vkCmdBindVertexBuffers(cmdBuffer, 0, 1, &mMesh.buffer.vertex.handle, offsets);
-    
-    vkCmdBindIndexBuffer(cmdBuffer, mMesh.buffer.index.handle, 0, VK_INDEX_TYPE_UINT16);
-    
+    vkCmdBindIndexBuffer(cmdBuffer, mMesh.buffer.index.handle, 0, VK_INDEX_TYPE_UINT16);    
     vkCmdDrawIndexed(cmdBuffer, mMesh.buffer.indexCount, 1, 0, 0, 0);
 }
 
@@ -151,20 +142,9 @@ void Object::UpdateMesh(const Mesh* mesh)
     }
 }
 
-void Object::UpdateDescriptorSet(std::vector<VkWriteDescriptorSet>& writeDescriptors, 
-    std::shared_ptr<VkDescriptorSet> descriptorSet)
+void Object::UpdateTextureDescriptorOffset(uint32_t offset)
 {
-    if (descriptorSet != VK_NULL_HANDLE) 
-    {
-        textureDescriptorSet = descriptorSet;
-
-        for (size_t j = 0; j < writeDescriptors.size(); ++j)
-        {
-            writeDescriptors[j].dstSet = *textureDescriptorSet.get();     
-        }
-
-        vkUpdateDescriptorSets(devicePtr->logical, writeDescriptors.size(), writeDescriptors.data(), 0, nullptr);
-    }
+    this->textureIndex = offset;
 }
 
 

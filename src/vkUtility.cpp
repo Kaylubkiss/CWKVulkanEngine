@@ -1,6 +1,14 @@
 #include "SpirvHelper.h"
 #include <fstream>
 
+
+
+PFN_vkGetDescriptorSetLayoutBindingOffsetEXT g_vkGetDescriptorSetLayoutBindingOffsetEXT = nullptr;
+PFN_vkGetDescriptorSetLayoutSizeEXT g_vkGetDescriptorSetLayoutSizeEXT = nullptr;
+PFN_vkGetDescriptorEXT g_vkGetDescriptorEXT = nullptr;
+PFN_vkCmdBindDescriptorBuffersEXT g_vkCmdBindDescriptorBuffersEXT = nullptr;
+PFN_vkCmdSetDescriptorBufferOffsetsEXT g_vkCmdSetDescriptorBufferOffsetsEXT = nullptr;
+
 namespace vk {
 
 	namespace util 

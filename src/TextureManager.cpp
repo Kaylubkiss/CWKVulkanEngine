@@ -12,35 +12,34 @@ namespace vk
 		graphicsContextInfo = contextInfo;
 	}
 
-	bool TextureManager::AddTexture(GraphicsContextInfo* graphicsContextInfo, const std::string& fileName)
+	bool TextureManager::AddTexture(GraphicsContextInfo& graphicsContextInfo, const std::string& fileName)
 	{
-		if (graphicsContextInfo)
+		auto* devicePtr = graphicsContextInfo.devicePtr;
+		std::unique_ptr<Texture> newTexture = std::make_unique<Texture>(devicePtr, fileName);
+
+		if (newTexture.get()->mImage != VK_NULL_HANDLE) 
 		{
-			std::unique_ptr<Texture> newTexture = std::make_unique<Texture>(graphicsContextInfo->devicePtr, fileName);
+			UserInterface* UI = graphicsContextInfo.contextUIPtr;
 
-			if (newTexture.get()->mImage != VK_NULL_HANDLE) 
+			if (UI)
 			{
-				UserInterface* UI = graphicsContextInfo->contextUIPtr;
-
-				if (UI)
-				{
-					UI->AddImage(*newTexture.get());
-				}
-
-				this->mTextures[fileName].first = std::move(newTexture);
-
-				return true;
+				UI->AddImage(*newTexture.get());
 			}
+
+			this->mTextures[fileName].handle = std::move(newTexture);
+			this->mTextures[fileName].index = mTextures.size();
+
+			return true;
 		}
 
 		return false;
 	}
 
-	VkDescriptorImageInfo TextureManager::GetTextureDescriptorSet(const char* fileName)
+	VkDescriptorImageInfo TextureManager::GetTextureDescriptorInfo(const char* fileName)
 	{
-		if (mTextures.count(fileName) == 1) 
+		if (mTextures.count(fileName)) 
 		{
-			return mTextures[fileName].first.get()->descriptor;
+			return mTextures[fileName].handle.get()->descriptor;
 		}
 
 		std::cerr << "could not find specified texture!\n";
@@ -52,44 +51,18 @@ namespace vk
 	void TextureManager::BindTextureToObject(const std::string& fileName, Object& obj)
 	{
 		if (fileName != "")
-		{
-			auto descriptorWrites = graphicsContextInfo.sceneWriteDescriptorSets; //TODO: copying a 2D vector...inefficient.
-
-			VkDescriptorSetAllocateInfo descriptorSetInfo = vk::init::DescriptorSetAllocateInfo
-			(
-				graphicsContextInfo.descriptorPool,
-				&graphicsContextInfo.descriptorSetLayout, 1
-			);
-			
+		{			
 			if (mTextures.count(fileName) == 0)
 			{
-				bool result = AddTexture(&graphicsContextInfo, fileName);
-
-				if (!result)
+				if (AddTexture(graphicsContextInfo, fileName) == false)
 				{
-					std::cerr << "Could not load " << fileName << std::endl;
+					std::cerr << "Could not load " << fileName << '\n';
 					std::cerr << "BindTextureToObject() failed\n";
 					return;
-				}
-
-
-				VkDescriptorSet nDescriptorSet = VK_NULL_HANDLE;
-				VK_CHECK_RESULT(vkAllocateDescriptorSets(graphicsContextInfo.devicePtr->logical, &descriptorSetInfo, &nDescriptorSet));
-
-				mTextures[fileName].second = std::make_shared<VkDescriptorSet>(nDescriptorSet);
+				}	
 			}
 
-			VkWriteDescriptorSet dscWrite = vk::init::WriteDescriptorSet
-			(
-				VK_NULL_HANDLE,
-				VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-				graphicsContextInfo.samplerBinding,
-				&mTextures[fileName].first.get()->descriptor
-			);
-			
-			descriptorWrites.push_back(dscWrite);
-
-			obj.UpdateDescriptorSet(descriptorWrites, mTextures[fileName].second);
+			obj.UpdateTextureDescriptorOffset(mTextures[fileName].index);
 		}
 
 	}

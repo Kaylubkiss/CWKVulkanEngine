@@ -431,9 +431,6 @@ namespace vk
 
 	void ShadowMapScene::FillOutGraphicsContextInfo() 
 	{
-		mInfo.descriptorPool = this->descriptorPool;
-		mInfo.descriptorSetLayout = this->sceneDescriptorLayout;
-		mInfo.samplerBinding = 2;
 		ContextBase::FillOutGraphicsContextInfo();
 
 	}

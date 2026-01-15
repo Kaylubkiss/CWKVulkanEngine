@@ -126,14 +126,13 @@ namespace vk {
 
 		this->mSampler = CreateSampler(devicePtr->physical, devicePtr->logical, mipLevels);
 
-		this->descriptor.sampler = this->mSampler;
-		this->descriptor.imageView = this->mImageView;
-		this->descriptor.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-		
-		this->mName = fileName;		
+		this->descriptor = { 
+			this->mSampler, 
+			this->mImageView, 
+			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL 
+		};	
 
 		this->cLogicalDevice = devicePtr->logical;
-		
 	}
 
 
@@ -211,8 +210,6 @@ namespace vk {
 		texture.descriptor.sampler = texture.mSampler;
 		texture.descriptor.imageView = texture.mImageView;
 		texture.descriptor.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-
-		texture.mName = fileName;
 
 		texture.cLogicalDevice = devicePtr->logical;
 

@@ -30,11 +30,6 @@ struct uLightObject
 namespace vk
 {
 
-	static const char* instanceExtensions[1] =
-	{
-		VK_EXT_DEBUG_UTILS_EXTENSION_NAME
-	};
-
 	//created in response to the need of texture manager. It needs a lot of graphics context state, but the calls to 
 	//function methods of the context to get this information seemed inconvenient.
 	//in turn, I've had to create this data structure which contains all the information that
@@ -42,13 +37,10 @@ namespace vk
 	//it's a little janky.
 	struct GraphicsContextInfo
 	{
-		std::vector<VkWriteDescriptorSet> sceneWriteDescriptorSets; //2D array because multiple descriptor sets.
-		VkDescriptorSetLayout descriptorSetLayout = VK_NULL_HANDLE;
-		VkDescriptorPool descriptorPool = VK_NULL_HANDLE;
-		uint32_t samplerBinding = 0;
+		uint32_t object_count = 0;
 		vk::Device* devicePtr = nullptr;
-
 		vk::UserInterface* contextUIPtr = nullptr;
+		VkDeviceSize textureBindingSize = 0;
 	};
 
 

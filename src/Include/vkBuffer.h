@@ -18,8 +18,10 @@ namespace vk
 		Buffer() = default;
 		~Buffer() = default;
 
-		Buffer(VkPhysicalDevice p_device, VkDevice l_device, size_t size, VkBufferUsageFlags usage, VkMemoryPropertyFlags flags, void* data);
+		Buffer(VkPhysicalDevice p_device, VkDevice l_device, size_t size, VkBufferUsageFlags usage, VkMemoryPropertyFlags flags, void* data = nullptr);
 
+		uint64_t GetDeviceAddress() const;
+		
 		void Destroy();
 
 		void SetDescriptor(VkDeviceSize size = VK_WHOLE_SIZE, VkDeviceSize offset = 0);
@@ -29,6 +31,7 @@ namespace vk
 		void Flush();
 
 		void UnMap();
+
 
 	};
 }

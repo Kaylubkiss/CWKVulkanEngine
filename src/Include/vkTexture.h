@@ -12,7 +12,6 @@ namespace vk
 		//member variables
 		VkDevice cLogicalDevice = VK_NULL_HANDLE;
 
-		std::string mName = "";
 		VkImage mImage = VK_NULL_HANDLE;
 		VkDeviceMemory mMemory = VK_NULL_HANDLE;
 		VkImageView mImageView = VK_NULL_HANDLE;

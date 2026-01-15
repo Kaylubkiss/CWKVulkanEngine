@@ -47,7 +47,6 @@ namespace vk
 
 			vk::PipelineManager pipelineManager;
 
-			VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
 			VkRenderPass renderPass = VK_NULL_HANDLE;
 
 			float FOV = 45.f;

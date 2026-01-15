@@ -35,6 +35,23 @@ namespace vk
 		vkGetDeviceQueue(this->logical, graphicsQueue.family, 0, &graphicsQueue.handle);
 		vkGetDeviceQueue(this->logical, presentQueue.family, 0, &presentQueue.handle);
 
+		g_vkGetDescriptorSetLayoutBindingOffsetEXT =
+			(PFN_vkGetDescriptorSetLayoutBindingOffsetEXT)(vkGetDeviceProcAddr(logical, "vkGetDescriptorSetLayoutBindingOffsetEXT"));
+
+		g_vkGetDescriptorSetLayoutSizeEXT = (PFN_vkGetDescriptorSetLayoutSizeEXT)(vkGetDeviceProcAddr(logical, "vkGetDescriptorSetLayoutSizeEXT"));
+
+		g_vkGetDescriptorEXT = (PFN_vkGetDescriptorEXT)(vkGetDeviceProcAddr(logical, "vkGetDescriptorEXT"));
+		
+		g_vkCmdBindDescriptorBuffersEXT = (PFN_vkCmdBindDescriptorBuffersEXT)(vkGetDeviceProcAddr(logical, "vkCmdBindDescriptorBuffersEXT"));
+
+		g_vkCmdSetDescriptorBufferOffsetsEXT = (PFN_vkCmdSetDescriptorBufferOffsetsEXT)(vkGetDeviceProcAddr(logical, "vkCmdSetDescriptorBufferOffsetsEXT"));
+
+		assert(g_vkGetDescriptorSetLayoutSizeEXT);
+		assert(g_vkGetDescriptorSetLayoutBindingOffsetEXT);
+		assert(g_vkGetDescriptorEXT);
+		assert(g_vkCmdBindDescriptorBuffersEXT);
+		assert(g_vkCmdSetDescriptorBufferOffsetsEXT);
+
 		this->commandPool = vk::init::CommandPool(this->logical, VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT, graphicsQueue.family);
 	}
 
@@ -202,8 +219,19 @@ namespace vk
 		VkPhysicalDeviceFeatures deviceFeatures = {};
 		deviceFeatures.geometryShader = VK_TRUE;
 		deviceFeatures.samplerAnisotropy = VK_TRUE;
-
 		deviceCreateInfo.pEnabledFeatures = &deviceFeatures; //call vkGetPhysicalDeviceFeatures to set additional features.
+
+		//enabling descriptor buffers
+		VkPhysicalDeviceDescriptorBufferFeaturesEXT descriptor_buffer_feature = {};
+		descriptor_buffer_feature.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_BUFFER_FEATURES_EXT;
+		descriptor_buffer_feature.descriptorBuffer = VK_TRUE;
+
+		VkPhysicalDeviceBufferDeviceAddressFeaturesEXT buffer_device_address_feature = {};
+		buffer_device_address_feature.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES_EXT;
+		buffer_device_address_feature.bufferDeviceAddress = VK_TRUE;
+		buffer_device_address_feature.pNext = &descriptor_buffer_feature;
+
+		deviceCreateInfo.pNext = &buffer_device_address_feature;
 
 		deviceCreateInfo.pQueueCreateInfos = deviceQueueCreateInfos.data();
 		deviceCreateInfo.queueCreateInfoCount = (uint32_t)(deviceQueueCreateInfos.size());
@@ -255,7 +283,7 @@ namespace vk
 		throw std::runtime_error("couldn't find the requested memory type on device");
 	}
 
-	VkPhysicalDeviceDescriptorBufferPropertiesEXT Device::DescriptorBufferProperties() 
+	VkPhysicalDeviceDescriptorBufferPropertiesEXT Device::DescriptorBufferProperties() const
 	{
 		return descriptorBufferProperties;
 	}
