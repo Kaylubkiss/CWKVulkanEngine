@@ -128,103 +128,47 @@ namespace vk
 		VkExtent2D windowExtents = window.Extents();
 
 		//MRT resizing...
-		for (auto& attachment : framebuffers.deMRT.attachments)
-		{
-			attachment.Destroy(device.logical);
-		}
-
-		framebuffers.deMRT.attachments.resize(0);
-
-		VkFramebufferCreateInfo framebuffer = vk::init::FramebufferCreateInfo();
-		framebuffer.width = framebuffers.deMRT.width;
-		framebuffer.height = framebuffers.deMRT.height;
-		framebuffer.layers = 1;
-
-		vk::FramebufferAttachmentCreateInfo attachmentCI = {};
-
-		//position attachment
-		attachmentCI.format = VK_FORMAT_R16G16B16A16_SFLOAT;
-		attachmentCI.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
-		attachmentCI.width = framebuffer.width;
-		attachmentCI.height = framebuffer.height;
-		framebuffers.deMRT.AddAttachment(attachmentCI);
-
-		//normal attachment
-		framebuffers.deMRT.AddAttachment(attachmentCI);
-
-		//albedo attachment
-		attachmentCI.format = VK_FORMAT_R8G8B8A8_UNORM;
-		framebuffers.deMRT.AddAttachment(attachmentCI);
-
-		//depth attachment
-		attachmentCI.format = VK_FORMAT_D24_UNORM_S8_UINT;
-		attachmentCI.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
-		framebuffers.deMRT.AddAttachment(attachmentCI);
-
-		framebuffers.deMRT.CreateFramebuffer();
+		IntializeDeferredFramebuffer();
 
 		//shadow resizing...
+		InitializeDeferredShadowFramebuffer();
 
-		for (auto& attachment : framebuffers.deShadow.attachments)
+		for (int frame = 0; frame < gMaxFramesInFlight; ++frame) 
 		{
-			attachment.Destroy(device.logical);
-		}
-
-		framebuffers.deShadow.attachments.resize(0);
-
-		attachmentCI = {};
-		attachmentCI.format = VK_FORMAT_D32_SFLOAT_S8_UINT;
-		attachmentCI.width = framebuffers.deShadow.width;
-		attachmentCI.height = framebuffers.deShadow.height;
-		attachmentCI.layerCount = LIGHT_COUNT;
-		attachmentCI.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
-
-		framebuffers.deShadow.AddAttachment(attachmentCI);
-
-		framebuffers.deShadow.CreateFramebuffer();
-
-		//writing descriptor sets
-		std::vector<VkDescriptorImageInfo> descriptorImage; //position, normal, and albedo attachments
-
-		for (const auto& attachment : framebuffers.deMRT.attachments)
-		{
-			if (attachment.flags & VKC_ATTACHMENT_IS_COLOR)
+			char* image_descriptor_ptr = (char*)compositionImageBindingDescriptor.buffers[frame].mappedMemory;
+			for (int i = 0; i < RT_COUNT; ++i)
 			{
-				VkDescriptorImageInfo descInfo = {};
-				descInfo.imageLayout = attachment.description.finalLayout;
-				descInfo.imageView = attachment.imageView;
-				descInfo.sampler = framebuffers.deMRT.sampler;
+				//info
+				VkDescriptorImageInfo rt_descriptor_image_info;
+				auto& fb_attachment = framebuffers.deMRT.attachments[i];
+				rt_descriptor_image_info.imageLayout = fb_attachment.layout;
+				rt_descriptor_image_info.imageView = fb_attachment.imageView;
+				rt_descriptor_image_info.sampler = framebuffers.deMRT.sampler;
 
-				descriptorImage.push_back(descInfo);
+				//get info
+				VkDescriptorGetInfoEXT rt_descriptor_get_infos = {};
+				rt_descriptor_get_infos = { VK_STRUCTURE_TYPE_DESCRIPTOR_GET_INFO_EXT };
+				rt_descriptor_get_infos.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+				rt_descriptor_get_infos.data.pCombinedImageSampler = &rt_descriptor_image_info;
+
+				g_vkGetDescriptorEXT(device.logical, &rt_descriptor_get_infos, device.DescriptorBufferProperties().combinedImageSamplerDescriptorSize, image_descriptor_ptr + compositionImageBindingDescriptor.binding_offsets[i]);
 			}
+
+			//info - shadow target
+			VkDescriptorImageInfo rt_descriptor_image_info;
+			auto& fb_attachment = framebuffers.deShadow.attachments.front();
+			rt_descriptor_image_info.imageLayout = fb_attachment.layout;
+			rt_descriptor_image_info.imageView = fb_attachment.imageView;
+			rt_descriptor_image_info.sampler = framebuffers.deShadow.sampler;
+
+			//get info - shadow
+			VkDescriptorGetInfoEXT rt_descriptor_get_infos = {};
+			rt_descriptor_get_infos = { VK_STRUCTURE_TYPE_DESCRIPTOR_GET_INFO_EXT };
+			rt_descriptor_get_infos.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+			rt_descriptor_get_infos.data.pCombinedImageSampler = &rt_descriptor_image_info;
+
+			g_vkGetDescriptorEXT(device.logical, &rt_descriptor_get_infos, device.DescriptorBufferProperties().combinedImageSamplerDescriptorSize, image_descriptor_ptr + compositionImageBindingDescriptor.binding_offsets.back());
 		}
-
-		VkDescriptorImageInfo shadowMapDescriptor;
-		shadowMapDescriptor.imageLayout = framebuffers.deShadow.attachments[0].layout;
-		shadowMapDescriptor.imageView = framebuffers.deShadow.attachments[0].imageView;
-		shadowMapDescriptor.sampler = framebuffers.deShadow.sampler;
-
-
-		//for (size_t i = 0; i < descriptorSets.size(); ++i) 
-		//{
-		//	//composition
-		//	std::vector<VkWriteDescriptorSet>  writeDescriptorSets = {
-		//		vk::init::WriteDescriptorSet(descriptorSets[i].composition, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &uniformBuffers[i].composition.descriptor),
-		//		vk::init::WriteDescriptorSet(descriptorSets[i].composition, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, &descriptorImage[RT_POSITION]),
-		//		vk::init::WriteDescriptorSet(descriptorSets[i].composition, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 2, &descriptorImage[RT_NORMAL]),
-		//		vk::init::WriteDescriptorSet(descriptorSets[i].composition, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 3, &descriptorImage[RT_ALBEDO]),
-		//		vk::init::WriteDescriptorSet(descriptorSets[i].composition, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 4, &shadowMapDescriptor)
-		//	};
-		//	vkUpdateDescriptorSets(device.logical, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, nullptr);
-
-		//	//shadow write
-		//	writeDescriptorSets = {
-		//		vk::init::WriteDescriptorSet(descriptorSets[i].shadow, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &uniformBuffers[i].shadow.descriptor),
-		//	};
-		//	vkUpdateDescriptorSets(device.logical, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, nullptr);
-		//}
-
-
 	}
 
 	void DeferredContext::FillOutGraphicsContextInfo()
@@ -515,7 +459,7 @@ namespace vk
 			rt_descriptor_get_infos.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 			rt_descriptor_get_infos.data.pCombinedImageSampler = &rt_descriptor_image_info;
 
-			g_vkGetDescriptorEXT(device.logical, &rt_descriptor_get_infos, device.DescriptorBufferProperties().combinedImageSamplerDescriptorSize, image_descriptor_ptr + compositionImageBindingDescriptor.binding_offsets.back());			
+			g_vkGetDescriptorEXT(device.logical, &rt_descriptor_get_infos, device.DescriptorBufferProperties().combinedImageSamplerDescriptorSize, image_descriptor_ptr + compositionImageBindingDescriptor.binding_offsets.back());		
 		}
 
 		//texture sampler buffer - static buffer.
@@ -596,6 +540,8 @@ namespace vk
 
 	void DeferredContext::IntializeDeferredFramebuffer() 
 	{
+		framebuffers.deMRT.attachments.clear();
+
 		framebuffers.deMRT.Init(&this->device);
 
 		VkFramebufferCreateInfo framebuffer = vk::init::FramebufferCreateInfo();
@@ -634,6 +580,8 @@ namespace vk
 
 	void DeferredContext::InitializeDeferredShadowFramebuffer() 
 	{
+		framebuffers.deShadow.attachments.clear();
+
 		framebuffers.deShadow.Init(&this->device);
 
 		vk::FramebufferAttachmentCreateInfo attachmentCI = {};

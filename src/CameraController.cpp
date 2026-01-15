@@ -38,7 +38,7 @@ void Controller::MoveCamera(Camera& camera, const float& dt)
 					break;
 				case SDL_WINDOWEVENT_MINIMIZED:
 					//std::cout << "window is minimized\n\n";	
-					//_GraphicsContext->GetWindow().isMinimized = true;
+					_GraphicsContext->GetWindow().isMinimized = true;
 					break;
 				case SDL_WINDOWEVENT_MAXIMIZED:
 					//std::cout << "window is maximized\n\n";
@@ -47,7 +47,7 @@ void Controller::MoveCamera(Camera& camera, const float& dt)
 					return;
 				case SDL_WINDOWEVENT_RESTORED:
 					//std::cout << "window is restored\n\n";
-					//_GraphicsContext->GetWindow().isMinimized = false;
+					_GraphicsContext->GetWindow().isMinimized = false;
 					//_Application->ResizeWindow();
 					return;
 				case SDL_WINDOWEVENT_SIZE_CHANGED:

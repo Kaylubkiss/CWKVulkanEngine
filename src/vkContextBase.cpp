@@ -196,15 +196,12 @@ namespace vk
 
 	void ContextBase::ResizeWindow() 
 	{
-		std::cout << "resizing window\n\n\n\n";
 
 		if (window.isMinimized)
 		{
 			window.isPrepared = false;
 			return;
 		}
-
-		window.isPrepared = false;
 
 		VK_CHECK_RESULT(vkDeviceWaitIdle(this->device.logical));
 
@@ -384,7 +381,7 @@ namespace vk
 		{
 			if (result == VK_ERROR_OUT_OF_DATE_KHR) 
 			{
-				//ResizeWindow();
+				ResizeWindow();
 				window.isPrepared = false;
 			}
 		}
