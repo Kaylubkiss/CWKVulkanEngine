@@ -68,6 +68,7 @@ namespace vk
 		compositionImageBindingDescriptor.Destroy();
 
 		framebuffers.deMRT.Destroy();
+		framebuffers.deShadow.Destroy();
 
 		testGltfModel.Destroy();
 	}
@@ -80,7 +81,7 @@ namespace vk
 		//object 1 - freddy
 		ObjectCreateInfo objectCI;
 		objectCI.objName = "freddy.obj";
-		/*objectCI.textureFileName = "myface.JPG";*/
+		objectCI.textureFileName = "myface.JPG";
 		objectCI.pModelTransform = &modelTransform;
 		objectCI.devicePtr = &this->device;
 
@@ -114,7 +115,7 @@ namespace vk
 
 		objectCI = {};
 		objectCI.objName = "base.obj";
-		//objectCI.textureFileName = "texture.jpg";
+		objectCI.textureFileName = "wood-floor.png";
 		objectCI.pPhysicsComponent = &physicsComponent;
 		objectCI.pModelTransform = &modelTransform;
 		objectCI.devicePtr = &this->device;
@@ -125,9 +126,8 @@ namespace vk
 
 	void DeferredContext::ResizeWindowDerived()
 	{
-		VkExtent2D windowExtents = window.Extents();
-
 		//MRT resizing...
+
 		IntializeDeferredFramebuffer();
 
 		//shadow resizing...
@@ -173,8 +173,7 @@ namespace vk
 
 	void DeferredContext::FillOutGraphicsContextInfo()
 	{
-		mInfo.object_count = OBJECT_COUNT;
-		mInfo.textureBindingSize = textureBindingDescriptor.size;
+		mInfo.contextTextureDescriptorPtr = &textureBindingDescriptor;
 	}
 
 	void DeferredContext::InitializeUniforms()
@@ -483,7 +482,6 @@ namespace vk
 			g_vkGetDescriptorEXT(device.logical, &image_descriptor_info, device.DescriptorBufferProperties().combinedImageSamplerDescriptorSize,
 				imageBindingDescriptorPtr + i * textureBindingDescriptor.size + textureBindingDescriptor.binding_offsets.front());
 		}
-		textureBindingDescriptor.buffers.front().UnMap();
 
 	}
 
@@ -522,8 +520,10 @@ namespace vk
 		ObjectManager& objManager) 
 	{
 
-		uint32_t     buffer_index_image = 1;
+		uint32_t buffer_index_image = 1;
 		VkDeviceSize buffer_offset = 0;
+		uint32_t first_set = 1;
+		uint32_t set_count = 1;
 
 		auto& objects = objManager.Objects();
 
@@ -532,7 +532,7 @@ namespace vk
 			Object* curr_obj = obj.second.obj;
 
 			buffer_offset = curr_obj->TextureIndex() * textureBindingDescriptor.size;
-			g_vkCmdSetDescriptorBufferOffsetsEXT(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 1, 1, &buffer_index_image, &buffer_offset);
+			g_vkCmdSetDescriptorBufferOffsetsEXT(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, first_set, set_count, &buffer_index_image, &buffer_offset);
 			
 			curr_obj->Draw(cmdBuffer, pipelineLayout);
 		}
@@ -540,7 +540,7 @@ namespace vk
 
 	void DeferredContext::IntializeDeferredFramebuffer() 
 	{
-		framebuffers.deMRT.attachments.clear();
+		framebuffers.deMRT.Destroy();
 
 		framebuffers.deMRT.Init(&this->device);
 
@@ -580,7 +580,7 @@ namespace vk
 
 	void DeferredContext::InitializeDeferredShadowFramebuffer() 
 	{
-		framebuffers.deShadow.attachments.clear();
+		framebuffers.deShadow.Destroy();
 
 		framebuffers.deShadow.Init(&this->device);
 
@@ -973,6 +973,7 @@ namespace vk
 			descriptor_buffer_binding_info[1].address = 
 				textureBindingDescriptor.buffers.front().GetDeviceAddress(); //only need one texture buffer.
 			descriptor_buffer_binding_info[1].usage = VK_BUFFER_USAGE_SAMPLER_DESCRIPTOR_BUFFER_BIT_EXT | VK_BUFFER_USAGE_RESOURCE_DESCRIPTOR_BUFFER_BIT_EXT;
+
 			g_vkCmdBindDescriptorBuffersEXT(cmdBuffer, descriptor_buffer_binding_info.size(), descriptor_buffer_binding_info.data());
 
 			uint32_t buffer_index_ubo = 0;
@@ -1068,15 +1069,12 @@ namespace vk
 	void DeferredContext::Render() 
 	{
 		pipelineManager.HotReloadShaders();
-		if (window.isPrepared) 
-		{
-			if (ContextBase::PrepareFrame()) 
-			{
-				UpdateScreenUniforms();
-				UpdateLights();
-				RecordCommandBuffers();
-				ContextBase::SubmitFrame();
-			}
+		if (ContextBase::PrepareFrame())
+		{ 
+			UpdateScreenUniforms();
+			UpdateLights();
+			RecordCommandBuffers();
+			ContextBase::SubmitFrame();
 		}
 		else 
 		{

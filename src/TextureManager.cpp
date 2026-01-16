@@ -9,6 +9,7 @@ namespace vk
 	void TextureManager::Init(GraphicsContextInfo contextInfo)
 	{
 		assert(contextInfo.devicePtr != nullptr);
+		assert(contextInfo.contextTextureDescriptorPtr != nullptr);
 		graphicsContextInfo = contextInfo;
 	}
 
@@ -43,9 +44,27 @@ namespace vk
 		}
 
 		std::cerr << "could not find specified texture!\n";
-
+		std::cerr << "GetTextureDescriptorInfo() Failed.\n";
 		return {};
 
+	}
+
+	VkDescriptorImageInfo TextureManager::GetTextureDescriptorInfo(uint32_t index) 
+	{
+
+		for (auto& t : mTextures)
+		{
+			TextureInfo& texture = t.second;
+			if (texture.index == 0) 
+			{
+				return texture.handle.get()->descriptor;
+			}
+		}
+
+		std::cerr << "could not find specified texture!\n";
+		std::cerr << "GetTextureDescriptorInfo() Failed.\n";
+		
+		return {};
 	}
 
 	void TextureManager::BindTextureToObject(const std::string& fileName, Object& obj)
@@ -61,6 +80,26 @@ namespace vk
 					return;
 				}	
 			}
+
+			//NOTE: this assumes that there is only one binding for the textures.
+			VkDeviceSize textureBindingSize = 
+				graphicsContextInfo.contextTextureDescriptorPtr->size;
+
+			VkDeviceSize combinedImageSamplerSize = 
+				graphicsContextInfo.devicePtr->DescriptorBufferProperties().combinedImageSamplerDescriptorSize;
+			
+			VkDeviceSize bindingOffset =
+				graphicsContextInfo.contextTextureDescriptorPtr->binding_offsets.front();
+
+			VkDescriptorGetInfoEXT imageDescriptorInfo = { VK_STRUCTURE_TYPE_DESCRIPTOR_GET_INFO_EXT };
+			imageDescriptorInfo.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+			imageDescriptorInfo.data.pCombinedImageSampler = &mTextures[fileName].handle.get()->descriptor;
+
+			char* imageBindingDescriptorPtr = 
+				(char*)(graphicsContextInfo.contextTextureDescriptorPtr->buffers.front().mappedMemory);
+
+			g_vkGetDescriptorEXT(graphicsContextInfo.devicePtr->logical, &imageDescriptorInfo, combinedImageSamplerSize,
+				imageBindingDescriptorPtr + mTextures[fileName].index * textureBindingSize + bindingOffset);
 
 			obj.UpdateTextureDescriptorOffset(mTextures[fileName].index);
 		}

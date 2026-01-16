@@ -9,7 +9,7 @@ struct ApplicationManager
 	Application* GetApplication();
 
 private:
-	Application* mApp = nullptr;
+	std::unique_ptr<Application> mApp = nullptr;
 };
 
 extern ApplicationManager appManager;

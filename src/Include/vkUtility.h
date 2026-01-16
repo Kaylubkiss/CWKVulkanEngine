@@ -17,6 +17,15 @@ namespace vk
 {
 	namespace util 
 	{
+
+		VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
+			VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+			VkDebugUtilsMessageTypeFlagsEXT messageType,
+			const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
+			void* pUserData);
+
+		VkDebugUtilsMessengerCreateInfoEXT DebugMessengerCreateInfo();
+
 		static void check_vk_result(VkResult err)
 		{
 			if (err == 0)
@@ -68,5 +77,6 @@ namespace vk
 		std::string ReadSourceAndWriteToSprv(std::string fileName, shaderc_shader_kind shader_kind);
 
 		bool CheckInstanceLayerSupport(const char* layers[], int layersSize);
+		bool CheckInstanceExtensionSupport(const char* extensions[], int extension_count);
 	}
 }

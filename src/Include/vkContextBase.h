@@ -23,6 +23,7 @@ namespace vk
 				bool minimized = false;
 				bool UIEnabled = true;
 				bool validationLayers = true;
+				VkDebugUtilsMessengerEXT debugMessenger = nullptr;
 			} settings;
 
 			vk::Window window;
@@ -62,8 +63,8 @@ namespace vk
 
 			//pure virtual function(s)
 			virtual void RecordCommandBuffers() = 0;
-			virtual void UpdateUI();
-			virtual void ResizeWindowDerived();
+			virtual void UpdateUI() = 0;
+			virtual void ResizeWindowDerived() = 0;
 			virtual void InitializeScene(ObjectManager& objManager) = 0;
 			
 			GraphicsContextInfo GetGraphicsContextInfo();

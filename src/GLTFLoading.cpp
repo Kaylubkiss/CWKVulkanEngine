@@ -9,22 +9,6 @@
 
 namespace vkGltf
 {
-	/*glm::mat4 Node::GetMatrix() 
-	{
-		std::shared_ptr<Node> parent = this->parent;
-
-		glm::mat4 matrix = this->localMatrix;
-
-		while (parent.get()) 
-		{
-			matrix = parent.get()->localMatrix * matrix;
-
-			parent = parent.get()->parent;
-		}
-
-		return matrix;
-	}*/
-
 	void Model::Destroy()
 	{
 		m_vertexBuffer.Destroy();

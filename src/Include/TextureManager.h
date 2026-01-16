@@ -11,6 +11,7 @@ namespace vk
 			void Init(GraphicsContextInfo contextInfo);
 
 			VkDescriptorImageInfo GetTextureDescriptorInfo(const char* fileName);
+			VkDescriptorImageInfo GetTextureDescriptorInfo(uint32_t index);
 
 			void BindTextureToObject(const std::string& fileName, Object& obj);
 
@@ -22,7 +23,7 @@ namespace vk
 			struct TextureInfo 
 			{
 				std::unique_ptr<vk::Texture> handle;
-				uint32_t index;
+				uint32_t index = 0;
 			};
 
 			std::unordered_map<std::string, TextureInfo> mTextures;

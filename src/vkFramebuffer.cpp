@@ -46,9 +46,7 @@ namespace vk
 	void Framebuffer::Init(vk::Device* contextDevice)
 	{
 		assert(contextDevice != nullptr);
-
 		this->contextDevice = contextDevice;
-
 	}
 
 	void Framebuffer::Destroy() 

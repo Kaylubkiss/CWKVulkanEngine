@@ -16,7 +16,8 @@ namespace vk
 		deepyCopyCI.pModelTransform = objectCI.pModelTransform ? new glm::mat4(*objectCI.pModelTransform) : nullptr;
 		deepyCopyCI.pPhysicsComponent = objectCI.pPhysicsComponent ? new PhysicsComponent(*objectCI.pPhysicsComponent) : nullptr;
 
-		std::function<void()> parallelFunction = [this, deepyCopyCI, newObject]() {
+		std::function<void()> parallelFunction = [this, deepyCopyCI, newObject]() 
+		{
 			Mesh nMesh;
 			nMesh.LoadOBJMesh((OBJECT_PATH + std::string(deepyCopyCI.objName)).c_str());
 

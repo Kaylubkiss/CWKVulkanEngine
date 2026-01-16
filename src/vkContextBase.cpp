@@ -68,6 +68,15 @@ namespace vk
 	//destructor
 	ContextBase::~ContextBase()
 	{
+		if (settings.debugMessenger) 
+		{
+			auto func = (PFN_vkDestroyDebugUtilsMessengerEXT)(vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT"));
+			if (func != nullptr)
+			{
+				func(instance, settings.debugMessenger, nullptr);
+			}
+		}
+
 		if (device.logical != VK_NULL_HANDLE) 
 		{
 			pipelineManager.Destroy();
@@ -127,8 +136,15 @@ namespace vk
 			throw std::runtime_error("could not grab extensions from SDL!");
 		}
 
+		extensionNames.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+		
 		createInfo.enabledExtensionCount = extensionNames.size();
 		createInfo.ppEnabledExtensionNames = extensionNames.data();
+
+		if (!vk::util::CheckInstanceExtensionSupport(extensionNames.data(), static_cast<int>(extensionNames.size()))) 
+		{
+			throw std::runtime_error("one or more instance extensions are not supported\n");
+		}
 
 		//enabling validation layers
 		if (settings.validationLayers == true) 
@@ -144,7 +160,23 @@ namespace vk
 			createInfo.enabledLayerCount = static_cast<uint32_t>(instanceLayers.size());
 			createInfo.ppEnabledLayerNames = instanceLayers.data();
 
+			VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo = vk::util::DebugMessengerCreateInfo();
+			createInfo.pNext = (VkDebugUtilsMessengerCreateInfoEXT*)(&debugCreateInfo);
+
 			VK_CHECK_RESULT(vkCreateInstance(&createInfo, nullptr, &this->instance));
+
+			//create messenger object handle that actually calls debugCallback.
+			auto func = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
+
+			if (func != nullptr) 
+			{
+				VK_CHECK_RESULT(func(instance, &debugCreateInfo, nullptr, &settings.debugMessenger));
+			}
+			else 
+			{
+				throw std::runtime_error("failed to load vkCreateDebugUtilsMessengerEXT");
+			}
+
 		}
 		else //no layers.
 		{
@@ -189,10 +221,6 @@ namespace vk
 			renderCompleteSemaphores[i] = vk::init::CreateSemaphore(this->device.logical);
 		}
 	}
-	
-	void ContextBase::UpdateUI() {}
-
-	void ContextBase::ResizeWindowDerived() {}
 
 	void ContextBase::ResizeWindow() 
 	{
@@ -202,6 +230,8 @@ namespace vk
 			window.isPrepared = false;
 			return;
 		}
+
+		window.isPrepared = false;
 
 		VK_CHECK_RESULT(vkDeviceWaitIdle(this->device.logical));
 
@@ -357,6 +387,11 @@ namespace vk
 
 	bool ContextBase::PrepareFrame() 
 	{
+		if (window.isPrepared == false) 
+		{
+			return false;
+		}
+
 		//add synchronization calls here.
 		VK_CHECK_RESULT(vkWaitForFences(device.logical, 1, &inFlightFences[currentFrame], VK_TRUE, UINT64_MAX));
 		VK_CHECK_RESULT(vkResetFences(device.logical, 1, &inFlightFences[currentFrame]));
@@ -375,14 +410,15 @@ namespace vk
 			}
 		}
 
-		VkResult result = vkAcquireNextImageKHR(device.logical, swapChain.handle, UINT64_MAX, presentCompleteSemaphores[currentFrame], (VkFence)nullptr, &currentImageIndex);
+		VkResult result = 
+			vkAcquireNextImageKHR(device.logical, swapChain.handle, UINT64_MAX,
+				presentCompleteSemaphores[currentFrame], (VkFence)nullptr, &currentImageIndex);
 	
 		if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
 		{
 			if (result == VK_ERROR_OUT_OF_DATE_KHR) 
 			{
 				ResizeWindow();
-				window.isPrepared = false;
 			}
 		}
 		else

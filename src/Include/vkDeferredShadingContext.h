@@ -59,21 +59,7 @@ namespace vk
 
 		std::array<UniformBuffers, gMaxFramesInFlight> uniformBuffers;
 
-		struct DescriptorBufferData //240 BYTES!!!
-		{
-			std::array<vk::Buffer, gMaxFramesInFlight> buffers; //descriptors are stored in BUFFERS, not VkDescriptorSet
-			std::vector<VkDeviceSize> binding_offsets = {0ull}; //at least 1 binding (binding 0)
-			VkDescriptorSetLayout layout = VK_NULL_HANDLE;
-			VkDeviceSize size = 0ull;
-			void Destroy() 
-			{
-				for (auto& b : buffers) 
-				{
-					b.Destroy();
-				}
-				vkDestroyDescriptorSetLayout(buffers[0].logicalDevice, layout, nullptr);
-			}
-		};
+		
 
 		std::array<DescriptorBufferData, dePipeline::PIPELINE_COUNT> uniformBindingDescriptors;
 		//might be an abuse of map? Big memory cost.

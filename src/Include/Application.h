@@ -42,10 +42,6 @@ private:
 	vk::TextureManager mTextureManager;
 	vk::ObjectManager objectManager;
 
-
-	//TEMPORARY
-	
-
 	void init();
 	void loop();
 	void exit();

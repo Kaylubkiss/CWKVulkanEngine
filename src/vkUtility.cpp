@@ -13,6 +13,39 @@ namespace vk {
 
 	namespace util 
 	{
+		VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
+			VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+			VkDebugUtilsMessageTypeFlagsEXT messageType,
+			const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
+			void* pUserData) 
+		{
+			//NOTE: doing this to ignore an overlay bug with OBS/Steam
+			if (pCallbackData->messageIdNumber == 0x9b4c6071) 
+			{
+				return VK_FALSE;
+			}
+
+			std::cerr << "Validation Layer: " << pCallbackData->pMessage << std::endl;
+
+			return VK_FALSE;
+		}
+
+		VkDebugUtilsMessengerCreateInfoEXT DebugMessengerCreateInfo()
+		{
+			VkDebugUtilsMessengerCreateInfoEXT createInfo = {};
+			createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
+			createInfo.messageSeverity =
+				VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |
+				VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
+				VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+			createInfo.messageType =
+				VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
+				VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
+				VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
+			createInfo.pfnUserCallback = debugCallback;
+
+			return createInfo;
+		}
 
 		VkFormat findSupportedFormat(const VkPhysicalDevice p_device, const std::vector<VkFormat>& possibleFormats,
 			VkImageTiling tiling, VkFormatFeatureFlags features)
@@ -444,6 +477,38 @@ namespace vk {
 			}
 
 			return true;
+		}
+
+		bool CheckInstanceExtensionSupport(const char* enabled_extensions[], int enabled_extension_count)
+		{
+			uint32_t instance_extension_count = 0;
+			std::vector<VkExtensionProperties> instance_extensions;
+			
+			vkEnumerateInstanceExtensionProperties(nullptr, &instance_extension_count, nullptr);			
+			instance_extensions.resize(instance_extension_count);
+
+			vkEnumerateInstanceExtensionProperties(nullptr, &instance_extension_count, instance_extensions.data());
+
+			for (int i = 0; i < enabled_extension_count; ++i)
+			{
+				bool foundExtension = false;
+				for (auto& extension : instance_extensions) 
+				{
+					if (strcmp(enabled_extensions[i], extension.extensionName) == 0) 
+					{
+						foundExtension = true;
+						break;
+					}
+				}
+
+				if (!foundExtension) 
+				{
+					return false;
+				}
+			}
+
+			return true;
+
 		}
 
 	}

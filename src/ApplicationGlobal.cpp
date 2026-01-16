@@ -8,20 +8,17 @@ ApplicationManager::ApplicationManager()
 {
 	if (++s_count == 1)
 	{
-		mApp = new Application();
+		mApp = std::make_unique<Application>();
 	}
 }
 
 ApplicationManager::~ApplicationManager()
 {
-	if (--s_count == 0)
-	{
-		delete mApp;
-	}
+	--s_count;
 }
 
 
 Application* ApplicationManager::GetApplication()
 {
-	return mApp;
+	return mApp.get();
 }

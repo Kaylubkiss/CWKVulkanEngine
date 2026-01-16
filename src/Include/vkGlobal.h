@@ -30,6 +30,22 @@ struct uLightObject
 namespace vk
 {
 
+	struct DescriptorBufferData //240 BYTES!!!
+	{
+		std::array<vk::Buffer, gMaxFramesInFlight> buffers; //descriptors are stored in BUFFERS, not VkDescriptorSet
+		std::vector<VkDeviceSize> binding_offsets = { 0ull }; //at least 1 binding (binding 0)
+		VkDescriptorSetLayout layout = VK_NULL_HANDLE;
+		VkDeviceSize size = 0ull;
+		void Destroy()
+		{
+			for (auto& b : buffers)
+			{
+				b.Destroy();
+			}
+			vkDestroyDescriptorSetLayout(buffers[0].logicalDevice, layout, nullptr);
+		}
+	};
+
 	//created in response to the need of texture manager. It needs a lot of graphics context state, but the calls to 
 	//function methods of the context to get this information seemed inconvenient.
 	//in turn, I've had to create this data structure which contains all the information that
@@ -37,10 +53,9 @@ namespace vk
 	//it's a little janky.
 	struct GraphicsContextInfo
 	{
-		uint32_t object_count = 0;
 		vk::Device* devicePtr = nullptr;
 		vk::UserInterface* contextUIPtr = nullptr;
-		VkDeviceSize textureBindingSize = 0;
+		DescriptorBufferData* contextTextureDescriptorPtr = nullptr;
 	};
 
 

@@ -37,38 +37,22 @@ void Controller::MoveCamera(Camera& camera, const float& dt)
 					_Application->RequestExit();
 					break;
 				case SDL_WINDOWEVENT_MINIMIZED:
-					//std::cout << "window is minimized\n\n";	
 					_GraphicsContext->GetWindow().isMinimized = true;
 					break;
 				case SDL_WINDOWEVENT_MAXIMIZED:
-					//std::cout << "window is maximized\n\n";
-					//_Application->ResizeWindow();
-					//_GraphicsContext->GetWindow().isMinimized = false;
 					return;
 				case SDL_WINDOWEVENT_RESTORED:
-					//std::cout << "window is restored\n\n";
 					_GraphicsContext->GetWindow().isMinimized = false;
-					//_Application->ResizeWindow();
 					return;
 				case SDL_WINDOWEVENT_SIZE_CHANGED:
-					//std::cout << "window size changed\n\n";
-					//_Application->ResizeWindow();
-					//_GraphicsContext->GetWindow().isPrepared = false;
-					//_Application->ResizeWindow();
 					break;
 				case SDL_WINDOWEVENT_FOCUS_GAINED:
-					//std::cout << "window focus gained\n\n";
 					break;
 				case SDL_WINDOWEVENT_FOCUS_LOST:
-					//std::cout << "window focus lost\n\n";
 					break;	
 				case SDL_WINDOWEVENT_RESIZED:
-					//std::cout << "window is resized\n\n";
-					//_GraphicsContext->GetWindow().isPrepared = true;
-					//_Application->ResizeWindow();
 					break;
 				default:
-					//std::cout << "some event\n";
 					break;
 			}
 		}
