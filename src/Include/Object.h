@@ -1,41 +1,39 @@
 #pragma once
 
-#include "vkMesh.h"
+#include "IModel.h"
 
 #define OBJECT_PATH "External/objects/"
 
-class Object 
+struct ObjectCreateInfo
 {
-	private:
-		vk::Device* devicePtr = nullptr;
+	//must fill out objName, even if there is no extension.
+	const char* objName = "";
+	const char* textureFileName = "";
+	PhysicsComponent physicsComponent;
+	bool hasPhysicsComponent = false;
+	glm::mat4 modelTransform;
+	vk::Device* devicePtr = nullptr;
+};
 
-		Mesh mMesh;
-		
-		glm::mat4 modelTransform = glm::mat4(1.f);
-
-		PhysicsComponent mPhysicsComponent;
-
-		uint32_t textureIndex = 0;
-		
-	public:
-		Object(const VkPhysicalDevice p_device, const VkDevice l_device,
-			const char* fileName, bool willDebugDraw = false);
-		
-		Object(vk::Device* device);
-		void UpdatePhysicsComponent(const PhysicsComponent* physComp);
-		void UpdateModelTransform(const glm::mat4* modelTransform);
-		void UpdateMesh(const Mesh* mesh);
-		void UpdateTextureDescriptorOffset(uint32_t offset);
-
-		Object() = default;
-		~Object() = default;
-		void Destroy(const VkDevice l_device);
-
-		void Update(const float& interpFactor);
-		void Draw(VkCommandBuffer cmdBuffer, VkPipelineLayout pipelineLayout = VK_NULL_HANDLE);
-		void InitPhysics(PhysicsSystem& appPhysics);
-		uint32_t TextureIndex();
-
+class Object
+{	
+public:
+	//Constructors
+	Object() = default;
+	Object( const ObjectCreateInfo& objectCI );
+	//Destructors
+	~Object() = default;	
+	//Accessors
+	uint32_t TextureIndex();
+	//Mutators
+	void UpdateTextureDescriptorOffset(uint32_t offset);
+	void Update(const float& interpFactor);
+	void InitPhysics();
+	void Draw(VkCommandBuffer cmdBuffer, VkPipelineLayout pipelineLayout = VK_NULL_HANDLE);
+private:
+	std::unique_ptr<IModel> m_model;
+	PhysicsComponent m_physicsComponent;
+	uint32_t m_textureIndex = 0;
 };
 
 

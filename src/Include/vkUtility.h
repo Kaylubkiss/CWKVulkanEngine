@@ -46,16 +46,9 @@ namespace vk
 		//BEGIN TODO: move this into a device-specific class.
 		//use command pool
 		void TransitionImageLayout(const VkDevice l_device, const VkCommandPool cmdPool, 
-			const VkQueue& gfxQueue, 
+			const VkQueue& gfxQueue, uint32_t srcQueue, uint32_t dstQueue,
 			VkImage image, VkFormat format, 
 			VkImageLayout oldLayout, VkImageLayout newLayout, 
-			uint32_t mipLevels);
-
-		//use command buffer
-		void TransitionImageLayout(const VkDevice l_device, const VkCommandBuffer cmdBuffer,
-			const VkQueue& gfxQueue,
-			VkImage image, VkFormat format,
-			VkImageLayout oldLayout, VkImageLayout newLayout,
 			uint32_t mipLevels);
 
 		//use command pool

@@ -12,9 +12,9 @@ public:
 	void Terminate();
 	bool isBusy();
 	~ThreadPool();
-
 private:
 	void ThreadLoop();
+private:
 	std::vector<std::thread> threads;
 	std::queue<std::function<void()>> tasks;
 	std::mutex queue_mutex; //to make sure that the job queue is not corrupted.

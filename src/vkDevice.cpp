@@ -34,17 +34,18 @@ namespace vk
 
 		vkGetDeviceQueue(this->logical, graphicsQueue.family, 0, &graphicsQueue.handle);
 		vkGetDeviceQueue(this->logical, presentQueue.family, 0, &presentQueue.handle);
+		vkGetDeviceQueue(this->logical, transferQueue.family, 0, &transferQueue.handle);
 
 		g_vkGetDescriptorSetLayoutBindingOffsetEXT =
 			(PFN_vkGetDescriptorSetLayoutBindingOffsetEXT)(vkGetDeviceProcAddr(logical, "vkGetDescriptorSetLayoutBindingOffsetEXT"));
-
-		g_vkGetDescriptorSetLayoutSizeEXT = (PFN_vkGetDescriptorSetLayoutSizeEXT)(vkGetDeviceProcAddr(logical, "vkGetDescriptorSetLayoutSizeEXT"));
-
-		g_vkGetDescriptorEXT = (PFN_vkGetDescriptorEXT)(vkGetDeviceProcAddr(logical, "vkGetDescriptorEXT"));
-		
-		g_vkCmdBindDescriptorBuffersEXT = (PFN_vkCmdBindDescriptorBuffersEXT)(vkGetDeviceProcAddr(logical, "vkCmdBindDescriptorBuffersEXT"));
-
-		g_vkCmdSetDescriptorBufferOffsetsEXT = (PFN_vkCmdSetDescriptorBufferOffsetsEXT)(vkGetDeviceProcAddr(logical, "vkCmdSetDescriptorBufferOffsetsEXT"));
+		g_vkGetDescriptorSetLayoutSizeEXT = 
+			(PFN_vkGetDescriptorSetLayoutSizeEXT)(vkGetDeviceProcAddr(logical, "vkGetDescriptorSetLayoutSizeEXT"));
+		g_vkGetDescriptorEXT = 
+			(PFN_vkGetDescriptorEXT)(vkGetDeviceProcAddr(logical, "vkGetDescriptorEXT"));
+		g_vkCmdBindDescriptorBuffersEXT = 
+			(PFN_vkCmdBindDescriptorBuffersEXT)(vkGetDeviceProcAddr(logical, "vkCmdBindDescriptorBuffersEXT"));
+		g_vkCmdSetDescriptorBufferOffsetsEXT = 
+			(PFN_vkCmdSetDescriptorBufferOffsetsEXT)(vkGetDeviceProcAddr(logical, "vkCmdSetDescriptorBufferOffsetsEXT"));
 
 		assert(g_vkGetDescriptorSetLayoutSizeEXT);
 		assert(g_vkGetDescriptorSetLayoutBindingOffsetEXT);
@@ -136,33 +137,43 @@ namespace vk
 
 		bool setGraphicsQueue = false;
 		bool setPresentQueue = false;
+		bool setTransferQueue = false;
 
 		for (unsigned i = 0; i < queueFamilyPropertyCount; ++i)
 		{
+			if ((queueFamilies[i].queueCount == 1 &&
+				(queueFamilies[i].queueFlags & VK_QUEUE_TRANSFER_BIT) != 0)) 
+			{
+				transferQueue.family = i;
+				setTransferQueue = true;
+			}
+
 			if ((queueFamilies[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) != 0)
 			{
 				graphicsQueue.family = i;
 				setGraphicsQueue = true;
+
+				VkBool32 presentSupport = false;
+				VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceSupportKHR(this->physical, i, windowSurface, &presentSupport));
+				if (presentSupport)
+				{
+					presentQueue.family = i;
+					setPresentQueue = true;
+				}
 			}
 
-
-			VkBool32 presentSupport = false;
-			VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceSupportKHR(this->physical, i, windowSurface, &presentSupport));
-
-			if (presentSupport)
-			{
-				presentQueue.family = i;
-				setPresentQueue = true;
-			}
-
-			if (setGraphicsQueue && setPresentQueue)
+			if (setGraphicsQueue && 
+				setPresentQueue && 
+				setTransferQueue)
 			{
 				break;
 			}
 
 		}
 
-		if (!setGraphicsQueue || !setPresentQueue)
+		if (!setGraphicsQueue || 
+			!setPresentQueue || 
+			!setTransferQueue)
 		{
 			throw std::runtime_error("could not find all required queues on this device!\n");
 		}
@@ -173,10 +184,9 @@ namespace vk
 	{
 		assert(graphicsQueue.family != -1 && presentQueue.family != -1);
 
-
 		std::vector<VkDeviceQueueCreateInfo> deviceQueueCreateInfos; //presentation and graphics.
 
-		uint32_t uniqueQueueFamilies[2] = { graphicsQueue.family, presentQueue.family };
+		std::array<uint32_t, 3> uniqueQueueFamilies = { graphicsQueue.family, presentQueue.family, transferQueue.family };
 
 		float queuePriority[1] = { 1.f };
 
@@ -208,6 +218,20 @@ namespace vk
 
 		}
 
+		//transfer queue addition.
+		VkDeviceQueueCreateInfo deviceQueueInfo = {}; //to be passed into deviceCreateInfo's struct members.
+		deviceQueueInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+		deviceQueueInfo.flags = 0;
+		deviceQueueInfo.pNext = nullptr;
+		deviceQueueInfo.queueFamilyIndex = transferQueue.family;
+		deviceQueueInfo.queueCount = 1;
+		//THIS IS APPARENTLY REQUIRED --> REFERENCE BOOK DID NOT SHOW THIS...
+		deviceQueueInfo.pQueuePriorities = queuePriority; //normalized values between 0.f to 1.f that ranks the priority of the queue in the array.
+
+		deviceQueueCreateInfos.push_back(deviceQueueInfo);
+
+		
+
 		VkDeviceCreateInfo deviceCreateInfo = {};
 		deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
 		deviceCreateInfo.flags = 0;
@@ -233,6 +257,7 @@ namespace vk
 
 		deviceCreateInfo.pNext = &buffer_device_address_feature;
 
+		
 		deviceCreateInfo.pQueueCreateInfos = deviceQueueCreateInfos.data();
 		deviceCreateInfo.queueCreateInfoCount = (uint32_t)(deviceQueueCreateInfos.size());
 
@@ -290,7 +315,7 @@ namespace vk
 
 	Buffer Device::CreateBuffer(size_t size, VkBufferUsageFlags usage, VkMemoryPropertyFlags flags, void* data) 
 	{
-		return Buffer(this->physical,this->logical, size, usage, flags, data);
+		return Buffer(this, usage, flags, size, data);
 	}
 
 	VkCommandBuffer Device::CreateCommandBuffer(VkCommandBufferLevel level, bool begin) 

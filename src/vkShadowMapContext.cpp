@@ -62,7 +62,7 @@ namespace vk
 		uniformDataScene.depthBiasMVP = uniformDataOffscreen.depthVP;
 
 		uniformDataScene.camPos = mCamera.Position();
-		memcpy(uniformBuffers.scene.mappedMemory, (void*)(&uniformDataScene), sizeof(uniformDataScene));
+		memcpy(uniformBuffers.scene.GetMappedMemory(), (void*)(&uniformDataScene), sizeof(uniformDataScene));
 	}
 
 	void ShadowMapScene::UpdateOffscreenUniforms() 
@@ -72,7 +72,7 @@ namespace vk
 		glm::mat4 depthViewMatrix = glm::lookAt(uniformDataScene.light.pos, glm::vec3(0.f), glm::vec3(0, 1, 0));
 		uniformDataOffscreen.depthVP = depthProjectionMatrix * depthViewMatrix;
 
-		memcpy(uniformBuffers.offscreen.mappedMemory, &uniformDataOffscreen, sizeof(uniformDataOffscreen));
+		memcpy(uniformBuffers.offscreen.GetMappedMemory(), &uniformDataOffscreen, sizeof(uniformDataOffscreen));
 	}
 
 	void ShadowMapScene::RecordCommandBuffers() 
@@ -160,50 +160,50 @@ namespace vk
 
 	}
 
-	void ShadowMapScene::InitializeScene(ObjectManager& objManager) 
+	void ShadowMapScene::InitializeScene(ObjectManager* objManager) 
 	{
-		glm::mat4 modelTransform = glm::mat4(5.f);
-		modelTransform[3] = glm::vec4(1.0f, 0, 5.f, 1);
+		//glm::mat4 modelTransform = glm::mat4(5.f);
+		//modelTransform[3] = glm::vec4(1.0f, 0, 5.f, 1);
 
 
-		ObjectCreateInfo objectCI;
-		objectCI.objName = "freddy.obj";
-		objectCI.textureFileName = "";
-		objectCI.pModelTransform = &modelTransform;
+		//ObjectCreateInfo objectCI;
+		//objectCI.objName = "freddy.obj";
+		//objectCI.textureFileName = "";
+		//objectCI.pModelTransform = &modelTransform;
 
-		objManager.LoadObject(objectCI);
+		//objManager.LoadObject(objectCI);
 
-		//object 2
-		modelTransform = glm::mat4(1.f);
-		modelTransform[3] = glm::vec4(0, 20, -5.f, 1);
+		////object 2
+		//modelTransform = glm::mat4(1.f);
+		//modelTransform[3] = glm::vec4(0, 20, -5.f, 1);
 
-		PhysicsComponent physicsComponent;
-		physicsComponent.bodyType = BodyType::DYNAMIC;
-		physicsComponent.colliderType = PhysicsComponent::ColliderType::CUBE;
+		//PhysicsComponent physicsComponent;
+		//physicsComponent.bodyType = BodyType::DYNAMIC;
+		//physicsComponent.colliderType = PhysicsComponent::ColliderType::CUBE;
 
-		objectCI = {};
-		objectCI.objName = "cube.obj";
-		objectCI.textureFileName = "";
-		objectCI.pPhysicsComponent = &physicsComponent;
-		objectCI.pModelTransform = &modelTransform;
+		//objectCI = {};
+		//objectCI.objName = "cube.obj";
+		//objectCI.textureFileName = "";
+		//objectCI.pPhysicsComponent = &physicsComponent;
+		//objectCI.pModelTransform = &modelTransform;
 
-		objManager.LoadObject(objectCI);
+		//objManager.LoadObject(objectCI);
 
-		//object 3
-		const float dbScale = 30.f;
-		modelTransform = glm::mat4(dbScale);
-		modelTransform[3] = { 0.f, -5.f, 0.f, 1 };
+		////object 3
+		//const float dbScale = 30.f;
+		//modelTransform = glm::mat4(dbScale);
+		//modelTransform[3] = { 0.f, -5.f, 0.f, 1 };
 
-		physicsComponent.bodyType = reactphysics3d::BodyType::STATIC;
+		//physicsComponent.bodyType = reactphysics3d::BodyType::STATIC;
 
 
-		objectCI = {};
-		objectCI.objName = "base.obj";
-		objectCI.textureFileName = "";
-		objectCI.pPhysicsComponent = &physicsComponent;
-		objectCI.pModelTransform = &modelTransform;
+		//objectCI = {};
+		//objectCI.objName = "base.obj";
+		//objectCI.textureFileName = "";
+		//objectCI.pPhysicsComponent = &physicsComponent;
+		//objectCI.pModelTransform = &modelTransform;
 
-		objManager.LoadObject(objectCI);
+		//objManager.LoadObject(objectCI);
 
 	}
 

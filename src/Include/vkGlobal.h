@@ -4,7 +4,6 @@
 #include "vkBuffer.h"
 #include "vkDevice.h"
 #include "vkTexture.h"
-#include "UserInterface.h"
 
 const uint32_t gMaxFramesInFlight = 3;
 
@@ -29,20 +28,27 @@ struct uLightObject
 
 namespace vk
 {
+	class Buffer;
+	class Device;
+	class UserInterface;
 
 	struct DescriptorBufferData //240 BYTES!!!
 	{
 		std::array<vk::Buffer, gMaxFramesInFlight> buffers; //descriptors are stored in BUFFERS, not VkDescriptorSet
 		std::vector<VkDeviceSize> binding_offsets = { 0ull }; //at least 1 binding (binding 0)
+		
 		VkDescriptorSetLayout layout = VK_NULL_HANDLE;
+		VkDevice c_device            = VK_NULL_HANDLE;
+
 		VkDeviceSize size = 0ull;
+
 		void Destroy()
 		{
 			for (auto& b : buffers)
 			{
 				b.Destroy();
 			}
-			vkDestroyDescriptorSetLayout(buffers[0].logicalDevice, layout, nullptr);
+			vkDestroyDescriptorSetLayout(c_device, layout, nullptr);
 		}
 	};
 

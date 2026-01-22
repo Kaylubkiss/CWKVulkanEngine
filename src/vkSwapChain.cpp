@@ -146,8 +146,6 @@ namespace vk
 		VK_CHECK_RESULT(vkGetSwapchainImagesKHR(devicePtr->logical, this->handle, &imageCount, this->images.data()));
 
 		VkCommandBuffer commandBuffer = devicePtr->CreateCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
-
-
 		//transition the image layouts for presentation.
 		for (int i = 0; i < imageCount; ++i) 
 		{

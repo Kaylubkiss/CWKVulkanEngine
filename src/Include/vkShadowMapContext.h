@@ -71,7 +71,7 @@ namespace vk
 			~ShadowMapScene();
 
 			virtual void RecordCommandBuffers() override;
-			virtual void InitializeScene(ObjectManager& objManager) override;
+			virtual void InitializeScene(ObjectManager* objManager) override;
 
 			virtual void Render();
 

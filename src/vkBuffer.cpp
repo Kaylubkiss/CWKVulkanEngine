@@ -4,27 +4,25 @@
 
 namespace vk 
 {
-	Buffer::Buffer(VkPhysicalDevice p_device, VkDevice l_device, size_t size, VkBufferUsageFlags usage, VkMemoryPropertyFlags flags, void* data)
+	Buffer::Buffer( const vk::Device* devicePtr, VkBufferUsageFlags usage, VkMemoryPropertyFlags flags,
+		size_t size, void* data )
 	{
-		VkResult result;
+		c_device = devicePtr->logical;
+		m_size = static_cast<VkDeviceSize>(size);
 
-		this->logicalDevice = l_device;
-		this->size = static_cast<VkDeviceSize>(size);
-
-		VkBufferCreateInfo bufferCreateInfo = vk::init::BufferCreateInfo(usage, this->size);
+		VkBufferCreateInfo bufferCreateInfo = vk::init::BufferCreateInfo(usage, m_size);
 		bufferCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;	// can only use CONCURRENT if .queueFamilyIndexCount > 0
 
-		result = vkCreateBuffer(l_device, &bufferCreateInfo, nullptr, &this->handle);
-		assert(result == VK_SUCCESS);
+		VK_CHECK_RESULT(vkCreateBuffer(c_device, &bufferCreateInfo, nullptr, &m_handle));
 
 		VkMemoryRequirements			memoryRequirments;
-		vkGetBufferMemoryRequirements(l_device, this->handle, &memoryRequirments);
+		vkGetBufferMemoryRequirements(c_device, m_handle, &memoryRequirments);
 
 		VkMemoryAllocateInfo vmai = vk::init::MemoryAllocateInfo();
 		vmai.allocationSize = memoryRequirments.size;
 
 		VkPhysicalDeviceMemoryProperties	vpdmp;
-		vkGetPhysicalDeviceMemoryProperties(p_device, &vpdmp);
+		vkGetPhysicalDeviceMemoryProperties(devicePtr->physical, &vpdmp);
 
 		uint32_t typeBits = memoryRequirments.memoryTypeBits;
 		for (uint32_t i = 0; i < vpdmp.memoryTypeCount; i++)
@@ -41,16 +39,15 @@ namespace vk
 		}
 
 
-		result = vkAllocateMemory(l_device, &vmai, nullptr, &this->memory);
-		assert(result == VK_SUCCESS);
+		VK_CHECK_RESULT(vkAllocateMemory(c_device, &vmai, nullptr, &m_memory));
 
 		if (data != nullptr)
 		{
 			Buffer::Map();
 			
-			if (this->mappedMemory != nullptr) 
+			if (m_mappedMemory != nullptr) 
 			{
-				memcpy(this->mappedMemory, data, this->size);
+				memcpy(m_mappedMemory, data, m_size);
 			}
 
 			if ((flags & VK_MEMORY_PROPERTY_HOST_COHERENT_BIT) == 0)
@@ -61,70 +58,89 @@ namespace vk
 			Buffer::UnMap();
 		}
 
-		Buffer::SetDescriptor(this->size, 0);
+		Buffer::SetDescriptor(m_size, 0);
 
-		result = vkBindBufferMemory(l_device, this->handle, this->memory, 0);
-		assert(result == VK_SUCCESS);
+		VK_CHECK_RESULT(vkBindBufferMemory(c_device, m_handle, m_memory, 0));
 	}
-
 
 	VkDeviceAddress Buffer::GetDeviceAddress() const
 	{
 		VkBufferDeviceAddressInfo bufferAddress = {};
 		bufferAddress.sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO;
-		bufferAddress.buffer = this->handle;
-		return vkGetBufferDeviceAddress(this->logicalDevice, &bufferAddress);
+		bufferAddress.buffer = m_handle;
+		return vkGetBufferDeviceAddress(c_device, &bufferAddress);
+	}
+
+	void* Buffer::GetMappedMemory() const 
+	{
+		assert(m_mappedMemory != nullptr);
+		return m_mappedMemory;
+	}
+
+	VkDescriptorBufferInfo Buffer::GetDescriptor() const 
+	{
+		return m_descriptor;
+	}
+
+	VkBuffer Buffer::GetHandle() const
+	{
+		return m_handle;
+	}
+
+	VkDeviceSize Buffer::GetSize() const 
+	{
+		return m_size;
 	}
 
 	void Buffer::SetDescriptor(VkDeviceSize size, VkDeviceSize offset) 
 	{
-		descriptor.buffer = this->handle;
-		descriptor.range = size;
-		descriptor.offset = offset;
+		m_descriptor.buffer = m_handle;
+		m_descriptor.range  = size;
+		m_descriptor.offset = offset;
 	}
 
 	void Buffer::Map() 
 	{
-		if (this->mappedMemory == nullptr) 
+		if (m_mappedMemory == nullptr) 
 		{
-			VK_CHECK_RESULT(vkMapMemory(this->logicalDevice, this->memory, 0, this->size, 0, &this->mappedMemory));
+			VK_CHECK_RESULT(vkMapMemory(c_device, m_memory, 0, m_size, 0, &m_mappedMemory));
 		}
 	}
 
 	void Buffer::Flush() 
 	{
 		VkMappedMemoryRange mappedRange = vk::init::MappedMemoryRange();
-		mappedRange.memory = this->memory;
+		mappedRange.memory = m_memory;
 		mappedRange.offset = 0;
-		mappedRange.size = this->size;
-		vkFlushMappedMemoryRanges(this->logicalDevice, 1, &mappedRange);
+		mappedRange.size = m_size;
+		vkFlushMappedMemoryRanges(c_device, 1, &mappedRange);
 	}
 
 	void Buffer::UnMap() 
 	{
-		if (this->mappedMemory != nullptr) 
+		if (m_mappedMemory != nullptr) 
 		{
-			vkUnmapMemory(this->logicalDevice, this->memory);
-			this->mappedMemory = nullptr;
+			vkUnmapMemory(c_device, m_memory);
+			m_mappedMemory = nullptr;
 		}
 
 	}
 
 	void Buffer::Destroy() 
 	{
-		if (logicalDevice != VK_NULL_HANDLE) 
+		if (c_device != VK_NULL_HANDLE) 
 		{
-			if (this->memory != VK_NULL_HANDLE)
+			if (m_memory != VK_NULL_HANDLE)
 			{		
 				UnMap(); //already checks if the mapped memory is null before freeing.
-				vkFreeMemory(logicalDevice, this->memory, nullptr);
-				this->memory = VK_NULL_HANDLE;
+				vkFreeMemory(c_device, m_memory, nullptr);
+				m_memory = VK_NULL_HANDLE;
 			}
 
-			if (this->handle != VK_NULL_HANDLE)
+			if (m_handle != VK_NULL_HANDLE)
 			{
-				vkDestroyBuffer(logicalDevice, this->handle, nullptr);
-				this->handle = VK_NULL_HANDLE;
+				vkDestroyBuffer(c_device, m_handle, nullptr);
+				m_handle = VK_NULL_HANDLE;
 			}
 		}
 	}

@@ -75,8 +75,3 @@ reactphysics3d::BoxShape* PhysicsSystem::CreatePlaneShape(const reactphysics3d::
 {
 	return mPhysicsCommon.createBoxShape({ extent.x, 1.0, extent.y });
 }
-
-void PhysicsComponent::SetRayCastHit(bool set) 
-{
-	this->rayCastHit = set;	
-}

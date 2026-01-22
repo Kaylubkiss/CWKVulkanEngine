@@ -15,20 +15,13 @@ PhysicsSystem& Application::GetPhysics()
 
 vk::ContextBase* Application::Context() {
 
-	return graphicsContext.get();
-}
-
-vk::TextureManager& Application::TextureManager() 
-{
-	return this->mTextureManager;
+	return m_graphicsContext.get();
 }
 
 vk::ObjectManager& Application::ObjectManager() 
 {
-	return this->objectManager;
+	return *m_objectManager.get();
 }
-
-
 
 
 void Application::run() 
@@ -46,18 +39,12 @@ void Application::run()
 
 void Application::init() 
 {
+	m_graphicsContext = std::make_unique<vk::DeferredContext>();
 
-	this->graphicsContext = std::make_unique<vk::DeferredContext>();
-
-	this->mTextureManager.Init(graphicsContext.get()->GetGraphicsContextInfo());
-
-	this->objectManager.Init(
-		&this->mTextureManager, 
-		graphicsContext.get()->PhysicalDevice(), 
-		graphicsContext.get()->LogicalDevice()
-	);
+	vk::GraphicsContextInfo contextInfo = m_graphicsContext.get()->GetGraphicsContextInfo();
+	m_objectManager = std::make_unique<vk::ObjectManager>(contextInfo);
 	
-	graphicsContext->InitializeScene(objectManager);
+	m_graphicsContext->InitializeScene(m_objectManager.get());
 	
 	mTime = Timer(SDL_GetPerformanceCounter());
 }
@@ -128,53 +115,39 @@ void Application::RequestExit()
 	this->exitApplication = true;
 }
 
-void Application::ResizeWindow() 
-{
-	graphicsContext->ResizeWindow();
-}
-
 void Application::loop()
 {
-	if (graphicsContext != nullptr) 
+	if (m_graphicsContext != nullptr) 
 	{
 		//render graphics.
 		while (exitApplication == false)
 		{
+			m_objectManager->SyncIO();
 
 			double dt = mTime.CalculateDeltaTime();
 
-			Controller::MoveCamera(graphicsContext->GetCamera(), dt);
+			Controller::MoveCamera(m_graphicsContext->GetCamera(), dt);
 
 			mPhysics.Update(dt);
 
-			objectManager.Update(mPhysics.InterpFactor());
+			m_objectManager->Update(mPhysics.InterpFactor());
 
 			//sync this up with primary command buffer in graphics system...
-			graphicsContext->Render();
+			m_graphicsContext->Render();
 		}
 
 		//when we're done with the loop, we should make sure the logical device is flushed.
-		graphicsContext->WaitForDevice();
+		m_graphicsContext->WaitForDevice();
 	}
 }
 
 
 void Application::exit()
 {
-	if (graphicsContext != nullptr) 
-	{
-		objectManager.Destroy(graphicsContext->LogicalDevice());
-	}
 }
 
 
 Application::~Application()
 {
 }
-
-
-
-
-
-
 

@@ -43,50 +43,50 @@ namespace vk
 		vkDestroyDescriptorSetLayout(this->device.logical, this->descriptorSetLayout, nullptr);
 	}
 
-	void FreddyHeadScene::InitializeScene(ObjectManager& objManager)
+	void FreddyHeadScene::InitializeScene(ObjectManager* objManager)
 	{
-		glm::mat4 modelTransform = glm::mat4(5.f);
-		modelTransform[3] = glm::vec4(1.0f, 0, 5.f, 1);
+		//glm::mat4 modelTransform = glm::mat4(5.f);
+		//modelTransform[3] = glm::vec4(1.0f, 0, 5.f, 1);
 
 
-		ObjectCreateInfo objectCI;
-		objectCI.objName = "freddy.obj";
-		objectCI.textureFileName = "";
-		objectCI.pModelTransform = &modelTransform;
+		//ObjectCreateInfo objectCI;
+		//objectCI.objName = "freddy.obj";
+		//objectCI.textureFileName = "";
+		//objectCI.pModelTransform = &modelTransform;
 
-		objManager.LoadObject(objectCI);
+		//objManager.LoadObject(objectCI);
 
-		//object 2
-		modelTransform = glm::mat4(1.f);
-		modelTransform[3] = glm::vec4(0, 20, -5.f, 1);
+		////object 2
+		//modelTransform = glm::mat4(1.f);
+		//modelTransform[3] = glm::vec4(0, 20, -5.f, 1);
 
-		PhysicsComponent physicsComponent;
-		physicsComponent.bodyType = BodyType::DYNAMIC;
-		physicsComponent.colliderType = PhysicsComponent::ColliderType::CUBE;
+		//PhysicsComponent physicsComponent;
+		//physicsComponent.bodyType = BodyType::DYNAMIC;
+		//physicsComponent.colliderType = PhysicsComponent::ColliderType::CUBE;
 
-		objectCI = {};
-		objectCI.objName = "cube.obj";
-		objectCI.textureFileName = "";
-		objectCI.pPhysicsComponent = &physicsComponent;
-		objectCI.pModelTransform = &modelTransform;
+		//objectCI = {};
+		//objectCI.objName = "cube.obj";
+		//objectCI.textureFileName = "";
+		//objectCI.pPhysicsComponent = &physicsComponent;
+		//objectCI.pModelTransform = &modelTransform;
 
-		objManager.LoadObject(objectCI);
+		//objManager.LoadObject(objectCI);
 
-		//object 3
-		const float dbScale = 30.f;
-		modelTransform = glm::mat4(dbScale);
-		modelTransform[3] = { 0.f, -5.f, 0.f, 1 };
+		////object 3
+		//const float dbScale = 30.f;
+		//modelTransform = glm::mat4(dbScale);
+		//modelTransform[3] = { 0.f, -5.f, 0.f, 1 };
 
-		physicsComponent.bodyType = reactphysics3d::BodyType::STATIC;
+		//physicsComponent.bodyType = reactphysics3d::BodyType::STATIC;
 
-		
-		objectCI = {};
-		objectCI.objName = "base.obj";
-		objectCI.textureFileName = "";
-		objectCI.pPhysicsComponent = &physicsComponent;
-		objectCI.pModelTransform = &modelTransform;
+		//
+		//objectCI = {};
+		//objectCI.objName = "base.obj";
+		//objectCI.textureFileName = "";
+		//objectCI.pPhysicsComponent = &physicsComponent;
+		//objectCI.pModelTransform = &modelTransform;
 
-		objManager.LoadObject(objectCI);
+		//objManager.LoadObject(objectCI);
 
 	}
 
@@ -206,7 +206,7 @@ namespace vk
 
 		this->sceneUniformData.camPos = mCamera.Position();
 
-		memcpy(this->sceneUniformBuffer.mappedMemory, &this->sceneUniformData, sizeof(sceneUniformData));
+		memcpy(sceneUniformBuffer.GetMappedMemory(), &sceneUniformData, sizeof(sceneUniformData));
 	}
 
 	void FreddyHeadScene::Render() 

@@ -24,7 +24,8 @@ set(SOURCE_FILES src/Application.cpp
 				   src/ApplicationGlobal.cpp
 				   src/CameraController.cpp
 				   src/UserInterface.cpp
-				   src/GLTFLoading.cpp
+				   src/GLTFModel.cpp
+				   src/OBJModel.cpp
 )
 							
 set(VULKAN_ENGINE_SRC src/vkUtility.cpp
@@ -35,7 +36,6 @@ set(VULKAN_ENGINE_SRC src/vkUtility.cpp
 					  src/vkBuffer.cpp
 					  src/vkTexture.cpp
 					  src/vkDevice.cpp
-					  src/vkMesh.cpp
 					  src/vkWindow.cpp
 					  src/vkPipelineManager.cpp
 					  src/vkFramebuffer.cpp
@@ -81,7 +81,9 @@ src/Include/ApplicationGlobal.h
 src/Include/Controller.h
 src/Include/SpirvHelper.h
 src/Include/UserInterface.h
-src/Include/GLTFLoading.h)
+src/Include/GLTFModel.h
+src/Include/OBJModel.h
+src/Include/IModel.h)
 				 
 
 set(VULKAN_ENGINE_HEADERS 
@@ -93,7 +95,6 @@ src/Include/vkContextBase.h
 src/Include/vkBuffer.h
 src/Include/vkTexture.h
 src/Include/vkSwapChain.h
-src/Include/vkMesh.h
 src/Include/vkDevice.h
 src/Include/vkDevice.h
 src/Include/vkPipelineManager.h

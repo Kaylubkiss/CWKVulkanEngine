@@ -2,36 +2,38 @@
 
 namespace vk 
 {
-	struct Buffer
+	class Device;
+
+	class Buffer final
 	{
-		VkDevice logicalDevice = VK_NULL_HANDLE;
-
-		VkBuffer handle = VK_NULL_HANDLE;
-		VkDeviceMemory memory = VK_NULL_HANDLE;
-		VkDeviceSize size = 0;
-		
-		VkDescriptorBufferInfo descriptor = {};
-
-		void* mappedMemory = NULL;
-
+	public:
 		//assume that build info is shared among all buffers.
 		Buffer() = default;
+		Buffer( const vk::Device* devicePtr, VkBufferUsageFlags usage, VkMemoryPropertyFlags flags, 
+			size_t size, void* data = nullptr );
 		~Buffer() = default;
-
-		Buffer(VkPhysicalDevice p_device, VkDevice l_device, size_t size, VkBufferUsageFlags usage, VkMemoryPropertyFlags flags, void* data = nullptr);
-
-		uint64_t GetDeviceAddress() const;
-		
+		//the actual destructor method, helps with default assignment operator not causing errors.
 		void Destroy();
-
-		void SetDescriptor(VkDeviceSize size = VK_WHOLE_SIZE, VkDeviceSize offset = 0);
+		
+		uint64_t GetDeviceAddress() const;		
+		void* GetMappedMemory() const;
+		VkDescriptorBufferInfo GetDescriptor() const;
+		VkBuffer GetHandle() const;
+		VkDeviceSize GetSize() const;
 
 		void Map();
-
 		void Flush();
-
 		void UnMap();
+	private:
+		void SetDescriptor(VkDeviceSize size = VK_WHOLE_SIZE, VkDeviceSize offset = 0);
+	private:
+		VkDevice c_device       = VK_NULL_HANDLE;
+		VkBuffer m_handle       = VK_NULL_HANDLE;
+		VkDeviceMemory m_memory = VK_NULL_HANDLE;
+		VkDeviceSize m_size     = 0;
+		void* m_mappedMemory    = nullptr;
 
+		VkDescriptorBufferInfo m_descriptor = {};
 
 	};
 }

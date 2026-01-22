@@ -6,14 +6,14 @@ namespace vk
 	{
 		public:
 			TextureManager() = default;
+			TextureManager( GraphicsContextInfo contextInfo );
 			~TextureManager() = default;
-
-			void Init(GraphicsContextInfo contextInfo);
 
 			VkDescriptorImageInfo GetTextureDescriptorInfo(const char* fileName);
 			VkDescriptorImageInfo GetTextureDescriptorInfo(uint32_t index);
 
 			void BindTextureToObject(const std::string& fileName, Object& obj);
+			void FinishTextureLayoutTransition();
 
 		private:
 			bool AddTexture(GraphicsContextInfo& graphicsContextInfo, const std::string& fileName);
@@ -22,11 +22,12 @@ namespace vk
 
 			struct TextureInfo 
 			{
-				std::unique_ptr<vk::Texture> handle;
+				std::shared_ptr<vk::Texture> handle;
 				uint32_t index = 0;
 			};
 
-			std::unordered_map<std::string, TextureInfo> mTextures;
+			std::unordered_map<std::string, TextureInfo> m_textures;
+			std::vector<TextureInfo> m_pendingTextures; //textures that need to finish their layout transition.
 	};
 
 }

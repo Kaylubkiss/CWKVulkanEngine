@@ -73,8 +73,6 @@ namespace vk
 			Framebuffer deShadow;
 		} framebuffers;
 
-		std::unique_ptr<Texture> defaultTexture;
-
 		std::array<VkPipelineLayout, PIPELINE_COUNT> pipelineLayouts;
 
 		float depthBiasConstant = 1.25f;
@@ -89,15 +87,13 @@ namespace vk
 			glm::vec3 freddyPosition = { 1.0f, 1.0, 5.f };
 		} sceneSettings{};
 
-		vkGltf::Model testGltfModel;
-
 	public:
 		DeferredContext();
 		~DeferredContext();
 
 		virtual void RecordCommandBuffers() override;
 		virtual void UpdateUI() override;
-		virtual void InitializeScene(ObjectManager& objManager) override;
+		virtual void InitializeScene(ObjectManager* objManager) override;
 		virtual void ResizeWindowDerived() override;
 		virtual void Render() override;
 

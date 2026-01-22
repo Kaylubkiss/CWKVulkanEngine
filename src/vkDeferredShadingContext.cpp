@@ -20,13 +20,6 @@ namespace vk
 		framebuffers.deShadow.width = 2048;
 		framebuffers.deShadow.height = 2048;
 
-		defaultTexture = std::make_unique<Texture>(mInfo.devicePtr, "wood-floor.png");
-
-		if (settings.UIEnabled)
-		{
-			UIOverlay.AddImage(*defaultTexture.get());
-		}
-
 		DeferredContext::InitializeUniforms();
 		DeferredContext::IntializeDeferredFramebuffer();
 		DeferredContext::InitializeDeferredShadowFramebuffer();
@@ -39,8 +32,6 @@ namespace vk
 
 		FillOutGraphicsContextInfo();
 
-		testGltfModel.LoadObject(&this->device);
-
 	}
 
 	DeferredContext::~DeferredContext()
@@ -48,9 +39,7 @@ namespace vk
 		for (size_t i = 0; i < uniformBuffers.size(); ++i)
 		{
 			uniformBuffers[i].mrt.Destroy();
-
 			uniformBuffers[i].composition.Destroy();
-
 			uniformBuffers[i].shadow.Destroy();
 		}
 
@@ -69,58 +58,52 @@ namespace vk
 
 		framebuffers.deMRT.Destroy();
 		framebuffers.deShadow.Destroy();
-
-		testGltfModel.Destroy();
 	}
 
-	void DeferredContext::InitializeScene(ObjectManager& objManager)
+	void DeferredContext::InitializeScene(ObjectManager* objManager)
 	{
-		glm::mat4 modelTransform = glm::mat4(3.f);
-		modelTransform[3] = glm::vec4(sceneSettings.freddyPosition, 1);
-
+		ObjectCreateInfo objectCI = {};
+		
 		//object 1 - freddy
-		ObjectCreateInfo objectCI;
 		objectCI.objName = "freddy.obj";
 		objectCI.textureFileName = "myface.JPG";
-		objectCI.pModelTransform = &modelTransform;
+		objectCI.modelTransform = glm::translate(glm::mat4(1.f), sceneSettings.freddyPosition) * 
+			glm::scale(glm::mat4(1.f), glm::vec3(3.f));
 		objectCI.devicePtr = &this->device;
 
-		objManager.LoadObject(objectCI);
+		objManager->LoadObject(objectCI);
 
 		//object 2 - cube
-		modelTransform = glm::mat4(1.f);
-		modelTransform[3] = glm::vec4(sceneSettings.cubePosition, 1);
+		objectCI = {};
 
 		PhysicsComponent physicsComponent;
 		physicsComponent.bodyType = BodyType::DYNAMIC;
 		physicsComponent.colliderType = PhysicsComponent::ColliderType::CUBE;
-
-		//NOTE: this cube doesn't have UVs.
-		objectCI = {};
+		
 		objectCI.objName = "cube.obj";
+		//NOTE: this cube doesn't have UVs.
 		objectCI.textureFileName = "";
-		objectCI.pPhysicsComponent = &physicsComponent;
-		objectCI.pModelTransform = &modelTransform;
+		objectCI.physicsComponent = physicsComponent;
+		objectCI.hasPhysicsComponent = true;
+		objectCI.modelTransform = glm::translate(glm::mat4(1.f), glm::vec3(sceneSettings.cubePosition));
 		objectCI.devicePtr = &this->device;
 
-		objManager.LoadObject(objectCI);
+		objManager->LoadObject(objectCI);
 
 		//object 3 - base
-		const float dbScale = 30.f;
-		modelTransform = glm::mat4(dbScale);
-		modelTransform[3] = { 0.f, -5.f, 0.f, 1 };
-
+		objectCI = {};
+		
 		physicsComponent.bodyType = reactphysics3d::BodyType::STATIC;
 
-
-		objectCI = {};
 		objectCI.objName = "base.obj";
 		objectCI.textureFileName = "wood-floor.png";
-		objectCI.pPhysicsComponent = &physicsComponent;
-		objectCI.pModelTransform = &modelTransform;
+		objectCI.physicsComponent = physicsComponent;
+		objectCI.modelTransform = glm::translate(glm::mat4(1.f), glm::vec3(0, -5.f, 0)) *
+			glm::scale(glm::mat4(1.f), glm::vec3(30.f));
+		objectCI.hasPhysicsComponent = true;
 		objectCI.devicePtr = &this->device;
 
-		objManager.LoadObject(objectCI);
+		objManager->LoadObject(objectCI);
 
 	}
 
@@ -135,7 +118,7 @@ namespace vk
 
 		for (int frame = 0; frame < gMaxFramesInFlight; ++frame) 
 		{
-			char* image_descriptor_ptr = (char*)compositionImageBindingDescriptor.buffers[frame].mappedMemory;
+			char* image_descriptor_ptr = (char*)compositionImageBindingDescriptor.buffers[frame].GetMappedMemory();
 			for (int i = 0; i < RT_COUNT; ++i)
 			{
 				//info
@@ -230,7 +213,7 @@ namespace vk
 		*size = AlignedSize(*size, device->DescriptorBufferProperties().descriptorBufferOffsetAlignment);
 	}
 
-	inline void GetDescriptorLayoutBindingOffsets(const vk::Device* device, VkDescriptorSetLayout layout, VkDeviceSize offsets[], uint32_t binding_count = 1)
+	inline void GetDescriptorLayoutBindingOffsets( const vk::Device* device, VkDescriptorSetLayout layout, VkDeviceSize offsets[], uint32_t binding_count = 1 )
 	{
 		//get the offsets of each descriptor binding in the layout 
 		for (int i = 0; i < binding_count; ++i)
@@ -248,6 +231,7 @@ namespace vk
 
 		//MRT PASS DESCRIPTORS
 		{
+
 			//per-frame scene transform
 			setLayoutBindings[0] =
 				vk::init::DescriptorLayoutBinding(0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT);
@@ -295,6 +279,7 @@ namespace vk
 			VK_CHECK_RESULT(vkCreateDescriptorSetLayout(this->device.logical, &setLayoutCreateInfo, nullptr, &compositionImageBindingDescriptor.layout));
 
 			//COMPOSITION PASS g buffer image descriptors
+			compositionImageBindingDescriptor.c_device = device.logical;
 			GetDescriptorLayoutSize(&device, compositionImageBindingDescriptor.layout, &compositionImageBindingDescriptor.size);
 
 			//may be storing the same offset across these binding offsets since it's the same descriptor type (COMBINED_IMAGE_SAMPLER)
@@ -316,7 +301,6 @@ namespace vk
 
 		//SHADOW MAP DESCRIPTORS
 		{
-
 			VkDescriptorSetLayoutCreateInfo setLayoutCreateInfo = vk::init::DescriptorSetLayoutCreateInfo(setLayoutBindings.data(), 1);
 			setLayoutCreateInfo.flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_DESCRIPTOR_BUFFER_BIT_EXT;
 
@@ -347,22 +331,24 @@ namespace vk
 		//UNIFORM DATA  descriptors (all passes)
 		for (auto& uniformDescriptor : uniformBindingDescriptors)
 		{
+			uniformDescriptor.c_device = device.logical;
 			GetDescriptorLayoutSize(&device, uniformDescriptor.layout, &uniformDescriptor.size);
 			GetDescriptorLayoutBindingOffsets(&device, uniformDescriptor.layout, uniformDescriptor.binding_offsets.data());
 		}
 	
 		//TEXTURE IMAGE descriptor (static)
+		textureBindingDescriptor.c_device = device.logical;
 		GetDescriptorLayoutSize(&device, textureBindingDescriptor.layout, &textureBindingDescriptor.size);
 		GetDescriptorLayoutBindingOffsets(&device, textureBindingDescriptor.layout, textureBindingDescriptor.binding_offsets.data());
 
 	}
 
-	inline void GetUniformDescriptor(vk::Buffer& descriptorBuffer, const vk::Buffer& dataBuffer, const vk::Device& device) 
+	inline void GetUniformDescriptor( vk::Buffer& descriptorBuffer, const vk::Buffer& dataBuffer, const vk::Device& device ) 
 	{
-		char* descriptor_ptr = (char*)descriptorBuffer.mappedMemory;
+		char* descriptor_ptr = (char*)descriptorBuffer.GetMappedMemory();
 		VkDescriptorAddressInfoEXT addrInfo = { VK_STRUCTURE_TYPE_DESCRIPTOR_ADDRESS_INFO_EXT };
 		addrInfo.address = dataBuffer.GetDeviceAddress();
-		addrInfo.range = dataBuffer.size;
+		addrInfo.range = dataBuffer.GetSize();
 		addrInfo.format = VK_FORMAT_UNDEFINED;
 
 		VkDescriptorGetInfoEXT bufferDescriptorInfo = { VK_STRUCTURE_TYPE_DESCRIPTOR_GET_INFO_EXT };
@@ -382,9 +368,12 @@ namespace vk
 		{
 			//MRT pass UBO (global transforms)
 			uniformBindingDescriptors[dePipeline::MRT].buffers[frame] =
-				vk::Buffer(device.physical, device.logical, uniformBindingDescriptors[dePipeline::MRT].size,
-					VK_BUFFER_USAGE_RESOURCE_DESCRIPTOR_BUFFER_BIT_EXT | VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
-					VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+				vk::Buffer(&device,
+					VK_BUFFER_USAGE_RESOURCE_DESCRIPTOR_BUFFER_BIT_EXT | 
+					VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | 
+					VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
+					VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, 
+					uniformBindingDescriptors[dePipeline::MRT].size);
 
 			uniformBindingDescriptors[dePipeline::MRT].buffers[frame].Map(); //persistent
 
@@ -396,9 +385,12 @@ namespace vk
 
 			//shadow pass UBO (light POV)
 			uniformBindingDescriptors[dePipeline::SHADOW].buffers[frame] =
-				vk::Buffer(device.physical, device.logical, uniformBindingDescriptors[dePipeline::SHADOW].size,
-					VK_BUFFER_USAGE_RESOURCE_DESCRIPTOR_BUFFER_BIT_EXT | VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
-					VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+				vk::Buffer(&device,
+				VK_BUFFER_USAGE_RESOURCE_DESCRIPTOR_BUFFER_BIT_EXT | 
+				VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | 
+				VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
+				VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+				uniformBindingDescriptors[dePipeline::SHADOW].size);
 
 			uniformBindingDescriptors[dePipeline::SHADOW].buffers[frame].Map(); //persistent
 	
@@ -409,24 +401,29 @@ namespace vk
 
 			//composition UBO (light data)
 			uniformBindingDescriptors[dePipeline::COMPOSITION].buffers[frame] =
-				vk::Buffer(device.physical, device.logical, uniformBindingDescriptors[dePipeline::COMPOSITION].size,
-					VK_BUFFER_USAGE_RESOURCE_DESCRIPTOR_BUFFER_BIT_EXT | VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
-					VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+				vk::Buffer(&device,
+				VK_BUFFER_USAGE_RESOURCE_DESCRIPTOR_BUFFER_BIT_EXT | 
+				VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | 
+				VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
+				VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+				uniformBindingDescriptors[dePipeline::COMPOSITION].size);
 
 			uniformBindingDescriptors[dePipeline::COMPOSITION].buffers[frame].Map(); //persistent
 
-			GetUniformDescriptor(
-				uniformBindingDescriptors[dePipeline::COMPOSITION].buffers[frame],
-				uniformBuffers[frame].composition, device
-			);
+			GetUniformDescriptor(uniformBindingDescriptors[dePipeline::COMPOSITION].buffers[frame],
+				uniformBuffers[frame].composition, device);
 
 			//Composition Image Samplers 
-			compositionImageBindingDescriptor.buffers[frame] =
-				vk::Buffer(device.physical, device.logical, compositionImageBindingDescriptor.size, VK_BUFFER_USAGE_RESOURCE_DESCRIPTOR_BUFFER_BIT_EXT | VK_BUFFER_USAGE_SAMPLER_DESCRIPTOR_BUFFER_BIT_EXT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+			compositionImageBindingDescriptor.buffers[frame] = vk::Buffer(&device, 
+				VK_BUFFER_USAGE_RESOURCE_DESCRIPTOR_BUFFER_BIT_EXT | 
+				VK_BUFFER_USAGE_SAMPLER_DESCRIPTOR_BUFFER_BIT_EXT |
+				VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT, 
+				VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+				compositionImageBindingDescriptor.size);
 
 
 			compositionImageBindingDescriptor.buffers[frame].Map();
-			char* image_descriptor_ptr = (char*)compositionImageBindingDescriptor.buffers[frame].mappedMemory;
+			char* image_descriptor_ptr = (char*)compositionImageBindingDescriptor.buffers[frame].GetMappedMemory();
 			for (int i = 0; i < RT_COUNT; ++i) 
 			{
 				//info
@@ -462,17 +459,18 @@ namespace vk
 		}
 
 		//texture sampler buffer - static buffer.
-		textureBindingDescriptor.buffers.front() =
-			vk::Buffer(
-				device.physical, device.logical, OBJECT_COUNT * textureBindingDescriptor.size, 
-				VK_BUFFER_USAGE_RESOURCE_DESCRIPTOR_BUFFER_BIT_EXT | VK_BUFFER_USAGE_SAMPLER_DESCRIPTOR_BUFFER_BIT_EXT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
-			);
+		textureBindingDescriptor.buffers.front() = vk::Buffer(&device,
+			VK_BUFFER_USAGE_RESOURCE_DESCRIPTOR_BUFFER_BIT_EXT | 
+			VK_BUFFER_USAGE_SAMPLER_DESCRIPTOR_BUFFER_BIT_EXT | 
+			VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT, 
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+			OBJECT_COUNT * textureBindingDescriptor.size);
 
 		//fill in the default texture first, then try to figure out texture manager.
 		textureBindingDescriptor.buffers.front().Map();
-		char* imageBindingDescriptorPtr = (char*)textureBindingDescriptor.buffers.front().mappedMemory;
+		char* imageBindingDescriptorPtr = (char*)textureBindingDescriptor.buffers.front().GetMappedMemory();
 
-		VkDescriptorGetInfoEXT image_descriptor_info{ VK_STRUCTURE_TYPE_DESCRIPTOR_GET_INFO_EXT };
+		/*VkDescriptorGetInfoEXT image_descriptor_info{ VK_STRUCTURE_TYPE_DESCRIPTOR_GET_INFO_EXT };
 		image_descriptor_info.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 		image_descriptor_info.data.pCombinedImageSampler = &defaultTexture.get()->descriptor;
 
@@ -481,7 +479,7 @@ namespace vk
 		{
 			g_vkGetDescriptorEXT(device.logical, &image_descriptor_info, device.DescriptorBufferProperties().combinedImageSamplerDescriptorSize,
 				imageBindingDescriptorPtr + i * textureBindingDescriptor.size + textureBindingDescriptor.binding_offsets.front());
-		}
+		}*/
 
 	}
 
@@ -496,13 +494,13 @@ namespace vk
 
 		uniformDataMRT.uTransform.proj[1][1] *= -1;
 
-		memcpy(uniformBuffers[currentFrame].mrt.mappedMemory, (void*)(&uniformDataMRT), sizeof(uniformDataMRT));
+		memcpy(uniformBuffers[currentFrame].mrt.GetMappedMemory(), (void*)(&uniformDataMRT), sizeof(uniformDataMRT));
 
 		//shadows
 		glm::mat4 perspective = glm::perspective(glm::radians(lightFOV), 1.f, zNear, zFar);
 		uniformDataDeferredShadow.viewMatrices[0] = perspective * glm::lookAt(uniformDataLightPass.lights[0].pos, sceneSettings.freddyPosition, glm::vec3(0, 1, 0));
 		uniformDataDeferredShadow.viewMatrices[1] = perspective * glm::lookAt(uniformDataLightPass.lights[1].pos, sceneSettings.cubePosition, glm::vec3(0, 1, 0));
-		memcpy(uniformBuffers[currentFrame].shadow.mappedMemory, (void*)(&uniformDataDeferredShadow), sizeof(uniformDataDeferredShadow));
+		memcpy(uniformBuffers[currentFrame].shadow.GetMappedMemory(), (void*)(&uniformDataDeferredShadow), sizeof(uniformDataDeferredShadow));
 	}
 
 	void DeferredContext::UpdateLights() 
@@ -511,7 +509,7 @@ namespace vk
 		uniformDataLightPass.viewPosition = mCamera.Position();
 		uniformDataLightPass.lights[0].viewMatrix = uniformDataDeferredShadow.viewMatrices[0];
 		uniformDataLightPass.lights[1].viewMatrix = uniformDataDeferredShadow.viewMatrices[1];
-		memcpy(uniformBuffers[currentFrame].composition.mappedMemory, (void*)(&uniformDataLightPass), sizeof(uniformDataLightPass));	
+		memcpy(uniformBuffers[currentFrame].composition.GetMappedMemory(), (void*)(&uniformDataLightPass), sizeof(uniformDataLightPass));
 	}
 
 	void DeferredContext::DrawObjectsWithTexture(
@@ -529,7 +527,7 @@ namespace vk
 
 		for (auto& obj : objects) 
 		{
-			Object* curr_obj = obj.second.obj;
+			Object* curr_obj = obj.second.get();
 
 			buffer_offset = curr_obj->TextureIndex() * textureBindingDescriptor.size;
 			g_vkCmdSetDescriptorBufferOffsetsEXT(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, first_set, set_count, &buffer_index_image, &buffer_offset);
@@ -541,7 +539,6 @@ namespace vk
 	void DeferredContext::IntializeDeferredFramebuffer() 
 	{
 		framebuffers.deMRT.Destroy();
-
 		framebuffers.deMRT.Init(&this->device);
 
 		VkFramebufferCreateInfo framebuffer = vk::init::FramebufferCreateInfo();
@@ -581,7 +578,6 @@ namespace vk
 	void DeferredContext::InitializeDeferredShadowFramebuffer() 
 	{
 		framebuffers.deShadow.Destroy();
-
 		framebuffers.deShadow.Init(&this->device);
 
 		vk::FramebufferAttachmentCreateInfo attachmentCI = {};
@@ -593,18 +589,16 @@ namespace vk
 		attachmentCI.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
 
 		framebuffers.deShadow.AddAttachment(attachmentCI);
-
 		framebuffers.deShadow.CreateSampler(VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE);
-
 		framebuffers.deShadow.CreateRenderPass();
-
 		framebuffers.deShadow.CreateFramebuffer();
 	}
 
 	void DeferredContext::InitializeDescriptors() 
 	{
 
-		//MOVING TO DESCRIPTOR BUFFERS; no vkCreateDescriptorSet or vkWriteDescriptorSet() or vkCreateDescriptorPool()
+		//MOVING TO DESCRIPTOR BUFFERS; 
+		// no vkCreateDescriptorSet or vkWriteDescriptorSet() or vkCreateDescriptorPool()
 		InitializeDescriptorLayouts();
 		InitializeDescriptorBuffers();
 	}
@@ -873,12 +867,27 @@ namespace vk
 			pipelineCI.renderPass = framebuffers.deShadow.renderPass;
 			pipelineCI.layout = pipelineLayouts[dePipeline::SHADOW];
 
-			pipelineManager.AddModule(dePipeline::SHADOW, vertShaderInfo);
-			pipelineManager.AddModule(dePipeline::SHADOW, geoShaderInfo);
+			//shadow pass only consumes the position of vertices
+			VkVertexInputBindingDescription vertexBindingDescription = vk::init::VertexInputBindingDescription();
+			VkVertexInputAttributeDescription vertexPosAttributeDescripton = {};
+			vertexPosAttributeDescripton.format = VK_FORMAT_R32G32B32_SFLOAT;
+			vertexPosAttributeDescripton.location = 0;
+			vertexPosAttributeDescripton.binding = 0;
+			vertexPosAttributeDescripton.offset = offsetof(struct Vertex, pos);
+
+			VkPipelineVertexInputStateCreateInfo vertexInputStateCI = vk::init::PipelineVertexInputStateCreateInfo();
+			vertexInputStateCI.pVertexBindingDescriptions = &vertexBindingDescription;
+			vertexInputStateCI.vertexBindingDescriptionCount = 1;
+			vertexInputStateCI.pVertexAttributeDescriptions = &vertexPosAttributeDescripton;
+			vertexInputStateCI.vertexAttributeDescriptionCount = 1;
+
+			pipelineCI.pVertexInputState = &vertexInputStateCI;
 
 			VkPipeline shadowPipeline = VK_NULL_HANDLE;
 			VK_CHECK_RESULT(vkCreateGraphicsPipelines(device.logical, VK_NULL_HANDLE, 1, &pipelineCI, nullptr, &shadowPipeline));
 
+			pipelineManager.AddModule(dePipeline::SHADOW, vertShaderInfo);
+			pipelineManager.AddModule(dePipeline::SHADOW, geoShaderInfo);
 			pipelineManager.AddPipeline(dePipeline::SHADOW, shadowPipeline, nullptr);
 		}
 
@@ -932,7 +941,6 @@ namespace vk
 			g_vkCmdSetDescriptorBufferOffsetsEXT(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayouts[dePipeline::SHADOW], 0, 1, &buffer_index_ubo, &buffer_offset);
 
 			objManager.DrawObjects(cmdBuffer, pipelineLayouts[dePipeline::SHADOW]);
-			testGltfModel.Draw(cmdBuffer, pipelineLayouts[dePipeline::SHADOW]); //TODO: TEMPORARY
 
 			vkCmdEndRenderPass(cmdBuffer);
 		}
@@ -983,9 +991,6 @@ namespace vk
 			g_vkCmdSetDescriptorBufferOffsetsEXT(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayouts[dePipeline::MRT], 0, 1, &buffer_index_ubo, &buffer_offset);
 
 			DrawObjectsWithTexture(cmdBuffer, pipelineLayouts[dePipeline::MRT], objManager);
-
-			//reset the bound descriptor set to the default one.
-			testGltfModel.Draw(cmdBuffer, pipelineLayouts[dePipeline::MRT]); //TODO: TEMPORARY
 
 			vkCmdEndRenderPass(cmdBuffer);
 		}
