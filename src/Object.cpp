@@ -1,4 +1,6 @@
 #include "Object.h"
+#include "GLTFModel.h"
+#include "OBJModel.h"
 
 Object::Object( const ObjectCreateInfo& objectCI )
 {
@@ -7,7 +9,7 @@ Object::Object( const ObjectCreateInfo& objectCI )
     std::filesystem::path filePath(OBJECT_PATH + std::string(objectCI.objName));
     if (filePath.extension() == ".gltf")
     {
-        /*this->m_Model = std::make_unique<GLTFModel>)();*/
+        m_model = std::make_unique<GLTFModel>();
     }
     else if (filePath.extension() == ".obj")
     {
@@ -71,7 +73,7 @@ void Object::InitPhysics()
     m_physicsComponent.isInitialized = true;
 }
 
-uint32_t Object::TextureIndex() 
+uint32_t Object::TextureIndex() const
 {
     return this->m_textureIndex;
 }
@@ -91,7 +93,6 @@ void Object::Update(const float& interpFactor)
 
         m_physicsComponent.currTransform.getOpenGLMatrix(matrix);
 
-       
         //this makes this stuff too dang easy.
         glm::mat4 nModel = glm::mat4(matrix[0], matrix[1], matrix[2], matrix[3], 
                                      matrix[4], matrix[5], matrix[6], matrix[7],
@@ -104,7 +105,7 @@ void Object::Update(const float& interpFactor)
 
 }
 
-void Object::Draw(VkCommandBuffer cmdBuffer, VkPipelineLayout pipelineLayout)
+void Object::Draw(VkCommandBuffer cmdBuffer, VkPipelineLayout pipelineLayout) const
 {  
     m_model->Draw(cmdBuffer, pipelineLayout);
 }

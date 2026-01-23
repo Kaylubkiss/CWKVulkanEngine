@@ -11,7 +11,7 @@ struct ObjectCreateInfo
 	const char* textureFileName = "";
 	PhysicsComponent physicsComponent;
 	bool hasPhysicsComponent = false;
-	glm::mat4 modelTransform;
+	glm::mat4 modelTransform = glm::mat4(1.0f);
 	vk::Device* devicePtr = nullptr;
 };
 
@@ -20,16 +20,16 @@ class Object
 public:
 	//Constructors
 	Object() = default;
-	Object( const ObjectCreateInfo& objectCI );
+	explicit Object( const ObjectCreateInfo& objectCI );
 	//Destructors
 	~Object() = default;	
 	//Accessors
-	uint32_t TextureIndex();
+	[[nodiscard]] uint32_t TextureIndex() const;
 	//Mutators
 	void UpdateTextureDescriptorOffset(uint32_t offset);
 	void Update(const float& interpFactor);
 	void InitPhysics();
-	void Draw(VkCommandBuffer cmdBuffer, VkPipelineLayout pipelineLayout = VK_NULL_HANDLE);
+	void Draw(VkCommandBuffer cmdBuffer, VkPipelineLayout pipelineLayout = VK_NULL_HANDLE) const;
 private:
 	std::unique_ptr<IModel> m_model;
 	PhysicsComponent m_physicsComponent;

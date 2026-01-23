@@ -4,6 +4,7 @@
 #include "vkSwapChain.h"
 #include "vkFramebuffer.h"
 #include "vkPipelineManager.h"
+#include "UserInterface.h"
 
 namespace vk
 {

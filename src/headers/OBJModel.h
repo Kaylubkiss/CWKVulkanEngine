@@ -1,5 +1,4 @@
 #pragma once
-
 #include "IModel.h"
 
 class OBJModel : public IModel
@@ -7,13 +6,13 @@ class OBJModel : public IModel
 public:
 	OBJModel() = default;
 	OBJModel( vk::Device* device, const std::filesystem::path& filePath );
-	~OBJModel() = default;
+	~OBJModel() override = default;
 
-	virtual glm::vec3 GetMinPoint() const override;
-	virtual glm::vec3 GetMaxPoint() const override;
+	[[nodiscard]] glm::vec3 GetMinPoint() const override;
+	[[nodiscard]] glm::vec3 GetMaxPoint() const override;
 
-	virtual void UpdateModelTransform(const glm::mat4& newModelMatrix) override;
-	virtual void Draw(VkCommandBuffer cmdBuffer, VkPipelineLayout pipelineLayout = VK_NULL_HANDLE) override;
+	void UpdateModelTransform(const glm::mat4& newModelMatrix) override;
+	void Draw(VkCommandBuffer cmdBuffer, VkPipelineLayout pipelineLayout) override;
 private:
 	void ComputeVertices(std::vector<Vertex>& vertexBuffer, std::vector<uint16_t>& indexBuffer);
 	void ComputeVertexNormals(std::vector<Vertex>& vertexBuffer, std::vector<uint16_t>& indexBuffer);

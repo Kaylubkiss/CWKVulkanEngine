@@ -60,7 +60,6 @@ namespace vk
 		std::array<UniformBuffers, gMaxFramesInFlight> uniformBuffers;
 
 		
-
 		std::array<DescriptorBufferData, dePipeline::PIPELINE_COUNT> uniformBindingDescriptors;
 		//might be an abuse of map? Big memory cost.
 		DescriptorBufferData textureBindingDescriptor;

@@ -7,6 +7,32 @@
 
 #define GLTF_OBJECT_PATH "External/objects/gltf/"
 
+GLTFModel::GLTFModel( vk::Device* device, const std::filesystem::path& filePath ) 
+{
+	fastgltf::Options gltfOptions =
+		fastgltf::Options::DontRequireValidAssetMember |
+		fastgltf::Options::AllowDouble |
+		fastgltf::Options::GenerateMeshIndices |
+		fastgltf::Options::LoadExternalBuffers;
+
+	fastgltf::GltfFileStream data(filePath);
+
+	fastgltf::Expected<fastgltf::Asset> asset(fastgltf::Error::None);
+	fastgltf::Parser parser;
+
+	asset = parser.loadGltf(data, filePath.parent_path(), gltfOptions);
+
+	if (asset.error() != fastgltf::Error::None)
+	{
+		std::cerr << "Couldn't load in specified data\n";
+		throw std::runtime_error("LoadObject() failed");
+	}
+
+	m_asset = std::move(asset.get());
+
+	std::cout << "successfully loaded " << filePath.string() << std::endl;
+}
+
 void GLTFModel::LoadObject( vk::Device* device )
 {
 	assert(device != nullptr);
@@ -98,7 +124,7 @@ void GLTFModel::Draw(VkCommandBuffer cmdBuffer, VkPipelineLayout pipelineLayout)
 							sizeof(matrix), matrix.data());
 					}
 
-					for (auto& primitive : mesh.get()->primitives)
+					for (auto& primitive : mesh->m_primitives)
 					{
 						//TODO: support textures..
 						vkCmdDrawIndexed(cmdBuffer, primitive.indexCount, 1, primitive.firstIndex, primitive.firstVertex, 0);
@@ -150,7 +176,7 @@ void GLTFModel::LoadMesh(fastgltf::Mesh& mesh, std::vector<Vertex>& vertexBuffer
 {
 	std::shared_ptr<Mesh> newMesh = std::make_shared<Mesh>();
 
-	newMesh.get()->name = mesh.name;
+	newMesh->m_name = mesh.name;
 
 	for (auto& primitive : mesh.primitives)
 	{
@@ -247,7 +273,7 @@ void GLTFModel::LoadMesh(fastgltf::Mesh& mesh, std::vector<Vertex>& vertexBuffer
 		}
 		//end of indices
 
-		newMesh.get()->primitives.push_back(newPrim);
+		newMesh->m_primitives.push_back(newPrim);
 	}
 
 	m_meshes.push_back(newMesh);

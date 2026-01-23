@@ -196,12 +196,12 @@ OBJModel::OBJModel(vk::Device* device, const std::filesystem::path& filePath)
 
 glm::vec3 OBJModel::GetMinPoint() const
 {
-    return glm::vec3(m_modelTransform * glm::vec4(m_minLocalPoint, 1));
+    return {m_modelTransform * glm::vec4(m_minLocalPoint, 1)};
 }
 
 glm::vec3 OBJModel::GetMaxPoint() const
 {
-    return glm::vec3(m_modelTransform * glm::vec4(m_maxLocalPoint, 1));
+    return {m_modelTransform * glm::vec4(m_maxLocalPoint, 1)};
 }
 
 void OBJModel::UpdateModelTransform(const glm::mat4& newModelMatrix) 
@@ -209,7 +209,7 @@ void OBJModel::UpdateModelTransform(const glm::mat4& newModelMatrix)
     m_modelTransform = newModelMatrix;
 }
 
-void OBJModel::Draw(VkCommandBuffer cmdBuffer, VkPipelineLayout pipelineLayout) 
+void OBJModel::Draw(VkCommandBuffer cmdBuffer, VkPipelineLayout pipelineLayout)
 {
     if (pipelineLayout != VK_NULL_HANDLE)
     {
@@ -228,7 +228,7 @@ void OBJModel::Draw(VkCommandBuffer cmdBuffer, VkPipelineLayout pipelineLayout)
     //meaning: m_meshes.size() == 1, primitives.size() == 1
     for (auto& mesh : m_meshes) 
     {
-        for (auto& primitive : mesh->primitives) 
+        for (auto& primitive : mesh->m_primitives)
         {
             vkCmdDrawIndexed(cmdBuffer, primitive.indexCount, 1, primitive.firstIndex, primitive.firstVertex, 0);
         }

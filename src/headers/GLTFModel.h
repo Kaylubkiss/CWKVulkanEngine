@@ -6,10 +6,13 @@ class GLTFModel : public IModel
 {
 public:
 	GLTFModel() = default;
-	~GLTFModel() = default;
+	GLTFModel( vk::Device* device, const std::filesystem::path& filePath );
+	~GLTFModel() override = default;
 	void LoadObject( vk::Device* device );
-	virtual void UpdateModelTransform(const glm::mat4& newModelMatrix) { }; //no physics for GLTF yet.
-	void Draw( VkCommandBuffer cmdBuffer, VkPipelineLayout pipelineLayout );
+	[[nodiscard]] glm::vec3 GetMinPoint() const override{return glm::vec3(0);};
+	[[nodiscard]] glm::vec3 GetMaxPoint() const override {return glm::vec3(0);};
+	void UpdateModelTransform( const glm::mat4& newModelMatrix ) override { }; //no physics for GLTF yet.
+	void Draw( VkCommandBuffer cmdBuffer, VkPipelineLayout pipelineLayout ) override;
 private:
 	void LoadGLTF();
 	//helpers

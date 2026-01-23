@@ -30,8 +30,7 @@ namespace vk
 		//_Application->RequestExit();
 		//return;
 
-		FillOutGraphicsContextInfo();
-
+		DeferredContext::FillOutGraphicsContextInfo();
 	}
 
 	DeferredContext::~DeferredContext()

@@ -1,7 +1,5 @@
 #include "Controller.h"
-#include "vkFreddyHeadContext.h"
-#include "vkShadowMapContext.h"
-#include "vkDeferredShadingContext.h"
+#include "vulkan-scenes/vkDeferredShadingContext.h"
 
 //NOTE: to remove pesky warnings from visual studio, on dynamically allocated arrays,
 //I've used the syntax: *(array + i) to access the array instead of array[i].
