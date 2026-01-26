@@ -1,7 +1,7 @@
 #pragma once
 
 #include "IModel.h"
-
+#include "TextureManager.h"
 #define OBJECT_PATH "External/objects/"
 
 struct ObjectCreateInfo
@@ -15,25 +15,21 @@ struct ObjectCreateInfo
 	vk::Device* devicePtr = nullptr;
 };
 
-class Object
+class Object final
 {	
 public:
 	//Constructors
 	Object() = default;
-	explicit Object( const ObjectCreateInfo& objectCI );
+	explicit Object( const ObjectCreateInfo& objectCI, TextureManager& textureManager );
 	//Destructors
-	~Object() = default;	
-	//Accessors
-	[[nodiscard]] uint32_t TextureIndex() const;
+	~Object() = default;
 	//Mutators
-	void UpdateTextureDescriptorOffset(uint32_t offset);
-	void Update(const float& interpFactor);
+	void Update( const float& interpFactor );
 	void InitPhysics();
-	void Draw(VkCommandBuffer cmdBuffer, VkPipelineLayout pipelineLayout = VK_NULL_HANDLE) const;
+	void Draw( const vk::DrawInfo& drawInfo ) const;
 private:
 	std::unique_ptr<IModel> m_model;
 	PhysicsComponent m_physicsComponent;
-	uint32_t m_textureIndex = 0;
 };
 
 

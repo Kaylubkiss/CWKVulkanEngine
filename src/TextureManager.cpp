@@ -3,211 +3,185 @@
 #include "vkInit.h"
 #include "ApplicationGlobal.h"
 
-namespace vk 
+
+TextureManager::TextureManager( vk::GraphicsContextInfo contextInfo )
 {
-	
-	TextureManager::TextureManager( GraphicsContextInfo contextInfo )
+	assert(contextInfo.devicePtr != nullptr);
+	assert(contextInfo.contextTextureDescriptorPtr != nullptr);
+	graphicsContextInfo = contextInfo;
+}
+
+bool TextureManager::AddTexture( vk::GraphicsContextInfo& graphicsContextInfo, const std::string& fileName )
+{
+	auto* devicePtr = graphicsContextInfo.devicePtr;
+	std::shared_ptr<vk::Texture> newTexture = std::make_shared<vk::Texture>(devicePtr, fileName);
+
+	if (newTexture->mImage != VK_NULL_HANDLE)
 	{
-		assert(contextInfo.devicePtr != nullptr);
-		assert(contextInfo.contextTextureDescriptorPtr != nullptr);
-		graphicsContextInfo = contextInfo;
+		m_textures[fileName].handle = std::move(newTexture);
+		m_textures[fileName].index = m_textures.size()-1;
+
+		m_pendingTextures.push_back(m_textures[fileName]); //sync with this later.
+		return true;
 	}
 
-	bool TextureManager::AddTexture( GraphicsContextInfo& graphicsContextInfo, const std::string& fileName )
-	{
-		auto* devicePtr = graphicsContextInfo.devicePtr;
-		std::shared_ptr<Texture> newTexture = std::make_shared<Texture>(devicePtr, fileName);
+	return false;
+}
 
-		if (newTexture->mImage != VK_NULL_HANDLE) 
+void TextureManager::FinishTextureLayoutTransition()
+{
+	if (!m_pendingTextures.empty())
+	{
+		vk::Device* devicePtr = graphicsContextInfo.devicePtr;
+
+		VkCommandPool graphicsCmdPool =
+			vk::init::CommandPool(devicePtr->logical, VK_COMMAND_POOL_CREATE_TRANSIENT_BIT,
+				devicePtr->graphicsQueue.family);
+
+		VkCommandBuffer graphicsCmd = vk::beginSingleTimeCommand(devicePtr->logical, graphicsCmdPool);
+
+		std::vector<VkSemaphore> waitSemaphores;
+		for (auto& t : m_pendingTextures)
 		{
-			m_textures[fileName].handle = std::move(newTexture);
-			m_textures[fileName].index = m_textures.size();
+			VkImageMemoryBarrier acquireBarrier = {};
+			acquireBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+			acquireBarrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+			acquireBarrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
-			m_pendingTextures.push_back(m_textures[fileName]); //sync with this later.
-			return true;
+			acquireBarrier.srcQueueFamilyIndex = devicePtr->transferQueue.family;
+			acquireBarrier.dstQueueFamilyIndex = devicePtr->graphicsQueue.family;
+
+			vk::Texture* curr_texture = t.handle.get();
+			acquireBarrier.image = curr_texture->mImage;
+			acquireBarrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+			acquireBarrier.subresourceRange.baseMipLevel = 0;
+			acquireBarrier.subresourceRange.levelCount = 1;
+			acquireBarrier.subresourceRange.baseArrayLayer = 0;
+			acquireBarrier.subresourceRange.layerCount = 1;
+
+			acquireBarrier.srcAccessMask = 0;
+			acquireBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+
+			vkCmdPipelineBarrier(
+				graphicsCmd,
+				VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+				VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+				0, 0, nullptr, 0, nullptr, 1, &acquireBarrier
+			);
+
+			waitSemaphores.push_back(curr_texture->mTransferCompleteSemaphore);
 		}
 
-		return false;
-	}
+		VK_CHECK_RESULT(vkEndCommandBuffer(graphicsCmd));
 
-	void TextureManager::FinishTextureLayoutTransition() 
-	{
-		if (!m_pendingTextures.empty()) 
+		VkSubmitInfo submitInfo = {};
+		submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+		submitInfo.commandBufferCount = 1;
+		submitInfo.pCommandBuffers = &graphicsCmd;
+
+		submitInfo.pWaitSemaphores = waitSemaphores.data();
+		submitInfo.waitSemaphoreCount = waitSemaphores.size();
+
+		VkPipelineStageFlags waitStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+		submitInfo.pWaitDstStageMask = &waitStage;
+
+		VK_CHECK_RESULT(vkQueueSubmit(devicePtr->graphicsQueue.handle, 1, &submitInfo, VK_NULL_HANDLE));
+		VK_CHECK_RESULT(vkQueueWaitIdle(devicePtr->graphicsQueue.handle));
+
+		vkFreeCommandBuffers(devicePtr->logical, graphicsCmdPool, 1, &graphicsCmd);
+		vkDestroyCommandPool(devicePtr->logical, graphicsCmdPool, nullptr);
+
+		for (auto& t : m_pendingTextures)
 		{
-			vk::Device* devicePtr = graphicsContextInfo.devicePtr;
+			vk::Texture* curr_texture = t.handle.get();
 
-			VkCommandPool graphicsCmdPool =
-				vk::init::CommandPool(devicePtr->logical, VK_COMMAND_POOL_CREATE_TRANSIENT_BIT,
-					devicePtr->graphicsQueue.family);
+			curr_texture->mImageView = vk::Texture::CreateImageView(devicePtr->logical, curr_texture->mImage, 1);
+			curr_texture->mSampler = vk::Texture::CreateSampler(devicePtr->physical, devicePtr->logical, 1);
 
-			VkCommandBuffer graphicsCmd = beginSingleTimeCommand(devicePtr->logical, graphicsCmdPool);
+			curr_texture->descriptor = {
+				curr_texture->mSampler,
+				curr_texture->mImageView,
+				VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+			};
 
-			std::vector<VkSemaphore> waitSemaphores;
-			for (auto& t : m_pendingTextures)
+			auto& UI = graphicsContextInfo.contextUIPtr;
+			if (UI)
 			{
-				VkImageMemoryBarrier acquireBarrier = {};
-				acquireBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-				acquireBarrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-				acquireBarrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-
-				acquireBarrier.srcQueueFamilyIndex = devicePtr->transferQueue.family;
-				acquireBarrier.dstQueueFamilyIndex = devicePtr->graphicsQueue.family;
-
-				Texture* curr_texture = t.handle.get();
-				acquireBarrier.image = curr_texture->mImage;
-				acquireBarrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-				acquireBarrier.subresourceRange.baseMipLevel = 0;
-				acquireBarrier.subresourceRange.levelCount = 1;
-				acquireBarrier.subresourceRange.baseArrayLayer = 0;
-				acquireBarrier.subresourceRange.layerCount = 1;
-
-				acquireBarrier.srcAccessMask = 0;
-				acquireBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-
-				vkCmdPipelineBarrier(
-					graphicsCmd,
-					VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
-					VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
-					0, 0, nullptr, 0, nullptr, 1, &acquireBarrier
-				);
-
-				waitSemaphores.push_back(curr_texture->mTransferCompleteSemaphore);
+				UI->AddImage(*curr_texture);
 			}
 
-			VK_CHECK_RESULT(vkEndCommandBuffer(graphicsCmd));
+			VkDeviceSize textureBindingSize =
+				graphicsContextInfo.contextTextureDescriptorPtr->size;
 
-			VkSubmitInfo submitInfo = {};
-			submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-			submitInfo.commandBufferCount = 1;
-			submitInfo.pCommandBuffers = &graphicsCmd;
+			VkDeviceSize combinedImageSamplerSize =
+				graphicsContextInfo.devicePtr->DescriptorBufferProperties().combinedImageSamplerDescriptorSize;
 
-			submitInfo.pWaitSemaphores = waitSemaphores.data();
-			submitInfo.waitSemaphoreCount = waitSemaphores.size();
+			VkDeviceSize bindingOffset =
+				graphicsContextInfo.contextTextureDescriptorPtr->binding_offsets.front();
 
-			VkPipelineStageFlags waitStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
-			submitInfo.pWaitDstStageMask = &waitStage;
+			VkDescriptorGetInfoEXT imageDescriptorInfo = { VK_STRUCTURE_TYPE_DESCRIPTOR_GET_INFO_EXT };
+			imageDescriptorInfo.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+			imageDescriptorInfo.data.pCombinedImageSampler = &curr_texture->descriptor;
 
-			VK_CHECK_RESULT(vkQueueSubmit(devicePtr->graphicsQueue.handle, 1, &submitInfo, VK_NULL_HANDLE));
-			VK_CHECK_RESULT(vkQueueWaitIdle(devicePtr->graphicsQueue.handle));
+			char* imageBindingDescriptorPtr =
+				(char*)(graphicsContextInfo.contextTextureDescriptorPtr->buffers.front().GetMappedMemory());
 
-			vkFreeCommandBuffers(devicePtr->logical, graphicsCmdPool, 1, &graphicsCmd);
-			vkDestroyCommandPool(devicePtr->logical, graphicsCmdPool, nullptr);
-
-			for (auto& t : m_pendingTextures) 
-			{
-				Texture* curr_texture = t.handle.get();
-
-				curr_texture->mImageView = Texture::CreateImageView(devicePtr->logical, curr_texture->mImage, 1);
-				curr_texture->mSampler = Texture::CreateSampler(devicePtr->physical, devicePtr->logical, 1);
-
-				curr_texture->descriptor = {
-					curr_texture->mSampler,
-					curr_texture->mImageView,
-					VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
-				};
-
-				UserInterface* UI = graphicsContextInfo.contextUIPtr;
-				if (UI)
-				{
-					UI->AddImage(*curr_texture);
-				}
-
-				VkDeviceSize textureBindingSize =
-					graphicsContextInfo.contextTextureDescriptorPtr->size;
-
-				VkDeviceSize combinedImageSamplerSize =
-					graphicsContextInfo.devicePtr->DescriptorBufferProperties().combinedImageSamplerDescriptorSize;
-
-				VkDeviceSize bindingOffset =
-					graphicsContextInfo.contextTextureDescriptorPtr->binding_offsets.front();
-
-				VkDescriptorGetInfoEXT imageDescriptorInfo = { VK_STRUCTURE_TYPE_DESCRIPTOR_GET_INFO_EXT };
-				imageDescriptorInfo.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-				imageDescriptorInfo.data.pCombinedImageSampler = &curr_texture->descriptor;
-
-				char* imageBindingDescriptorPtr =
-					(char*)(graphicsContextInfo.contextTextureDescriptorPtr->buffers.front().GetMappedMemory());
-
-				g_vkGetDescriptorEXT(graphicsContextInfo.devicePtr->logical, &imageDescriptorInfo, combinedImageSamplerSize,
-					imageBindingDescriptorPtr + t.index * textureBindingSize + bindingOffset);
-			}
-
-			m_pendingTextures.clear();
+			g_vkGetDescriptorEXT(graphicsContextInfo.devicePtr->logical, &imageDescriptorInfo, combinedImageSamplerSize,
+				imageBindingDescriptorPtr + t.index * textureBindingSize + bindingOffset);
 		}
+
+		m_pendingTextures.clear();
+	}
+}
+
+VkDescriptorImageInfo TextureManager::GetTextureDescriptorInfo(const char* fileName)
+{
+	if (m_textures.count(fileName))
+	{
+		return m_textures[fileName].handle->descriptor;
 	}
 
-	VkDescriptorImageInfo TextureManager::GetTextureDescriptorInfo(const char* fileName)
+	std::cerr << "could not find specified texture!\n";
+	std::cerr << "GetTextureDescriptorInfo() Failed.\n";
+	return {};
+
+}
+
+VkDescriptorImageInfo TextureManager::GetTextureDescriptorInfo(uint32_t index)
+{
+
+	for (auto& t : m_textures)
 	{
-		if (m_textures.count(fileName))
+		TextureInfo& texture = t.second;
+		if (texture.index == 0)
 		{
-			return m_textures[fileName].handle->descriptor;
+			return texture.handle.get()->descriptor;
 		}
-
-		std::cerr << "could not find specified texture!\n";
-		std::cerr << "GetTextureDescriptorInfo() Failed.\n";
-		return {};
-
 	}
 
-	VkDescriptorImageInfo TextureManager::GetTextureDescriptorInfo(uint32_t index) 
-	{
+	std::cerr << "could not find specified texture!\n";
+	std::cerr << "GetTextureDescriptorInfo() Failed.\n";
 
-		for (auto& t : m_textures)
+	return {};
+}
+
+void TextureManager::BindTextureToModelPrimitive(const std::string& fileName, Primitive& primitive)
+{
+	if (fileName != "")
+	{
+		if (m_textures.count(fileName) == 0)
 		{
-			TextureInfo& texture = t.second;
-			if (texture.index == 0) 
+			if (AddTexture(graphicsContextInfo, fileName) == false)
 			{
-				return texture.handle.get()->descriptor;
+				std::cerr << "Could not load " << fileName << '\n';
+				std::cerr << "BindTextureToObject() failed\n";
+				return;
 			}
+
+			//need to sync the I/O to finish the image layout transition.
 		}
 
-		std::cerr << "could not find specified texture!\n";
-		std::cerr << "GetTextureDescriptorInfo() Failed.\n";
-		
-		return {};
-	}
-
-	void TextureManager::BindTextureToObject(const std::string& fileName, Object& obj)
-	{
-		if (fileName != "")
-		{			
-			if (m_textures.count(fileName) == 0)
-			{
-				if (AddTexture(graphicsContextInfo, fileName) == false)
-				{
-					std::cerr << "Could not load " << fileName << '\n';
-					std::cerr << "BindTextureToObject() failed\n";
-					return;
-				}	
-
-				//need to sync the I/O to finish the image layout transition.
-			}
-			else 
-			{
-				//NOTE: this assumes that there is only one binding for the textures.
-				VkDeviceSize textureBindingSize =
-					graphicsContextInfo.contextTextureDescriptorPtr->size;
-
-				VkDeviceSize combinedImageSamplerSize =
-					graphicsContextInfo.devicePtr->DescriptorBufferProperties().combinedImageSamplerDescriptorSize;
-
-				VkDeviceSize bindingOffset =
-					graphicsContextInfo.contextTextureDescriptorPtr->binding_offsets.front();
-
-				VkDescriptorGetInfoEXT imageDescriptorInfo = { VK_STRUCTURE_TYPE_DESCRIPTOR_GET_INFO_EXT };
-				imageDescriptorInfo.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-				imageDescriptorInfo.data.pCombinedImageSampler = &m_textures[fileName].handle->descriptor;
-
-				char* imageBindingDescriptorPtr =
-					(char*)(graphicsContextInfo.contextTextureDescriptorPtr->buffers.front().GetMappedMemory());
-
-				g_vkGetDescriptorEXT(graphicsContextInfo.devicePtr->logical, &imageDescriptorInfo, combinedImageSamplerSize,
-					imageBindingDescriptorPtr + m_textures[fileName].index * textureBindingSize + bindingOffset);
-			}
-
-			obj.UpdateTextureDescriptorOffset(m_textures[fileName].index);
-		}
-
+		primitive.textureIndex = m_textures[fileName].index;
 	}
 
 }

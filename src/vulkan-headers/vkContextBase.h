@@ -8,10 +8,6 @@
 
 namespace vk
 {
-
-	/* NOTE: JANK FORWARD DECLARATION, BECAUSE OF A DOUBLE INCLUDE PROBABLY */
-	class ObjectManager;
-
 	class ContextBase
 	{
 		
@@ -93,7 +89,7 @@ namespace vk
 
 		float FOV = 45.f;
 		Camera mCamera;
-		vk::UserInterface UIOverlay;
+		UserInterface UIOverlay;
 
 
 

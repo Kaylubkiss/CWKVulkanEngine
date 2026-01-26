@@ -12,7 +12,8 @@
 //ShaderModuleInfo 
 namespace vk 
 {
-	ShaderModuleInfo::ShaderModuleInfo(const VkDevice l_device, std::string filename, VkShaderStageFlagBits shaderFlags, shaderc_shader_kind shaderc_kind) : mFlags(shaderFlags), mShaderKind(shaderc_kind)
+	ShaderModuleInfo::ShaderModuleInfo(const VkDevice l_device, std::string filename,
+		VkShaderStageFlagBits shaderFlags, shaderc_shader_kind shaderc_kind) : mFlags(shaderFlags), mShaderKind(shaderc_kind)
 	{
 
 		std::string shaderPath = vk::util::ReadSourceAndWriteToSprv(SHADER_PATH + filename, shaderc_kind);

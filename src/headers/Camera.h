@@ -3,18 +3,17 @@
 using namespace reactphysics3d;
 
 
+
 struct Capsule 
 {
 	float mRadius;
 	float mHeight;
 };
 
-class Camera 
+class Camera final
 {
-
 	public:
 		bool isUpdate = false;
-
 	private:
 		
 		glm::vec3 mEye;
@@ -34,9 +33,9 @@ class Camera
 	public:
 		Camera() : mEye(0.f), mUpVector(0.f) {}
 	
-		Camera(const glm::vec3& eye, const glm::vec3& lookDirection, const	glm::vec3& up);
+		Camera( const glm::vec3& eye, const glm::vec3& lookDirection, const	glm::vec3& up );
 
-		void Update(const float& dt);
+		void Update( const float& dt );
 		void MoveLeft();
 		void MoveRight();
 		void MoveBack();

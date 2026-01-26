@@ -5,7 +5,7 @@
 #include "vkDevice.h"
 #include "vkTexture.h"
 
-const uint32_t gMaxFramesInFlight = 3;
+constexpr uint32_t gMaxFramesInFlight = 3;
 
 //these don't need to be tied to the vulkan API!!!
 struct uTransformObject
@@ -26,11 +26,35 @@ struct uLightObject
 
 };
 
+struct Primitive
+{
+	uint32_t firstIndex = 0;
+	uint32_t indexCount = 0;
+
+	uint32_t firstVertex = 0;
+	uint32_t vertexCount = 0;
+
+	std::optional<uint32_t> textureIndex = std::nullopt;
+};
+
+struct Mesh
+{
+	std::string m_name;
+	std::vector<Primitive> m_primitives;
+	Mesh() = default;
+	Mesh(const std::string& name, const std::vector<Primitive>& primitives)
+	{
+		m_name = name;
+		m_primitives = primitives;
+	}
+};
+
+class UserInterface;
+
 namespace vk
 {
 	class Buffer;
 	class Device;
-	class UserInterface;
 
 	struct DescriptorBufferData //240 BYTES!!!
 	{
@@ -60,14 +84,28 @@ namespace vk
 	struct GraphicsContextInfo
 	{
 		vk::Device* devicePtr = nullptr;
-		vk::UserInterface* contextUIPtr = nullptr;
+		UserInterface* contextUIPtr = nullptr;
 		DescriptorBufferData* contextTextureDescriptorPtr = nullptr;
+	};
+
+	//This allows the user to pass in relevant arguments to draw an object.
+	struct DrawInfo
+	{
+		VkCommandBuffer cmdBuffer = VK_NULL_HANDLE;
+		VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
+		VkDeviceSize bufferOffset = 0; //just in case I ever decide to make a more compact buffer.
+		VkDeviceSize textureBindingSize = 0; //used for buffer offset calculation
+		uint32_t imageBufferIndex = 0;
+		uint32_t firstSet = 0;
+		uint32_t setCount = 1; //it would make sense that there is at least 1 set being described.
+		bool sampleTexture = false;
 	};
 
 
 	VkCommandBuffer beginSingleTimeCommand(const VkDevice l_device, const VkCommandPool cmdPool);
 
-	void endSingleTimeCommand(const VkDevice l_device, VkCommandBuffer commandBuffer, const VkCommandPool cmdPool, const VkQueue gfxQueue);
+	void endSingleTimeCommand(const VkDevice l_device, VkCommandBuffer commandBuffer,
+		const VkCommandPool cmdPool, const VkQueue gfxQueue);
 }
 
 

@@ -27,7 +27,6 @@ namespace vk
 		struct Light
 		{
 			float shininess = 0.f; /* exponent value */
-			float _pad0[3];
 			glm::vec3 pos = glm::vec3(0.f); /* position of light */
 			glm::vec3 ambient = glm::vec3(0.f); /* scene color */
 			glm::vec3 albedo = glm::vec3(0.f); /* base color of light */
@@ -47,7 +46,8 @@ namespace vk
 
 		struct UniformDataDeferredShadow 
 		{
-			std::array<glm::mat4, LIGHT_COUNT> viewMatrices; //yikes, gonna have to copy each of these 16 floats from lights...
+			//yikes, gonna have to copy each of these 16 floats from lights...
+			std::array<glm::mat4, LIGHT_COUNT> viewMatrices;
 		} uniformDataDeferredShadow{};
 
 		struct UniformBuffers
@@ -88,30 +88,31 @@ namespace vk
 
 	public:
 		DeferredContext();
-		~DeferredContext();
+		~DeferredContext() override;
 
-		virtual void RecordCommandBuffers() override;
-		virtual void UpdateUI() override;
-		virtual void InitializeScene(ObjectManager* objManager) override;
-		virtual void ResizeWindowDerived() override;
-		virtual void Render() override;
+		void RecordCommandBuffers() override;
+		void UpdateUI() override;
+		void InitializeScene( ObjectManager* objManager ) override;
+		void ResizeWindowDerived() override;
+		void Render() override;
 
 	protected:
-		virtual void InitializePipeline(std::string vsFile = "", std::string fsFile = "") override;
-		virtual void InitializeDescriptors() override;
-		virtual void FillOutGraphicsContextInfo() override;
+		void InitializePipeline( std::string vsFile = "", std::string fsFile = "" ) override;
+		void InitializeDescriptors() override;
+		void FillOutGraphicsContextInfo() override;
 	
 
 
 	private:
-		void IntializeDeferredFramebuffer();
+		void InitializeDeferredFramebuffer();
 		void InitializeDeferredShadowFramebuffer();
 		void InitializeUniforms();
 		void InitializeDescriptorBuffers();
 		void InitializeDescriptorLayouts();
 		void UpdateScreenUniforms();
 		void UpdateLights();
-		void DrawObjectsWithTexture(VkCommandBuffer cmdBuffer, VkPipelineLayout pipelineLayout, ObjectManager& objManager);
+		void DrawObjectsWithTexture( VkCommandBuffer cmdBuffer, VkPipelineLayout pipelineLayout,
+			ObjectManager& objManager );
 
 	};
 

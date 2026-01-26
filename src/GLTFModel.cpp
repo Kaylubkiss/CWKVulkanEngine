@@ -7,7 +7,7 @@
 
 #define GLTF_OBJECT_PATH "External/objects/gltf/"
 
-GLTFModel::GLTFModel( vk::Device* device, const std::filesystem::path& filePath ) 
+GLTFModel::GLTFModel( vk::Device* device, const std::filesystem::path& filePath )
 {
 	fastgltf::Options gltfOptions =
 		fastgltf::Options::DontRequireValidAssetMember |
@@ -31,19 +31,12 @@ GLTFModel::GLTFModel( vk::Device* device, const std::filesystem::path& filePath 
 	m_asset = std::move(asset.get());
 
 	std::cout << "successfully loaded " << filePath.string() << std::endl;
-}
-
-void GLTFModel::LoadObject( vk::Device* device )
-{
-	assert(device != nullptr);
-
-	LoadGLTF();
 
 	std::vector<Vertex> vertices;
 	std::vector<uint16_t> indices;
 
-	for (auto& mesh : m_asset.meshes) {
-
+	for (auto& mesh : m_asset.meshes)
+	{
 		LoadMesh(mesh, vertices, indices);
 	}
 
@@ -85,10 +78,12 @@ void GLTFModel::LoadObject( vk::Device* device )
 	VkBufferCopy copyRegion = {};
 
 	copyRegion.size = vertexBufferSize;
-	vkCmdCopyBuffer(copyCmd, vertexStagingBuffer.GetHandle(), m_vertexBuffer.GetHandle(), 1, &copyRegion);
+	vkCmdCopyBuffer(copyCmd, vertexStagingBuffer.GetHandle(),
+		m_vertexBuffer.GetHandle(), 1, &copyRegion);
 
 	copyRegion.size = indexBufferSize;
-	vkCmdCopyBuffer(copyCmd, indexStagingBuffer.GetHandle(), m_indexBuffer.GetHandle(), 1, &copyRegion);
+	vkCmdCopyBuffer(copyCmd, indexStagingBuffer.GetHandle(),
+		m_indexBuffer.GetHandle(), 1, &copyRegion);
 
 	device->FlushCommandBuffer(copyCmd, device->graphicsQueue.handle, device->commandPool, true);
 
@@ -96,19 +91,18 @@ void GLTFModel::LoadObject( vk::Device* device )
 	indexStagingBuffer.Destroy();
 }
 
-void GLTFModel::Draw(VkCommandBuffer cmdBuffer, VkPipelineLayout pipelineLayout)
+void GLTFModel::Draw( const vk::DrawInfo& drawInfo )
 {
-	size_t sceneIndex = m_asset.defaultScene.value_or(0);
+	const size_t sceneIndex = m_asset.defaultScene.value_or(0);
 
-	const VkDeviceSize offsets[1] = { 0 };
+	constexpr VkDeviceSize offsets[1] = { 0 };
 
 	VkBuffer vertexBuffer = m_vertexBuffer.GetHandle();
 	VkBuffer indexBuffer  = m_indexBuffer.GetHandle();
 
-	vkCmdBindVertexBuffers(cmdBuffer, 0, 1, &vertexBuffer, offsets);
+	vkCmdBindVertexBuffers(drawInfo.cmdBuffer, 0, 1, &vertexBuffer, offsets);
 	//TODO: assuming unsigned short for now, will have to change the way primitives perceive this.
-	vkCmdBindIndexBuffer(cmdBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT16);
-
+	vkCmdBindIndexBuffer(drawInfo.cmdBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT16);
 	if (!m_asset.scenes.empty())
 	{
 		fastgltf::iterateSceneNodes(m_asset, sceneIndex, fastgltf::math::fmat4x4(),
@@ -118,16 +112,24 @@ void GLTFModel::Draw(VkCommandBuffer cmdBuffer, VkPipelineLayout pipelineLayout)
 				{
 					auto mesh = m_meshes[node.meshIndex.value()];
 
-					if (pipelineLayout != VK_NULL_HANDLE)
+					if (drawInfo.pipelineLayout != VK_NULL_HANDLE)
 					{
-						vkCmdPushConstants(cmdBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0,
+						vkCmdPushConstants(drawInfo.cmdBuffer, drawInfo.pipelineLayout,
+							VK_SHADER_STAGE_VERTEX_BIT, 0,
 							sizeof(matrix), matrix.data());
 					}
 
+
 					for (auto& primitive : mesh->m_primitives)
 					{
-						//TODO: support textures..
-						vkCmdDrawIndexed(cmdBuffer, primitive.indexCount, 1, primitive.firstIndex, primitive.firstVertex, 0);
+						VkDeviceSize descriptorBufferOffset = primitive.textureIndex.value() * drawInfo.textureBindingSize;
+
+						g_vkCmdSetDescriptorBufferOffsetsEXT(drawInfo.cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
+							drawInfo.pipelineLayout, drawInfo.firstSet, drawInfo.setCount,
+							&drawInfo.imageBufferIndex, &descriptorBufferOffset);
+
+						vkCmdDrawIndexed(drawInfo.cmdBuffer, primitive.indexCount, 1,
+							primitive.firstIndex, static_cast<int32_t>(primitive.firstVertex), 0);
 					}
 				}
 
@@ -135,44 +137,8 @@ void GLTFModel::Draw(VkCommandBuffer cmdBuffer, VkPipelineLayout pipelineLayout)
 	}
 }
 
-void GLTFModel::LoadGLTF()
-{
-	std::filesystem::path path = OBJECT_PATH + std::string("gltf/AnimatedCube.gltf");
-
-	fastgltf::Parser parser;
-
-	fastgltf::Expected<fastgltf::Asset> asset(fastgltf::Error::None);
-
-	if (!std::filesystem::exists(path))
-	{
-		std::cout << path << " does not exist\n";
-		throw std::runtime_error("LoadObject() failed");
-	}
-
-	fastgltf::Options gltfOptions =
-		fastgltf::Options::DontRequireValidAssetMember |
-		fastgltf::Options::AllowDouble |
-		fastgltf::Options::GenerateMeshIndices |
-		fastgltf::Options::LoadExternalBuffers;
-
-	fastgltf::GltfFileStream data(path);
-
-	asset = parser.loadGltf(data, path.parent_path(), gltfOptions);
-
-	if (asset.error() != fastgltf::Error::None)
-	{
-		std::cerr << "Couldn't load in specified data\n";
-		throw std::runtime_error("LoadObject() failed");
-	}
-
-	m_asset = std::move(asset.get());
-
-	std::cout << "successfully loaded " << path << std::endl;
-
-}
-
-void GLTFModel::LoadMesh(fastgltf::Mesh& mesh, std::vector<Vertex>& vertexBuffer,
-	std::vector<uint16_t>& indexBuffer)
+void GLTFModel::LoadMesh( fastgltf::Mesh& mesh, std::vector<Vertex>& vertexBuffer,
+	std::vector<uint16_t>& indexBuffer )
 {
 	std::shared_ptr<Mesh> newMesh = std::make_shared<Mesh>();
 
@@ -181,9 +147,9 @@ void GLTFModel::LoadMesh(fastgltf::Mesh& mesh, std::vector<Vertex>& vertexBuffer
 	for (auto& primitive : mesh.primitives)
 	{
 		Primitive newPrim = {};
-		newPrim.firstIndex = static_cast<uint32_t>(indexBuffer.size());
+		newPrim.firstIndex  = static_cast<uint32_t>(indexBuffer.size());
 		newPrim.firstVertex = static_cast<uint32_t>(vertexBuffer.size());
-		newPrim.indexCount = 0;
+		newPrim.indexCount  = 0;
 		newPrim.vertexCount = 0;
 
 		//vertex
@@ -204,7 +170,7 @@ void GLTFModel::LoadMesh(fastgltf::Mesh& mesh, std::vector<Vertex>& vertexBuffer
 					{
 						vertexBuffer[newPrim.firstVertex + idx].pos = glm::make_vec3(pos.data());
 						vertexBuffer[newPrim.firstVertex + idx].nrm = glm::vec3(0);
-						vertexBuffer[newPrim.firstVertex + idx].uv = glm::vec2(0);
+						vertexBuffer[newPrim.firstVertex + idx].uv  = glm::vec2(0);
 					});
 			}
 			else
@@ -279,14 +245,12 @@ void GLTFModel::LoadMesh(fastgltf::Mesh& mesh, std::vector<Vertex>& vertexBuffer
 	m_meshes.push_back(newMesh);
 }
 
-void GLTFModel::LoadImage(vk::Device* devicePtr, fastgltf::Image& image)
+void GLTFModel::LoadImage( vk::Device* devicePtr, fastgltf::Image& image )
 {
 	std::visit(fastgltf::visitor{
 		[](auto& arg) {},
-		[&](fastgltf::sources::URI& filePath) {
+		[&](const fastgltf::sources::URI& filePath) {
 			assert(filePath.fileByteOffset == 0);
-
-			m_textures.push_back(std::make_shared<vk::Texture>(devicePtr, std::string(filePath.uri.c_str())));
 		},
 		}, image.data);
 

@@ -16,8 +16,10 @@ namespace vk
 		Texture( vk::Device* devicePtr, const std::string& fileName );
 		~Texture();
 
-		static VkImageView CreateImageView(const VkDevice l_device, const VkImage& textureImage, uint32_t mipLevels);
-		static VkSampler CreateSampler(const VkPhysicalDevice p_device, const VkDevice l_device, uint32_t mipLevels);
+		static VkImageView CreateImageView( const VkDevice l_device,
+			const VkImage& textureImage, uint32_t mipLevels );
+		static VkSampler CreateSampler( const VkPhysicalDevice p_device,
+			const VkDevice l_device, uint32_t mipLevels );
 		
 		//member variables
 		VkDevice cLogicalDevice = VK_NULL_HANDLE;

@@ -12,7 +12,7 @@ project(${PROJECT_NAME} LANGUAGES CXX C)
 #------------------SOURCES----------------------
 set(SOURCE_FILES 
 src/Application.cpp 
-src/Camera.cpp 
+src/Camera.cpp
 src/Common.cpp
 src/Main.cpp
 src/Object.cpp
@@ -56,13 +56,15 @@ list(APPEND SOURCE_FILES ${VULKAN_ENGINE_SRC})
 source_group("Source Files/VulkanSources/Scenes" FILES ${VULKAN_ENGINE_SCENES_SOURCE})
 list(APPEND SOURCE_FILES ${VULKAN_ENGINE_SCENES_SOURCE})	
 
-set(IM_GUI_FILES src/external/libraries/imgui/imgui_demo.cpp
-                 src/external/libraries/imgui/imgui_draw.cpp
-                 src/external/libraries/imgui/imgui_tables.cpp
-                 src/external/libraries/imgui/imgui_widgets.cpp
-                 src/external/libraries/imgui/imgui.cpp
-                 src/external/libraries/imgui/backends/imgui_impl_sdl2.cpp
-                 src/external/libraries/imgui/backends/imgui_impl_vulkan.cpp)
+set(IM_GUI_FILES
+src/external/libraries/imgui/imgui_demo.cpp
+src/external/libraries/imgui/imgui_draw.cpp
+src/external/libraries/imgui/imgui_tables.cpp
+src/external/libraries/imgui/imgui_widgets.cpp
+src/external/libraries/imgui/imgui.cpp
+src/external/libraries/imgui/backends/imgui_impl_sdl2.cpp
+src/external/libraries/imgui/backends/imgui_impl_vulkan.cpp
+)
 
 source_group("Source Files/ImGui" FILES ${IM_GUI_FILES})			
 list(APPEND SOURCE_FILES ${IM_GUI_FILES})					 
@@ -83,7 +85,7 @@ ${HEADER_SRC_DIR}/ThreadPool.h
 ${HEADER_SRC_DIR}/ObjectManager.h
 ${HEADER_SRC_DIR}/TextureManager.h
 ${HEADER_SRC_DIR}/ApplicationGlobal.h
-${HEADER_SRC_DIR}/Controller.h
+${HEADER_SRC_DIR}/CameraController.h
 ${HEADER_SRC_DIR}/SpirvHelper.h
 ${HEADER_SRC_DIR}/UserInterface.h
 ${HEADER_SRC_DIR}/GLTFModel.h
@@ -192,7 +194,7 @@ if (WIN32)
 	
 	target_link_libraries(${PROJECT_NAME} debug reactphysics3dd.lib general reactphysics3d.lib)
 	target_link_libraries(${PROJECT_NAME} debug shaderc_combinedd.lib general shaderc_combined.lib)
-	#target_link_options(${PROJECT_NAME} PRIVATE "/ignore:4099") #reactphysics, SDL2, and shaderc_combined are missing their debug information. Just ignore it.
+	target_link_options(${PROJECT_NAME} PRIVATE "/ignore:4099") #reactphysics, SDL2, and shaderc_combined are missing their debug information. Just ignore it.
 elseif (UNIX)
 	if(TARGET SDL2::SDL2main)
 		# It has an implicit dependency on SDL2 functions, so it MUST be added before SDL2::SDL2 (or SDL2::SDL2-static)

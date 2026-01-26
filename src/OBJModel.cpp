@@ -5,7 +5,7 @@
 #define TINYOBJLOADER_IMPLEMENTATION
 #include "tiny_obj_loader.h"
 
-void OBJModel::ComputeVertexNormals(std::vector<Vertex>& vertexBuffer, std::vector<uint16_t>& indexBuffer)
+void OBJModel::ComputeVertexNormals( std::vector<Vertex>& vertexBuffer, std::vector<uint16_t>& indexBuffer )
 {
     for (int i = 0; i < vertexBuffer.size(); ++i)
     {
@@ -89,10 +89,13 @@ void OBJModel::ComputeVertices(std::vector<Vertex>& vertexBuffer, std::vector<ui
 
     m_center /= vertexBuffer.size();
 
-    float unitScale = std::max({ glm::length(max_points.x - min_points.x), glm::length(max_points.y - min_points.y), glm::length(max_points.z - min_points.z) });
+    float unitScale = std::max({ glm::length(max_points.x - min_points.x),
+        glm::length(max_points.y - min_points.y), glm::length(max_points.z - min_points.z) });
 
-    max_points = { -std::numeric_limits<float>::min(),  -std::numeric_limits<float>::min() , -std::numeric_limits<float>::min() };
-    min_points = { std::numeric_limits<float>::max(), std::numeric_limits<float>::max(), std::numeric_limits<float>::max() };
+    max_points = { -std::numeric_limits<float>::min(),
+        -std::numeric_limits<float>::min() , -std::numeric_limits<float>::min() };
+    min_points = { std::numeric_limits<float>::max(),
+        std::numeric_limits<float>::max(), std::numeric_limits<float>::max() };
 
     for (size_t i = 0; i < vertexBuffer.size(); ++i)
     {
@@ -111,11 +114,9 @@ void OBJModel::ComputeVertices(std::vector<Vertex>& vertexBuffer, std::vector<ui
     m_minLocalPoint = min_points;
 
     OBJModel::ComputeVertexNormals(vertexBuffer, indexBuffer);
-
-   
 }
 
-OBJModel::OBJModel(vk::Device* device, const std::filesystem::path& filePath)
+OBJModel::OBJModel( vk::Device* device, const std::filesystem::path& filePath )
 {
     std::vector<Vertex> vertexBuffer;
     std::vector<uint16_t> indexBuffer;
@@ -209,11 +210,12 @@ void OBJModel::UpdateModelTransform(const glm::mat4& newModelMatrix)
     m_modelTransform = newModelMatrix;
 }
 
-void OBJModel::Draw(VkCommandBuffer cmdBuffer, VkPipelineLayout pipelineLayout)
+void OBJModel::Draw( const vk::DrawInfo& drawInfo )
 {
-    if (pipelineLayout != VK_NULL_HANDLE)
+    if (drawInfo.pipelineLayout != VK_NULL_HANDLE)
     {
-        vkCmdPushConstants(cmdBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::mat4), (void*)(&m_modelTransform));
+        vkCmdPushConstants(drawInfo.cmdBuffer, drawInfo.pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT,
+            0, sizeof(glm::mat4), (void*)(&m_modelTransform));
     }
 
     VkDeviceSize offsets[1] = { 0 };
@@ -221,16 +223,45 @@ void OBJModel::Draw(VkCommandBuffer cmdBuffer, VkPipelineLayout pipelineLayout)
     VkBuffer vertexBufferHandle = m_vertexBuffer.GetHandle();
     VkBuffer indexBufferHandle = m_indexBuffer.GetHandle();
 
-    vkCmdBindVertexBuffers(cmdBuffer, 0, 1, &vertexBufferHandle, offsets);
-    vkCmdBindIndexBuffer(cmdBuffer, indexBufferHandle, 0, VK_INDEX_TYPE_UINT16);
+    vkCmdBindVertexBuffers(drawInfo.cmdBuffer, 0, 1, &vertexBufferHandle, offsets);
+    vkCmdBindIndexBuffer(drawInfo.cmdBuffer, indexBufferHandle, 0, VK_INDEX_TYPE_UINT16);
 
     // NOTE:.obj does not have any hierarchical structure
     //meaning: m_meshes.size() == 1, primitives.size() == 1
+    //this written out so that the difference between obj model and gltf get smaller overtime.
+    //ideally, Draw() would just be a generic function under IModel.
     for (auto& mesh : m_meshes) 
     {
         for (auto& primitive : mesh->m_primitives)
         {
-            vkCmdDrawIndexed(cmdBuffer, primitive.indexCount, 1, primitive.firstIndex, primitive.firstVertex, 0);
+            if (drawInfo.sampleTexture == true)
+            {
+                if (primitive.textureIndex.has_value())
+                {
+                    VkDeviceSize descriptorBufferOffset = primitive.textureIndex.value() * drawInfo.textureBindingSize;
+
+                    g_vkCmdSetDescriptorBufferOffsetsEXT(drawInfo.cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
+                        drawInfo.pipelineLayout, drawInfo.firstSet, drawInfo.setCount,
+                        &drawInfo.imageBufferIndex, &descriptorBufferOffset);
+                }
+            }
+
+            vkCmdDrawIndexed(drawInfo.cmdBuffer, primitive.indexCount, 1,
+                primitive.firstIndex, static_cast<int32_t>(primitive.firstVertex), 0);
+
+            vkCmdDrawIndexed(drawInfo.cmdBuffer, primitive.indexCount,
+                1, primitive.firstIndex, primitive.firstVertex, 0);
         }
     }
+}
+
+void OBJModel::LoadTextures( TextureManager& textureManager, const std::vector<std::string>& textureNames )
+{
+    //OBJ is assumed to only contain one primitive.
+    //Materials are not support with this implementation,
+    //this code-base will treat .obj as a primitive format for only geometry and texture data.
+    Mesh& mesh = *m_meshes.back().get();
+    Primitive& primitive = mesh.m_primitives.back();
+    textureManager.BindTextureToModelPrimitive(textureNames.back(), primitive);
+
 }

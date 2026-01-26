@@ -8,13 +8,12 @@ public:
 	GLTFModel() = default;
 	GLTFModel( vk::Device* device, const std::filesystem::path& filePath );
 	~GLTFModel() override = default;
-	void LoadObject( vk::Device* device );
-	[[nodiscard]] glm::vec3 GetMinPoint() const override{return glm::vec3(0);};
-	[[nodiscard]] glm::vec3 GetMaxPoint() const override {return glm::vec3(0);};
+	[[nodiscard]] glm::vec3 GetMinPoint() const override{ return glm::vec3(0); };
+	[[nodiscard]] glm::vec3 GetMaxPoint() const override { return glm::vec3(0); };
 	void UpdateModelTransform( const glm::mat4& newModelMatrix ) override { }; //no physics for GLTF yet.
-	void Draw( VkCommandBuffer cmdBuffer, VkPipelineLayout pipelineLayout ) override;
+	void Draw( const vk::DrawInfo& drawInfo ) override;
+	void LoadTextures( TextureManager& textureManager, const std::vector<std::string>& textureNames ) override {};
 private:
-	void LoadGLTF();
 	//helpers
 	void LoadMesh( fastgltf::Mesh& mesh, std::vector<Vertex>& vertexBuffer, std::vector<uint16_t>& indexBuffer );
 	void LoadImage( vk::Device* devicePtr, fastgltf::Image& image );

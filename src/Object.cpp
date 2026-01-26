@@ -2,18 +2,28 @@
 #include "GLTFModel.h"
 #include "OBJModel.h"
 
-Object::Object( const ObjectCreateInfo& objectCI )
+Object::Object( const ObjectCreateInfo& objectCI, TextureManager& textureManager )
 {
     assert(objectCI.devicePtr != nullptr);
     
     std::filesystem::path filePath(OBJECT_PATH + std::string(objectCI.objName));
     if (filePath.extension() == ".gltf")
     {
-        m_model = std::make_unique<GLTFModel>();
+        if (objectCI.textureFileName != nullptr)
+        {
+            std::cerr << "WARNING: .gltf will not use specified texture name in ObjectCreateInfo\n";
+        }
+
+        m_model = std::make_unique<GLTFModel>(objectCI.devicePtr, filePath);
     }
     else if (filePath.extension() == ".obj")
     {
         m_model = std::make_unique<OBJModel>(objectCI.devicePtr, filePath);
+
+        if (objectCI.textureFileName != nullptr)
+        {
+            m_model->LoadTextures(textureManager, {objectCI.textureFileName});
+        }
     }
     else
     {
@@ -73,10 +83,6 @@ void Object::InitPhysics()
     m_physicsComponent.isInitialized = true;
 }
 
-uint32_t Object::TextureIndex() const
-{
-    return this->m_textureIndex;
-}
 
 void Object::Update(const float& interpFactor)
 {
@@ -105,14 +111,9 @@ void Object::Update(const float& interpFactor)
 
 }
 
-void Object::Draw(VkCommandBuffer cmdBuffer, VkPipelineLayout pipelineLayout) const
+void Object::Draw( const vk::DrawInfo& drawInfo ) const
 {  
-    m_model->Draw(cmdBuffer, pipelineLayout);
-}
-
-void Object::UpdateTextureDescriptorOffset(uint32_t offset)
-{
-    m_textureIndex = offset;
+    m_model->Draw(drawInfo);
 }
 
 

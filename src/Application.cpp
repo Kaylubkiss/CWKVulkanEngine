@@ -1,4 +1,4 @@
-#include "Controller.h"
+#include "CameraController.h"
 #include "vulkan-scenes/vkDeferredShadingContext.h"
 
 //NOTE: to remove pesky warnings from visual studio, on dynamically allocated arrays,
@@ -16,7 +16,7 @@ vk::ContextBase* Application::Context() {
 	return m_graphicsContext.get();
 }
 
-vk::ObjectManager& Application::ObjectManager() 
+ObjectManager& Application::GetObjectManager()
 {
 	return *m_objectManager.get();
 }
@@ -40,7 +40,7 @@ void Application::init()
 	m_graphicsContext = std::make_unique<vk::DeferredContext>();
 
 	vk::GraphicsContextInfo contextInfo = m_graphicsContext.get()->GetGraphicsContextInfo();
-	m_objectManager = std::make_unique<vk::ObjectManager>(contextInfo);
+	m_objectManager = std::make_unique<ObjectManager>(contextInfo);
 	
 	m_graphicsContext->InitializeScene(m_objectManager.get());
 	

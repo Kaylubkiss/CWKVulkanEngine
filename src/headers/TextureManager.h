@@ -1,33 +1,30 @@
 #pragma once
+#include "IModel.h"
 
-namespace vk 
+class TextureManager
 {
-	class TextureManager 
-	{
-		public:
-			TextureManager() = default;
-			TextureManager( GraphicsContextInfo contextInfo );
-			~TextureManager() = default;
+	public:
+		TextureManager() = default;
+		TextureManager( vk::GraphicsContextInfo contextInfo );
+		~TextureManager() = default;
 
-			VkDescriptorImageInfo GetTextureDescriptorInfo(const char* fileName);
-			VkDescriptorImageInfo GetTextureDescriptorInfo(uint32_t index);
+		VkDescriptorImageInfo GetTextureDescriptorInfo( const char* fileName );
+		VkDescriptorImageInfo GetTextureDescriptorInfo( uint32_t index );
 
-			void BindTextureToObject(const std::string& fileName, Object& obj);
-			void FinishTextureLayoutTransition();
+		void BindTextureToModelPrimitive( const std::string& fileName, Primitive& primitive );
+		void FinishTextureLayoutTransition();
 
-		private:
-			bool AddTexture(GraphicsContextInfo& graphicsContextInfo, const std::string& fileName);
+	private:
+		bool AddTexture( vk::GraphicsContextInfo& graphicsContextInfo, const std::string& fileName );
 
-			vk::GraphicsContextInfo graphicsContextInfo = {};
+		vk::GraphicsContextInfo graphicsContextInfo = {};
 
-			struct TextureInfo 
-			{
-				std::shared_ptr<vk::Texture> handle;
-				uint32_t index = 0;
-			};
+		struct TextureInfo
+		{
+			std::shared_ptr<vk::Texture> handle;
+			uint32_t index = 0;
+		};
 
-			std::unordered_map<std::string, TextureInfo> m_textures;
-			std::vector<TextureInfo> m_pendingTextures; //textures that need to finish their layout transition.
-	};
-
-}
+		std::unordered_map<std::string, TextureInfo> m_textures;
+		std::vector<TextureInfo> m_pendingTextures; //textures that need to finish their layout transition.
+};

@@ -1,4 +1,4 @@
-#include "Controller.h"
+#include "CameraController.h"
 #include <SDL2/SDL.h>
 
 enum keys {
