@@ -79,12 +79,10 @@ namespace vk {
 		int textureWidth, textureHeight, textureChannels;
 		stbi_uc* pixels = fileName == "" ? nullptr : stbi_load((TEXTURE_PATH + fileName).c_str(), &textureWidth, &textureHeight, &textureChannels, STBI_rgb_alpha);
 
-		if (!pixels)
+		if (pixels == nullptr)
 		{
 			std::cerr << "could not load in specified texture " + std::string(TEXTURE_PATH + fileName) << std::endl;
-			//TODO: generate checker-board texture for objects.
-			return;
-
+			throw std::runtime_error("Texture() FAILED");
 		}
 
 		uint64_t bytePerPixel = 4;

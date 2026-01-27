@@ -12,7 +12,7 @@ public:
 	[[nodiscard]] glm::vec3 GetMaxPoint() const override { return glm::vec3(0); };
 	void UpdateModelTransform( const glm::mat4& newModelMatrix ) override { }; //no physics for GLTF yet.
 	void Draw( const vk::DrawInfo& drawInfo ) override;
-	void LoadTextures( TextureManager& textureManager, const std::vector<std::string>& textureNames ) override {};
+	void LoadTextures( TextureManager& textureManager, const std::vector<std::string>& textureNames ) override;
 private:
 	//helpers
 	void LoadMesh( fastgltf::Mesh& mesh, std::vector<Vertex>& vertexBuffer, std::vector<uint16_t>& indexBuffer );

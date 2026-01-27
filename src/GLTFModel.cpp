@@ -137,6 +137,26 @@ void GLTFModel::Draw( const vk::DrawInfo& drawInfo )
 	}
 }
 
+void GLTFModel::LoadTextures( TextureManager& textureManager, const std::vector<std::string>& textureNames )
+{
+	//TODO
+
+	size_t baseOffset = textureManager.GetSize();
+	for (auto& textureName : textureNames)
+	{
+		textureManager.AddTexture(textureName);
+	}
+
+
+	for (auto& mesh: m_meshes)
+	{
+		for (auto& primitive : mesh->m_primitives)
+		{
+		}
+	}
+
+}
+
 void GLTFModel::LoadMesh( fastgltf::Mesh& mesh, std::vector<Vertex>& vertexBuffer,
 	std::vector<uint16_t>& indexBuffer )
 {
@@ -253,9 +273,4 @@ void GLTFModel::LoadImage( vk::Device* devicePtr, fastgltf::Image& image )
 			assert(filePath.fileByteOffset == 0);
 		},
 		}, image.data);
-
-
-	//TODO if texture ends up empty, assign it a default (checkerboard) texture.
-	std::cout << "here\n";
-
 }

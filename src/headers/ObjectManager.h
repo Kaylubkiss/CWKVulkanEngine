@@ -33,7 +33,7 @@ public:
 	void Update( float dt ) const;
 
 private:
-	std::mutex map_mutex;
+	std::mutex m_objectMutex;
 	ThreadPool m_threadWorkers;
 
 	vk::Device* c_devicePtr = nullptr;

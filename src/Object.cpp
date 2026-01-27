@@ -39,6 +39,11 @@ Object::Object( const ObjectCreateInfo& objectCI, TextureManager& textureManager
     }
 }
 
+void Object::LoadTextures( TextureManager& textureManager, const std::vector<std::string>& fileNames )
+{
+    m_model->LoadTextures(textureManager, fileNames);
+}
+
 void Object::InitPhysics()
 {
     PhysicsSystem& appPhysics = _Application->GetPhysics();

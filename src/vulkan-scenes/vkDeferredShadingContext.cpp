@@ -80,8 +80,8 @@ namespace vk
 		physicsComponent.colliderType = PhysicsComponent::ColliderType::CUBE;
 		
 		objectCI.objName = "cube.obj";
-		//NOTE: this cube doesn't have UVs.
-		objectCI.textureFileName = "";
+		//NOTE: cube.obj doesn't have UVs.
+		objectCI.textureFileName = "myface.JPG";
 		objectCI.physicsComponent = physicsComponent;
 		objectCI.hasPhysicsComponent = true;
 		objectCI.modelTransform = glm::translate(glm::mat4(1.f), glm::vec3(sceneSettings.cubePosition));

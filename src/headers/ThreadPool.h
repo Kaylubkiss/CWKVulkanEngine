@@ -15,9 +15,9 @@ public:
 private:
 	void ThreadLoop();
 private:
-	std::vector<std::thread> threads;
-	std::queue<std::function<void()>> tasks;
 	std::mutex queue_mutex; //to make sure that the job queue is not corrupted.
 	std::condition_variable condition_variable;
+	std::vector<std::thread> threads;
+	std::queue<std::function<void()>> tasks;
 	bool terminate = false;
 };

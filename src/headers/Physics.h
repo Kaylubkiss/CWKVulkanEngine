@@ -4,12 +4,12 @@
 //for general objects.
 struct alignas(16) PhysicsComponent
 {
+	reactphysics3d::Transform currTransform;
+	reactphysics3d::Transform prevTransform;
+
 	reactphysics3d::RigidBody* rigidBody = nullptr;
 	reactphysics3d::Collider* collider = nullptr;
 	reactphysics3d::CollisionShape* shape = nullptr;
-
-	reactphysics3d::Transform currTransform;
-	reactphysics3d::Transform prevTransform;
 
 	reactphysics3d::BodyType bodyType;
 	enum ColliderType
@@ -51,7 +51,7 @@ private:
 
 class RayCastObject : public reactphysics3d::RaycastCallback {
 public:
-	virtual decimal notifyRaycastHit(const RaycastInfo& info)
+	reactphysics3d::decimal notifyRaycastHit(const RaycastInfo& info) override
 	{
 		// Display the world hit point coordinates
 		std::cout << " Hit point : " <<
@@ -63,6 +63,6 @@ public:
 		std::cout << "broad phase ID: " << info.collider->getBroadPhaseId();
 
 		// Return a fraction of 1.0 to gather all hits
-		return decimal(1.0);
+		return 1.f;
 	}
 };

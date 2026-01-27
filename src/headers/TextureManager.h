@@ -10,14 +10,14 @@ class TextureManager
 
 		VkDescriptorImageInfo GetTextureDescriptorInfo( const char* fileName );
 		VkDescriptorImageInfo GetTextureDescriptorInfo( uint32_t index );
+		size_t GetSize();
 
 		void BindTextureToModelPrimitive( const std::string& fileName, Primitive& primitive );
 		void FinishTextureLayoutTransition();
-
+		uint32_t AddTexture( const std::string& fileName ); //returns the index of the texture
 	private:
-		bool AddTexture( vk::GraphicsContextInfo& graphicsContextInfo, const std::string& fileName );
-
-		vk::GraphicsContextInfo graphicsContextInfo = {};
+		std::mutex m_textureMutex;
+		vk::GraphicsContextInfo m_graphicsContextInfo = {};
 
 		struct TextureInfo
 		{

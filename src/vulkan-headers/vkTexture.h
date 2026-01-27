@@ -10,8 +10,8 @@ namespace vk
 	struct Texture
 	{
 		Texture() = default;
-		Texture& operator=(const Texture& other) = delete;
-		Texture(const Texture& other) = delete;
+		Texture& operator=( const Texture& other ) = delete;
+		Texture( const Texture& other ) = delete;
 		//From filename
 		Texture( vk::Device* devicePtr, const std::string& fileName );
 		~Texture();

@@ -7,12 +7,12 @@
 struct ObjectCreateInfo
 {
 	//must fill out objName, even if there is no extension.
+	glm::mat4 modelTransform = glm::mat4(1.0f);
+	PhysicsComponent physicsComponent;
 	const char* objName = "";
 	const char* textureFileName = "";
-	PhysicsComponent physicsComponent;
-	bool hasPhysicsComponent = false;
-	glm::mat4 modelTransform = glm::mat4(1.0f);
 	vk::Device* devicePtr = nullptr;
+	bool hasPhysicsComponent = false;
 };
 
 class Object final
@@ -24,6 +24,7 @@ public:
 	//Destructors
 	~Object() = default;
 	//Mutators
+	void LoadTextures( TextureManager& textureManager, const std::vector<std::string>& fileNames );
 	void Update( const float& interpFactor );
 	void InitPhysics();
 	void Draw( const vk::DrawInfo& drawInfo ) const;

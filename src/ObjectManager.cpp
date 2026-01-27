@@ -5,7 +5,13 @@ void ObjectManager::LoadObject( const ObjectCreateInfo& objectCI )
 {
 	std::function<void()> parallelFunction = [this, objectCI]()
 	{
-		m_objects[objectCI.objName] = std::make_unique<Object>(objectCI, *m_textureManager.get());
+		//note: m_textureManager is also internally thread safe.
+		auto newObject = std::make_unique<Object>(objectCI, *m_textureManager.get());
+
+		{
+			std::unique_lock<std::mutex> lock(m_objectMutex);
+			m_objects[objectCI.objName] = std::move(newObject);
+		}
 	};
 
 	m_threadWorkers.EnqueueTask(parallelFunction);
