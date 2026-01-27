@@ -17,9 +17,9 @@
 #include <vulkan/vulkan.h>
 
 #define IMGUI_DEFINE_MATH_OPERATORS
-#include "imgui/imgui.h"
-#include "imgui/backends/imgui_impl_sdl2.h"
-#include "imgui/backends/imgui_impl_vulkan.h"
+#include <imgui.h>
+#include <imgui_impl_sdl2.h>
+#include <imgui_impl_vulkan.h>
 
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_vulkan.h>

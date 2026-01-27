@@ -24,11 +24,11 @@ UserInterface::UserInterface(const UserInterfaceInitInfo& initInfo)
 	init_info.Queue = initInfo.contextQueue.handle;
 	init_info.PipelineCache = VK_NULL_HANDLE;
 	init_info.DescriptorPool = this->UIDescriptorPool;
-	init_info.RenderPass = initInfo.renderPass;
-	init_info.Subpass = 0;
+	init_info.PipelineInfoMain.RenderPass = initInfo.renderPass;
+	init_info.PipelineInfoMain.Subpass = 0;
+	init_info.PipelineInfoMain.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
 	init_info.MinImageCount = 2;
 	init_info.ImageCount = initInfo.minImages; //TODO: we assume that there is a backbuffer to render into.
-	init_info.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
 	init_info.Allocator = nullptr;
 	init_info.CheckVkResultFn = vk::util::check_vk_result;
 	ImGui_ImplVulkan_Init(&init_info);

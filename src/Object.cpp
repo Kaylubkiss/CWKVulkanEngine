@@ -7,6 +7,13 @@ Object::Object( const ObjectCreateInfo& objectCI, TextureManager& textureManager
     assert(objectCI.devicePtr != nullptr);
     
     std::filesystem::path filePath(OBJECT_PATH + std::string(objectCI.objName));
+
+    if (std::filesystem::exists(filePath) == false)
+    {
+        std::cerr << filePath.string() + " doesn't exist!\n";
+        throw std::runtime_error("Object() Failed!");
+    }
+
     if (filePath.extension() == ".gltf")
     {
         if (objectCI.textureFileName != nullptr)

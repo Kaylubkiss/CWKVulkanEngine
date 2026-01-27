@@ -1,0 +1,22 @@
+[submodule "extern/reactphysics3d"]
+	path = extern/reactphysics3d
+	url = https://github.com/DanielChappuis/reactphysics3d.git
+[submodule "extern/imgui"]
+	path = extern/imgui
+	url = https://github.com/ocornut/imgui.git
+[submodule "extern/stb"]
+	path = extern/stb
+	url = https://github.com/nothings/stb.git
+[submodule "extern/tinyobjloader"]
+	path = extern/tinyobjloader
+	url = https://github.com/tinyobjloader/tinyobjloader.git
+[submodule "extern/fastgltf"]
+	path = extern/fastgltf
+	url = https://github.com/spnda/fastgltf.git
+[submodule "extern/sdl2"]
+	path = extern/sdl2
+	url = https://github.com/libsdl-org/SDL.git
+	branch = SDL2
+[submodule "extern/shaderc"]
+	path = extern/shaderc
+	url = https://github.com/google/shaderc.git

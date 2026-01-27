@@ -2,7 +2,7 @@
 
 #include "IModel.h"
 #include "TextureManager.h"
-#define OBJECT_PATH "External/objects/"
+#define OBJECT_PATH "assets/objects/"
 
 struct ObjectCreateInfo
 {

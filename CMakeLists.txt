@@ -1,13 +1,45 @@
 cmake_minimum_required(VERSION 3.22)
 
 set(PROJECT_NAME "CKVulkan")
+project("CKVulkan")
 
-#vcpkg will install fastgltf
-if (WIN32)
-	set(CMAKE_TOOLCHAIN_FILE C:/vcpkg/scripts/buildsystems/vcpkg.cmake)
-endif()
+set(CMAKE_CXX_STANDARD 20)
 
-project(${PROJECT_NAME} LANGUAGES CXX C)
+find_package(Vulkan REQUIRED)
+
+#---------BUILD EXTERNAL LIBRARIES--------------
+add_subdirectory(extern/fastgltf)
+add_subdirectory(extern/reactphysics3d)
+
+set(SDL_TEST OFF CACHE BOOL "" FORCE)
+set(SDL_TEST_LIBRARY OFF CACHE BOOL "" FORCE)
+add_subdirectory(extern/sdl2)
+
+set(SHADERC_SKIP_TESTS ON CACHE BOOL "" FORCE)
+set(SHADERC_SKIP_EXAMPLES ON CACHE BOOL "" FORCE)
+set(SHADERC_SKIP_COPYRIGHT_CHECK ON CACHE BOOL "" FORCE)
+set(SHADERC_ENABLE_SHARED_CRT ON CACHE BOOL "" FORCE)
+add_subdirectory(extern/shaderc)
+
+
+#don't need to build these every time so set STATIC
+add_library(imgui STATIC
+		extern/imgui/imgui.cpp
+		extern/imgui/imgui_tables.cpp
+		extern/imgui/imgui_widgets.cpp
+		extern/imgui/imgui_demo.cpp
+		extern/imgui/imgui_draw.cpp
+		#project uses SDL2 and Vulkan
+		extern/imgui/backends/imgui_impl_vulkan.cpp
+		extern/imgui/backends/imgui_impl_sdl2.cpp
+)
+
+target_include_directories(imgui PUBLIC
+		extern/imgui
+		extern/imgui/backends
+)
+target_link_libraries(imgui PRIVATE SDL2-static Vulkan::Vulkan)
+
 
 #------------------SOURCES----------------------
 set(SOURCE_FILES 
@@ -47,27 +79,15 @@ ${VULKAN_SRC_DIR}/vkFramebuffer.cpp
 set(VULKAN_SCENES_DIR src/vulkan-scenes)
 
 set(VULKAN_ENGINE_SCENES_SOURCE
-${VULKAN_SCENES_DIR}/vkDeferredShadingContext.cpp ${VULKAN_SCENES_DIR}/vkDeferredShadingContext.h
+		${VULKAN_SCENES_DIR}/vkDeferredShadingContext.cpp
+		${VULKAN_SCENES_DIR}/vkDeferredShadingContext.h
 )
 
 source_group("Source Files/VulkanSources" FILES ${VULKAN_ENGINE_SRC})
 list(APPEND SOURCE_FILES ${VULKAN_ENGINE_SRC})
 
 source_group("Source Files/VulkanSources/Scenes" FILES ${VULKAN_ENGINE_SCENES_SOURCE})
-list(APPEND SOURCE_FILES ${VULKAN_ENGINE_SCENES_SOURCE})	
-
-set(IM_GUI_FILES
-src/external/libraries/imgui/imgui_demo.cpp
-src/external/libraries/imgui/imgui_draw.cpp
-src/external/libraries/imgui/imgui_tables.cpp
-src/external/libraries/imgui/imgui_widgets.cpp
-src/external/libraries/imgui/imgui.cpp
-src/external/libraries/imgui/backends/imgui_impl_sdl2.cpp
-src/external/libraries/imgui/backends/imgui_impl_vulkan.cpp
-)
-
-source_group("Source Files/ImGui" FILES ${IM_GUI_FILES})			
-list(APPEND SOURCE_FILES ${IM_GUI_FILES})					 
+list(APPEND SOURCE_FILES ${VULKAN_ENGINE_SCENES_SOURCE})
 
 #------------------HEADERS----------------------
 
@@ -136,87 +156,34 @@ ${SHADER_SRC_DIR}/deferredLightPass.frag
 ${SHADER_SRC_DIR}/deferredShadow.geom
 ${SHADER_SRC_DIR}/deferredShadow.vert
 )
-								 
-#-----COMPILATION OPTIONS DEPENDING ON PLATFORM---------
-#if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
-   # string(APPEND CMAKE_CXX_FLAGS "/MP")
-#	message("Using MSVC compiler with C++")
-#elseif(CMAKE_C_COMPILER_ID STREQUAL "MSVC")
-   # string(APPEND CMAKE_C_FLAGS " /MP")
-	#message("Using MSVC compiler with C")
-#endif()
+
 
 #-------------------------------------------MAKE THE PROJECT--------------------------------------
 add_executable(${PROJECT_NAME} ${SOURCE_FILES} ${SHADER_FILES} ${HEADER_FILES})
 
 target_precompile_headers(${PROJECT_NAME} PUBLIC ${HEADER_SRC_DIR}/pch.h)
 
-set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 20)
-
-set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT ${PROJECT_NAME})
-
-find_package(Vulkan REQUIRED)
-
-find_package(fastgltf CONFIG REQUIRED)
-
-
-
-if (UNIX)
-	find_package(SDL2 REQUIRED CONFIG REQUIRED COMPONENTS SDL2)
-
-	# 1. Look for a SDL2 package, 2. Look for the SDL2maincomponent and 3. DO NOT fail when SDL2main is not available
-	find_package(SDL2 REQUIRED CONFIG COMPONENTS SDL2main)
-endif()
-
 
 target_include_directories(${PROJECT_NAME} PRIVATE 
 src/headers
 src/vulkan-headers
-src/external/libraries
-src/external/libraries/imgui
-src/external/libraries/stb
-src/external/libraries/ReactPhysics3D/include
+extern/stb
+extern/tinyobjloader
+extern/imgui
+extern/imgui/backends
+extern/fastgltf/include
+extern/reactphysics3d/include
 )
 
-if (WIN32)
-	target_include_directories(${PROJECT_NAME} PRIVATE $ENV{VULKAN_SDK}/Include)
-
-	target_link_libraries("${PROJECT_NAME}" 
-	SDL2.lib
-	vulkan-1.lib
-	SDL2main.lib
-	fastgltf::fastgltf)
-
-	target_link_libraries("${PROJECT_NAME}" )
-
-	target_link_directories("${PROJECT_NAME}" PUBLIC $ENV{VULKAN_SDK}/Lib 
-	src/External/libraries/ReactPhysics3D/lib)
-	
-	target_link_libraries(${PROJECT_NAME} debug reactphysics3dd.lib general reactphysics3d.lib)
-	target_link_libraries(${PROJECT_NAME} debug shaderc_combinedd.lib general shaderc_combined.lib)
-	target_link_options(${PROJECT_NAME} PRIVATE "/ignore:4099") #reactphysics, SDL2, and shaderc_combined are missing their debug information. Just ignore it.
-elseif (UNIX)
-	if(TARGET SDL2::SDL2main)
-		# It has an implicit dependency on SDL2 functions, so it MUST be added before SDL2::SDL2 (or SDL2::SDL2-static)
-		target_link_libraries(${PROJECT_NAME} SDL2::SDL2main)
-	endif()
-
-	set(GIT_LIBRARIES $ENV{HOME}/vkEngineLibraries)
-	target_include_directories(${PROJECT_NAME} PRIVATE 
-		${GIT_LIBRARIES}/shaderc/libshaderc/include
-		${GIT_LIBRARIES}/reactphysics3d/include/reactphysics3d)
-	
-	target_link_libraries(${PROJECT_NAME} ${Vulkan_LIBRARIES} SDL2::SDL2 reactphysics3d libshaderc_combined.a)
-	
-	target_link_directories(${PROJECT_NAME} PRIVATE 
-		Vulkan::Vulkan
-		${GIT_LIBRARIES}/shaderc/build/libshaderc
-		${GIT_LIBRARIES}/reactphysics3d/build/
-	)
-
-	target_compile_options(${PROJECT_NAME} PRIVATE -fsanitize=address)
-	target_link_options(${PROJECT_NAME} PRIVATE -fsanitize=address)
-endif()
+target_link_libraries(${PROJECT_NAME} PRIVATE
+SDL2-static
+SDL2main
+reactphysics3d
+shaderc_combined
+imgui
+fastgltf
+Vulkan::Vulkan
+)
 
 
 
