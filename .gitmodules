@@ -17,3 +17,6 @@
 [submodule "extern/shaderc"]
 	path = extern/shaderc
 	url = https://github.com/google/shaderc.git
+[submodule "extern/reactphysics3d"]
+	path = extern/reactphysics3d
+	url = https://github.com/Kaylubkiss/reactphysics3d.git
