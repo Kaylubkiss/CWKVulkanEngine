@@ -11,6 +11,9 @@ find_package(Vulkan REQUIRED)
 add_subdirectory(extern/fastgltf)
 add_subdirectory(extern/reactphysics3d)
 
+add_compile_definitions(GLM_ENABLE_EXPERIMENTAL)
+add_subdirectory(extern/glm)
+
 set(SDL_TEST OFF CACHE BOOL "" FORCE)
 set(SDL_TEST_LIBRARY OFF CACHE BOOL "" FORCE)
 add_subdirectory(extern/sdl2)
@@ -176,8 +179,9 @@ extern/reactphysics3d/include
 )
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
-SDL2-static
 SDL2main
+SDL2-static
+glm::glm
 reactphysics3d
 shaderc_combined
 imgui
