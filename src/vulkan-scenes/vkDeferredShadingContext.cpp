@@ -2,7 +2,7 @@
 
 //TODO: be able to specify the objects you want in the scene at compile time.
 //TODO: remove camel case -- looks ugly and a bit unreadable. There is some inconsistency here in this file with that. 
-#define OBJECT_COUNT 10 + 1 //max 10 objects in the scene, +1 for blank texture
+#define OBJECT_COUNT (10 + 1) //max 10 objects in the scene, +1 for blank texture
 inline VkDeviceSize AlignedSize(VkDeviceSize size, VkDeviceSize alignment)
 {
 	return (size + alignment - 1) & ~(alignment - 1);
