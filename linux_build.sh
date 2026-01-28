@@ -6,7 +6,6 @@ sudo apt-get install libvulkan-dev \
 libvulkan1 \
 vulkan-tools \
 vulkan-validationlayers \
-libglm-dev \
 ninja-build \
 cmake \
 build-essential
