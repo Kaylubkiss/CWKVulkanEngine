@@ -19,9 +19,9 @@ struct uLightObject
 {
 	float shininess = 0.f; /* exponent value */
 
-	glm::vec3 pos = glm::vec3(0.f); /* position of light */
-	glm::vec3 ambient = glm::vec3(0.f); /* scene color */
-	glm::vec3 albedo = glm::vec3(0.f); /* base color of light */
+	glm::vec3 pos      = glm::vec3(0.f); /* position of light */
+	glm::vec3 ambient  = glm::vec3(0.f); /* scene color */
+	glm::vec3 albedo   = glm::vec3(0.f); /* base color of light */
 	glm::vec3 specular = glm::vec3(0.f); /* reflectivity of the light */
 
 };
@@ -98,7 +98,6 @@ namespace vk
 		uint32_t imageBufferIndex = 0;
 		uint32_t firstSet = 0;
 		uint32_t setCount = 1; //it would make sense that there is at least 1 set being described.
-		bool sampleTexture = false;
 	};
 
 

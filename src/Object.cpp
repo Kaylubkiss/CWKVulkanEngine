@@ -6,16 +6,20 @@ Object::Object( const ObjectCreateInfo& objectCI, TextureManager& textureManager
 {
     assert(objectCI.devicePtr != nullptr);
     
-    std::filesystem::path filePath(OBJECT_PATH + std::string(objectCI.objName));
+    std::filesystem::path filePath(std::string(objectCI.objName));
 
-    if (std::filesystem::exists(filePath) == false)
-    {
-        std::cerr << filePath.string() + " doesn't exist!\n";
-        throw std::runtime_error("Object() Failed!");
-    }
+
 
     if (filePath.extension() == ".gltf")
     {
+        filePath = GLTF_OBJECT_PATH + filePath.string();
+
+        if (std::filesystem::exists(filePath) == false)
+        {
+            std::cerr << filePath.string() + " doesn't exist!\n";
+            throw std::runtime_error("Object() Failed!");
+        }
+
         if (objectCI.textureFileName != nullptr)
         {
             std::cerr << "WARNING: .gltf will not use specified texture name in ObjectCreateInfo\n";
@@ -25,6 +29,14 @@ Object::Object( const ObjectCreateInfo& objectCI, TextureManager& textureManager
     }
     else if (filePath.extension() == ".obj")
     {
+        filePath = OBJECT_PATH + filePath.string();
+
+        if (std::filesystem::exists(filePath) == false)
+        {
+            std::cerr << filePath.string() + " doesn't exist!\n";
+            throw std::runtime_error("Object() Failed!");
+        }
+
         m_model = std::make_unique<OBJModel>(objectCI.devicePtr, filePath);
 
         if (objectCI.textureFileName != nullptr)

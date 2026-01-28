@@ -53,7 +53,8 @@ namespace vk
 		assert(g_vkCmdBindDescriptorBuffersEXT);
 		assert(g_vkCmdSetDescriptorBufferOffsetsEXT);
 
-		this->commandPool = vk::init::CommandPool(this->logical, VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT, graphicsQueue.family);
+		this->commandPool = vk::init::CommandPool(this->logical,
+			VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT, graphicsQueue.family);
 	}
 
 	void Device::Destroy() 

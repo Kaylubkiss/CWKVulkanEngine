@@ -34,7 +34,7 @@ uint32_t TextureManager::AddTexture( const std::string& fileName )
 			return m_textures[fileName].index;
 		}
 		m_textures[fileName].handle = std::move(newTexture);
-		m_textures[fileName].index = m_textures.size()-1;
+		m_textures[fileName].index = m_textures.size(); //first texture in m_textures will be blank.
 
 		m_pendingTextures.push_back(m_textures[fileName]); //sync with this later.
 
@@ -112,8 +112,10 @@ void TextureManager::FinishTextureLayoutTransition()
 		{
 			vk::Texture* curr_texture = t.handle.get();
 
-			curr_texture->mImageView = vk::Texture::CreateImageView(devicePtr->logical, curr_texture->mImage, 1);
-			curr_texture->mSampler = vk::Texture::CreateSampler(devicePtr->physical, devicePtr->logical, 1);
+			curr_texture->mImageView =
+				vk::Texture::CreateImageView(devicePtr->logical, curr_texture->mImage, 1);
+			curr_texture->mSampler =
+				vk::Texture::CreateSampler(devicePtr->physical, devicePtr->logical, 1);
 
 			curr_texture->descriptor = {
 				curr_texture->mSampler,

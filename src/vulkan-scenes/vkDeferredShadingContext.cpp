@@ -2,7 +2,7 @@
 
 //TODO: be able to specify the objects you want in the scene at compile time.
 //TODO: remove camel case -- looks ugly and a bit unreadable. There is some inconsistency here in this file with that. 
-#define OBJECT_COUNT 3 
+#define OBJECT_COUNT 10 + 1 //max 10 objects in the scene, +1 for blank texture
 inline VkDeviceSize AlignedSize(VkDeviceSize size, VkDeviceSize alignment)
 {
 	return (size + alignment - 1) & ~(alignment - 1);
@@ -100,6 +100,14 @@ namespace vk
 		objectCI.modelTransform = glm::translate(glm::mat4(1.f), glm::vec3(0, -5.f, 0)) *
 			glm::scale(glm::mat4(1.f), glm::vec3(30.f));
 		objectCI.hasPhysicsComponent = true;
+		objectCI.devicePtr = &this->device;
+
+		objManager->LoadObject(objectCI);
+
+		objectCI = {};
+
+		objectCI.modelTransform = glm::translate(glm::mat4(1.f), glm::vec3(0, 5.f, 0));
+		objectCI.objName = "AnimatedCube.gltf";
 		objectCI.devicePtr = &this->device;
 
 		objManager->LoadObject(objectCI);
@@ -555,7 +563,6 @@ namespace vk
 		drawInfo.setCount = 1;
 		drawInfo.firstSet = 0;
 		drawInfo.pipelineLayout = pipelineLayout;
-		drawInfo.sampleTexture = true;
 		drawInfo.textureBindingSize = textureBindingDescriptor.size;
 
 		objManager.DrawObjects(drawInfo);
@@ -1056,7 +1063,6 @@ namespace vk
 
 			vk::DrawInfo drawInfo = {};
 			drawInfo.cmdBuffer = cmdBuffer;
-			drawInfo.sampleTexture = true;
 			drawInfo.imageBufferIndex = 1;
 			drawInfo.firstSet = 1;
 			drawInfo.pipelineLayout = pipelineLayouts[dePipeline::MRT];

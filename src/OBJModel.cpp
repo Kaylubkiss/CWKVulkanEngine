@@ -64,7 +64,7 @@ void OBJModel::ComputeVertexNormals( std::vector<Vertex>& vertexBuffer, std::vec
     }
 }
 
-void OBJModel::ComputeVertices(std::vector<Vertex>& vertexBuffer, std::vector<uint16_t>& indexBuffer)
+void OBJModel::ComputeVertices( std::vector<Vertex>& vertexBuffer, std::vector<uint16_t>& indexBuffer )
 {
     int numVertices = static_cast<int>(vertexBuffer.size());
 
@@ -234,16 +234,23 @@ void OBJModel::Draw( const vk::DrawInfo& drawInfo )
     {
         for (auto& primitive : mesh->m_primitives)
         {
-            if (drawInfo.sampleTexture == true)
-            {
-                if (primitive.textureIndex.has_value())
-                {
-                    VkDeviceSize descriptorBufferOffset = primitive.textureIndex.value() * drawInfo.textureBindingSize;
 
-                    g_vkCmdSetDescriptorBufferOffsetsEXT(drawInfo.cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-                        drawInfo.pipelineLayout, drawInfo.firstSet, drawInfo.setCount,
-                        &drawInfo.imageBufferIndex, &descriptorBufferOffset);
-                }
+            if (primitive.textureIndex.has_value())
+            {
+                VkDeviceSize descriptorBufferOffset =
+                    primitive.textureIndex.value() * drawInfo.textureBindingSize;
+
+                g_vkCmdSetDescriptorBufferOffsetsEXT(drawInfo.cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
+                    drawInfo.pipelineLayout, drawInfo.firstSet, drawInfo.setCount,
+                    &drawInfo.imageBufferIndex, &descriptorBufferOffset);
+            }
+            else
+            {
+                VkDeviceSize descriptorBufferOffset = 0;
+
+                g_vkCmdSetDescriptorBufferOffsetsEXT(drawInfo.cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
+                    drawInfo.pipelineLayout, drawInfo.firstSet, drawInfo.setCount,
+                    &drawInfo.imageBufferIndex, &descriptorBufferOffset);
             }
 
             vkCmdDrawIndexed(drawInfo.cmdBuffer, primitive.indexCount, 1,

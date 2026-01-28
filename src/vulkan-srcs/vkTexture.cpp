@@ -77,7 +77,8 @@ namespace vk {
 		//Might want to make command pool a member variable.
 
 		int textureWidth, textureHeight, textureChannels;
-		stbi_uc* pixels = fileName == "" ? nullptr : stbi_load((TEXTURE_PATH + fileName).c_str(), &textureWidth, &textureHeight, &textureChannels, STBI_rgb_alpha);
+		stbi_uc* pixels = fileName.empty() ? nullptr : stbi_load((TEXTURE_PATH + fileName).c_str(),
+			&textureWidth, &textureHeight, &textureChannels, STBI_rgb_alpha);
 
 		if (pixels == nullptr)
 		{
@@ -101,15 +102,18 @@ namespace vk {
 			VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
 			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, this->mMemory);
 
-		VkCommandPool transferCmdPool = vk::init::CommandPool(devicePtr->logical, VK_COMMAND_POOL_CREATE_TRANSIENT_BIT, devicePtr->transferQueue.family);
+		VkCommandPool transferCmdPool = vk::init::CommandPool(devicePtr->logical,
+			VK_COMMAND_POOL_CREATE_TRANSIENT_BIT, devicePtr->transferQueue.family);
 
 		vk::util::TransitionImageLayout(devicePtr->logical, transferCmdPool, devicePtr->transferQueue.handle,
-			 VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED, this->mImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, mipLevels);
-		
+			 VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED, this->mImage, VK_FORMAT_R8G8B8A8_SRGB,
+			 VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, mipLevels);
+
+		//copy contents of the image (stored in buffer) into the image.
 		vk::util::copyBufferToImage(devicePtr->logical, transferCmdPool,
 			stagingBuffer.GetHandle(),
 			devicePtr->transferQueue.handle,
-			this->mImage, (uint32_t)(textureWidth), (uint32_t)(textureHeight)); //copy contents of the image (stored in buffer) into the image.
+			this->mImage, (uint32_t)(textureWidth), (uint32_t)(textureHeight));
 
 		//release transfer queue
 		VkCommandBuffer transferCmd = beginSingleTimeCommand(devicePtr->logical, transferCmdPool);
@@ -127,7 +131,11 @@ namespace vk {
 		releaseBarrier.subresourceRange.baseArrayLayer = 0;
 		releaseBarrier.subresourceRange.layerCount = 1;
 
-		vkCmdPipelineBarrier(transferCmd, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, 0, 0, nullptr, 0, nullptr, 1, &releaseBarrier); //asking the gpu to reconfigure the old image layout to the new layout.
+		vkCmdPipelineBarrier(transferCmd, VK_PIPELINE_STAGE_TRANSFER_BIT,
+			VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+			0, 0,
+			nullptr, 0, nullptr, 1,
+			&releaseBarrier); //asking the gpu to reconfigure the old image layout to the new layout.
 
 		VK_CHECK_RESULT(vkEndCommandBuffer(transferCmd));
 
@@ -138,7 +146,8 @@ namespace vk {
 
 		VkSemaphoreCreateInfo transferSemaphoreCI = {};
 		transferSemaphoreCI.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-		VK_CHECK_RESULT(vkCreateSemaphore(devicePtr->logical, &transferSemaphoreCI, nullptr, &mTransferCompleteSemaphore));
+		VK_CHECK_RESULT(vkCreateSemaphore(devicePtr->logical, &transferSemaphoreCI, nullptr,
+			&mTransferCompleteSemaphore));
 
 		submitInfo.pSignalSemaphores = &mTransferCompleteSemaphore;
 		submitInfo.signalSemaphoreCount = 1;

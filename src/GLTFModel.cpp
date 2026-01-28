@@ -5,7 +5,7 @@
 #include <fastgltf/tools.hpp>
 #include <variant>
 
-#define GLTF_OBJECT_PATH "External/objects/gltf/"
+
 
 GLTFModel::GLTFModel( vk::Device* device, const std::filesystem::path& filePath )
 {
@@ -48,47 +48,17 @@ GLTFModel::GLTFModel( vk::Device* device, const std::filesystem::path& filePath 
 	size_t vertexBufferSize = vertices.size() * sizeof(vertices[0]);
 	size_t indexBufferSize = indices.size() * sizeof(indices[0]);
 
-	vk::Buffer vertexStagingBuffer = device->CreateBuffer(
-		vertexBufferSize,
-		VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-		vertices.data());
-
-	vk::Buffer indexStagingBuffer = device->CreateBuffer(
-		indexBufferSize,
-		VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-		indices.data());
-
 	m_vertexBuffer = device->CreateBuffer(
 		vertexBufferSize,
-		VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-		nullptr);
+		VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
+		vertices.data());
 
 	m_indexBuffer = device->CreateBuffer(
 		indexBufferSize,
-		VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-		nullptr);
-
-
-	VkCommandBuffer copyCmd = device->CreateCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
-
-	VkBufferCopy copyRegion = {};
-
-	copyRegion.size = vertexBufferSize;
-	vkCmdCopyBuffer(copyCmd, vertexStagingBuffer.GetHandle(),
-		m_vertexBuffer.GetHandle(), 1, &copyRegion);
-
-	copyRegion.size = indexBufferSize;
-	vkCmdCopyBuffer(copyCmd, indexStagingBuffer.GetHandle(),
-		m_indexBuffer.GetHandle(), 1, &copyRegion);
-
-	device->FlushCommandBuffer(copyCmd, device->graphicsQueue.handle, device->commandPool, true);
-
-	vertexStagingBuffer.Destroy();
-	indexStagingBuffer.Destroy();
+		VK_BUFFER_USAGE_INDEX_BUFFER_BIT ,
+		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
+		indices.data());
 }
 
 void GLTFModel::Draw( const vk::DrawInfo& drawInfo )
@@ -119,14 +89,25 @@ void GLTFModel::Draw( const vk::DrawInfo& drawInfo )
 							sizeof(matrix), matrix.data());
 					}
 
-
 					for (auto& primitive : mesh->m_primitives)
 					{
-						VkDeviceSize descriptorBufferOffset = primitive.textureIndex.value() * drawInfo.textureBindingSize;
+						if (primitive.textureIndex.has_value() == true)
+						{
+							VkDeviceSize descriptorBufferOffset =
+								primitive.textureIndex.value() * drawInfo.textureBindingSize;
 
-						g_vkCmdSetDescriptorBufferOffsetsEXT(drawInfo.cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-							drawInfo.pipelineLayout, drawInfo.firstSet, drawInfo.setCount,
-							&drawInfo.imageBufferIndex, &descriptorBufferOffset);
+							g_vkCmdSetDescriptorBufferOffsetsEXT(drawInfo.cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
+								drawInfo.pipelineLayout, drawInfo.firstSet, drawInfo.setCount,
+								&drawInfo.imageBufferIndex, &descriptorBufferOffset);
+						}
+						else
+						{
+							VkDeviceSize descriptorBufferOffset = 0;
+
+							g_vkCmdSetDescriptorBufferOffsetsEXT(drawInfo.cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
+								drawInfo.pipelineLayout, drawInfo.firstSet, drawInfo.setCount,
+								&drawInfo.imageBufferIndex, &descriptorBufferOffset);
+						}
 
 						vkCmdDrawIndexed(drawInfo.cmdBuffer, primitive.indexCount, 1,
 							primitive.firstIndex, static_cast<int32_t>(primitive.firstVertex), 0);
@@ -166,7 +147,7 @@ void GLTFModel::LoadMesh( fastgltf::Mesh& mesh, std::vector<Vertex>& vertexBuffe
 
 	for (auto& primitive : mesh.primitives)
 	{
-		Primitive newPrim = {};
+		Primitive newPrim   = {};
 		newPrim.firstIndex  = static_cast<uint32_t>(indexBuffer.size());
 		newPrim.firstVertex = static_cast<uint32_t>(vertexBuffer.size());
 		newPrim.indexCount  = 0;
@@ -267,10 +248,12 @@ void GLTFModel::LoadMesh( fastgltf::Mesh& mesh, std::vector<Vertex>& vertexBuffe
 
 void GLTFModel::LoadImage( vk::Device* devicePtr, fastgltf::Image& image )
 {
-	std::visit(fastgltf::visitor{
+	std::visit(fastgltf::visitor
+	{
 		[](auto& arg) {},
 		[&](const fastgltf::sources::URI& filePath) {
 			assert(filePath.fileByteOffset == 0);
+
 		},
-		}, image.data);
+	}, image.data);
 }

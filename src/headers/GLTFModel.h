@@ -2,6 +2,8 @@
 //NOTE (11/5/25): JUST SUPPORTING MESH AND TEXTURES FOR NOW
 #include "IModel.h"
 
+#define GLTF_OBJECT_PATH "assets/objects/gltf/"
+
 class GLTFModel : public IModel
 {
 public:
