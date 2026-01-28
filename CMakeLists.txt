@@ -176,6 +176,7 @@ extern/imgui
 extern/imgui/backends
 extern/fastgltf/include
 extern/reactphysics3d/include
+extern/shaderc/libshaderc/include
 )
 
 target_link_libraries(${PROJECT_NAME} PRIVATE

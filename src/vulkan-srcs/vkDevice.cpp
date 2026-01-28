@@ -37,13 +37,19 @@ namespace vk
 		vkGetDeviceQueue(this->logical, transferQueue.family, 0, &transferQueue.handle);
 
 		g_vkGetDescriptorSetLayoutBindingOffsetEXT =
-			(PFN_vkGetDescriptorSetLayoutBindingOffsetEXT)(vkGetDeviceProcAddr(logical, "vkGetDescriptorSetLayoutBindingOffsetEXT"));
+			(PFN_vkGetDescriptorSetLayoutBindingOffsetEXT)
+			(vkGetDeviceProcAddr(logical, "vkGetDescriptorSetLayoutBindingOffsetEXT"));
+		
 		g_vkGetDescriptorSetLayoutSizeEXT = 
-			(PFN_vkGetDescriptorSetLayoutSizeEXT)(vkGetDeviceProcAddr(logical, "vkGetDescriptorSetLayoutSizeEXT"));
+			(PFN_vkGetDescriptorSetLayoutSizeEXT)
+			(vkGetDeviceProcAddr(logical, "vkGetDescriptorSetLayoutSizeEXT"));
+		
 		g_vkGetDescriptorEXT = 
 			(PFN_vkGetDescriptorEXT)(vkGetDeviceProcAddr(logical, "vkGetDescriptorEXT"));
+		
 		g_vkCmdBindDescriptorBuffersEXT = 
 			(PFN_vkCmdBindDescriptorBuffersEXT)(vkGetDeviceProcAddr(logical, "vkCmdBindDescriptorBuffersEXT"));
+		
 		g_vkCmdSetDescriptorBufferOffsetsEXT = 
 			(PFN_vkCmdSetDescriptorBufferOffsetsEXT)(vkGetDeviceProcAddr(logical, "vkCmdSetDescriptorBufferOffsetsEXT"));
 
@@ -94,8 +100,7 @@ namespace vk
 			vkGetPhysicalDeviceFeatures(gpus[i], &features);
 
 
-			if ((properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU || properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU ||
-				properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_CPU) &&
+			if ((properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU) &&
 				features.geometryShader && features.samplerAnisotropy)
 			{
 				std::cout << "picked device " << i << '\n';
@@ -142,8 +147,8 @@ namespace vk
 
 		for (unsigned i = 0; i < queueFamilyPropertyCount; ++i)
 		{
-			if ((queueFamilies[i].queueCount == 1 &&
-				(queueFamilies[i].queueFlags & VK_QUEUE_TRANSFER_BIT) != 0)) 
+			if ((queueFamilies[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) == 0 &&
+				(queueFamilies[i].queueFlags & VK_QUEUE_TRANSFER_BIT) != 0) 
 			{
 				transferQueue.family = i;
 				setTransferQueue = true;
@@ -177,6 +182,12 @@ namespace vk
 			!setTransferQueue)
 		{
 			throw std::runtime_error("could not find all required queues on this device!\n");
+		}
+
+		if (presentQueue.family != graphicsQueue.family)
+		{
+			std::cerr << "present queue and graphics queue families are different. Not supported in this code base.\n";
+			throw std::runtime_error("vk::Device() failed!\n");
 		}
 
 	}

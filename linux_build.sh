@@ -8,7 +8,10 @@ vulkan-tools \
 vulkan-validationlayers \
 ninja-build \
 cmake \
-build-essential
+build-essential \
+python3
+
+python3 extern/shaderc/utils/git-sync-deps
 
 mkdir build
 
