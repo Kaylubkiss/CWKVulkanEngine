@@ -9,6 +9,9 @@ winget install --id=Kitware.CMake -e
 ::make sure to have ninja for build generation
 winget install --id=Ninja-build.Ninja -e
 
+::make sure to have python to download SPIRV-Tools dependencies
+winget install --id=Python.Python.3.13 -e
+
 set previous_directory=%cd%
 
 cd %VULKAN_SDK%
@@ -20,12 +23,10 @@ com.lunarg.vulkan.debug
 
 cd %previous_directory%
 
-mkdir build
+python extern/shaderc/utils/git-sync-deps
 
-cd build
+cmake -B build
 
-cmake ..
-
-ninja
+cmake --build build -j 22
 
 pause
