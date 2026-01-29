@@ -51,6 +51,13 @@ It's been my dream to build cool things for exciting user experiences. This proj
   <li>other...</li>
 </ul> 
 
+An IDE is <em>highly</em> recommend getting an IDE:
+<ul>
+    <li><a href="https://visualstudio.microsoft.com/downloads/">Visual Studio (for Windows)</a></li>
+    <li><a href="https://www.jetbrains.com/clion/">CLion (cross-platform)</a></li>
+    
+</ul>
+
 **Windows:**
 
   <ol>
