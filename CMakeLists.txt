@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.22)
+cmake_minimum_required(VERSION 3.2...3.5)
 
 set(PROJECT_NAME "CKVulkan")
 project("CKVulkan")
@@ -180,8 +180,8 @@ extern/shaderc/libshaderc/include
 )
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
-SDL2main
-SDL2-static
+SDL2::SDL2main
+SDL2::SDL2-static
 glm::glm
 reactphysics3d
 shaderc_combined

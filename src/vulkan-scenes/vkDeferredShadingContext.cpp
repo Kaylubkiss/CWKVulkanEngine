@@ -26,10 +26,6 @@ namespace vk
 		DeferredContext::InitializeDescriptors();
 		DeferredContext::InitializePipeline();
 
-		////TESTING pipeline initialization.
-		//_Application->RequestExit();
-		//return;
-
 		DeferredContext::FillOutGraphicsContextInfo();
 	}
 
