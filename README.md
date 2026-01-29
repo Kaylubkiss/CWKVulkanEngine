@@ -14,7 +14,8 @@ Hi, welcome to my Github page! As of September 25th, 2025, I've made this reposi
 * Strengthen my tooling mindset
 * Have fun and make some cool freakin demos to share
 
-It's been my dream to build cool things for exciting user experiences. This project aims to fulfill that whollistically.
+<p>My dream has always been to become an elite toy maker of technical proportions.</p> 
+<p>This project will fulfill that.</p>
 
 # Build Instructions 
 **General Requirements:**
