@@ -26,6 +26,7 @@ It's been my dream to build cool things for exciting user experiences. This proj
             <li>gcc, clang/LLVM specifically for other platforms</li>
         </ul>
     </li>
+    <li><a href="https://vulkan.lunarg.com/sdk/home">Vulkan SDK (1.4+)</a></li>
     <li>
         <a href="https://cmake.org/download/">CMake versions 3.2-3.5</a>
         <ul>
