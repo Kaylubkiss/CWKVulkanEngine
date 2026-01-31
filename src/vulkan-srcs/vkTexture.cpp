@@ -5,7 +5,7 @@
 namespace vk {
 
 
-	VkImageView Texture::CreateImageView(const VkDevice l_device, const VkImage& textureImage, uint32_t mipLevels)
+	VkImageView Texture::CreateImageView(VkDevice l_device, const VkImage& textureImage, uint32_t mipLevels)
 	{
 
 		VkImageViewCreateInfo viewInfo = {};
@@ -25,7 +25,7 @@ namespace vk {
 		return nTextImageView;
 	}
 
-	VkSampler Texture::CreateSampler(const VkPhysicalDevice p_device, const VkDevice l_device, uint32_t mipLevels)
+	VkSampler Texture::CreateSampler( VkPhysicalDevice p_device, VkDevice l_device, uint32_t mipLevels)
 	{
 		VkSamplerCreateInfo createInfo = {};
 		createInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
@@ -66,11 +66,10 @@ namespace vk {
 			vkDestroyImageView(cLogicalDevice, mImageView, nullptr);
 			vkDestroyImage(cLogicalDevice, mImage, nullptr);
 			vkFreeMemory(cLogicalDevice, mMemory, nullptr);
-			vkDestroySemaphore(cLogicalDevice, mTransferCompleteSemaphore, nullptr);
 		}
 	}
 
-	Texture::Texture( vk::Device* devicePtr, const std::string& fileName )
+	Texture::Texture( const vk::Device* devicePtr, const std::string& fileName )
 	{
 
 		assert(devicePtr);
@@ -87,7 +86,8 @@ namespace vk {
 		}
 
 		uint64_t bytePerPixel = 4;
-		VkDeviceSize imageSize = (uint64_t)textureWidth * (uint64_t)textureHeight * bytePerPixel; //4 bytes per pixel.
+		VkDeviceSize imageSize = static_cast<uint64_t>(textureWidth) *
+			static_cast<uint64_t>(textureHeight) * bytePerPixel; //4 bytes per pixel.
 
 		/*uint32_t mipLevels = vk::util::CalculateMipLevels(textureWidth, textureHeight); -- commented out because I don't understand it yet. */ 
 		uint32_t mipLevels = 1;
@@ -113,7 +113,7 @@ namespace vk {
 		vk::util::copyBufferToImage(devicePtr->logical, transferCmdPool,
 			stagingBuffer.GetHandle(),
 			devicePtr->transferQueue.handle,
-			this->mImage, (uint32_t)(textureWidth), (uint32_t)(textureHeight));
+			this->mImage, static_cast<uint32_t>(textureWidth), static_cast<uint32_t>(textureHeight));
 
 		//release transfer queue
 		VkCommandBuffer transferCmd = beginSingleTimeCommand(devicePtr->logical, transferCmdPool);
@@ -144,14 +144,6 @@ namespace vk {
 		submitInfo.commandBufferCount = 1;
 		submitInfo.pCommandBuffers = &transferCmd;
 
-		VkSemaphoreCreateInfo transferSemaphoreCI = {};
-		transferSemaphoreCI.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-		VK_CHECK_RESULT(vkCreateSemaphore(devicePtr->logical, &transferSemaphoreCI, nullptr,
-			&mTransferCompleteSemaphore));
-
-		submitInfo.pSignalSemaphores = &mTransferCompleteSemaphore;
-		submitInfo.signalSemaphoreCount = 1;
-		
 		VkFence transferFence;
 		VkFenceCreateInfo transferFenceCI = {};
 		transferFenceCI.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;

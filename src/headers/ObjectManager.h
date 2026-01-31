@@ -25,6 +25,7 @@ public:
 
 	//Accessors
 	std::map<const char*, std::unique_ptr<Object>, str_cmp>& Objects();
+	std::unique_ptr<TextureManager>& GetTextureManager();
 
 	//Modifiers
 	void SyncIO() const;
@@ -34,11 +35,9 @@ public:
 
 private:
 	std::mutex m_objectMutex;
-	ThreadPool m_threadWorkers;
-
 	vk::Device* c_devicePtr = nullptr;
-
 	std::map<const char*, std::unique_ptr<Object>, str_cmp> m_objects;
 	std::unique_ptr<TextureManager> m_textureManager;
+	ThreadPool m_threadWorkers; //this needs to be destroyed first.
 };
 

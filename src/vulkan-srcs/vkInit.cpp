@@ -253,7 +253,7 @@ namespace vk
 			pipelineLayoutCreateInfo.flags = 0;
 			pipelineLayoutCreateInfo.setLayoutCount = 1;
 			pipelineLayoutCreateInfo.pSetLayouts = &descriptorSetLayout;
-			pipelineLayoutCreateInfo.pushConstantRangeCount = pushConstantRanges.size();
+			pipelineLayoutCreateInfo.pushConstantRangeCount = static_cast<uint32_t>(pushConstantRanges.size());
 			pipelineLayoutCreateInfo.pPushConstantRanges = pushConstantRanges.data();
 
 			VkPipelineLayout nPipelineLayout;
@@ -423,7 +423,7 @@ namespace vk
 		{
 			VkPipelineDynamicStateCreateInfo nInfo = {};
 			nInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
-			nInfo.dynamicStateCount = dynamicStates.size();
+			nInfo.dynamicStateCount = static_cast<uint32_t>(dynamicStates.size());
 			nInfo.pDynamicStates = dynamicStates.data();
 			nInfo.flags = flags;
 			return nInfo;
@@ -448,7 +448,7 @@ namespace vk
 			VkPipelineVertexInputStateCreateInfo vertexInputCreateInfo = vk::init::PipelineVertexInputStateCreateInfo();
 			vertexInputCreateInfo.vertexBindingDescriptionCount = 1; //vertexBindingDescriptionCount
 			vertexInputCreateInfo.pVertexBindingDescriptions = &vBindingDescription,
-				vertexInputCreateInfo.vertexAttributeDescriptionCount = vAttribs.size(); //attribute count
+				vertexInputCreateInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(vAttribs.size()); //attribute count
 			vertexInputCreateInfo.pVertexAttributeDescriptions = vAttribs.data();
 
 			VkPipelineInputAssemblyStateCreateInfo pipelineAssemblyCreateInfo = vk::init::PipelineInputAssemblyStateCreateInfo(primitiveTopology, 0, VK_FALSE);

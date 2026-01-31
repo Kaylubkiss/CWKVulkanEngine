@@ -37,7 +37,7 @@ namespace vk
 				surfaceFormats[i].format == VK_FORMAT_R8G8B8A8_UNORM ||
 				surfaceFormats[i].format == VK_FORMAT_A8B8G8R8_UNORM_PACK32)
 			{
-				surfaceIndex = i;
+				surfaceIndex = static_cast<int>(i);
 				break;
 			}
 		}
@@ -147,7 +147,7 @@ namespace vk
 
 		VkCommandBuffer commandBuffer = devicePtr->CreateCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
 		//transition the image layouts for presentation.
-		for (int i = 0; i < imageCount; ++i) 
+		for (uint32_t i = 0; i < imageCount; ++i)
 		{
 			VkImageMemoryBarrier barrier = {};
 			barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;

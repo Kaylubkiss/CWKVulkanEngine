@@ -24,7 +24,7 @@ namespace vk
 		DeferredContext::InitializeDeferredFramebuffer();
 		DeferredContext::InitializeDeferredShadowFramebuffer();
 		DeferredContext::InitializeDescriptors();
-		DeferredContext::InitializePipeline();
+		DeferredContext::InitializePipeline("","");
 
 		DeferredContext::FillOutGraphicsContextInfo();
 	}
@@ -232,7 +232,7 @@ namespace vk
 		VkDeviceSize offsets[], uint32_t binding_count = 1 )
 	{
 		//get the offsets of each descriptor binding in the layout 
-		for (int i = 0; i < binding_count; ++i)
+		for (uint32_t i = 0; i < binding_count; ++i)
 		{
 			g_vkGetDescriptorSetLayoutBindingOffsetEXT(device->logical, layout, i, &offsets[i]);
 		}
@@ -274,8 +274,8 @@ namespace vk
 
 			VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = vk::init::PipelineLayoutCreateInfo();
 			pipelineLayoutCreateInfo.pSetLayouts = mrt_layouts.data();
-			pipelineLayoutCreateInfo.setLayoutCount = mrt_layouts.size();
-			pipelineLayoutCreateInfo.pushConstantRangeCount = pushConstantRanges.size();
+			pipelineLayoutCreateInfo.setLayoutCount = static_cast<uint32_t>(mrt_layouts.size());
+			pipelineLayoutCreateInfo.pushConstantRangeCount = static_cast<uint32_t>(pushConstantRanges.size());
 			pipelineLayoutCreateInfo.pPushConstantRanges = pushConstantRanges.data();
 			VK_CHECK_RESULT(vkCreatePipelineLayout(device.logical, &pipelineLayoutCreateInfo,
 				nullptr, &pipelineLayouts[dePipeline::MRT]));
@@ -294,7 +294,7 @@ namespace vk
 
 			//set 0: per-frame image resources
 			setLayoutCreateInfo = vk::init::DescriptorSetLayoutCreateInfo(setLayoutBindings.data(),
-				setLayoutBindings.size());
+				static_cast<uint32_t>(setLayoutBindings.size()));
 			setLayoutCreateInfo.flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_DESCRIPTOR_BUFFER_BIT_EXT;
 
 			for (uint32_t i = 0; i < setLayoutBindings.size(); ++i)
@@ -326,7 +326,7 @@ namespace vk
 			
 			VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = vk::init::PipelineLayoutCreateInfo();
 			pipelineLayoutCreateInfo.pSetLayouts = composition_layouts.data();
-			pipelineLayoutCreateInfo.setLayoutCount = composition_layouts.size();
+			pipelineLayoutCreateInfo.setLayoutCount = static_cast<uint32_t>(composition_layouts.size());
 			VK_CHECK_RESULT(vkCreatePipelineLayout(device.logical, &pipelineLayoutCreateInfo,
 				nullptr, &pipelineLayouts[dePipeline::COMPOSITION]));
 		}
@@ -356,9 +356,9 @@ namespace vk
 
 			VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = vk::init::PipelineLayoutCreateInfo();
 			pipelineLayoutCreateInfo.pSetLayouts = shadow_layouts.data();
-			pipelineLayoutCreateInfo.setLayoutCount = shadow_layouts.size();
+			pipelineLayoutCreateInfo.setLayoutCount = static_cast<uint32_t>(shadow_layouts.size());
 			pipelineLayoutCreateInfo.pPushConstantRanges = pushConstantRanges.data();
-			pipelineLayoutCreateInfo.pushConstantRangeCount = pushConstantRanges.size();
+			pipelineLayoutCreateInfo.pushConstantRangeCount = static_cast<uint32_t>(pushConstantRanges.size());
 			VK_CHECK_RESULT(vkCreatePipelineLayout(device.logical, &pipelineLayoutCreateInfo,
 				nullptr, &pipelineLayouts[dePipeline::SHADOW]));
 
@@ -808,7 +808,7 @@ namespace vk
 			vertexInputStateCI.pVertexBindingDescriptions = &vertexBindingDescription;
 			vertexInputStateCI.vertexBindingDescriptionCount = 1;
 			vertexInputStateCI.pVertexAttributeDescriptions = vertexInputAttributeDescriptions.data();
-			vertexInputStateCI.vertexAttributeDescriptionCount = vertexInputAttributeDescriptions.size();
+			vertexInputStateCI.vertexAttributeDescriptionCount = static_cast<uint32_t>(vertexInputAttributeDescriptions.size());
 
 			pipelineCI.pVertexInputState = &vertexInputStateCI;
 
@@ -846,7 +846,7 @@ namespace vk
 
 					VkPipelineColorBlendStateCreateInfo colorBlendStateCI = vk::init::PipelineColorBlendStateCreateInfo
 					(
-						blendAttachmentStates.size(), blendAttachmentStates.data()
+						static_cast<uint32_t>(blendAttachmentStates.size()), blendAttachmentStates.data()
 					);
 
 					std::vector<VkDynamicState> dynamicStates = { VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR };
@@ -863,7 +863,8 @@ namespace vk
 					vertexInputStateCI.pVertexBindingDescriptions = &vertexBindingDescription;
 					vertexInputStateCI.vertexBindingDescriptionCount = 1;
 					vertexInputStateCI.pVertexAttributeDescriptions = vertexInputAttributeDescriptions.data();
-					vertexInputStateCI.vertexAttributeDescriptionCount = vertexInputAttributeDescriptions.size();
+					vertexInputStateCI.vertexAttributeDescriptionCount =
+						static_cast<uint32_t>(vertexInputAttributeDescriptions.size());
 
 					std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages;
 
@@ -950,7 +951,7 @@ namespace vk
 
 	void DeferredContext::RecordCommandBuffers()
 	{
-		ObjectManager& objManager = _Application->GetObjectManager();
+		ObjectManager& objManager = *_Application->GetObjectManager().get();
 
 		VkCommandBuffer cmdBuffer = commandBuffers[currentFrame];
 		VkCommandBufferBeginInfo cmdBufferBeginInfo = vk::init::CommandBufferBeginInfo();
@@ -991,7 +992,7 @@ namespace vk
 				uniformBindingDescriptors[dePipeline::SHADOW].buffers[currentFrame].GetDeviceAddress();
 			descriptor_buffer_binding_info[0].usage = VK_BUFFER_USAGE_RESOURCE_DESCRIPTOR_BUFFER_BIT_EXT;
 
-			g_vkCmdBindDescriptorBuffersEXT(cmdBuffer, descriptor_buffer_binding_info.size(),
+			g_vkCmdBindDescriptorBuffersEXT(cmdBuffer, static_cast<uint32_t>(descriptor_buffer_binding_info.size()),
 				descriptor_buffer_binding_info.data());
 
 			uint32_t buffer_index_ubo = 0;
@@ -1047,7 +1048,7 @@ namespace vk
 			descriptor_buffer_binding_info[1].usage = VK_BUFFER_USAGE_SAMPLER_DESCRIPTOR_BUFFER_BIT_EXT |
 				VK_BUFFER_USAGE_RESOURCE_DESCRIPTOR_BUFFER_BIT_EXT;
 
-			g_vkCmdBindDescriptorBuffersEXT(cmdBuffer, descriptor_buffer_binding_info.size(),
+			g_vkCmdBindDescriptorBuffersEXT(cmdBuffer, static_cast<uint32_t>(descriptor_buffer_binding_info.size()),
 				descriptor_buffer_binding_info.data());
 
 			uint32_t buffer_index_ubo = 0;
@@ -1105,7 +1106,7 @@ namespace vk
 			descriptor_buffer_binding_info[1].address =
 				uniformBindingDescriptors[dePipeline::COMPOSITION].buffers[currentFrame].GetDeviceAddress();
 			descriptor_buffer_binding_info[1].usage = VK_BUFFER_USAGE_RESOURCE_DESCRIPTOR_BUFFER_BIT_EXT;
-			g_vkCmdBindDescriptorBuffersEXT(cmdBuffer, descriptor_buffer_binding_info.size(),
+			g_vkCmdBindDescriptorBuffersEXT(cmdBuffer, static_cast<uint32_t>(descriptor_buffer_binding_info.size()),
 				descriptor_buffer_binding_info.data());
 
 			uint32_t buffer_index_images = 0;

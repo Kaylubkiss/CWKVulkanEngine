@@ -42,7 +42,7 @@ struct Mesh
 	std::string m_name;
 	std::vector<Primitive> m_primitives;
 	Mesh() = default;
-	Mesh(const std::string& name, const std::vector<Primitive>& primitives)
+	Mesh( const std::string& name, const std::vector<Primitive>& primitives )
 	{
 		m_name = name;
 		m_primitives = primitives;
@@ -55,6 +55,8 @@ namespace vk
 {
 	class Buffer;
 	class Device;
+
+	static std::mutex g_textureProcessMutex;
 
 	struct DescriptorBufferData //240 BYTES!!!
 	{
@@ -86,6 +88,7 @@ namespace vk
 		vk::Device* devicePtr = nullptr;
 		UserInterface* contextUIPtr = nullptr;
 		DescriptorBufferData* contextTextureDescriptorPtr = nullptr;
+		VkSemaphore textureProcessSemaphore = VK_NULL_HANDLE;
 	};
 
 	//This allows the user to pass in relevant arguments to draw an object.
@@ -101,10 +104,10 @@ namespace vk
 	};
 
 
-	VkCommandBuffer beginSingleTimeCommand(const VkDevice l_device, const VkCommandPool cmdPool);
+	VkCommandBuffer beginSingleTimeCommand( const VkDevice l_device, const VkCommandPool cmdPool );
 
-	void endSingleTimeCommand(const VkDevice l_device, VkCommandBuffer commandBuffer,
-		const VkCommandPool cmdPool, const VkQueue gfxQueue);
+	void endSingleTimeCommand( const VkDevice l_device, VkCommandBuffer commandBuffer,
+		const VkCommandPool cmdPool, const VkQueue gfxQueue );
 }
 
 

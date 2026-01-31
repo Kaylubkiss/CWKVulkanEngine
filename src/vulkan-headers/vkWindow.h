@@ -21,7 +21,7 @@ namespace vk
 
 		void UpdateExtents(const VkExtent2D& area);
 
-		VkExtent2D Extents();
+		VkExtent2D Extents() const;
 	};
 
 }

@@ -45,13 +45,13 @@ void PhysicsSystem::Update(float dt)
 
 }
 
-PhysicsWorld* PhysicsSystem::World()
+PhysicsWorld* PhysicsSystem::World() const
 {
 	return this->mPhysicsWorld;
 
 }
 
-float PhysicsSystem::InterpFactor()
+float PhysicsSystem::InterpFactor() const
 {
 	return this->interpFactor;
 }

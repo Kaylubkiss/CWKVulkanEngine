@@ -21,7 +21,7 @@ ObjectManager::ObjectManager( vk::GraphicsContextInfo& contextInfo )
 {
 	assert(contextInfo.devicePtr != nullptr);
 
-	m_threadWorkers.Init(2);
+	m_threadWorkers.Init(1);
 
 	m_textureManager = std::make_unique<TextureManager>(contextInfo);
 
@@ -45,6 +45,11 @@ void ObjectManager::Update(float dt) const
 std::map<const char*, std::unique_ptr<Object>, str_cmp>& ObjectManager::Objects()
 {
 	return m_objects;
+}
+
+std::unique_ptr<TextureManager>& ObjectManager::GetTextureManager()
+{
+	return m_textureManager;
 }
 
 void ObjectManager::DrawObjects( const vk::DrawInfo& drawInfo ) const

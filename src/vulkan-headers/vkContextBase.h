@@ -10,7 +10,6 @@ namespace vk
 {
 	class ContextBase
 	{
-		
 	public:
 		ContextBase(); /* expect this to be derived from */
 		virtual ~ContextBase();
@@ -19,16 +18,16 @@ namespace vk
 		virtual void RecordCommandBuffers() = 0;
 		virtual void UpdateUI() = 0;
 		virtual void ResizeWindowDerived() = 0;
-		virtual void InitializeScene(ObjectManager* objManager) = 0;
+		virtual void InitializeScene( ObjectManager* objManager ) = 0;
 
-		GraphicsContextInfo GetGraphicsContextInfo();
+		GraphicsContextInfo GetGraphicsContextInfo() const;
 
 		//public virtual function(s)
 		virtual void Render() = 0;
 
 		//getter(s)
-		const VkPhysicalDevice PhysicalDevice() const;
-		const VkDevice LogicalDevice() const;
+		[[nodiscard]] VkPhysicalDevice PhysicalDevice() const;
+		[[nodiscard]] VkDevice LogicalDevice() const;
 
 		Camera& GetCamera();
 		vk::Window& GetWindow();
@@ -41,7 +40,7 @@ namespace vk
 	protected:
 		bool PrepareFrame();
 		//more pure virtual function(s)
-		virtual void InitializePipeline(std::string vsFile = "", std::string fsFile = "") = 0;
+		virtual void InitializePipeline( std::string vsFile, std::string fsFile ) = 0;
 		virtual void InitializeDescriptors() = 0;
 		//non-pure virtual functions
 		virtual void InitializeRenderPass();
@@ -51,7 +50,6 @@ namespace vk
 		void CreateInstance();
 		void CreateSynchronizationPrimitives();
 	protected:
-
 		GraphicsContextInfo mInfo;//this is for textureManager and potentially any other discrete systems.
 		//WARNING: context specific!!!
 
@@ -63,35 +61,25 @@ namespace vk
 			VkDebugUtilsMessengerEXT debugMessenger = nullptr;
 		} settings;
 
-		vk::Window window;
-
 		VkInstance instance = VK_NULL_HANDLE;
+		VkRenderPass renderPass = VK_NULL_HANDLE;
 
+		vk::Window window;
 		vk::Device device;
-
-		VkDescriptorPool descriptorPool = VK_NULL_HANDLE;
+		vk::SwapChain swapChain;
+		vk::PipelineManager pipelineManager;
 
 		uint32_t currentFrame = 0;
 		uint32_t currentImageIndex = 0;
 
 		std::array<VkCommandBuffer, gMaxFramesInFlight> commandBuffers;
-
 		std::array<VkSemaphore, gMaxFramesInFlight> presentCompleteSemaphores;
 		std::array<VkSemaphore, gMaxFramesInFlight> renderCompleteSemaphores;
-
 		std::array<VkFence, gMaxFramesInFlight> inFlightFences;
 
-		vk::SwapChain swapChain;
-
-		vk::PipelineManager pipelineManager;
-
-		VkRenderPass renderPass = VK_NULL_HANDLE;
-
 		float FOV = 45.f;
+
 		Camera mCamera;
 		UserInterface UIOverlay;
-
-
-
 	};
 }	

@@ -8,8 +8,6 @@ Object::Object( const ObjectCreateInfo& objectCI, TextureManager& textureManager
     
     std::filesystem::path filePath(std::string(objectCI.objName));
 
-
-
     if (filePath.extension() == ".gltf")
     {
         filePath = GLTF_OBJECT_PATH + filePath.string();

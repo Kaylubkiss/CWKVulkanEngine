@@ -105,8 +105,6 @@ namespace vk
 
 		for (size_t i = 0; i < attachments.size(); ++i) 
 		{
-			VkAttachmentReference attachmentReference;
-
 			if (attachments[i].flags & VKC_ATTACHMENT_IS_DEPTH_STENCIL)
 			{
 				if (depthReference.layout != VK_IMAGE_LAYOUT_UNDEFINED)
@@ -114,14 +112,14 @@ namespace vk
 					throw std::runtime_error("more than 1 depth attachment in framebuffer\n");
 				}
 
-				depthReference.attachment = i;
+				depthReference.attachment = static_cast<uint32_t>(i);
 				depthReference.layout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_STENCIL_READ_ONLY_OPTIMAL; 
 
 			}
 			else if (attachments[i].flags & VKC_ATTACHMENT_IS_COLOR)
 			{
 				VkAttachmentReference colorReference = {};
-				colorReference.attachment = i;
+				colorReference.attachment = static_cast<uint32_t>(i);
 				colorReference.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
 				colorReferences.push_back(colorReference);
@@ -167,7 +165,7 @@ namespace vk
 
 		//initialize the subpass
 		VkSubpassDescription subpass = {};
-		subpass.colorAttachmentCount = colorReferences.size();
+		subpass.colorAttachmentCount = static_cast<uint32_t>(colorReferences.size());
 		subpass.pColorAttachments = colorReferences.data();
 
 		if (depthReference.layout != VK_IMAGE_LAYOUT_UNDEFINED) 
@@ -179,9 +177,9 @@ namespace vk
 		createInfo.pSubpasses = &subpass;
 		createInfo.subpassCount = 1;
 		createInfo.pAttachments = attachmentDescriptions.data();
-		createInfo.attachmentCount = attachmentDescriptions.size();
+		createInfo.attachmentCount = static_cast<uint32_t>(attachmentDescriptions.size());
 		createInfo.pDependencies = dependencies.data();
-		createInfo.dependencyCount = dependencies.size();
+		createInfo.dependencyCount = static_cast<uint32_t>(dependencies.size());
 
 
 		VK_CHECK_RESULT(vkCreateRenderPass(contextDevice->logical, &createInfo, nullptr, &renderPass));
@@ -201,7 +199,7 @@ namespace vk
 			imageViews[i] = attachments[i].imageView;
 		}
 
-		framebufferCI.attachmentCount = imageViews.size();
+		framebufferCI.attachmentCount = static_cast<uint32_t>(imageViews.size());
 		framebufferCI.pAttachments = imageViews.data();
 		framebufferCI.renderPass = renderPass;
 		

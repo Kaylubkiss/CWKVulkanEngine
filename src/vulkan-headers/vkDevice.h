@@ -24,19 +24,19 @@ namespace vk
 	public:
 		Device() = default;
 		~Device() = default;
-		void Init(VkInstance instance, VkSurfaceKHR surface);
+		void Init( VkInstance instance, VkSurfaceKHR surface );
 		void Destroy();
 		//functionality
-		uint32_t GetMemoryType(uint32_t typeBits, VkMemoryPropertyFlags properties);
+		uint32_t GetMemoryType( uint32_t typeBits, VkMemoryPropertyFlags properties );
 		VkPhysicalDeviceDescriptorBufferPropertiesEXT DescriptorBufferProperties() const;
-		Buffer CreateBuffer(size_t size, VkBufferUsageFlags usage, VkMemoryPropertyFlags flags, void* data);
-		VkCommandBuffer CreateCommandBuffer(VkCommandBufferLevel level, bool begin);
-		void FlushCommandBuffer(VkCommandBuffer cmdBuffer, VkQueue queue, VkCommandPool pool, bool free);
+		Buffer CreateBuffer( size_t size, VkBufferUsageFlags usage, VkMemoryPropertyFlags flags, void* data );
+		VkCommandBuffer CreateCommandBuffer( VkCommandBufferLevel level, bool begin );
+		void FlushCommandBuffer( VkCommandBuffer cmdBuffer, VkQueue queue, VkCommandPool pool, bool free );
 		void AddExtension(const char* name);
 	//helpers
 	private:
-		void FindPhysicalDevices(VkInstance instance);
-		void FindQueueFamilies(VkSurfaceKHR windowSurface);
+		void FindPhysicalDevices( VkInstance instance );
+		void FindQueueFamilies( VkSurfaceKHR windowSurface );
 		void InitializeLogicalDevice();
 		void CheckRequestedExtensions();
 	private:

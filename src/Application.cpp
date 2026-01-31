@@ -16,9 +16,9 @@ vk::ContextBase* Application::Context() {
 	return m_graphicsContext.get();
 }
 
-ObjectManager& Application::GetObjectManager()
+std::unique_ptr<ObjectManager>& Application::GetObjectManager()
 {
-	return *m_objectManager.get();
+	return m_objectManager;
 }
 
 
@@ -39,7 +39,7 @@ void Application::init()
 {
 	m_graphicsContext = std::make_unique<vk::DeferredContext>();
 
-	vk::GraphicsContextInfo contextInfo = m_graphicsContext.get()->GetGraphicsContextInfo();
+	vk::GraphicsContextInfo contextInfo = m_graphicsContext->GetGraphicsContextInfo();
 	m_objectManager = std::make_unique<ObjectManager>(contextInfo);
 	
 	m_graphicsContext->InitializeScene(m_objectManager.get());
@@ -48,7 +48,7 @@ void Application::init()
 }
 
 
-const Timer& Application::GetTime()
+const Timer& Application::GetTime() const
 {
 	return this->mTime;
 }
@@ -120,13 +120,11 @@ void Application::loop()
 		//render graphics.
 		while (exitApplication == false)
 		{
-			m_objectManager->SyncIO();
-
 			double dt = mTime.CalculateDeltaTime();
 
-			Controller::MoveCamera(m_graphicsContext->GetCamera(), dt);
+			Controller::MoveCamera(m_graphicsContext->GetCamera(), static_cast<float>(dt));
 
-			mPhysics.Update(dt);
+			mPhysics.Update(static_cast<float>(dt));
 
 			m_objectManager->Update(mPhysics.InterpFactor());
 

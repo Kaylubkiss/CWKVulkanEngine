@@ -18,13 +18,11 @@ class TextureManager
 	private:
 		std::mutex m_textureMutex;
 		vk::GraphicsContextInfo m_graphicsContextInfo = {};
-
 		struct TextureInfo
 		{
 			std::shared_ptr<vk::Texture> handle;
 			uint32_t index = 0;
 		};
-
 		std::unordered_map<std::string, TextureInfo> m_textures;
 		std::vector<TextureInfo> m_pendingTextures; //textures that need to finish their layout transition.
 };

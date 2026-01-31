@@ -8,7 +8,7 @@
 namespace vk 
 {
 	
-	void Device::Init(VkInstance instance, VkSurfaceKHR windowSurface) 
+	void Device::Init( VkInstance instance, VkSurfaceKHR windowSurface )
 	{
 		assert(instance != VK_NULL_HANDLE && windowSurface != VK_NULL_HANDLE);
 
@@ -105,7 +105,7 @@ namespace vk
 			{
 				std::cout << "picked device " << i << '\n';
 
-				g_index = i;
+				g_index = static_cast<int>(i);
 				break;
 			}
 		}
@@ -119,7 +119,7 @@ namespace vk
 
 	}
 
-	void Device::FindQueueFamilies(VkSurfaceKHR windowSurface) 
+	void Device::FindQueueFamilies( VkSurfaceKHR windowSurface )
 	{
 		uint32_t queueFamilyPropertyCount;
 		std::vector<VkQueueFamilyProperties> queueFamilies;
@@ -301,7 +301,8 @@ namespace vk
 		}
 	}
 
-	uint32_t Device::GetMemoryType(uint32_t typeBits, VkMemoryPropertyFlags properties) {
+	uint32_t Device::GetMemoryType( uint32_t typeBits, VkMemoryPropertyFlags properties )
+	{
 
 		for (uint32_t i = 0; i < this->memoryProperties.memoryTypeCount; ++i)
 		{
@@ -325,12 +326,12 @@ namespace vk
 		return descriptorBufferProperties;
 	}
 
-	Buffer Device::CreateBuffer(size_t size, VkBufferUsageFlags usage, VkMemoryPropertyFlags flags, void* data) 
+	Buffer Device::CreateBuffer( size_t size, VkBufferUsageFlags usage, VkMemoryPropertyFlags flags, void* data )
 	{
 		return Buffer(this, usage, flags, size, data);
 	}
 
-	VkCommandBuffer Device::CreateCommandBuffer(VkCommandBufferLevel level, bool begin) 
+	VkCommandBuffer Device::CreateCommandBuffer( VkCommandBufferLevel level, bool begin )
 	{
 
 		VkCommandBufferAllocateInfo cmdBufAllocateInfo = vk::init::CommandBufferAllocateInfo();
@@ -350,7 +351,7 @@ namespace vk
 		return cmdBuffer;
 	}
 
-	void Device::FlushCommandBuffer(VkCommandBuffer cmdBuffer, VkQueue queue, VkCommandPool pool, bool free) 
+	void Device::FlushCommandBuffer( VkCommandBuffer cmdBuffer, VkQueue queue, VkCommandPool pool, bool free )
 	{
 		//create a fence, submit the work to the gpu, and then delete the fence and free the command buffer
 		VkSubmitInfo submitInfo = vk::init::SubmitInfo();
@@ -377,7 +378,7 @@ namespace vk
 
 	}
 
-	void Device::AddExtension(const char* name) 
+	void Device::AddExtension( const char* name )
 	{
 		//gotta save memory.
 		for (auto& extension : requestedExtensions) 

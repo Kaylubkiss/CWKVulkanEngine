@@ -83,9 +83,8 @@ namespace vk
 			swapChain.Destroy();
 			UIOverlay.Destroy();
 
-			vkDestroyDescriptorPool(device.logical, this->descriptorPool, nullptr);
-
-			vkFreeCommandBuffers(device.logical, this->device.commandPool, this->commandBuffers.size(), this->commandBuffers.data());
+			vkFreeCommandBuffers(device.logical, this->device.commandPool,
+				static_cast<uint32_t>(this->commandBuffers.size()), this->commandBuffers.data());
 			vkDestroyCommandPool(device.logical, this->device.commandPool, nullptr);
 
 			//semaphores
@@ -96,6 +95,8 @@ namespace vk
 
 				vkDestroyFence(device.logical, inFlightFences[i], nullptr);
 			}
+
+			vkDestroySemaphore(device.logical, mInfo.textureProcessSemaphore, nullptr);
 
 			device.Destroy();
 
@@ -138,10 +139,11 @@ namespace vk
 
 		extensionNames.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
 		
-		createInfo.enabledExtensionCount = extensionNames.size();
+		createInfo.enabledExtensionCount = static_cast<uint32_t>(extensionNames.size());
 		createInfo.ppEnabledExtensionNames = extensionNames.data();
 
-		if (!vk::util::CheckInstanceExtensionSupport(extensionNames.data(), static_cast<int>(extensionNames.size()))) 
+		if (!vk::util::CheckInstanceExtensionSupport(extensionNames.data(),
+			static_cast<int>(extensionNames.size())))
 		{
 			throw std::runtime_error("one or more instance extensions are not supported\n");
 		}
@@ -152,7 +154,8 @@ namespace vk
 			std::vector<const char*> instanceLayers;
 			instanceLayers.push_back("VK_LAYER_KHRONOS_validation");
 
-			if (!vk::util::CheckInstanceLayerSupport(instanceLayers.data(), instanceLayers.size()))
+			if (!vk::util::CheckInstanceLayerSupport(instanceLayers.data(),
+				static_cast<int>(instanceLayers.size())))
 			{
 				throw std::runtime_error("one or more layers are not supported\n");
 			}
@@ -166,7 +169,8 @@ namespace vk
 			VK_CHECK_RESULT(vkCreateInstance(&createInfo, nullptr, &this->instance));
 
 			//create messenger object handle that actually calls debugCallback.
-			auto func = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
+			auto func = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance,
+				"vkCreateDebugUtilsMessengerEXT");
 
 			if (func != nullptr) 
 			{
@@ -318,20 +322,20 @@ namespace vk
 
 		//color writing/reading dependencies. This is to ensure that the color attachment read/writes are finished before subpass 0 begins and uses them again for reading/writing.
 		dependencies[1].srcSubpass = VK_SUBPASS_EXTERNAL;
-		dependencies[1].dstSubpass = 0;
+		dependencies[1].dstSubpass = static_cast<uint32_t>(0);
 		dependencies[1].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
 		dependencies[1].dstStageMask = dependencies[1].srcStageMask;
 		dependencies[1].srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT; //this can also be 0
 		dependencies[1].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_COLOR_ATTACHMENT_READ_BIT;
-		dependencies[1].dependencyFlags = 0;
+		dependencies[1].dependencyFlags = static_cast<uint32_t>(0);
 
 		VkRenderPassCreateInfo renderPassCI = {};
 		renderPassCI.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-		renderPassCI.attachmentCount = attachments.size();
+		renderPassCI.attachmentCount = static_cast<uint32_t>(attachments.size());
 		renderPassCI.pAttachments = attachments.data();
 		renderPassCI.subpassCount = 1;
 		renderPassCI.pSubpasses = &subpassDescription;
-		renderPassCI.dependencyCount = dependencies.size();
+		renderPassCI.dependencyCount = static_cast<uint32_t>(dependencies.size());
 		renderPassCI.pDependencies = dependencies.data();
 
 		VK_CHECK_RESULT(vkCreateRenderPass(device.logical, &renderPassCI, nullptr, &renderPass));
@@ -346,15 +350,19 @@ namespace vk
 		{
 			mInfo.contextUIPtr = &UIOverlay;
 		}
+
+		VkSemaphoreCreateInfo semaphoreCI = {};
+		semaphoreCI.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+		vkCreateSemaphore(device.logical, &semaphoreCI, nullptr, &mInfo.textureProcessSemaphore);
 	}
 
 	//getter(s)
-	const VkPhysicalDevice ContextBase::PhysicalDevice() const 
+	VkPhysicalDevice ContextBase::PhysicalDevice() const
 	{
 		return this->device.physical;
 	}
 
-	const VkDevice ContextBase::LogicalDevice() const 
+	VkDevice ContextBase::LogicalDevice() const
 	{
 		return this->device.logical;
 	}
@@ -369,7 +377,7 @@ namespace vk
 		return this->window;
 	}
 
-	GraphicsContextInfo ContextBase::GetGraphicsContextInfo() 
+	GraphicsContextInfo ContextBase::GetGraphicsContextInfo() const
 	{
 		return mInfo;
 	}
@@ -433,16 +441,22 @@ namespace vk
 	void ContextBase::SubmitFrame() 
 	{
 		VkSubmitInfo submitInfo = {};
-		const VkPipelineStageFlags pipelineWaitStages = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
 		submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-		submitInfo.waitSemaphoreCount = 1;
-		submitInfo.pWaitSemaphores = &presentCompleteSemaphores[currentFrame];
-		submitInfo.pWaitDstStageMask = &pipelineWaitStages;
+		std::vector<VkPipelineStageFlags> pipelineWaitStages = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
+		std::vector<VkSemaphore> waitSemaphores = {presentCompleteSemaphores[currentFrame]};
+		submitInfo.waitSemaphoreCount = static_cast<uint32_t>(waitSemaphores.size());
+		submitInfo.pWaitSemaphores = waitSemaphores.data();
+		submitInfo.pWaitDstStageMask = pipelineWaitStages.data();
 		submitInfo.signalSemaphoreCount = 1;
 		submitInfo.pSignalSemaphores = &renderCompleteSemaphores[currentImageIndex];
 		submitInfo.commandBufferCount = 1;
 		submitInfo.pCommandBuffers = &this->commandBuffers[currentFrame];
-		VK_CHECK_RESULT(vkQueueSubmit(this->device.graphicsQueue.handle, 1, &submitInfo, inFlightFences[currentFrame]))
+
+		{
+			std::lock_guard<std::mutex> lock(g_textureProcessMutex);
+			VK_CHECK_RESULT(vkQueueSubmit(this->device.graphicsQueue.handle, 1, &submitInfo,
+				inFlightFences[currentFrame]))
+		}
 
 		VkPresentInfoKHR presentInfo{};
 		presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
@@ -451,7 +465,13 @@ namespace vk
 		presentInfo.pImageIndices = &currentImageIndex;
 		presentInfo.swapchainCount = 1;
 		presentInfo.pSwapchains = &this->swapChain.handle;
-		VkResult result = vkQueuePresentKHR(this->device.presentQueue.handle, &presentInfo);
+		VkResult result;
+
+		{
+			std::lock_guard<std::mutex> lock(g_textureProcessMutex);
+			result = vkQueuePresentKHR(this->device.presentQueue.handle, &presentInfo);
+		}
+
 		if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
 		{
 			//ResizeWindow();
