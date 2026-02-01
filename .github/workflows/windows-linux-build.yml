@@ -30,6 +30,15 @@ jobs:
         with:
           submodules: recursive
 
+      - name: Set up python for SPIRV-Tools
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Run the Python dependency script in shaderc
+        run: python ${{github.workspace}}/extern/shaderc/utils/git-sync-deps
+
+
       - name: Install the Vulkan SDK
         uses: humbletim/install-vulkan-sdk@v1.2
         with:
