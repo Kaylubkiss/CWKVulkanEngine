@@ -44,12 +44,6 @@ jobs:
           version: 1.4.309.0
           cache: true
 
-      - name: Reusable strings for building
-        id: strings
-        shell: bash
-        run: |
-          echo "build-output-dir=${{ github.workspace }}/build" >> "$GITHUB_OUTPUT"
-
       - name: Setup Ninja
         uses: ashutoshvarma/setup-ninja@master
         with:
