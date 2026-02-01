@@ -1,4 +1,4 @@
-name: cross-platform build between Ubuntu and Windows
+name: Ubuntu and Windows Build
 on:
   push:
     branches:
