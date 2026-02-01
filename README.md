@@ -89,9 +89,7 @@ An IDE is <em>highly</em> recommended for development:
   <li>Start Coding</li>
 </ol> 
 
-# Works In Progress (Updated 11/5/25)
+# Works In Progress (Updated 01/31/2026)
 <ul>
-  <li><a href="https://www.khronos.org/gltf/">GLTF</a> loading in order to implement materials, animation, and faster runtime loading, on top of a more streamlined asset pipeline. The current format integrated is <em>.obj</em>, and was for a long time so I could focus on learning the basics of Vulkan Rendering. 
-    
-Right now I am working with the <a href="https://github.com/spnda/fastgltf">fastgltf</a> library to get the most out of the format and fulfill the performance goals of this project.</li>
+  <li>Animation and Material support through <em>.glTF</em> specifications and shading</li>
 </ul>
