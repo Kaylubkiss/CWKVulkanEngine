@@ -50,6 +50,11 @@ jobs:
         run: |
           echo "build-output-dir=${{ github.workspace }}/build" >> "$GITHUB_OUTPUT"
 
+      - name: Setup Ninja
+        uses: ashutoshvarma/setup-ninja@master
+        with:
+          version: 1.10.0
+
       - name: Configure and build CMake with Ninja
         uses: ashutoshvarma/action-cmake-build@master
         with:
