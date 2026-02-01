@@ -1,6 +1,6 @@
 # Caleb's Custom Vulkan Graphics Engine
 
-[![Ubuntu and Windows Build](https://github.com/Kaylubkiss/CWKVulkanEngine/actions/workflows/windows-linux-build.yml/badge.svg?branch=dev)](https://github.com/Kaylubkiss/CWKVulkanEngine/actions/workflows/windows-linux-build.yml)
+[![Ubuntu and Windows Build](https://github.com/Kaylubkiss/CWKVulkanEngine/actions/workflows/windows-linux-build.yml/badge.svg)](https://github.com/Kaylubkiss/CWKVulkanEngine/actions/workflows/windows-linux-build.yml)
 
 Hi, welcome to my Github page! As of September 25th, 2025, I've made this repository public for all to see my progress! There'll be lots of updates in the coming weeks, months, maybe even years!
 
