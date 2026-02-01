@@ -45,13 +45,13 @@ void PhysicsSystem::Update(float dt)
 
 }
 
-PhysicsWorld* PhysicsSystem::World()
+PhysicsWorld* PhysicsSystem::World() const
 {
 	return this->mPhysicsWorld;
 
 }
 
-float PhysicsSystem::InterpFactor()
+float PhysicsSystem::InterpFactor() const
 {
 	return this->interpFactor;
 }
@@ -74,9 +74,4 @@ reactphysics3d::CapsuleShape* PhysicsSystem::CreateCapsuleShape(float radius, fl
 reactphysics3d::BoxShape* PhysicsSystem::CreatePlaneShape(const reactphysics3d::Vector2 extent)
 {
 	return mPhysicsCommon.createBoxShape({ extent.x, 1.0, extent.y });
-}
-
-void PhysicsComponent::SetRayCastHit(bool set) 
-{
-	this->rayCastHit = set;	
 }

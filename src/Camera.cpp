@@ -1,8 +1,7 @@
 #include "Camera.h"
-#include <glm/gtx/rotate_vector.hpp>
 
-
-Camera::Camera(const glm::vec3& eye, const glm::vec3& lookDirection, const glm::vec3& up) : mEye(eye), mLookDir(lookDirection), mUpVector(up) 
+Camera::Camera(const glm::vec3& eye, const glm::vec3& lookDirection, const glm::vec3& up) :
+	mEye(eye), mLookDir(lookDirection), mUpVector(up)
 {
 
 	glm::mat4 lookAt = Camera::LookAt();
@@ -67,7 +66,8 @@ void Camera::MoveLeft()
 {
 	isUpdate = true;
 	
-	reactphysics3d::Vector3 velocity = reactphysics3d::Vector3(mLookDir.x, 0, mLookDir.z).cross({ mUpVector.x, mUpVector.y, mUpVector.z });
+	reactphysics3d::Vector3 velocity = reactphysics3d::Vector3(mLookDir.x,
+		0, mLookDir.z).cross({ mUpVector.x, mUpVector.y, mUpVector.z });
 	
 	this->accumulatedVelocity += velocity;
 }
@@ -76,7 +76,8 @@ void Camera::MoveRight()
 {
 	isUpdate = true;
 	
-	reactphysics3d::Vector3 velocity = -reactphysics3d::Vector3(mLookDir.x, 0, mLookDir.z).cross({mUpVector.x, mUpVector.y, mUpVector.z});
+	reactphysics3d::Vector3 velocity =
+		-reactphysics3d::Vector3(mLookDir.x, 0, mLookDir.z).cross({mUpVector.x, mUpVector.y, mUpVector.z});
 
 	this->accumulatedVelocity += velocity;
 }

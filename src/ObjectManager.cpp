@@ -1,84 +1,58 @@
 #include "ObjectManager.h"
-#include "ThreadPool.h"
-#include "vkInit.h"
-#include "vkUtility.h"
 
-namespace vk
+
+void ObjectManager::LoadObject( const ObjectCreateInfo& objectCI )
 {
-
-	void ObjectManager::LoadObject(const ObjectCreateInfo& objectCI)
+	std::function<void()> parallelFunction = [this, objectCI]()
 	{
-		Object* newObject = new Object(objectCI.devicePtr);
-		//just get the texture now to avoid asynchronous issues.
-		this->textureSys->BindTextureToObject(objectCI.textureFileName, *newObject);
+		//note: m_textureManager is also internally thread safe.
+		auto newObject = std::make_unique<Object>(objectCI, *m_textureManager.get());
 
-		ObjectCreateInfo deepyCopyCI = objectCI;
-		deepyCopyCI.pModelTransform = objectCI.pModelTransform ? new glm::mat4(*objectCI.pModelTransform) : nullptr;
-		deepyCopyCI.pPhysicsComponent = objectCI.pPhysicsComponent ? new PhysicsComponent(*objectCI.pPhysicsComponent) : nullptr;
-
-		std::function<void()> parallelFunction = [this, deepyCopyCI, newObject]() {
-			Mesh nMesh;
-			nMesh.LoadOBJMesh((OBJECT_PATH + std::string(deepyCopyCI.objName)).c_str());
-
-			newObject->UpdateMesh(&nMesh);
-			newObject->UpdateModelTransform(deepyCopyCI.pModelTransform);
-			newObject->UpdatePhysicsComponent(deepyCopyCI.pPhysicsComponent);
-
-			objects[deepyCopyCI.objName].obj = newObject;
-
-			delete deepyCopyCI.pModelTransform;
-			delete deepyCopyCI.pPhysicsComponent;
-			};
-
-		mThreadWorkers.EnqueueTask(parallelFunction);
-	}
-
-	ObjectManager::ObjectManager() 
-	{
-		this->mThreadWorkers.Init(2);
-	}
-
-	void ObjectManager::Init(TextureManager* textureManager, VkPhysicalDevice physicalDevice, VkDevice device)
-	{
-		assert(physicalDevice != VK_NULL_HANDLE);
-		assert(device != VK_NULL_HANDLE);
-		assert(textureManager != nullptr);
-
-		this->textureSys = textureManager;
-		this->physicalDevice = physicalDevice;
-		this->logicalDevice = device;
-	}
-
-	void ObjectManager::Destroy(const VkDevice l_device) 
-	{
-		this->mThreadWorkers.Terminate();
-
-		for (auto& obj : objects)
 		{
-			Object* curr_obj = obj.second.obj;
-
-			if (curr_obj != nullptr)
-			{
-				curr_obj->Destroy(l_device);
-			}
+			std::unique_lock<std::mutex> lock(m_objectMutex);
+			m_objects[objectCI.objName] = std::move(newObject);
 		}
-	}
+	};
 
-	void ObjectManager::Update(float dt) 
+	m_threadWorkers.EnqueueTask(parallelFunction);
+}
+
+ObjectManager::ObjectManager( vk::GraphicsContextInfo& contextInfo )
+{
+	assert(contextInfo.devicePtr != nullptr);
+
+	m_threadWorkers.Init(2);
+
+	m_textureManager = std::make_unique<TextureManager>(contextInfo);
+
+	c_devicePtr = contextInfo.devicePtr;
+}
+
+
+void ObjectManager::Update(float dt) const
+{
+	for (auto& obj : m_objects)
 	{
-		for (auto& obj : objects)
-		{
-			Object* curr_obj = obj.second.obj;
-			curr_obj->Update(dt);
-		}
+		Object* curr_obj = obj.second.get();
+		curr_obj->Update(dt);
 	}
+}
 
-	void ObjectManager::DrawObjects(VkCommandBuffer cmdBuffer, VkPipelineLayout pipelineLayout)
+std::map<const char*, std::unique_ptr<Object>, str_cmp>& ObjectManager::Objects()
+{
+	return m_objects;
+}
+
+std::unique_ptr<TextureManager>& ObjectManager::GetTextureManager()
+{
+	return m_textureManager;
+}
+
+void ObjectManager::DrawObjects( const vk::DrawInfo& drawInfo ) const
+{
+	for (auto& obj : m_objects)
 	{
-		for (auto& obj : objects)
-		{
-			Object* curr_obj = obj.second.obj;
-			curr_obj->Draw(cmdBuffer, pipelineLayout);
-		}
+		Object* curr_obj = obj.second.get();
+		curr_obj->Draw(drawInfo);
 	}
 }

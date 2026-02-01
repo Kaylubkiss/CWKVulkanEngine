@@ -1,4 +1,4 @@
-#include "Controller.h"
+#include "CameraController.h"
 #include <SDL2/SDL.h>
 
 enum keys {
@@ -37,48 +37,26 @@ void Controller::MoveCamera(Camera& camera, const float& dt)
 					_Application->RequestExit();
 					break;
 				case SDL_WINDOWEVENT_MINIMIZED:
-					//std::cout << "window is minimized\n\n";	
 					_GraphicsContext->GetWindow().isMinimized = true;
-					return;
+					break;
 				case SDL_WINDOWEVENT_MAXIMIZED:
-					//std::cout << "window is maximized\n\n";
-					_Application->ResizeWindow();
 					return;
 				case SDL_WINDOWEVENT_RESTORED:
-					//std::cout << "window is restored\n\n";
 					_GraphicsContext->GetWindow().isMinimized = false;
-					_Application->ResizeWindow();
 					return;
 				case SDL_WINDOWEVENT_SIZE_CHANGED:
-					std::cout << "window size changed\n\n";
-					//_Application->ResizeWindow();
-					_GraphicsContext->GetWindow().isPrepared = false;
-					_Application->ResizeWindow();
 					break;
 				case SDL_WINDOWEVENT_FOCUS_GAINED:
-					//std::cout << "window focus gained\n\n";
 					break;
 				case SDL_WINDOWEVENT_FOCUS_LOST:
-					//std::cout << "window focus lost\n\n";
 					break;	
 				case SDL_WINDOWEVENT_RESIZED:
-					std::cout << "window is resized\n\n";
-					_GraphicsContext->GetWindow().isPrepared = true;
-					_Application->ResizeWindow();
-					return;
+					break;
 				default:
 					break;
 			}
 		}
-
-		ImGui_ImplSDL2_ProcessEvent(&e);
-
-		ImGuiIO& io = ImGui::GetIO();
-		if (io.WantCaptureMouse || io.WantCaptureKeyboard)
-		{
-			return;
-		}
-		
+	
 		const SDL_Keycode& keySymbol = e.key.keysym.sym;
 		if (e.type == SDL_KEYDOWN)
 		{
@@ -134,8 +112,13 @@ void Controller::MoveCamera(Camera& camera, const float& dt)
 			}
 		}
 	
-	
 		
+		ImGui_ImplSDL2_ProcessEvent(&e);
+		ImGuiIO& io = ImGui::GetIO();
+		if (io.WantCaptureMouse || io.WantCaptureKeyboard)
+		{
+			return;
+		}
 
 		if (e.button.button == SDL_BUTTON(SDL_BUTTON_LEFT) && e.button.state == SDL_PRESSED)
 		{

@@ -1,9 +1,5 @@
-#include "Application.h"
-#include "Controller.h"
-#include "vkFreddyHeadContext.h"
-#include "vkShadowMapContext.h"
-#include "vkDeferredShadingContext.h"
-
+#include "CameraController.h"
+#include "vulkan-scenes/vkDeferredShadingContext.h"
 
 //NOTE: to remove pesky warnings from visual studio, on dynamically allocated arrays,
 //I've used the syntax: *(array + i) to access the array instead of array[i].
@@ -17,20 +13,13 @@ PhysicsSystem& Application::GetPhysics()
 
 vk::ContextBase* Application::Context() {
 
-	return graphicsContext.get();
+	return m_graphicsContext.get();
 }
 
-vk::TextureManager& Application::TextureManager() 
+std::unique_ptr<ObjectManager>& Application::GetObjectManager()
 {
-	return this->mTextureManager;
+	return m_objectManager;
 }
-
-vk::ObjectManager& Application::ObjectManager() 
-{
-	return this->objectManager;
-}
-
-
 
 
 void Application::run() 
@@ -48,25 +37,18 @@ void Application::run()
 
 void Application::init() 
 {
-	this->graphicsContext = std::make_unique<vk::DeferredContext>();
+	m_graphicsContext = std::make_unique<vk::DeferredContext>();
 
-	vk::DeferredContext* freddyScene = static_cast<vk::DeferredContext*>(graphicsContext.get());
-
-	this->mTextureManager.Init(this->graphicsContext.get());
-
-	this->objectManager.Init(
-		&this->mTextureManager, 
-		graphicsContext.get()->PhysicalDevice(), 
-		graphicsContext.get()->LogicalDevice()
-	);
+	vk::GraphicsContextInfo contextInfo = m_graphicsContext->GetGraphicsContextInfo();
+	m_objectManager = std::make_unique<ObjectManager>(contextInfo);
 	
-	graphicsContext->InitializeScene(objectManager);
+	m_graphicsContext->InitializeScene(m_objectManager.get());
 	
 	mTime = Timer(SDL_GetPerformanceCounter());
 }
 
 
-const Timer& Application::GetTime()
+const Timer& Application::GetTime() const
 {
 	return this->mTime;
 }
@@ -131,48 +113,37 @@ void Application::RequestExit()
 	this->exitApplication = true;
 }
 
-void Application::ResizeWindow() 
-{
-	graphicsContext->ResizeWindow();
-}
-
 void Application::loop()
 {
-	//render graphics.
-	while (exitApplication == false)
-	{	
+	if (m_graphicsContext != nullptr) 
+	{
+		//render graphics.
+		while (exitApplication == false)
+		{
+			double dt = mTime.CalculateDeltaTime();
 
-		double dt = mTime.CalculateDeltaTime();
+			Controller::MoveCamera(m_graphicsContext->GetCamera(), static_cast<float>(dt));
 
-		Controller::MoveCamera(graphicsContext->GetCamera() , dt);
+			mPhysics.Update(static_cast<float>(dt));
 
-		mPhysics.Update(dt);
+			m_objectManager->Update(mPhysics.InterpFactor());
 
-		objectManager.Update(mPhysics.InterpFactor());
+			//sync this up with primary command buffer in graphics system...
+			m_graphicsContext->Render();
+		}
 
-		//sync this up with primary command buffer in graphics system...
-		graphicsContext->Render();
+		//when we're done with the loop, we should make sure the logical device is flushed.
+		m_graphicsContext->WaitForDevice();
 	}
-	
-	//when we're done with the loop, we should make sure the logical device is flushed.
-	graphicsContext->WaitForDevice();
 }
 
 
 void Application::exit()
 {
-	mTextureManager.Destroy(graphicsContext->LogicalDevice());
-	objectManager.Destroy(graphicsContext->LogicalDevice());
 }
 
 
 Application::~Application()
 {
 }
-
-
-
-
-
-
 

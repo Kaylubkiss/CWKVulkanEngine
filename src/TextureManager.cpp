@@ -3,119 +3,215 @@
 #include "vkInit.h"
 #include "ApplicationGlobal.h"
 
-namespace vk 
+
+TextureManager::TextureManager( vk::GraphicsContextInfo contextInfo )
 {
-	
-	void TextureManager::Init(ContextBase* context)
-	{
-		assert(context != nullptr);
-		//this->graphicsContext = context;
-		graphicsContextInfo = context->GetGraphicsContextInfo();
-	}
+	assert(contextInfo.devicePtr != nullptr);
+	assert(contextInfo.contextTextureDescriptorPtr != nullptr);
+	m_graphicsContextInfo = contextInfo;
+}
 
-	bool TextureManager::AddTexture(GraphicsContextInfo* graphicsContextInfo, const std::string& fileName)
+uint32_t TextureManager::AddTexture( const std::string& fileName )
+{
+	//quick check.
 	{
-		if (graphicsContextInfo)
+		std::lock_guard<std::mutex> lock(m_textureMutex);
+		if (m_textures.contains(fileName) == true)
 		{
-			Texture newTexture = Texture(graphicsContextInfo, fileName);
-
-			if (newTexture.mTextureImage != VK_NULL_HANDLE) 
-			{
-				this->mTextures.push_back(newTexture);
-
-				UserInterface* UI = graphicsContextInfo->contextUIPtr;
-				if (UI)
-				{
-					UI->AddImage(newTexture);
-				}
-
-				return true;
-			}
-		}
-
-		return false;
-	}
-
-	void TextureManager::Destroy(const VkDevice l_device) 
-	{
-		for (size_t i = 0; i < mTextures.size(); ++i)
-		{
-			mTextures[i].Destroy(l_device);
+			return m_textures[fileName].index;
 		}
 	}
 
-	const Texture& TextureManager::GetTextureObject(size_t index) const
+	//TODO: generate checker-board texture for objects if texture loading failed.
+	std::shared_ptr<vk::Texture> newTexture =
+			std::make_shared<vk::Texture>(m_graphicsContextInfo.devicePtr, fileName);
+
 	{
-		if (index < 0 || index >= mTextures.size()) 
+		std::lock_guard<std::mutex> lock(m_textureMutex);
+		//maybe a thread beat us to the punch, in the case that two threads call on the same texture
+		if (m_textures.contains(fileName) == true)
 		{
-			throw std::runtime_error("could not find specified texture!\n");
+			return m_textures[fileName].index;
+		}
+		m_textures[fileName].handle = std::move(newTexture);
+		m_textures[fileName].index = static_cast<uint32_t>(m_textures.size()); //first texture in m_textures will be blank.
+
+		m_pendingTextures.push_back(m_textures[fileName]); //sync with this later.
+	}
+
+
+
+	std::cout << "texture loaded... " << fileName << " loaded.\n";
+	return m_textures[fileName].index;
+}
+
+void TextureManager::UploadTextureDataToGPU()
+{
+	std::vector<TextureInfo> texturesToProcess;
+
+	{
+		std::lock_guard<std::mutex> lock(m_textureMutex);
+		if (m_pendingTextures.empty() == false)
+		{
+			texturesToProcess = m_pendingTextures;
+			m_pendingTextures.clear();
+		}
+		else
+		{
+			return;
+		}
+	}
+
+	vk::Device* devicePtr = m_graphicsContextInfo.devicePtr;
+
+	VkCommandPool graphicsCmdPool =
+		vk::init::CommandPool(devicePtr->logical, VK_COMMAND_POOL_CREATE_TRANSIENT_BIT,
+			devicePtr->graphicsQueue.family);
+
+	VkCommandBuffer graphicsCmd = vk::beginSingleTimeCommand(devicePtr->logical, graphicsCmdPool);
+
+	for (auto& t : texturesToProcess)
+	{
+		VkImageMemoryBarrier acquireBarrier = {};
+		acquireBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+		acquireBarrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+		acquireBarrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
+		acquireBarrier.srcQueueFamilyIndex = devicePtr->transferQueue.family;
+		acquireBarrier.dstQueueFamilyIndex = devicePtr->graphicsQueue.family;
+
+		vk::Texture* curr_texture = t.handle.get();
+		acquireBarrier.image = curr_texture->mImage;
+		acquireBarrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		acquireBarrier.subresourceRange.baseMipLevel = 0;
+		acquireBarrier.subresourceRange.levelCount = 1;
+		acquireBarrier.subresourceRange.baseArrayLayer = 0;
+		acquireBarrier.subresourceRange.layerCount = 1;
+
+		acquireBarrier.srcAccessMask = 0;
+		acquireBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+
+		vkCmdPipelineBarrier(
+			graphicsCmd,
+			VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+			VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+			0, 0, nullptr,
+			0, nullptr,
+			1, &acquireBarrier
+		);
+	}
+
+	VK_CHECK_RESULT(vkEndCommandBuffer(graphicsCmd));
+
+
+	VkSubmitInfo submitInfo = {};
+	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+	submitInfo.commandBufferCount = 1;
+	submitInfo.pCommandBuffers = &graphicsCmd;
+
+	VkFenceCreateInfo submissionFenceCI = vk::init::FenceCreateInfo();
+	VkFence submissionFence;
+	VK_CHECK_RESULT(vkCreateFence(devicePtr->logical, &submissionFenceCI, nullptr, &submissionFence));
+
+	{
+		std::unique_lock<std::mutex> lock(vk::g_textureProcessMutex);
+		VK_CHECK_RESULT(vkQueueSubmit(devicePtr->graphicsQueue.handle, 1, &submitInfo, submissionFence));
+	}
+
+	vkWaitForFences(devicePtr->logical, 1, &submissionFence, VK_TRUE, UINT64_MAX);
+	vkDestroyFence(devicePtr->logical, submissionFence, nullptr);
+
+	vkFreeCommandBuffers(devicePtr->logical, graphicsCmdPool, 1, &graphicsCmd);
+	vkDestroyCommandPool(devicePtr->logical, graphicsCmdPool, nullptr);
+
+	//fill in descriptor set.
+	for (auto& t : texturesToProcess)
+	{
+		vk::Texture* curr_texture = t.handle.get();
+
+		curr_texture->mImageView =
+			vk::Texture::CreateImageView(devicePtr->logical, curr_texture->mImage, 1);
+		curr_texture->mSampler =
+			vk::Texture::CreateSampler(devicePtr->physical, devicePtr->logical, 1);
+
+		curr_texture->descriptor = {
+			curr_texture->mSampler,
+			curr_texture->mImageView,
+			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+		};
+
+		auto& UI = m_graphicsContextInfo.contextUIPtr;
+		if (UI)
+		{
+			UI->AddImage(*curr_texture);
 		}
 
-		return mTextures[index];
+		VkDeviceSize textureBindingSize =
+			m_graphicsContextInfo.contextTextureDescriptorPtr->size;
+
+		VkDeviceSize combinedImageSamplerSize =
+			m_graphicsContextInfo.devicePtr->DescriptorBufferProperties().combinedImageSamplerDescriptorSize;
+
+		VkDeviceSize bindingOffset =
+			m_graphicsContextInfo.contextTextureDescriptorPtr->binding_offsets.front();
+
+		VkDescriptorGetInfoEXT imageDescriptorInfo = { VK_STRUCTURE_TYPE_DESCRIPTOR_GET_INFO_EXT };
+		imageDescriptorInfo.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		imageDescriptorInfo.data.pCombinedImageSampler = &curr_texture->descriptor;
+
+		char* imageBindingDescriptorPtr =
+			(char*)(m_graphicsContextInfo.contextTextureDescriptorPtr->buffers.front().GetMappedMemory());
+
+		g_vkGetDescriptorEXT(m_graphicsContextInfo.devicePtr->logical, &imageDescriptorInfo,
+			combinedImageSamplerSize,
+			imageBindingDescriptorPtr + t.index * textureBindingSize + bindingOffset);
+	}
+}
+
+VkDescriptorImageInfo TextureManager::GetTextureDescriptorInfo(const char* fileName)
+{
+	std::lock_guard<std::mutex> lock(m_textureMutex);
+	if (m_textures.count(fileName))
+	{
+		return m_textures[fileName].handle->descriptor;
 	}
 
-	int TextureManager::GetTextureIndexByName(const char* fileName) const 
+	std::cerr << "could not find specified texture!\n";
+	std::cerr << "GetTextureDescriptorInfo() Failed.\n";
+	return {};
+
+}
+
+VkDescriptorImageInfo TextureManager::GetTextureDescriptorInfo(uint32_t index)
+{
+	std::lock_guard<std::mutex> lock(m_textureMutex);
+	for (auto& t : m_textures)
 	{
-		for (size_t i = 0; i < mTextures.size(); ++i)
+		TextureInfo& texture = t.second;
+		if (texture.index == 0)
 		{
-			if (strcmp(fileName, mTextures[i].mName.c_str()) == 0)
-			{
-				return i;
-			}
+			return texture.handle.get()->descriptor;
 		}
-
-		std::cerr << "could not find specified texture!\n";
-
-		return -1;
-
 	}
 
-	void TextureManager::BindTextureToObject(const std::string& fileName, Object& obj)
+	std::cerr << "could not find specified texture!\n";
+	std::cerr << "GetTextureDescriptorInfo() Failed.\n";
+
+	return {};
+}
+
+size_t TextureManager::GetSize()
+{
+	std::lock_guard<std::mutex> lock(m_textureMutex);
+	return m_textures.size();
+}
+
+void TextureManager::BindTextureToModelPrimitive( const std::string& fileName, Primitive& primitive )
+{
+	if (fileName != "")
 	{
-		if (fileName != "")
-		{
-			std::vector<VkWriteDescriptorSet> descriptorWrites = graphicsContextInfo.sceneWriteDescriptorSets; //TODO: copying a vector...inefficient.
-
-			VkDescriptorSetAllocateInfo descriptorSetInfo = vk::init::DescriptorSetAllocateInfo
-			(
-				graphicsContextInfo.descriptorPool,
-				&graphicsContextInfo.descriptorSetLayout, 1
-			);
-
-			int index = TextureManager::GetTextureIndexByName(fileName.c_str());
-			if (index < 0)
-			{
-				std::cout << "adding texture...\n";
-
-				bool result  = AddTexture(&graphicsContextInfo, fileName);
-
-				if (!result) 
-				{
-					return;
-				}
-
-				index = mTextures.size() - 1;
-
-			}
-
-			VkWriteDescriptorSet dscWrite = vk::init::WriteDescriptorSet
-			(
-				VK_NULL_HANDLE,
-				VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-				graphicsContextInfo.samplerBinding,
-				&mTextures[index].descriptor
-			);
-
-			descriptorWrites.push_back(dscWrite);
-
-			obj.UpdateDescriptorSets(descriptorWrites, &descriptorSetInfo);
-		}
-
+		primitive.textureIndex = AddTexture(fileName);
+		UploadTextureDataToGPU();
 	}
 
-
-	const std::vector<vk::Texture>& TextureManager::Textures() const 
-	{
-		return this->mTextures;
-	}
 }
