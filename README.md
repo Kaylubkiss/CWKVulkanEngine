@@ -91,5 +91,5 @@ An IDE is <em>highly</em> recommended for development:
 
 # Works In Progress (Updated 01/31/2026)
 <ul>
-  <li>Animation and Material support through <em>.glTF</em> specifications and shading</li>
+  <li>Animation and Material support through <em><a href="https://www.khronos.org/Gltf">.glTF</a></em> specifications and GLSL shading</li>
 </ul>
