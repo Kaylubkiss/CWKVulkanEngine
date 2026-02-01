@@ -21,7 +21,7 @@ ObjectManager::ObjectManager( vk::GraphicsContextInfo& contextInfo )
 {
 	assert(contextInfo.devicePtr != nullptr);
 
-	m_threadWorkers.Init(1);
+	m_threadWorkers.Init(2);
 
 	m_textureManager = std::make_unique<TextureManager>(contextInfo);
 
