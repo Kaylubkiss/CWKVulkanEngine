@@ -13,7 +13,7 @@ class TextureManager
 		size_t GetSize();
 
 		void BindTextureToModelPrimitive( const std::string& fileName, Primitive& primitive );
-		void FinishTextureLayoutTransition();
+		void UploadTextureDataToGPU();
 		uint32_t AddTexture( const std::string& fileName ); //returns the index of the texture
 	private:
 		std::mutex m_textureMutex;

@@ -40,10 +40,12 @@ GLTFModel::GLTFModel( vk::Device* device, const std::filesystem::path& filePath 
 		LoadMesh(mesh, vertices, indices);
 	}
 
+	std::vector<std::string> fileNames(m_asset.images.size());
 	for (auto& image : m_asset.images)
 	{
-		LoadImage(device, image);
+		fileNames.push_back(LoadImage(device, image));
 	}
+
 
 	size_t vertexBufferSize = vertices.size() * sizeof(vertices[0]);
 	size_t indexBufferSize = indices.size() * sizeof(indices[0]);
@@ -59,6 +61,24 @@ GLTFModel::GLTFModel( vk::Device* device, const std::filesystem::path& filePath 
 		VK_BUFFER_USAGE_INDEX_BUFFER_BIT ,
 		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
 		indices.data());
+}
+
+std::vector<std::string> GLTFModel::GetTextureFileNames() const
+{
+	std::vector<std::string> fileNames;
+	for (auto& image : m_asset.images)
+	{
+		std::visit(fastgltf::visitor
+		{
+			[](auto& arg) {},
+			[&](const fastgltf::sources::URI& filePath) {
+				assert(filePath.fileByteOffset == 0);
+				fileNames.emplace_back(filePath.uri.path());
+			},
+		}, image.data);
+	}
+
+	return fileNames;
 }
 
 void GLTFModel::Draw( const vk::DrawInfo& drawInfo )
@@ -121,18 +141,16 @@ void GLTFModel::Draw( const vk::DrawInfo& drawInfo )
 void GLTFModel::LoadTextures( TextureManager& textureManager, const std::vector<std::string>& textureNames )
 {
 	//TODO
-
-	size_t baseOffset = textureManager.GetSize();
-	for (auto& textureName : textureNames)
-	{
-		textureManager.AddTexture(textureName);
-	}
-
-
 	for (auto& mesh: m_meshes)
 	{
 		for (auto& primitive : mesh->m_primitives)
 		{
+			if (primitive.textureIndex.has_value())
+			{
+				//NOTE: the primitive's texture index gets "corrected"
+				textureManager.BindTextureToModelPrimitive(
+					textureNames[primitive.textureIndex.value()], primitive);
+			}
 		}
 	}
 
@@ -152,6 +170,16 @@ void GLTFModel::LoadMesh( fastgltf::Mesh& mesh, std::vector<Vertex>& vertexBuffe
 		newPrim.firstVertex = static_cast<uint32_t>(vertexBuffer.size());
 		newPrim.indexCount  = 0;
 		newPrim.vertexCount = 0;
+		uint32_t materialIndex = static_cast<uint32_t>(primitive.materialIndex.value_or(0));
+		fastgltf::Material& material = m_asset.materials[materialIndex];
+		fastgltf::PBRData& pbr = material.pbrData;
+		uint32_t baseTextureIndex = 0;
+		if (pbr.baseColorTexture.has_value())
+		{
+			baseTextureIndex = static_cast<uint32_t>(pbr.baseColorTexture.value().textureIndex);
+		}
+
+		newPrim.textureIndex = baseTextureIndex; //TODO: start with this. Try to get texture index for base color here.
 
 		//vertex
 		{
@@ -208,7 +236,7 @@ void GLTFModel::LoadMesh( fastgltf::Mesh& mesh, std::vector<Vertex>& vertexBuffe
 		//indices
 		{
 			fastgltf::Accessor& accessor = m_asset.accessors[primitive.indicesAccessor.value()];
-			if (!accessor.bufferViewIndex.has_value())
+			if (accessor.bufferViewIndex.has_value() == false)
 			{
 				throw std::runtime_error("gltf asset should have an index buffer\n");
 			}
@@ -246,7 +274,7 @@ void GLTFModel::LoadMesh( fastgltf::Mesh& mesh, std::vector<Vertex>& vertexBuffe
 	m_meshes.push_back(newMesh);
 }
 
-void GLTFModel::LoadImage( vk::Device* devicePtr, fastgltf::Image& image )
+std::string GLTFModel::LoadImage( vk::Device* devicePtr, fastgltf::Image& image )
 {
 	std::visit(fastgltf::visitor
 	{
@@ -254,6 +282,10 @@ void GLTFModel::LoadImage( vk::Device* devicePtr, fastgltf::Image& image )
 		[&](const fastgltf::sources::URI& filePath) {
 			assert(filePath.fileByteOffset == 0);
 
+			return filePath.uri.string();
 		},
 	}, image.data);
+
+	return "";
 }
+

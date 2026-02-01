@@ -24,6 +24,9 @@ Object::Object( const ObjectCreateInfo& objectCI, TextureManager& textureManager
         }
 
         m_model = std::make_unique<GLTFModel>(objectCI.devicePtr, filePath);
+
+        std::vector<std::string> gltf_fileNames = reinterpret_cast<GLTFModel*>(m_model.get())->GetTextureFileNames();
+        m_model->LoadTextures(textureManager, gltf_fileNames);
     }
     else if (filePath.extension() == ".obj")
     {

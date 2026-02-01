@@ -28,7 +28,6 @@ public:
 	std::unique_ptr<TextureManager>& GetTextureManager();
 
 	//Modifiers
-	void SyncIO() const;
 	void LoadObject( const ObjectCreateInfo& objectCI );
 	void DrawObjects( const vk::DrawInfo& drawInfo ) const;
 	void Update( float dt ) const;

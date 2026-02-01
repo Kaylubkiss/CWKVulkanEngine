@@ -45,7 +45,7 @@ uint32_t TextureManager::AddTexture( const std::string& fileName )
 	return m_textures[fileName].index;
 }
 
-void TextureManager::FinishTextureLayoutTransition()
+void TextureManager::UploadTextureDataToGPU()
 {
 	std::vector<TextureInfo> texturesToProcess;
 
@@ -124,6 +124,7 @@ void TextureManager::FinishTextureLayoutTransition()
 	vkFreeCommandBuffers(devicePtr->logical, graphicsCmdPool, 1, &graphicsCmd);
 	vkDestroyCommandPool(devicePtr->logical, graphicsCmdPool, nullptr);
 
+	//fill in descriptor set.
 	for (auto& t : texturesToProcess)
 	{
 		vk::Texture* curr_texture = t.handle.get();
@@ -210,7 +211,7 @@ void TextureManager::BindTextureToModelPrimitive( const std::string& fileName, P
 	if (fileName != "")
 	{
 		primitive.textureIndex = AddTexture(fileName);
-		FinishTextureLayoutTransition();
+		UploadTextureDataToGPU();
 	}
 
 }

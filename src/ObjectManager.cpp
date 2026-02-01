@@ -28,10 +28,6 @@ ObjectManager::ObjectManager( vk::GraphicsContextInfo& contextInfo )
 	c_devicePtr = contextInfo.devicePtr;
 }
 
-void ObjectManager::SyncIO() const
-{
-	m_textureManager->FinishTextureLayoutTransition();
-}
 
 void ObjectManager::Update(float dt) const
 {
