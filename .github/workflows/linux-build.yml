@@ -2,7 +2,7 @@ name: Linux Build
 on:
   push:
     branches:
-      - ${{ github.ref_name }}
+      - "*"
 jobs:
   build:
     runs-on: ${{ matrix.os }}
