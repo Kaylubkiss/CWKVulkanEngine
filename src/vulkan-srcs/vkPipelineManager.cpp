@@ -46,24 +46,27 @@ namespace vk
 namespace vk 
 {
 
-	void PipelineManager::Init(const GraphicsContextInfo& contextInfo)
+	void PipelineManager::Init(std::shared_ptr<GraphicsContextInfo>& contextInfo)
 	{
-		assert(contextInfo.devicePtr);
+		assert(contextInfo->devicePtr);
 
-		contextLogicalDevice = contextInfo.devicePtr->logical;
+		contextLogicalDevice = contextInfo->devicePtr->logical;
 	}
 
 	void PipelineManager::Destroy()
 	{
-		for (auto& pipeline : pipelines)
+		if (contextLogicalDevice != VK_NULL_HANDLE)
 		{
-			vk::Pipeline& currPipeline = pipeline.second;
-
-			vkDestroyPipeline(contextLogicalDevice, currPipeline.handle, nullptr);
-
-			for (auto& shaderModule : currPipeline.shaderModules)
+			for (auto& pipeline : pipelines)
 			{
-				vkDestroyShaderModule(contextLogicalDevice, shaderModule.mHandle, nullptr);
+				vk::Pipeline& currPipeline = pipeline.second;
+
+				vkDestroyPipeline(contextLogicalDevice, currPipeline.handle, nullptr);
+
+				for (auto& shaderModule : currPipeline.shaderModules)
+				{
+					vkDestroyShaderModule(contextLogicalDevice, shaderModule.mHandle, nullptr);
+				}
 			}
 		}
 	}

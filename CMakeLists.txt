@@ -12,10 +12,18 @@ add_subdirectory(extern/fastgltf)
 add_subdirectory(extern/reactphysics3d)
 
 add_compile_definitions(GLM_ENABLE_EXPERIMENTAL)
+add_compile_definitions(GLM_FORCE_DEPTH_ZERO_TO_ONE)
+add_compile_definitions(GLM_FORCE_DEFAULT_ALIGNED_GENTYPES) #need to have aligned storage for shaders
 add_subdirectory(extern/glm)
 
 set(SDL_TEST OFF CACHE BOOL "" FORCE)
 set(SDL_TEST_LIBRARY OFF CACHE BOOL "" FORCE)
+set(SDL_OPENGL OFF CACHE BOOL "" FORCE)
+set(SDL_OPENGLES OFF CACHE BOOL "" FORCE)
+set(SDL_DISKAUDIO OFF CACHE BOOL "" FORCE)
+set(SDL_DUMMYAUDIO OFF CACHE BOOL "" FORCE)
+set(SDL_DUMMYVIDEO OFF CACHE BOOL "" FORCE)
+set(SDL_ALTIVEC OFF CACHE BOOL "" FORCE)
 add_subdirectory(extern/sdl2)
 
 set(SHADERC_SKIP_TESTS ON CACHE BOOL "" FORCE)
@@ -96,7 +104,7 @@ list(APPEND SOURCE_FILES ${VULKAN_ENGINE_SCENES_SOURCE})
 
 set(HEADER_SRC_DIR src/headers)
 
-set(HEADER_FILES 
+set(HEADER_FILES
 ${HEADER_SRC_DIR}/Application.h
 ${HEADER_SRC_DIR}/Camera.h
 ${HEADER_SRC_DIR}/Common.h
@@ -131,6 +139,7 @@ ${VULKAN_HEADER_DIR}/vkDevice.h
 ${VULKAN_HEADER_DIR}/vkDevice.h
 ${VULKAN_HEADER_DIR}/vkPipelineManager.h
 ${VULKAN_HEADER_DIR}/vkFramebuffer.h
+		${VULKAN_HEADER_DIR}/vkCubemap.h
 )
 
 source_group("Header Files/VulkanHeaders" FILES ${VULKAN_ENGINE_HEADERS})	

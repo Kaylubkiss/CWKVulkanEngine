@@ -185,12 +185,14 @@ namespace vk
 			return nSemaphore;
 		}
 
-		VkFence CreateFence(const VkDevice l_device) 
+		VkFence CreateFence(const VkDevice l_device, bool signaled)
 		{
 			VkFenceCreateInfo fenceInfo = {};
 			fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-			fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT; //to prevent indefinite waiting on first frame.
-
+			if (signaled)
+			{
+				fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT; //to prevent indefinite waiting on first frame.
+			}
 			VkFence nFence;
 			VK_CHECK_RESULT(vkCreateFence(l_device, &fenceInfo, nullptr, &nFence));
 

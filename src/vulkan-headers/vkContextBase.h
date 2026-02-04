@@ -14,28 +14,24 @@ namespace vk
 		ContextBase(); /* expect this to be derived from */
 		virtual ~ContextBase();
 
-		//pure virtual function(s)
-		virtual void RecordCommandBuffers() = 0;
-		virtual void UpdateUI() = 0;
-		virtual void ResizeWindowDerived() = 0;
-		virtual void InitializeScene( ObjectManager* objManager ) = 0;
-
-		GraphicsContextInfo GetGraphicsContextInfo() const;
-
-		//public virtual function(s)
-		virtual void Render() = 0;
-
-		//getter(s)
+		//getters(s)
 		[[nodiscard]] VkPhysicalDevice PhysicalDevice() const;
 		[[nodiscard]] VkDevice LogicalDevice() const;
-
+		std::shared_ptr<GraphicsContextInfo> GetGraphicsContextInfo() const;
 		Camera& GetCamera();
 		vk::Window& GetWindow();
 
+		//public virtual function(s)
+		virtual void Render() = 0;
+		virtual void RecordCommandBuffers() = 0;
+		virtual void UpdateUI() = 0;
+		virtual void ResizeWindowDerived() = 0;
+		virtual void InitializeScene() = 0;
 		//operations
-		void WaitForDevice();
+		void WaitForDevice() const;
 		void SubmitFrame();
 		void ResizeWindow();
+		void UpdateSceneObjects(float dt) const;
 
 	protected:
 		bool PrepareFrame();
@@ -50,7 +46,7 @@ namespace vk
 		void CreateInstance();
 		void CreateSynchronizationPrimitives();
 	protected:
-		GraphicsContextInfo mInfo;//this is for textureManager and potentially any other discrete systems.
+		std::shared_ptr<GraphicsContextInfo> m_info;//this is for textureManager and potentially any other discrete systems.
 		//WARNING: context specific!!!
 
 		struct Settings {
@@ -75,11 +71,14 @@ namespace vk
 		std::array<VkCommandBuffer, gMaxFramesInFlight> commandBuffers;
 		std::array<VkSemaphore, gMaxFramesInFlight> presentCompleteSemaphores;
 		std::array<VkSemaphore, gMaxFramesInFlight> renderCompleteSemaphores;
+		std::array<VkSemaphore, gMaxFramesInFlight> textureUploadSemaphores; //for I/O synchronization
 		std::array<VkFence, gMaxFramesInFlight> inFlightFences;
 
 		float FOV = 45.f;
 
 		Camera mCamera;
 		UserInterface UIOverlay;
+
+		std::unique_ptr<ObjectManager> m_objectManager; //application technically owns this pointer.
 	};
 }	

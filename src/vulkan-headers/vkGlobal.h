@@ -56,7 +56,7 @@ namespace vk
 	class Buffer;
 	class Device;
 
-	static std::mutex g_textureProcessMutex;
+	extern std::atomic_bool g_textureUploadSubmitted;
 
 	struct DescriptorBufferData //240 BYTES!!!
 	{
@@ -70,11 +70,14 @@ namespace vk
 
 		void Destroy()
 		{
-			for (auto& b : buffers)
+			if (c_device != VK_NULL_HANDLE)
 			{
-				b.Destroy();
+				for (auto& b : buffers)
+				{
+					b.Destroy();
+				}
+				vkDestroyDescriptorSetLayout(c_device, layout, nullptr);
 			}
-			vkDestroyDescriptorSetLayout(c_device, layout, nullptr);
 		}
 	};
 
@@ -88,7 +91,12 @@ namespace vk
 		vk::Device* devicePtr = nullptr;
 		UserInterface* contextUIPtr = nullptr;
 		DescriptorBufferData* contextTextureDescriptorPtr = nullptr;
-		VkSemaphore textureProcessSemaphore = VK_NULL_HANDLE;
+		~GraphicsContextInfo()
+		{
+			devicePtr = nullptr;
+			contextUIPtr = nullptr;
+			contextTextureDescriptorPtr = nullptr;
+		};
 	};
 
 	//This allows the user to pass in relevant arguments to draw an object.

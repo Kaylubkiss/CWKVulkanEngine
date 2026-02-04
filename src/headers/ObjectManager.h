@@ -11,6 +11,11 @@ struct str_cmp
 	}
 };
 
+struct TextureSyncPrimitives
+{
+	VkCommandBuffer cmdBuffer;
+
+};
 
 typedef const char* ObjectName;
 typedef std::string TextureFileName;
@@ -18,25 +23,26 @@ typedef std::string TextureFileName;
 class ObjectManager
 {
 public:
-
 	ObjectManager() = default;
-	ObjectManager( vk::GraphicsContextInfo& contextInfo );
+	ObjectManager( std::shared_ptr<vk::GraphicsContextInfo>& contextInfo );
 	~ObjectManager() = default;
+	void Destroy();
 
 	//Accessors
 	std::map<const char*, std::unique_ptr<Object>, str_cmp>& Objects();
-	std::unique_ptr<TextureManager>& GetTextureManager();
 
 	//Modifiers
 	void LoadObject( const ObjectCreateInfo& objectCI );
 	void DrawObjects( const vk::DrawInfo& drawInfo ) const;
 	void Update( float dt ) const;
 
+	//returns whether or not a command was recorded.
+	bool SyncIO( uint32_t currentFrame, VkSemaphore textureUploadSemaphore );
 private:
 	std::mutex m_objectMutex;
 	vk::Device* c_devicePtr = nullptr;
 	std::map<const char*, std::unique_ptr<Object>, str_cmp> m_objects;
-	std::unique_ptr<TextureManager> m_textureManager;
+	TextureManager m_textureManager;
 	ThreadPool m_threadWorkers; //this needs to be destroyed first.
 };
 

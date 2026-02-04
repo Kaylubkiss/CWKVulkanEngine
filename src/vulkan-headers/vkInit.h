@@ -22,7 +22,7 @@ namespace vk
 
 		VkSemaphore CreateSemaphore( const VkDevice l_device );
 
-		VkFence CreateFence( const VkDevice l_device );
+		VkFence CreateFence( const VkDevice l_device, bool signaled );
 
 		VkFenceCreateInfo FenceCreateInfo(VkFenceCreateFlags flags = 0);
 

@@ -22,7 +22,7 @@ public:
 	void Destroy();
 
 	void Prepare();
-	void Render(VkCommandBuffer cmdBuffer); //after main rendering
+	void Render( VkCommandBuffer cmdBuffer ); //after main rendering
 
 	//types of options
 	void CheckBox( const std::string& label, bool* condition );
@@ -39,6 +39,6 @@ private:
 	std::vector<VkDescriptorSet> displayTextures;
 	VkDevice contextLogicalDevice = VK_NULL_HANDLE;
 	VkDescriptorPool UIDescriptorPool = VK_NULL_HANDLE; //just for the sampler.
-	uint32_t max_textures = 100;
+	static constexpr uint32_t max_textures = 100;
 	bool isInitialized = false;
 };

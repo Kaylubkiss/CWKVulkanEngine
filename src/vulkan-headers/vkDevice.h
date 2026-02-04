@@ -24,8 +24,11 @@ namespace vk
 	public:
 		Device() = default;
 		~Device() = default;
-		void Init( VkInstance instance, VkSurfaceKHR surface );
 		void Destroy();
+		Device& operator=(const Device&) = delete;
+		Device& operator=(Device&&) = delete;
+
+		void Init( VkInstance instance, VkSurfaceKHR surface );
 		//functionality
 		uint32_t GetMemoryType( uint32_t typeBits, VkMemoryPropertyFlags properties );
 		VkPhysicalDeviceDescriptorBufferPropertiesEXT DescriptorBufferProperties() const;

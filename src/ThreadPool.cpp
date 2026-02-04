@@ -63,7 +63,8 @@ void ThreadPool::ThreadLoop()
 }
 
 
-void ThreadPool::Terminate() {	
+void ThreadPool::Terminate()
+{
 	{
 		std::lock_guard<std::mutex> lock(queue_mutex);
 		terminate = true;
@@ -76,9 +77,4 @@ void ThreadPool::Terminate() {
 	}
 
 	threads.clear();
-}
-
-ThreadPool::~ThreadPool() 
-{
-	ThreadPool::Terminate();
 }

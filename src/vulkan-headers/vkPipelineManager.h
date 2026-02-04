@@ -57,7 +57,7 @@ namespace vk
 
 		public:
 
-			void Init(const GraphicsContextInfo& contextInfo);
+			void Init(std::shared_ptr<GraphicsContextInfo>& contextInfo);
 
 
 			/*

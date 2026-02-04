@@ -14,6 +14,10 @@ namespace vk
 	DeferredContext::DeferredContext()
 	{
 
+		/*Cubemap::CreateImage(&device);
+		_Application->RequestExit();
+		return;*/
+
 		framebuffers.deMRT.width = 2048;
 		framebuffers.deMRT.height = 2048;
 
@@ -27,6 +31,10 @@ namespace vk
 		DeferredContext::InitializePipeline("","");
 
 		DeferredContext::FillOutGraphicsContextInfo();
+
+		//TODO: not happy that I have to initialize a protected member here...
+		//but... I have to further test my implementations and fix the async issue.
+		m_objectManager = std::make_unique<ObjectManager>(m_info);
 	}
 
 	DeferredContext::~DeferredContext()
@@ -38,12 +46,17 @@ namespace vk
 			uniformBuffers[i].shadow.Destroy();
 		}
 
-		for (auto& pl : pipelineLayouts)
+		//because the layouts are initialized in one function, we can
+		//assume the check here
+		if (pipelineLayouts[0] != VK_NULL_HANDLE)
 		{
-			vkDestroyPipelineLayout(device.logical, pl, nullptr);
+			for (auto& pl : pipelineLayouts)
+			{
+				vkDestroyPipelineLayout(device.logical, pl, nullptr);
+			}
 		}
 
-		for (auto& uniformDescriptor : uniformBindingDescriptors) 
+		for (auto& uniformDescriptor : uniformBindingDescriptors)
 		{
 			uniformDescriptor.Destroy();
 		}
@@ -55,7 +68,7 @@ namespace vk
 		framebuffers.deShadow.Destroy();
 	}
 
-	void DeferredContext::InitializeScene( ObjectManager* objManager )
+	void DeferredContext::InitializeScene()
 	{
 		ObjectCreateInfo objectCI = {};
 		
@@ -66,7 +79,7 @@ namespace vk
 			glm::scale(glm::mat4(1.f), glm::vec3(3.f));
 		objectCI.devicePtr = &this->device;
 
-		objManager->LoadObject(objectCI);
+		m_objectManager->LoadObject(objectCI);
 
 		//object 2 - cube
 		objectCI = {};
@@ -83,7 +96,7 @@ namespace vk
 		objectCI.modelTransform = glm::translate(glm::mat4(1.f), glm::vec3(sceneSettings.cubePosition));
 		objectCI.devicePtr = &this->device;
 
-		objManager->LoadObject(objectCI);
+		m_objectManager->LoadObject(objectCI);
 
 		//object 3 - base
 		objectCI = {};
@@ -98,7 +111,7 @@ namespace vk
 		objectCI.hasPhysicsComponent = true;
 		objectCI.devicePtr = &this->device;
 
-		objManager->LoadObject(objectCI);
+		m_objectManager->LoadObject(objectCI);
 
 		objectCI = {};
 
@@ -106,14 +119,13 @@ namespace vk
 		objectCI.objName = "AnimatedCube.gltf";
 		objectCI.devicePtr = &this->device;
 
-		objManager->LoadObject(objectCI);
+		m_objectManager->LoadObject(objectCI);
 
 	}
 
 	void DeferredContext::ResizeWindowDerived()
 	{
 		//MRT resizing...
-
 		InitializeDeferredFramebuffer();
 
 		//shadow resizing...
@@ -163,7 +175,7 @@ namespace vk
 
 	void DeferredContext::FillOutGraphicsContextInfo()
 	{
-		mInfo.contextTextureDescriptorPtr = &textureBindingDescriptor;
+		m_info->contextTextureDescriptorPtr = &textureBindingDescriptor;
 	}
 
 	void DeferredContext::InitializeUniforms()
@@ -951,7 +963,6 @@ namespace vk
 
 	void DeferredContext::RecordCommandBuffers()
 	{
-		ObjectManager& objManager = *_Application->GetObjectManager().get();
 
 		VkCommandBuffer cmdBuffer = commandBuffers[currentFrame];
 		VkCommandBufferBeginInfo cmdBufferBeginInfo = vk::init::CommandBufferBeginInfo();
@@ -1004,7 +1015,8 @@ namespace vk
 			vk::DrawInfo drawInfo = {};
 			drawInfo.cmdBuffer = cmdBuffer;
 			drawInfo.pipelineLayout = pipelineLayouts[dePipeline::SHADOW];
-			objManager.DrawObjects(drawInfo);
+
+			m_objectManager->DrawObjects(drawInfo);
 
 			vkCmdEndRenderPass(cmdBuffer);
 		}
@@ -1064,7 +1076,8 @@ namespace vk
 			drawInfo.firstSet = 1;
 			drawInfo.pipelineLayout = pipelineLayouts[dePipeline::MRT];
 			drawInfo.textureBindingSize = textureBindingDescriptor.size;
-			objManager.DrawObjects(drawInfo);
+
+			m_objectManager->DrawObjects(drawInfo);
 
 			vkCmdEndRenderPass(cmdBuffer);
 		}
@@ -1162,10 +1175,6 @@ namespace vk
 			UpdateLights();
 			RecordCommandBuffers();
 			ContextBase::SubmitFrame();
-		}
-		else 
-		{
-			ResizeWindow();
 		}
 	}
 

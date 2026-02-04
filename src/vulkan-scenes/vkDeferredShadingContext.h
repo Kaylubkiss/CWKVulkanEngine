@@ -14,7 +14,7 @@ namespace vk
 
 		void RecordCommandBuffers() override;
 		void UpdateUI() override;
-		void InitializeScene( ObjectManager* objManager ) override;
+		void InitializeScene() override;
 		void ResizeWindowDerived() override;
 		void Render() override;
 	protected:
@@ -83,7 +83,6 @@ namespace vk
 
 		std::array<UniformBuffers, gMaxFramesInFlight> uniformBuffers;
 
-
 		std::array<DescriptorBufferData, dePipeline::PIPELINE_COUNT> uniformBindingDescriptors;
 		//might be an abuse of map? Big memory cost.
 		DescriptorBufferData textureBindingDescriptor;
@@ -96,7 +95,7 @@ namespace vk
 			Framebuffer deShadow;
 		} framebuffers;
 
-		std::array<VkPipelineLayout, PIPELINE_COUNT> pipelineLayouts;
+		std::array<VkPipelineLayout, PIPELINE_COUNT> pipelineLayouts = {};
 
 		float depthBiasConstant = 1.25f;
 		float depthBiasSlope    = 1.75f;

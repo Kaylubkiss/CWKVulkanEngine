@@ -10,11 +10,11 @@ namespace vk
 	struct Texture
 	{
 		Texture() = default;
+		~Texture();
 		Texture& operator=( const Texture& other ) = delete;
 		Texture( const Texture& other ) = delete;
 		//From filename
-		Texture( const vk::Device* devicePtr, const std::string& fileName );
-		~Texture();
+		Texture( const vk::Device* devicePtr, const std::string& fileName, std::mutex& transferMutex );
 
 		static VkImageView CreateImageView( VkDevice l_device,
 			const VkImage& textureImage, uint32_t mipLevels );

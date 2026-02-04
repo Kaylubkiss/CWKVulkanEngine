@@ -57,20 +57,21 @@ namespace vk
 			this->UIOverlay = UserInterface(userInterfaceCI);
 		}
 
+		m_info = std::make_shared<vk::GraphicsContextInfo>();
 		ContextBase::FillOutGraphicsContextInfo();
 
 		this->mCamera = Camera({ 0.f, 0.f, 10.f }, { 0.f, 0.f, -1.f }, { 0,1,0 });
 
-		this->pipelineManager.Init(mInfo);
-
+		this->pipelineManager.Init(m_info);
 	}
 
 	//destructor
 	ContextBase::~ContextBase()
 	{
-		if (settings.debugMessenger) 
+		if (settings.debugMessenger != nullptr)
 		{
-			auto func = (PFN_vkDestroyDebugUtilsMessengerEXT)(vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT"));
+			auto func = (PFN_vkDestroyDebugUtilsMessengerEXT)
+				(vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT"));
 			if (func != nullptr)
 			{
 				func(instance, settings.debugMessenger, nullptr);
@@ -85,7 +86,7 @@ namespace vk
 
 			vkFreeCommandBuffers(device.logical, this->device.commandPool,
 				static_cast<uint32_t>(this->commandBuffers.size()), this->commandBuffers.data());
-			vkDestroyCommandPool(device.logical, this->device.commandPool, nullptr);
+			//device command pool is deallocated in ~Device()
 
 			//semaphores
 			for (int i = 0; i < gMaxFramesInFlight; ++i)
@@ -96,14 +97,17 @@ namespace vk
 				vkDestroyFence(device.logical, inFlightFences[i], nullptr);
 			}
 
-			vkDestroySemaphore(device.logical, mInfo.textureProcessSemaphore, nullptr);
+			m_objectManager->Destroy();
 
-			device.Destroy();
+			//must destroy the device before instance
+			this->device.Destroy();
 
 			vkDestroySurfaceKHR(this->instance, this->window.surface, nullptr);
 			vkDestroyInstance(this->instance, nullptr);
 		}
 	}
+
+
 
 	//helper(s)
 	void ContextBase::CreateInstance()
@@ -220,9 +224,10 @@ namespace vk
 	{
 		for (int i = 0; i < gMaxFramesInFlight; ++i)
 		{
-			inFlightFences[i] = vk::init::CreateFence(device.logical);
+			inFlightFences[i] = vk::init::CreateFence(device.logical, true);
 			presentCompleteSemaphores[i] = vk::init::CreateSemaphore(this->device.logical);
 			renderCompleteSemaphores[i] = vk::init::CreateSemaphore(this->device.logical);
+			textureUploadSemaphores[i] = vk::init::CreateSemaphore(this->device.logical);
 		}
 	}
 
@@ -256,6 +261,9 @@ namespace vk
 
 			vkDestroyFence(device.logical, inFlightFences[i], nullptr);
 			inFlightFences[i] = VK_NULL_HANDLE;
+
+			vkDestroySemaphore(this->device.logical, textureUploadSemaphores[i], nullptr);
+			textureUploadSemaphores[i] = VK_NULL_HANDLE;
 		}
 
 		CreateSynchronizationPrimitives();
@@ -266,6 +274,10 @@ namespace vk
 		
 	}
 
+	void ContextBase::UpdateSceneObjects(float dt) const
+	{
+		m_objectManager->Update(dt);
+	}
 	//initializers
 
 	void ContextBase::InitializeRenderPass() 
@@ -344,16 +356,12 @@ namespace vk
 	void ContextBase::FillOutGraphicsContextInfo() 
 	{
 		//TODO: a little janky way to initialize as more of mInfo is filled with derived classes.
-		mInfo.devicePtr = &this->device;
+		m_info->devicePtr = &this->device;
 
 		if (settings.UIEnabled) 
 		{
-			mInfo.contextUIPtr = &UIOverlay;
+			m_info->contextUIPtr = &UIOverlay;
 		}
-
-		VkSemaphoreCreateInfo semaphoreCI = {};
-		semaphoreCI.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-		vkCreateSemaphore(device.logical, &semaphoreCI, nullptr, &mInfo.textureProcessSemaphore);
 	}
 
 	//getter(s)
@@ -377,12 +385,12 @@ namespace vk
 		return this->window;
 	}
 
-	GraphicsContextInfo ContextBase::GetGraphicsContextInfo() const
+	std::shared_ptr<GraphicsContextInfo> ContextBase::GetGraphicsContextInfo() const
 	{
-		return mInfo;
+		return m_info;
 	}
 
-	void ContextBase::WaitForDevice()
+	void ContextBase::WaitForDevice() const
 	{
 		if (device.logical != VK_NULL_HANDLE) 
 		{
@@ -444,6 +452,12 @@ namespace vk
 		submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 		std::vector<VkPipelineStageFlags> pipelineWaitStages = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
 		std::vector<VkSemaphore> waitSemaphores = {presentCompleteSemaphores[currentFrame]};
+		if (m_objectManager->SyncIO(currentFrame, textureUploadSemaphores[currentFrame]) == true)
+		{
+			pipelineWaitStages.push_back(VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
+			waitSemaphores.push_back(textureUploadSemaphores[currentFrame]);
+		}
+
 		submitInfo.waitSemaphoreCount = static_cast<uint32_t>(waitSemaphores.size());
 		submitInfo.pWaitSemaphores = waitSemaphores.data();
 		submitInfo.pWaitDstStageMask = pipelineWaitStages.data();
@@ -452,11 +466,8 @@ namespace vk
 		submitInfo.commandBufferCount = 1;
 		submitInfo.pCommandBuffers = &this->commandBuffers[currentFrame];
 
-		{
-			std::lock_guard<std::mutex> lock(g_textureProcessMutex);
-			VK_CHECK_RESULT(vkQueueSubmit(this->device.graphicsQueue.handle, 1, &submitInfo,
-				inFlightFences[currentFrame]))
-		}
+		VK_CHECK_RESULT(vkQueueSubmit(this->device.graphicsQueue.handle, 1, &submitInfo,
+			inFlightFences[currentFrame]));
 
 		VkPresentInfoKHR presentInfo{};
 		presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
@@ -465,22 +476,15 @@ namespace vk
 		presentInfo.pImageIndices = &currentImageIndex;
 		presentInfo.swapchainCount = 1;
 		presentInfo.pSwapchains = &this->swapChain.handle;
-		VkResult result;
 
-		{
-			std::lock_guard<std::mutex> lock(g_textureProcessMutex);
-			result = vkQueuePresentKHR(this->device.presentQueue.handle, &presentInfo);
-		}
+		VkResult result = vkQueuePresentKHR(this->device.presentQueue.handle, &presentInfo);
 
 		if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
 		{
-			//ResizeWindow();
-			window.isPrepared = false;
 			if (result == VK_ERROR_OUT_OF_DATE_KHR) 
 			{
-				return;
+				ResizeWindow();
 			}
-			
 		}
 		else
 		{

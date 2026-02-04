@@ -2,6 +2,8 @@
 
 UserInterface::UserInterface(const UserInterfaceInitInfo& initInfo)
 {
+	assert(initInfo.contextLogicalDevice != VK_NULL_HANDLE);
+
 	this->contextLogicalDevice = initInfo.contextLogicalDevice;
 	UserInterface::InitializeUIDescriptorPool();
 
@@ -41,7 +43,7 @@ void UserInterface::Destroy()
 {
 	if (isInitialized)
 	{
-		for (auto texture : displayTextures)
+		for (auto& texture : displayTextures)
 		{
 			ImGui_ImplVulkan_RemoveTexture(texture);
 		}
@@ -115,13 +117,10 @@ void UserInterface::AddImage( const vk::Texture& texture )
 		throw std::runtime_error("UserInterface::AddImage() failed\n");
 	}
 
-	displayTextures.push_back(
-		ImGui_ImplVulkan_AddTexture(
-			texture.mSampler,
-			texture.mImageView,
-			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
-		)
-	);
+	const VkDescriptorSet newTexture = ImGui_ImplVulkan_AddTexture(texture.mSampler, texture.mImageView,
+		VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+
+	displayTextures.push_back(newTexture);
 }
 
 void UserInterface::Prepare()
@@ -131,7 +130,7 @@ void UserInterface::Prepare()
 	ImGui::NewFrame();
 }
 
-void UserInterface::Render(VkCommandBuffer cmdBuffer)
+void UserInterface::Render( VkCommandBuffer cmdBuffer )
 {
 	//ImGui::ShowDemoWindow();
 	ImGui::Render();

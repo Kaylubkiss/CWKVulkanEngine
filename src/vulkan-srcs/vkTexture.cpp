@@ -58,18 +58,37 @@ namespace vk {
 		return nTextureSampler;
 	}
 
-	Texture::~Texture() 
+	Texture::~Texture()
 	{
-		if (cLogicalDevice != VK_NULL_HANDLE) 
+		if (cLogicalDevice != VK_NULL_HANDLE)
 		{
-			vkDestroySampler(cLogicalDevice, mSampler, nullptr);
-			vkDestroyImageView(cLogicalDevice, mImageView, nullptr);
-			vkDestroyImage(cLogicalDevice, mImage, nullptr);
-			vkFreeMemory(cLogicalDevice, mMemory, nullptr);
+			if (mSampler != VK_NULL_HANDLE)
+			{
+				vkDestroySampler(cLogicalDevice, mSampler, nullptr);
+				mSampler = VK_NULL_HANDLE;
+			}
+
+			if (mImageView != VK_NULL_HANDLE)
+			{
+				vkDestroyImageView(cLogicalDevice, mImageView, nullptr);
+				mImageView = VK_NULL_HANDLE;
+			}
+
+			if (mImage != VK_NULL_HANDLE)
+			{
+				vkDestroyImage(cLogicalDevice, mImage, nullptr);
+				mImage = VK_NULL_HANDLE;
+			}
+
+			if (mMemory != VK_NULL_HANDLE)
+			{
+				vkFreeMemory(cLogicalDevice, mMemory, nullptr);
+				mMemory = VK_NULL_HANDLE;
+			}
 		}
 	}
 
-	Texture::Texture( const vk::Device* devicePtr, const std::string& fileName )
+	Texture::Texture( const vk::Device* devicePtr, const std::string& fileName, std::mutex& transferMutex )
 	{
 
 		assert(devicePtr);
@@ -89,17 +108,16 @@ namespace vk {
 		VkDeviceSize imageSize = static_cast<uint64_t>(textureWidth) *
 			static_cast<uint64_t>(textureHeight) * bytePerPixel; //4 bytes per pixel.
 
-		/*uint32_t mipLevels = vk::util::CalculateMipLevels(textureWidth, textureHeight); -- commented out because I don't understand it yet. */ 
 		uint32_t mipLevels = 1;
 
 		vk::Buffer stagingBuffer = vk::Buffer(devicePtr,
 			VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, 
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
 			static_cast<size_t>(imageSize), pixels);
 
 		this->mImage = vk::init::CreateImage(devicePtr->physical,
 			devicePtr->logical, textureWidth, textureHeight, mipLevels, VK_FORMAT_R8G8B8A8_SRGB,
-			VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+			VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
 			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, this->mMemory);
 
 		VkCommandPool transferCmdPool = vk::init::CommandPool(devicePtr->logical,
@@ -122,7 +140,7 @@ namespace vk {
 		releaseBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
 		releaseBarrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
 		releaseBarrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-		releaseBarrier.srcQueueFamilyIndex = devicePtr->transferQueue.family; //this might be the key to help sync 
+		releaseBarrier.srcQueueFamilyIndex = devicePtr->transferQueue.family;
 		releaseBarrier.dstQueueFamilyIndex = devicePtr->graphicsQueue.family;
 		releaseBarrier.image = this->mImage;
 		releaseBarrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
@@ -150,7 +168,10 @@ namespace vk {
 
 		VK_CHECK_RESULT(vkCreateFence(devicePtr->logical, &transferFenceCI, nullptr, &transferFence));
 
-		VK_CHECK_RESULT(vkQueueSubmit(devicePtr->transferQueue.handle, 1, &submitInfo, transferFence));
+		{
+			std::lock_guard<std::mutex> lock(transferMutex);
+			VK_CHECK_RESULT(vkQueueSubmit(devicePtr->transferQueue.handle, 1, &submitInfo, transferFence));
+		}
 
 		VK_CHECK_RESULT(vkWaitForFences(devicePtr->logical, 1, &transferFence, VK_TRUE, UINT64_MAX));
 

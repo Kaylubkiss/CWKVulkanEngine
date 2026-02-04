@@ -63,9 +63,19 @@ namespace vk
 			VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT, graphicsQueue.family);
 	}
 
-	void Device::Destroy() 
+	void Device::Destroy()
 	{
-		vkDestroyDevice(this->logical, nullptr);
+		if (this->logical != VK_NULL_HANDLE)
+		{
+			if (this->commandPool != VK_NULL_HANDLE)
+			{
+				vkDestroyCommandPool(this->logical, this->commandPool, nullptr);
+				this->commandPool = VK_NULL_HANDLE;
+			}
+
+			vkDestroyDevice(this->logical, nullptr);
+			this->logical = VK_NULL_HANDLE;
+		}
 	}
 
 	void Device::FindPhysicalDevices(VkInstance instance) 

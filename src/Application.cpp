@@ -1,6 +1,7 @@
 #include "CameraController.h"
 #include "vulkan-scenes/vkDeferredShadingContext.h"
 
+std::atomic_bool vk::g_textureUploadSubmitted;
 //NOTE: to remove pesky warnings from visual studio, on dynamically allocated arrays,
 //I've used the syntax: *(array + i) to access the array instead of array[i].
 //the static analyzer of visual studio is bad.
@@ -8,17 +9,13 @@
 
 PhysicsSystem& Application::GetPhysics() 
 {
-	return this->mPhysics;
+	return this->m_physics;
 }
 
-vk::ContextBase* Application::Context() {
+vk::ContextBase* Application::Context()
+{
 
 	return m_graphicsContext.get();
-}
-
-std::unique_ptr<ObjectManager>& Application::GetObjectManager()
-{
-	return m_objectManager;
 }
 
 
@@ -38,13 +35,12 @@ void Application::run()
 void Application::init() 
 {
 	m_graphicsContext = std::make_unique<vk::DeferredContext>();
+	if (exitApplication == false)
+	{
+		m_graphicsContext->InitializeScene(); //TODO: deserialize a scene
 
-	vk::GraphicsContextInfo contextInfo = m_graphicsContext->GetGraphicsContextInfo();
-	m_objectManager = std::make_unique<ObjectManager>(contextInfo);
-	
-	m_graphicsContext->InitializeScene(m_objectManager.get());
-	
-	mTime = Timer(SDL_GetPerformanceCounter());
+		mTime = Timer(SDL_GetPerformanceCounter());
+	}
 }
 
 
@@ -115,7 +111,7 @@ void Application::RequestExit()
 
 void Application::loop()
 {
-	if (m_graphicsContext != nullptr) 
+	if (m_graphicsContext != nullptr)
 	{
 		//render graphics.
 		while (exitApplication == false)
@@ -124,11 +120,8 @@ void Application::loop()
 
 			Controller::MoveCamera(m_graphicsContext->GetCamera(), static_cast<float>(dt));
 
-			mPhysics.Update(static_cast<float>(dt));
+			m_graphicsContext->UpdateSceneObjects(m_physics.InterpFactor(static_cast<float>(dt)));
 
-			m_objectManager->Update(mPhysics.InterpFactor());
-
-			//sync this up with primary command buffer in graphics system...
 			m_graphicsContext->Render();
 		}
 

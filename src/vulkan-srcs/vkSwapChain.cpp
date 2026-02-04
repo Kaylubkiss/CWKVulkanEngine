@@ -178,15 +178,16 @@ namespace vk
 
 	void SwapChain::Destroy() 
 	{
-		assert(devicePtr);
-
-		for (auto& framebuffer : framebuffers)
+		if (devicePtr != nullptr)
 		{
-			framebuffer.Destroy();
-		}
+			for (auto& framebuffer : framebuffers)
+			{
+				framebuffer.Destroy();
+			}
 
-		vkDestroySwapchainKHR(devicePtr->logical, this->handle, nullptr);
-		handle = VK_NULL_HANDLE;
+			vkDestroySwapchainKHR(devicePtr->logical, this->handle, nullptr);
+			handle = VK_NULL_HANDLE;
+		}
 	}
 
 	void SwapChain::CreateFrameBuffers(const VkViewport& vp, const VkRenderPass renderPass)
