@@ -408,7 +408,6 @@ namespace vk
 			return false;
 		}
 
-		//add synchronization calls here.
 		VK_CHECK_RESULT(vkWaitForFences(device.logical, 1, &inFlightFences[currentFrame], VK_TRUE, UINT64_MAX));
 		VK_CHECK_RESULT(vkResetFences(device.logical, 1, &inFlightFences[currentFrame]));
 
@@ -450,9 +449,12 @@ namespace vk
 	{
 		VkSubmitInfo submitInfo = {};
 		submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+
 		std::vector<VkPipelineStageFlags> pipelineWaitStages = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
 		std::vector<VkSemaphore> waitSemaphores = {presentCompleteSemaphores[currentFrame]};
-		if (m_objectManager->SyncIO(currentFrame, textureUploadSemaphores[currentFrame]) == true)
+
+		bool textureSubmitted = m_objectManager->SyncIO(currentFrame, textureUploadSemaphores[currentFrame]);
+		if (textureSubmitted == true)
 		{
 			pipelineWaitStages.push_back(VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
 			waitSemaphores.push_back(textureUploadSemaphores[currentFrame]);
@@ -491,7 +493,11 @@ namespace vk
 			VK_CHECK_RESULT(result);
 		}
 
-		currentFrame = (currentFrame + 1) % settings.maxFramesInFlight;
+		//we need to ensure that the queue submission completes.
+		if (textureSubmitted == false)
+		{
+			currentFrame = (currentFrame + 1) % settings.maxFramesInFlight;
+		}
 
 	}
 

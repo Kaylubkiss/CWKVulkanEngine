@@ -111,16 +111,15 @@ bool UserInterface::CollapsingHeader( const std::string& label )
 
 void UserInterface::AddImage( const vk::Texture& texture )
 {
-	if (texture.mImageView == VK_NULL_HANDLE)
+	VkDescriptorImageInfo textureInfo = texture.GetDescriptor();
+	if (textureInfo.imageView == VK_NULL_HANDLE)
 	{
 		std::cerr << "texture not intialized\n";
 		throw std::runtime_error("UserInterface::AddImage() failed\n");
 	}
 
-	const VkDescriptorSet newTexture = ImGui_ImplVulkan_AddTexture(texture.mSampler, texture.mImageView,
-		VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-
-	displayTextures.push_back(newTexture);
+	displayTextures.push_back(ImGui_ImplVulkan_AddTexture(textureInfo.sampler, textureInfo.imageView,
+		VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL));
 }
 
 void UserInterface::Prepare()

@@ -110,16 +110,15 @@ bool TextureManager::UploadTextureDataToGPU( uint32_t currentFrame, const VkSema
 
 	for (auto& t : texturesToProcess)
 	{
+		vk::Texture* curr_texture = t.handle.get();
+
 		VkImageMemoryBarrier acquireBarrier = {};
 		acquireBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
 		acquireBarrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
 		acquireBarrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-
 		acquireBarrier.srcQueueFamilyIndex = devicePtr->transferQueue.family;
 		acquireBarrier.dstQueueFamilyIndex = devicePtr->graphicsQueue.family;
-
-		vk::Texture* curr_texture = t.handle.get();
-		acquireBarrier.image = curr_texture->mImage;
+		acquireBarrier.image = curr_texture->GetImage();
 		acquireBarrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 		acquireBarrier.subresourceRange.baseMipLevel = 0;
 		acquireBarrier.subresourceRange.levelCount = 1;
@@ -154,25 +153,13 @@ bool TextureManager::UploadTextureDataToGPU( uint32_t currentFrame, const VkSema
 	for (auto& t : texturesToProcess)
 	{
 		vk::Texture* curr_texture = t.handle.get();
+		VkDescriptorImageInfo textureDescriptor = curr_texture->GetDescriptor();
 
-		curr_texture->mImageView =
-			vk::Texture::CreateImageView(devicePtr->logical, curr_texture->mImage, 1);
-		curr_texture->mSampler =
-			vk::Texture::CreateSampler(devicePtr->physical, devicePtr->logical, 1);
-
-		curr_texture->descriptor = {
-			curr_texture->mSampler,
-			curr_texture->mImageView,
-			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
-		};
-
-
-		//TODO: this might break.
-		/*auto& UI = s_graphicsContextInfo->contextUIPtr;
+		auto& UI = s_graphicsContextInfo->contextUIPtr;
 		if (UI)
 		{
 			UI->AddImage(*curr_texture);
-		}*/
+		}
 
 		VkDeviceSize textureBindingSize =
 			s_graphicsContextInfo->contextTextureDescriptorPtr->size;
@@ -185,7 +172,7 @@ bool TextureManager::UploadTextureDataToGPU( uint32_t currentFrame, const VkSema
 
 		VkDescriptorGetInfoEXT imageDescriptorInfo = { VK_STRUCTURE_TYPE_DESCRIPTOR_GET_INFO_EXT };
 		imageDescriptorInfo.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		imageDescriptorInfo.data.pCombinedImageSampler = &curr_texture->descriptor;
+		imageDescriptorInfo.data.pCombinedImageSampler = &textureDescriptor;
 
 		char* imageBindingDescriptorPtr =
 			(char*)(s_graphicsContextInfo->contextTextureDescriptorPtr->buffers.front().GetMappedMemory());
@@ -196,42 +183,6 @@ bool TextureManager::UploadTextureDataToGPU( uint32_t currentFrame, const VkSema
 	}
 
 	return true;
-}
-
-VkDescriptorImageInfo TextureManager::GetTextureDescriptorInfo(const char* fileName)
-{
-	{
-		std::lock_guard<std::mutex> lock(m_textureMutex);
-		if (m_textures.count(fileName))
-		{
-			return m_textures[fileName].handle->descriptor;
-		}
-	}
-
-	std::cerr << "could not find specified texture!\n";
-	std::cerr << "GetTextureDescriptorInfo() Failed.\n";
-	return {};
-
-}
-
-VkDescriptorImageInfo TextureManager::GetTextureDescriptorInfo(uint32_t index)
-{
-	{
-		std::lock_guard<std::mutex> lock(m_textureMutex);
-		for (auto& t : m_textures)
-		{
-			TextureInfo& texture = t.second;
-			if (texture.index == 0)
-			{
-				return texture.handle.get()->descriptor;
-			}
-		}
-	}
-
-	std::cerr << "could not find specified texture!\n";
-	std::cerr << "GetTextureDescriptorInfo() Failed.\n";
-
-	return {};
 }
 
 size_t TextureManager::GetSize()

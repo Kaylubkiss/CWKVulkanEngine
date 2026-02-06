@@ -10,8 +10,6 @@ class TextureManager
 		void Init( std::shared_ptr<vk::GraphicsContextInfo>& contextInfo );
 		void Destroy();
 
-		VkDescriptorImageInfo GetTextureDescriptorInfo( const char* fileName );
-		VkDescriptorImageInfo GetTextureDescriptorInfo( uint32_t index );
 		size_t GetSize();
 
 		void BindTextureToModelPrimitive( const std::string& fileName, Primitive& primitive );

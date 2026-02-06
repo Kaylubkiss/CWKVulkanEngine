@@ -27,9 +27,10 @@ private:
 	void loop();
 	void exit();
 private:
-	std::unique_ptr<vk::ContextBase> m_graphicsContext;	//this MUST be declared at the top so that it's destructor is called last.
 	PhysicsSystem m_physics;
 	Timer mTime;
+
+	std::unique_ptr<vk::ContextBase> m_graphicsContext;	//this MUST be declared at the top so that it's destructor is called last.
 
 	bool exitApplication = false;
 };
