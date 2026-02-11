@@ -94,7 +94,6 @@ namespace vk {
 		VkCommandPool transferCmdPool = vk::init::CommandPool(devicePtr->logical,
 			VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT, devicePtr->transferQueue.family);
 
-
 		VkCommandBuffer transferCmd = beginSingleTimeCommand(devicePtr->logical, transferCmdPool);
 		VkSubmitInfo submitInfo = {};
 
