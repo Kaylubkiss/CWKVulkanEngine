@@ -10,7 +10,6 @@ layout(std140, binding = 0) uniform uTransformObject {
 
 	vec3 camPos;
 
-	
 	float padding; //TODO: remove this by fixing the structure placement!!
 	float lightShininess; /* exponent value */
 	vec3 lightPos;

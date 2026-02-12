@@ -703,9 +703,9 @@ namespace vk
 		//pipeline #1: composition stage of deferred shading
 		{
 			vertShaderInfo = vk::ShaderModuleInfo(device.logical,
-				"deferredLightPass.vert", VK_SHADER_STAGE_VERTEX_BIT);
+				"deferred-render/deComposition.vert", VK_SHADER_STAGE_VERTEX_BIT);
 			fragShaderInfo = vk::ShaderModuleInfo(device.logical,
-				"deferredLightPass.frag", VK_SHADER_STAGE_FRAGMENT_BIT, shaderc_fragment_shader);
+				"deferred-render/deComposition.frag", VK_SHADER_STAGE_FRAGMENT_BIT, shaderc_fragment_shader);
 
 			shaderStages[0] = vk::init::PipelineShaderStageCreateInfo(vertShaderInfo.mHandle, vertShaderInfo.mFlags);
 			shaderStages[1] = vk::init::PipelineShaderStageCreateInfo(fragShaderInfo.mHandle, fragShaderInfo.mFlags);
@@ -786,9 +786,9 @@ namespace vk
 		//pipeline #2: MRT stage of deferred shading -- outputting to color/textures
 		{
 			vertShaderInfo = ShaderModuleInfo(device.logical,
-				"deferredMRT.vert", VK_SHADER_STAGE_VERTEX_BIT);
+				"deferred-render/deMRT.vert", VK_SHADER_STAGE_VERTEX_BIT);
 			fragShaderInfo = ShaderModuleInfo(device.logical,
-				"deferredMRT.frag", VK_SHADER_STAGE_FRAGMENT_BIT, shaderc_fragment_shader);
+				"deferred-render/deMRT.frag", VK_SHADER_STAGE_FRAGMENT_BIT, shaderc_fragment_shader);
 
 
 			shaderStages[0] = vk::init::PipelineShaderStageCreateInfo(vertShaderInfo.mHandle, vertShaderInfo.mFlags);
@@ -913,9 +913,9 @@ namespace vk
 		/////////////////////////////////////////////////////////////
 		//pipeline #3: deferred shadow mapping
 		{
-			vertShaderInfo = ShaderModuleInfo(device.logical, "deferredShadow.vert",
+			vertShaderInfo = ShaderModuleInfo(device.logical, "deferred-render/deShadow.vert",
 				VK_SHADER_STAGE_VERTEX_BIT);
-			ShaderModuleInfo geoShaderInfo(device.logical, "deferredShadow.geom",
+			ShaderModuleInfo geoShaderInfo(device.logical, "deferred-render/deShadow.geom",
 				VK_SHADER_STAGE_GEOMETRY_BIT, shaderc_geometry_shader);
 
 			shaderStages[0] = vk::init::PipelineShaderStageCreateInfo(vertShaderInfo.mHandle, vertShaderInfo.mFlags);

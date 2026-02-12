@@ -16,7 +16,7 @@ namespace vk
         //just one particular environment map for now
         static void CreateImage( vk::Device* devicePtr )
         {
-            constexpr size_t image_count = 6;
+            constexpr int image_count = 6;
             //texture sizes should be square and/or the same in a cubemap
             int image_width, image_height, channels;
 
@@ -37,7 +37,7 @@ namespace vk
             }
 
             const VkDeviceSize image_size = image_width * image_height *
-                channels * static_cast<int>(image_count);
+                channels * image_count;
             const VkDeviceSize layer_size = image_size / static_cast<VkDeviceSize>(image_count);
 
 
@@ -65,9 +65,6 @@ namespace vk
             std::cout << "\033[32m" << "successfully loaded Cubemap in CreateImage()... " << "\033[0m\n";
         }
     private:
-
-
-
     };
 
 

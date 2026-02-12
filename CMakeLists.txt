@@ -32,7 +32,6 @@ set(SHADERC_SKIP_COPYRIGHT_CHECK ON CACHE BOOL "" FORCE)
 set(SHADERC_ENABLE_SHARED_CRT ON CACHE BOOL "" FORCE)
 add_subdirectory(extern/shaderc)
 
-
 #don't need to build these every time so set STATIC
 add_library(imgui STATIC
 		extern/imgui/imgui.cpp
@@ -71,7 +70,7 @@ src/GLTFModel.cpp
 src/OBJModel.cpp
 )
 
-set(VULKAN_SRC_DIR src/vulkan-srcs)
+set(VULKAN_SRC_DIR src/vk-sources)
 
 set(VULKAN_ENGINE_SRC 
 ${VULKAN_SRC_DIR}/vkUtility.cpp
@@ -87,7 +86,7 @@ ${VULKAN_SRC_DIR}/vkPipelineManager.cpp
 ${VULKAN_SRC_DIR}/vkFramebuffer.cpp
 )
 
-set(VULKAN_SCENES_DIR src/vulkan-scenes)
+set(VULKAN_SCENES_DIR src/vk-scenes)
 
 set(VULKAN_ENGINE_SCENES_SOURCE
 		${VULKAN_SCENES_DIR}/vkDeferredShadingContext.cpp
@@ -124,7 +123,7 @@ ${HEADER_SRC_DIR}/OBJModel.h
 ${HEADER_SRC_DIR}/IModel.h
 )
 				 
-set(VULKAN_HEADER_DIR src/vulkan-headers)
+set(VULKAN_HEADER_DIR src/vk-headers)
 
 set(VULKAN_ENGINE_HEADERS 
 ${VULKAN_HEADER_DIR}/vkUtility.h
@@ -139,7 +138,7 @@ ${VULKAN_HEADER_DIR}/vkDevice.h
 ${VULKAN_HEADER_DIR}/vkDevice.h
 ${VULKAN_HEADER_DIR}/vkPipelineManager.h
 ${VULKAN_HEADER_DIR}/vkFramebuffer.h
-		${VULKAN_HEADER_DIR}/vkCubemap.h
+${VULKAN_HEADER_DIR}/vkCubemap.h
 )
 
 source_group("Header Files/VulkanHeaders" FILES ${VULKAN_ENGINE_HEADERS})	
@@ -149,24 +148,14 @@ list(APPEND HEADER_FILES ${VULKAN_ENGINE_HEADERS})
 set(SHADER_SRC_DIR src/shaders)
 
 set(SHADER_FILES
-#blinn-phong
-${SHADER_SRC_DIR}/blinnForward.frag	
-${SHADER_SRC_DIR}/blinnForward.vert
-#shadow mapping
-${SHADER_SRC_DIR}/offscreenShadowMap.frag
-${SHADER_SRC_DIR}/offscreenShadowMap.vert
-${SHADER_SRC_DIR}/sceneShadowMap.frag
-${SHADER_SRC_DIR}/sceneShadowMap.vert
-${SHADER_SRC_DIR}/debugShadowMap.vert
-${SHADER_SRC_DIR}/debugShadowMap.frag
 #deferred shading
-${SHADER_SRC_DIR}/deferredMRT.vert
-${SHADER_SRC_DIR}/deferredMRT.frag
-${SHADER_SRC_DIR}/deferredLightPass.vert
-${SHADER_SRC_DIR}/deferredLightPass.frag
+${SHADER_SRC_DIR}/deferred-render/deMRT.vert
+${SHADER_SRC_DIR}/deferred-render/deMRT.frag
+${SHADER_SRC_DIR}/deferred-render/deComposition.vert
+${SHADER_SRC_DIR}/deferred-render/deComposition.frag
 #deferred shadowing
-${SHADER_SRC_DIR}/deferredShadow.geom
-${SHADER_SRC_DIR}/deferredShadow.vert
+${SHADER_SRC_DIR}/deferred-render/deShadow.geom
+${SHADER_SRC_DIR}/deferred-render/deShadow.vert
 )
 
 
@@ -175,10 +164,9 @@ add_executable(${PROJECT_NAME} ${SOURCE_FILES} ${SHADER_FILES} ${HEADER_FILES})
 
 target_precompile_headers(${PROJECT_NAME} PUBLIC ${HEADER_SRC_DIR}/pch.h)
 
-
-target_include_directories(${PROJECT_NAME} PRIVATE 
+target_include_directories(${PROJECT_NAME} PRIVATE
 src/headers
-src/vulkan-headers
+src/vk-headers
 extern/stb
 extern/tinyobjloader
 extern/imgui

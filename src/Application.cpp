@@ -1,5 +1,5 @@
 #include "CameraController.h"
-#include "vulkan-scenes/vkDeferredShadingContext.h"
+#include "vk-scenes/vkDeferredShadingContext.h"
 
 std::atomic_bool vk::g_textureUploadSubmitted;
 //NOTE: to remove pesky warnings from visual studio, on dynamically allocated arrays,

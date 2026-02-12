@@ -5,7 +5,7 @@
 
 #define VK_CHECK_RESULT(function) {VkResult check = function; if (check != VK_SUCCESS) {std::cout << check << '\n';} assert(check == VK_SUCCESS);}
 
-#define SHADER_PATH "Shaders/"
+#define SHADER_PATH "shaders/"
 
 extern PFN_vkGetDescriptorSetLayoutBindingOffsetEXT g_vkGetDescriptorSetLayoutBindingOffsetEXT;
 extern PFN_vkGetDescriptorSetLayoutSizeEXT g_vkGetDescriptorSetLayoutSizeEXT;

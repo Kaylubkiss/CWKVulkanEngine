@@ -1,7 +1,6 @@
 #include "OBJModel.h"
 #include <glm/glm.hpp>
 #include "ApplicationGlobal.h"
-#include <algorithm>
 #define TINYOBJLOADER_IMPLEMENTATION
 #include "tiny_obj_loader.h"
 

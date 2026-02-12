@@ -3,7 +3,7 @@
 #include <fastgltf/core.hpp>
 #include <fastgltf/types.hpp>
 
-#define TEXTURE_PATH "assets/textures/"
+#define TEXTURE_PATH "art/textures/"
 
 namespace vk 
 {
