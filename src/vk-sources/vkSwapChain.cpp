@@ -17,7 +17,7 @@ namespace vk
 
 		uint32_t surfaceFormatCount = 0;
 		std::vector<VkSurfaceFormatKHR> surfaceFormats;
-		VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceFormatsKHR(devicePtr->physical, appWindow.surface, &surfaceFormatCount, nullptr));
+		VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceFormatsKHR(devicePtr->GetGPU(), appWindow.surface, &surfaceFormatCount, nullptr));
 
 		//surfaceFormatCount now filled..
 		if (!surfaceFormatCount)
@@ -27,7 +27,7 @@ namespace vk
 
 		surfaceFormats.resize(surfaceFormatCount);
 
-		VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceFormatsKHR(devicePtr->physical, appWindow.surface, &surfaceFormatCount, surfaceFormats.data()));
+		VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceFormatsKHR(devicePtr->GetGPU(), appWindow.surface, &surfaceFormatCount, surfaceFormats.data()));
 
 		//choose suitable format
 		int surfaceIndex = 0;
@@ -44,7 +44,7 @@ namespace vk
 
 
 		VkSurfaceCapabilitiesKHR deviceCapabilities;
-		VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(devicePtr->physical, appWindow.surface, &deviceCapabilities));
+		VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(devicePtr->GetGPU(), appWindow.surface, &deviceCapabilities));
 
 		uint32_t imageCount = deviceCapabilities.minImageCount < 2 ? 2 : deviceCapabilities.minImageCount;
 
@@ -71,7 +71,7 @@ namespace vk
 
 
 		VkSurfaceCapabilitiesKHR deviceCapabilities;
-		VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(devicePtr->physical, appWindow.surface, &deviceCapabilities));
+		VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(devicePtr->GetGPU(), appWindow.surface, &deviceCapabilities));
 
 		uint32_t desiredImageCount = deviceCapabilities.minImageCount < 2 ? 2 : deviceCapabilities.minImageCount;
 		if (deviceCapabilities.maxImageCount > 0 && desiredImageCount > deviceCapabilities.maxImageCount)
@@ -126,7 +126,7 @@ namespace vk
 		createInfo.oldSwapchain = oldSwapchain; //resizing needs a reference to the old swap chain
 
 
-		VK_CHECK_RESULT(vkCreateSwapchainKHR(devicePtr->logical, &createInfo, nullptr, &this->handle));
+		VK_CHECK_RESULT(vkCreateSwapchainKHR(devicePtr->GetDevice(), &createInfo, nullptr, &this->handle));
 
 		if (oldSwapchain != VK_NULL_HANDLE)
 		{
@@ -135,15 +135,15 @@ namespace vk
 				framebuffer.Destroy();
 			}
 
-			vkDestroySwapchainKHR(devicePtr->logical, oldSwapchain, nullptr);
+			vkDestroySwapchainKHR(devicePtr->GetDevice(), oldSwapchain, nullptr);
 			oldSwapchain = VK_NULL_HANDLE;
 		}
 		
 		uint32_t imageCount = 0;
-		VK_CHECK_RESULT(vkGetSwapchainImagesKHR(devicePtr->logical, this->handle, &imageCount, nullptr));
+		VK_CHECK_RESULT(vkGetSwapchainImagesKHR(devicePtr->GetDevice(), this->handle, &imageCount, nullptr));
 
 		this->images.resize(imageCount);
-		VK_CHECK_RESULT(vkGetSwapchainImagesKHR(devicePtr->logical, this->handle, &imageCount, this->images.data()));
+		VK_CHECK_RESULT(vkGetSwapchainImagesKHR(devicePtr->GetDevice(), this->handle, &imageCount, this->images.data()));
 
 		VkCommandBuffer commandBuffer = devicePtr->CreateCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
 		//transition the image layouts for presentation.
@@ -167,7 +167,7 @@ namespace vk
 				0, 0, nullptr, 0, nullptr, 1, &barrier);
 		}
 
-		devicePtr->FlushCommandBuffer(commandBuffer, devicePtr->graphicsQueue.handle, devicePtr->commandPool, true);
+		devicePtr->FlushCommandBuffer(commandBuffer, devicePtr->GetQueue(DeviceQueue::GRAPHICS).handle, true);
 	}
 	
 	void SwapChain::Recreate(const VkRenderPass renderPass, const vk::Window& appWindow)
@@ -185,7 +185,7 @@ namespace vk
 				framebuffer.Destroy();
 			}
 
-			vkDestroySwapchainKHR(devicePtr->logical, this->handle, nullptr);
+			vkDestroySwapchainKHR(devicePtr->GetDevice(), this->handle, nullptr);
 			handle = VK_NULL_HANDLE;
 		}
 	}
@@ -241,7 +241,7 @@ namespace vk
 				1 //1 layer
 			};
 
-			VK_CHECK_RESULT(vkCreateFramebuffer(devicePtr->logical, &framebufferCreateInfo, nullptr, &this->framebuffers[i].handle));
+			VK_CHECK_RESULT(vkCreateFramebuffer(devicePtr->GetDevice(), &framebufferCreateInfo, nullptr, &this->framebuffers[i].handle));
 		}
 
 	}

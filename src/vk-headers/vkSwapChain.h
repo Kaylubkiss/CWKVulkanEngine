@@ -20,8 +20,8 @@ namespace vk
 			SwapChain() = default;
 			~SwapChain() = default;
 
-			void Init(Device* devicePtr, const vk::Window& appWindow);
-			void Create(const vk::Window& appWindow);
+			void Init( Device* devicePtr, const vk::Window& appWindow );
+			void Create( const vk::Window& appWindow );
 			
 			void Destroy();
 

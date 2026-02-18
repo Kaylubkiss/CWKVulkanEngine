@@ -355,7 +355,7 @@ namespace vk {
 			if (shaderInfo.source.empty()) 
 			{
 				std::cerr << "[ERROR] Couldn't successfully read shader file " << fileNamePath << '\n';
-				return "";
+				return std::string();
 			}
 
 			shaderInfo.filename = fileNamePath.c_str();

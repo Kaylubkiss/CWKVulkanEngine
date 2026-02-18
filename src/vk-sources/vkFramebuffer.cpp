@@ -53,26 +53,26 @@ namespace vk
 	{
 		for (auto& attachment : attachments) 
 		{
-			attachment.Destroy(contextDevice->logical);
+			attachment.Destroy(contextDevice->GetDevice());
 		}
 
 		attachments.resize(0);
 
 		if (sampler) 
 		{
-			vkDestroySampler(contextDevice->logical, sampler, nullptr);
+			vkDestroySampler(contextDevice->GetDevice(), sampler, nullptr);
 			sampler = VK_NULL_HANDLE;
 		}
 
 		if (renderPass) 
 		{
-			vkDestroyRenderPass(contextDevice->logical, renderPass, nullptr);
+			vkDestroyRenderPass(contextDevice->GetDevice(), renderPass, nullptr);
 			renderPass = VK_NULL_HANDLE;
 		}
 
 		if (handle) 
 		{
-			vkDestroyFramebuffer(contextDevice->logical, handle, nullptr);
+			vkDestroyFramebuffer(contextDevice->GetDevice(), handle, nullptr);
 			handle = VK_NULL_HANDLE;
 		}
 	}
@@ -90,7 +90,7 @@ namespace vk
 		samplerCI.addressModeW = samplerCI.addressModeU;
 		samplerCI.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
 
-		VK_CHECK_RESULT(vkCreateSampler(contextDevice->logical, &samplerCI, nullptr, &sampler));
+		VK_CHECK_RESULT(vkCreateSampler(contextDevice->GetDevice(), &samplerCI, nullptr, &sampler));
 	}
 
 	void Framebuffer::CreateRenderPass() 
@@ -182,7 +182,7 @@ namespace vk
 		createInfo.dependencyCount = static_cast<uint32_t>(dependencies.size());
 
 
-		VK_CHECK_RESULT(vkCreateRenderPass(contextDevice->logical, &createInfo, nullptr, &renderPass));
+		VK_CHECK_RESULT(vkCreateRenderPass(contextDevice->GetDevice(), &createInfo, nullptr, &renderPass));
 	}
 
 	void Framebuffer::CreateFramebuffer() 
@@ -208,7 +208,7 @@ namespace vk
 			framebufferCI.layers = std::max(framebufferCI.layers, attachment.subresourceRange.layerCount);
 		}
 
-		VK_CHECK_RESULT(vkCreateFramebuffer(contextDevice->logical, &framebufferCI, nullptr, &handle));
+		VK_CHECK_RESULT(vkCreateFramebuffer(contextDevice->GetDevice(), &framebufferCI, nullptr, &handle));
 	}
 
 	void Framebuffer::AddAttachment(const vk::FramebufferAttachmentCreateInfo& createInfo)
@@ -244,7 +244,7 @@ namespace vk
 
 		assert
 		(
-			vk::util::FormatIsSupported(contextDevice->physical, createInfo.format,
+			vk::util::FormatIsSupported(contextDevice->GetGPU(), createInfo.format,
 				VK_IMAGE_TILING_OPTIMAL,
 				VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BIT)
 		);
@@ -261,18 +261,18 @@ namespace vk
 			imageCreateInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
 			imageCreateInfo.usage = createInfo.usage;
 
-			VK_CHECK_RESULT(vkCreateImage(contextDevice->logical, &imageCreateInfo, nullptr, &attachment.image));
+			VK_CHECK_RESULT(vkCreateImage(contextDevice->GetDevice(), &imageCreateInfo, nullptr, &attachment.image));
 
 			VkMemoryRequirements memRequirements;
-			vkGetImageMemoryRequirements(contextDevice->logical, attachment.image, &memRequirements);
+			vkGetImageMemoryRequirements(contextDevice->GetDevice(), attachment.image, &memRequirements);
 
 			VkMemoryAllocateInfo memAllocInfo = {};
 			memAllocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
 			memAllocInfo.allocationSize = memRequirements.size;
 			memAllocInfo.memoryTypeIndex = contextDevice->GetMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
-			VK_CHECK_RESULT(vkAllocateMemory(contextDevice->logical, &memAllocInfo, nullptr, &attachment.imageMemory));
-			VK_CHECK_RESULT(vkBindImageMemory(contextDevice->logical, attachment.image, attachment.imageMemory, 0));
+			VK_CHECK_RESULT(vkAllocateMemory(contextDevice->GetDevice(), &memAllocInfo, nullptr, &attachment.imageMemory));
+			VK_CHECK_RESULT(vkBindImageMemory(contextDevice->GetDevice(), attachment.image, attachment.imageMemory, 0));
 
 			//VkCommandBuffer commandBuffer = contextDevice->CreateCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
 
@@ -324,7 +324,7 @@ namespace vk
 		viewInfo.subresourceRange.levelCount = 1;
 		viewInfo.subresourceRange.layerCount = createInfo.layerCount;
 
-		VK_CHECK_RESULT(vkCreateImageView(contextDevice->logical, &viewInfo, nullptr, &attachment.imageView));
+		VK_CHECK_RESULT(vkCreateImageView(contextDevice->GetDevice(), &viewInfo, nullptr, &attachment.imageView));
 
 		//initializing some other information...
 		attachment.format = createInfo.format;

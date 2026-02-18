@@ -7,7 +7,7 @@ namespace vk
 	Buffer::Buffer( const vk::Device* devicePtr, VkBufferUsageFlags usage, VkMemoryPropertyFlags flags,
 		size_t size, void* data )
 	{
-		c_device = devicePtr->logical;
+		c_device = devicePtr->GetDevice();
 		m_size = static_cast<VkDeviceSize>(size);
 
 		VkBufferCreateInfo bufferCreateInfo = vk::init::BufferCreateInfo(usage, m_size);
@@ -22,7 +22,7 @@ namespace vk
 		vmai.allocationSize = memoryRequirments.size;
 
 		VkPhysicalDeviceMemoryProperties	vpdmp;
-		vkGetPhysicalDeviceMemoryProperties(devicePtr->physical, &vpdmp);
+		vkGetPhysicalDeviceMemoryProperties(devicePtr->GetGPU(), &vpdmp);
 
 		uint32_t typeBits = memoryRequirments.memoryTypeBits;
 		for (uint32_t i = 0; i < vpdmp.memoryTypeCount; i++)

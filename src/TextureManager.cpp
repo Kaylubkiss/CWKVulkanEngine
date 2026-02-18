@@ -11,14 +11,14 @@ void TextureManager::Init( std::shared_ptr<vk::GraphicsContextInfo>& contextInfo
 
 	s_graphicsContextInfo = contextInfo;
 
-	m_graphicsCommandPool = vk::init::CommandPool(s_graphicsContextInfo->devicePtr->logical,
-		VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT, s_graphicsContextInfo->devicePtr->graphicsQueue.family);
+	m_graphicsCommandPool = vk::init::CommandPool(s_graphicsContextInfo->devicePtr->GetDevice(),
+		VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT, s_graphicsContextInfo->devicePtr->GetQueue(vk::DeviceQueue::GRAPHICS).family);
 
 	VkCommandBufferAllocateInfo cmdBufferAllocateInfo = vk::init::CommandBufferAllocateInfo();
 	cmdBufferAllocateInfo.commandPool = m_graphicsCommandPool;
 	cmdBufferAllocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
 	cmdBufferAllocateInfo.commandBufferCount = static_cast<uint32_t>(m_commandBuffers.size());
-	VK_CHECK_RESULT(vkAllocateCommandBuffers(s_graphicsContextInfo->devicePtr->logical, &cmdBufferAllocateInfo,
+	VK_CHECK_RESULT(vkAllocateCommandBuffers(s_graphicsContextInfo->devicePtr->GetDevice(), &cmdBufferAllocateInfo,
 		m_commandBuffers.data()));
 
 }
@@ -27,10 +27,10 @@ void TextureManager::Destroy()
 {
 	if (s_graphicsContextInfo != nullptr)
 	{
-		vkFreeCommandBuffers(s_graphicsContextInfo->devicePtr->logical, m_graphicsCommandPool,
+		vkFreeCommandBuffers(s_graphicsContextInfo->devicePtr->GetDevice(), m_graphicsCommandPool,
 			static_cast<uint32_t>(m_commandBuffers.size()), m_commandBuffers.data());
 
-		vkDestroyCommandPool(s_graphicsContextInfo->devicePtr->logical, m_graphicsCommandPool, nullptr);
+		vkDestroyCommandPool(s_graphicsContextInfo->devicePtr->GetDevice(), m_graphicsCommandPool, nullptr);
 	}
 
 
@@ -116,8 +116,8 @@ bool TextureManager::UploadTextureDataToGPU( uint32_t currentFrame, const VkSema
 		acquireBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
 		acquireBarrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
 		acquireBarrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-		acquireBarrier.srcQueueFamilyIndex = devicePtr->transferQueue.family;
-		acquireBarrier.dstQueueFamilyIndex = devicePtr->graphicsQueue.family;
+		acquireBarrier.srcQueueFamilyIndex = devicePtr->GetQueue(vk::DeviceQueue::TRANSFER).family;
+		acquireBarrier.dstQueueFamilyIndex = devicePtr->GetQueue(vk::DeviceQueue::GRAPHICS).family;
 		acquireBarrier.image = curr_texture->GetImage();
 		acquireBarrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 		acquireBarrier.subresourceRange.baseMipLevel = 0;
@@ -147,7 +147,7 @@ bool TextureManager::UploadTextureDataToGPU( uint32_t currentFrame, const VkSema
 	submitInfo.pSignalSemaphores = &signalSemaphore;
 	submitInfo.signalSemaphoreCount = 1;
 
-	VK_CHECK_RESULT(vkQueueSubmit(devicePtr->graphicsQueue.handle, 1, &submitInfo, VK_NULL_HANDLE));
+	VK_CHECK_RESULT(vkQueueSubmit(devicePtr->GetQueue(vk::DeviceQueue::GRAPHICS).handle, 1, &submitInfo, VK_NULL_HANDLE));
 
 	//fill descriptors -- NOTE: this is incomplete until the submission is synced on the GPU
 	for (auto& t : texturesToProcess)
@@ -165,7 +165,7 @@ bool TextureManager::UploadTextureDataToGPU( uint32_t currentFrame, const VkSema
 			s_graphicsContextInfo->contextTextureDescriptorPtr->size;
 
 		VkDeviceSize combinedImageSamplerSize =
-			s_graphicsContextInfo->devicePtr->DescriptorBufferProperties().combinedImageSamplerDescriptorSize;
+			s_graphicsContextInfo->devicePtr->GetDescriptorBufferProperties().combinedImageSamplerDescriptorSize;
 
 		VkDeviceSize bindingOffset =
 			s_graphicsContextInfo->contextTextureDescriptorPtr->binding_offsets.front();
@@ -177,7 +177,7 @@ bool TextureManager::UploadTextureDataToGPU( uint32_t currentFrame, const VkSema
 		char* imageBindingDescriptorPtr =
 			(char*)(s_graphicsContextInfo->contextTextureDescriptorPtr->buffers.front().GetMappedMemory());
 
-		g_vkGetDescriptorEXT(s_graphicsContextInfo->devicePtr->logical, &imageDescriptorInfo,
+		g_vkGetDescriptorEXT(s_graphicsContextInfo->devicePtr->GetDevice(), &imageDescriptorInfo,
 			combinedImageSamplerSize,
 			imageBindingDescriptorPtr + t.index * textureBindingSize + bindingOffset);
 	}

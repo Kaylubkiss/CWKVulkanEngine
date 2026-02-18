@@ -8,33 +8,39 @@ namespace vk
 		uint32_t family = uint32_t(-1);
 	};
 
-	//TODO: make these members private and turn device into a class.
-	struct Device 
+	enum DeviceQueue : uint32_t
 	{
-		//data
-		VkPhysicalDevice physical = VK_NULL_HANDLE;
-		VkDevice logical          = VK_NULL_HANDLE;
+		GRAPHICS = 0,
+		PRESENT,
+		TRANSFER,
+		MAX_QUEUES
+	};
 
-		vk::Queue graphicsQueue;
-		vk::Queue presentQueue;
-		vk::Queue transferQueue;
-
-		VkCommandPool commandPool = VK_NULL_HANDLE;
-
+	//TODO: make these members private and turn device into a class.
+	class Device
+	{
 	public:
 		Device() = default;
+		void Init( VkInstance instance, VkSurfaceKHR surface );
 		~Device() = default;
 		void Destroy();
 		Device& operator=(const Device&) = delete;
 		Device& operator=(Device&&) = delete;
 
-		void Init( VkInstance instance, VkSurfaceKHR surface );
 		//functionality
 		uint32_t GetMemoryType( uint32_t typeBits, VkMemoryPropertyFlags properties );
-		VkPhysicalDeviceDescriptorBufferPropertiesEXT DescriptorBufferProperties() const;
+		VkPhysicalDeviceDescriptorBufferPropertiesEXT GetDescriptorBufferProperties() const;
+
+		const VkDevice GetDevice() const;
+		const VkPhysicalDevice GetGPU() const;
+
+		const vk::Queue& GetQueue( DeviceQueue queue ) const;
+
 		Buffer CreateBuffer( size_t size, VkBufferUsageFlags usage, VkMemoryPropertyFlags flags, void* data );
+		void AllocateCommandBuffers( VkCommandBuffer* commandBuffers, uint32_t count ) const;
+		void FreeCommandBuffers( const VkCommandBuffer* commandBuffers, uint32_t count ) const;
 		VkCommandBuffer CreateCommandBuffer( VkCommandBufferLevel level, bool begin );
-		void FlushCommandBuffer( VkCommandBuffer cmdBuffer, VkQueue queue, VkCommandPool pool, bool free );
+		void FlushCommandBuffer( VkCommandBuffer cmdBuffer, VkQueue queue, bool free );
 		void AddExtension(const char* name);
 	//helpers
 	private:
@@ -43,10 +49,17 @@ namespace vk
 		void InitializeLogicalDevice();
 		void CheckRequestedExtensions();
 	private:
-		std::vector<const char*> requestedExtensions;
+		std::vector<const char*> m_requestedExtensions;
+		std::array<vk::Queue, DeviceQueue::MAX_QUEUES> m_queues;
+
 		//properties
-		VkPhysicalDeviceMemoryProperties memoryProperties = {};
-		VkPhysicalDeviceDescriptorBufferPropertiesEXT descriptorBufferProperties = {};
+		VkPhysicalDeviceDescriptorBufferPropertiesEXT m_descriptorBufferProperties = {};
+		VkPhysicalDeviceMemoryProperties m_memoryProperties                        = {};
+
+		VkPhysicalDevice m_gpu = VK_NULL_HANDLE;
+		VkDevice m_device      = VK_NULL_HANDLE;
+
+		VkCommandPool m_commandPool = VK_NULL_HANDLE;
 
 	};
 

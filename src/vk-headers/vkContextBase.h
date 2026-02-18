@@ -15,8 +15,6 @@ namespace vk
 		virtual ~ContextBase();
 
 		//getters(s)
-		[[nodiscard]] VkPhysicalDevice PhysicalDevice() const;
-		[[nodiscard]] VkDevice LogicalDevice() const;
 		std::shared_ptr<GraphicsContextInfo> GetGraphicsContextInfo() const;
 		Camera& GetCamera();
 		vk::Window& GetWindow();

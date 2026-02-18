@@ -12,8 +12,8 @@
 //ShaderModuleInfo 
 namespace vk 
 {
-	ShaderModuleInfo::ShaderModuleInfo(const VkDevice l_device, std::string filename,
-		VkShaderStageFlagBits shaderFlags, shaderc_shader_kind shaderc_kind) : mFlags(shaderFlags), mShaderKind(shaderc_kind)
+	ShaderModuleInfo::ShaderModuleInfo( const VkDevice l_device, std::string filename,
+		VkShaderStageFlagBits shaderFlags, shaderc_shader_kind shaderc_kind ) : mFlags(shaderFlags), mShaderKind(shaderc_kind)
 	{
 
 		std::string shaderPath = vk::util::ReadSourceAndWriteToSprv(SHADER_PATH + filename, shaderc_kind);
@@ -50,7 +50,7 @@ namespace vk
 	{
 		assert(contextInfo->devicePtr);
 
-		contextLogicalDevice = contextInfo->devicePtr->logical;
+		contextLogicalDevice = contextInfo->devicePtr->GetDevice();
 	}
 
 	void PipelineManager::Destroy()
@@ -71,12 +71,12 @@ namespace vk
 		}
 	}
 
-	void PipelineManager::AddModule(uint32_t pipeline, const ShaderModuleInfo& shaderModuleInfo)
+	void PipelineManager::AddModule( uint32_t pipeline, const ShaderModuleInfo& shaderModuleInfo )
 	{
 		pipelines[pipeline].shaderModules.push_back(shaderModuleInfo);
 	}
 
-	void PipelineManager::AddPipeline(uint32_t pipeline, const VkPipeline handle, std::function<void()> createFunc)
+	void PipelineManager::AddPipeline( uint32_t pipeline, const VkPipeline handle, std::function<void()> createFunc )
 	{
 		pipelines[pipeline].handle = handle;
 
@@ -139,12 +139,12 @@ namespace vk
 
 	}
 
-	VkPipeline PipelineManager::Get(uint32_t pipeline) 
+	VkPipeline PipelineManager::Get( uint32_t pipeline )
 	{
 		return pipelines[pipeline].handle;
 	}
 
-	const std::vector<ShaderModuleInfo>& PipelineManager::GetPipelineShaders(uint32_t pipeline) 
+	const std::vector<ShaderModuleInfo>& PipelineManager::GetPipelineShaders( uint32_t pipeline )
 	{
 		return pipelines[pipeline].shaderModules;
 	}

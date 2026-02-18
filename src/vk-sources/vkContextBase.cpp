@@ -31,28 +31,24 @@ namespace vk
 			settings.maxFramesInFlight = swapChain.createInfo.minImageCount;
 		}
 
-		InitializeRenderPass();
+		ContextBase::InitializeRenderPass();
 		this->swapChain.CreateFrameBuffers(window.viewport, renderPass);
 
 		CreateSynchronizationPrimitives();
 
 		//each swapchain should have its own command buffer
-		VkCommandBufferAllocateInfo cmdBufferAllocateInfo = vk::init::CommandBufferAllocateInfo();
-		cmdBufferAllocateInfo.commandBufferCount = (uint32_t)this->commandBuffers.size();
-		cmdBufferAllocateInfo.commandPool = this->device.commandPool;
-		cmdBufferAllocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-		VK_CHECK_RESULT(vkAllocateCommandBuffers(device.logical, &cmdBufferAllocateInfo, commandBuffers.data()));
+		device.AllocateCommandBuffers(commandBuffers.data(), static_cast<uint32_t>(commandBuffers.size()));
 
-		if (settings.UIEnabled) 
+		if (this->settings.UIEnabled)
 		{
 			UserInterfaceInitInfo userInterfaceCI = {};
 			userInterfaceCI.contextInstance = this->instance;
-			userInterfaceCI.contextLogicalDevice = this->device.logical;
-			userInterfaceCI.contextPhysicalDevice = this->device.physical;
-			userInterfaceCI.contextQueue = this->device.graphicsQueue;
+			userInterfaceCI.contextLogicalDevice = this->device.GetDevice();
+			userInterfaceCI.contextPhysicalDevice = this->device.GetGPU();
+			userInterfaceCI.contextQueue = this->device.GetQueue(DeviceQueue::GRAPHICS);
 			userInterfaceCI.contextWindow = this->window.sdl_ptr;
 			userInterfaceCI.renderPass = this->renderPass;
-			userInterfaceCI.minImages = settings.maxFramesInFlight;
+			userInterfaceCI.minImages = this->settings.maxFramesInFlight;
 
 			this->UIOverlay = UserInterface(userInterfaceCI);
 		}
@@ -78,23 +74,22 @@ namespace vk
 			}
 		}
 
-		if (device.logical != VK_NULL_HANDLE) 
+		if (device.GetDevice() != VK_NULL_HANDLE)
 		{
 			pipelineManager.Destroy();
 			swapChain.Destroy();
 			UIOverlay.Destroy();
 
-			vkFreeCommandBuffers(device.logical, this->device.commandPool,
-				static_cast<uint32_t>(this->commandBuffers.size()), this->commandBuffers.data());
+			device.FreeCommandBuffers(commandBuffers.data(), static_cast<uint32_t>(commandBuffers.size()));
 			//device command pool is deallocated in ~Device()
 
 			//semaphores
 			for (int i = 0; i < gMaxFramesInFlight; ++i)
 			{
-				vkDestroySemaphore(this->device.logical, presentCompleteSemaphores[i], nullptr);
-				vkDestroySemaphore(this->device.logical, renderCompleteSemaphores[i], nullptr);
+				vkDestroySemaphore(this->device.GetDevice(), presentCompleteSemaphores[i], nullptr);
+				vkDestroySemaphore(this->device.GetDevice(), renderCompleteSemaphores[i], nullptr);
 
-				vkDestroyFence(device.logical, inFlightFences[i], nullptr);
+				vkDestroyFence(device.GetDevice(), inFlightFences[i], nullptr);
 			}
 
 			m_objectManager->Destroy();
@@ -224,10 +219,10 @@ namespace vk
 	{
 		for (int i = 0; i < gMaxFramesInFlight; ++i)
 		{
-			inFlightFences[i] = vk::init::CreateFence(device.logical, true);
-			presentCompleteSemaphores[i] = vk::init::CreateSemaphore(this->device.logical);
-			renderCompleteSemaphores[i] = vk::init::CreateSemaphore(this->device.logical);
-			textureUploadSemaphores[i] = vk::init::CreateSemaphore(this->device.logical);
+			inFlightFences[i] = vk::init::CreateFence(device.GetDevice(), true);
+			presentCompleteSemaphores[i] = vk::init::CreateSemaphore(device.GetDevice());
+			renderCompleteSemaphores[i] = vk::init::CreateSemaphore(device.GetDevice());
+			textureUploadSemaphores[i] = vk::init::CreateSemaphore(device.GetDevice());
 		}
 	}
 
@@ -242,10 +237,10 @@ namespace vk
 
 		window.isPrepared = false;
 
-		VK_CHECK_RESULT(vkDeviceWaitIdle(this->device.logical));
+		VK_CHECK_RESULT(vkDeviceWaitIdle(device.GetDevice()));
 
 		VkSurfaceCapabilitiesKHR surfaceCapabilities;
-		VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(this->device.physical, window.surface, &surfaceCapabilities));
+		VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device.GetGPU(), window.surface, &surfaceCapabilities));
 
 		window.UpdateExtents(surfaceCapabilities.currentExtent);
 
@@ -253,16 +248,16 @@ namespace vk
 
 		for (int i = 0; i < gMaxFramesInFlight; ++i)
 		{
-			vkDestroySemaphore(this->device.logical, presentCompleteSemaphores[i], nullptr);
+			vkDestroySemaphore(device.GetDevice(), presentCompleteSemaphores[i], nullptr);
 			presentCompleteSemaphores[i] = VK_NULL_HANDLE;
 
-			vkDestroySemaphore(this->device.logical, renderCompleteSemaphores[i], nullptr);
+			vkDestroySemaphore(device.GetDevice(), renderCompleteSemaphores[i], nullptr);
 			renderCompleteSemaphores[i] = VK_NULL_HANDLE;
 
-			vkDestroyFence(device.logical, inFlightFences[i], nullptr);
+			vkDestroyFence(device.GetDevice(), inFlightFences[i], nullptr);
 			inFlightFences[i] = VK_NULL_HANDLE;
 
-			vkDestroySemaphore(this->device.logical, textureUploadSemaphores[i], nullptr);
+			vkDestroySemaphore(device.GetDevice(), textureUploadSemaphores[i], nullptr);
 			textureUploadSemaphores[i] = VK_NULL_HANDLE;
 		}
 
@@ -350,7 +345,7 @@ namespace vk
 		renderPassCI.dependencyCount = static_cast<uint32_t>(dependencies.size());
 		renderPassCI.pDependencies = dependencies.data();
 
-		VK_CHECK_RESULT(vkCreateRenderPass(device.logical, &renderPassCI, nullptr, &renderPass));
+		VK_CHECK_RESULT(vkCreateRenderPass(device.GetDevice(), &renderPassCI, nullptr, &renderPass));
 	}
 
 	void ContextBase::FillOutGraphicsContextInfo() 
@@ -365,15 +360,6 @@ namespace vk
 	}
 
 	//getter(s)
-	VkPhysicalDevice ContextBase::PhysicalDevice() const
-	{
-		return this->device.physical;
-	}
-
-	VkDevice ContextBase::LogicalDevice() const
-	{
-		return this->device.logical;
-	}
 
 	Camera& ContextBase::GetCamera()
 	{
@@ -392,12 +378,9 @@ namespace vk
 
 	void ContextBase::WaitForDevice() const
 	{
-		if (device.logical != VK_NULL_HANDLE) 
+		if (device.GetDevice() != VK_NULL_HANDLE)
 		{
-			if (this->device.logical)
-			{
-				VK_CHECK_RESULT(vkDeviceWaitIdle(this->device.logical));
-			}
+			VK_CHECK_RESULT(vkDeviceWaitIdle(device.GetDevice()));
 		}
 	}
 
@@ -408,8 +391,8 @@ namespace vk
 			return false;
 		}
 
-		VK_CHECK_RESULT(vkWaitForFences(device.logical, 1, &inFlightFences[currentFrame], VK_TRUE, UINT64_MAX));
-		VK_CHECK_RESULT(vkResetFences(device.logical, 1, &inFlightFences[currentFrame]));
+		VK_CHECK_RESULT(vkWaitForFences(device.GetDevice(), 1, &inFlightFences[currentFrame], VK_TRUE, UINT64_MAX));
+		VK_CHECK_RESULT(vkResetFences(device.GetDevice(), 1, &inFlightFences[currentFrame]));
 
 		if (settings.UIEnabled) 
 		{
@@ -426,7 +409,7 @@ namespace vk
 		}
 
 		VkResult result = 
-			vkAcquireNextImageKHR(device.logical, swapChain.handle, UINT64_MAX,
+			vkAcquireNextImageKHR(device.GetDevice(), swapChain.handle, UINT64_MAX,
 				presentCompleteSemaphores[currentFrame], (VkFence)nullptr, &currentImageIndex);
 	
 		if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
@@ -468,7 +451,7 @@ namespace vk
 		submitInfo.commandBufferCount = 1;
 		submitInfo.pCommandBuffers = &this->commandBuffers[currentFrame];
 
-		VK_CHECK_RESULT(vkQueueSubmit(this->device.graphicsQueue.handle, 1, &submitInfo,
+		VK_CHECK_RESULT(vkQueueSubmit(device.GetQueue(DeviceQueue::GRAPHICS).handle, 1, &submitInfo,
 			inFlightFences[currentFrame]));
 
 		VkPresentInfoKHR presentInfo{};
@@ -479,7 +462,7 @@ namespace vk
 		presentInfo.swapchainCount = 1;
 		presentInfo.pSwapchains = &this->swapChain.handle;
 
-		VkResult result = vkQueuePresentKHR(this->device.presentQueue.handle, &presentInfo);
+		VkResult result = vkQueuePresentKHR(device.GetQueue(DeviceQueue::PRESENT).handle, &presentInfo);
 
 		if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
 		{

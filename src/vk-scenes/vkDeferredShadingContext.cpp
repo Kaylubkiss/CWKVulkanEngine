@@ -52,7 +52,7 @@ namespace vk
 		{
 			for (auto& pl : pipelineLayouts)
 			{
-				vkDestroyPipelineLayout(device.logical, pl, nullptr);
+				vkDestroyPipelineLayout(device.GetDevice(), pl, nullptr);
 			}
 		}
 
@@ -149,8 +149,8 @@ namespace vk
 				rt_descriptor_get_infos.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 				rt_descriptor_get_infos.data.pCombinedImageSampler = &rt_descriptor_image_info;
 
-				g_vkGetDescriptorEXT(device.logical, &rt_descriptor_get_infos,
-					device.DescriptorBufferProperties().combinedImageSamplerDescriptorSize,
+				g_vkGetDescriptorEXT(device.GetDevice(), &rt_descriptor_get_infos,
+					device.GetDescriptorBufferProperties().combinedImageSamplerDescriptorSize,
 					image_descriptor_ptr + compositionImageBindingDescriptor.binding_offsets[i]);
 			}
 
@@ -167,8 +167,8 @@ namespace vk
 			rt_descriptor_get_infos.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 			rt_descriptor_get_infos.data.pCombinedImageSampler = &rt_descriptor_image_info;
 
-			g_vkGetDescriptorEXT(device.logical, &rt_descriptor_get_infos,
-				device.DescriptorBufferProperties().combinedImageSamplerDescriptorSize,
+			g_vkGetDescriptorEXT(device.GetDevice(), &rt_descriptor_get_infos,
+				device.GetDescriptorBufferProperties().combinedImageSamplerDescriptorSize,
 				image_descriptor_ptr + compositionImageBindingDescriptor.binding_offsets.back());
 		}
 	}
@@ -236,8 +236,8 @@ namespace vk
 	inline void GetDescriptorLayoutSize(const vk::Device* device, VkDescriptorSetLayout layout, VkDeviceSize* size)
 	{
 		assert(size);
-		g_vkGetDescriptorSetLayoutSizeEXT(device->logical, layout, size);
-		*size = AlignedSize(*size, device->DescriptorBufferProperties().descriptorBufferOffsetAlignment);
+		g_vkGetDescriptorSetLayoutSizeEXT(device->GetDevice(), layout, size);
+		*size = AlignedSize(*size, device->GetDescriptorBufferProperties().descriptorBufferOffsetAlignment);
 	}
 
 	inline void GetDescriptorLayoutBindingOffsets( const vk::Device* device, VkDescriptorSetLayout layout,
@@ -246,7 +246,7 @@ namespace vk
 		//get the offsets of each descriptor binding in the layout 
 		for (uint32_t i = 0; i < binding_count; ++i)
 		{
-			g_vkGetDescriptorSetLayoutBindingOffsetEXT(device->logical, layout, i, &offsets[i]);
+			g_vkGetDescriptorSetLayoutBindingOffsetEXT(device->GetDevice(), layout, i, &offsets[i]);
 		}
 	}
 
@@ -265,14 +265,14 @@ namespace vk
 			setLayoutBindings[0] =
 				vk::init::DescriptorLayoutBinding(0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
 					VK_SHADER_STAGE_VERTEX_BIT);
-			VK_CHECK_RESULT(vkCreateDescriptorSetLayout(this->device.logical, &setLayoutCreateInfo,
+			VK_CHECK_RESULT(vkCreateDescriptorSetLayout(this->device.GetDevice(), &setLayoutCreateInfo,
 				nullptr, &uniformBindingDescriptors[dePipeline::MRT].layout));
 
 			//per-model image samplers
 			setLayoutBindings[0] =
 				vk::init::DescriptorLayoutBinding(0, 1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
 					VK_SHADER_STAGE_FRAGMENT_BIT);
-			VK_CHECK_RESULT(vkCreateDescriptorSetLayout(this->device.logical, &setLayoutCreateInfo,
+			VK_CHECK_RESULT(vkCreateDescriptorSetLayout(this->device.GetDevice(), &setLayoutCreateInfo,
 				nullptr, &textureBindingDescriptor.layout));
 
 			std::vector<VkPushConstantRange> pushConstantRanges = {
@@ -289,7 +289,7 @@ namespace vk
 			pipelineLayoutCreateInfo.setLayoutCount = static_cast<uint32_t>(mrt_layouts.size());
 			pipelineLayoutCreateInfo.pushConstantRangeCount = static_cast<uint32_t>(pushConstantRanges.size());
 			pipelineLayoutCreateInfo.pPushConstantRanges = pushConstantRanges.data();
-			VK_CHECK_RESULT(vkCreatePipelineLayout(device.logical, &pipelineLayoutCreateInfo,
+			VK_CHECK_RESULT(vkCreatePipelineLayout(device.GetDevice(), &pipelineLayoutCreateInfo,
 				nullptr, &pipelineLayouts[dePipeline::MRT]));
 
 		}
@@ -301,7 +301,7 @@ namespace vk
 			setLayoutBindings[0] =
 				vk::init::DescriptorLayoutBinding(0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
 					VK_SHADER_STAGE_FRAGMENT_BIT);
-			VK_CHECK_RESULT(vkCreateDescriptorSetLayout(this->device.logical, &setLayoutCreateInfo,
+			VK_CHECK_RESULT(vkCreateDescriptorSetLayout(this->device.GetDevice(), &setLayoutCreateInfo,
 				nullptr, &uniformBindingDescriptors[dePipeline::COMPOSITION].layout));
 
 			//set 0: per-frame image resources
@@ -314,11 +314,11 @@ namespace vk
 				setLayoutBindings[i] = vk::init::DescriptorLayoutBinding(i, 1,
 					VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
 			}
-			VK_CHECK_RESULT(vkCreateDescriptorSetLayout(this->device.logical, &setLayoutCreateInfo,
+			VK_CHECK_RESULT(vkCreateDescriptorSetLayout(this->device.GetDevice(), &setLayoutCreateInfo,
 				nullptr, &compositionImageBindingDescriptor.layout));
 
 			//COMPOSITION PASS g buffer image descriptors
-			compositionImageBindingDescriptor.c_device = device.logical;
+			compositionImageBindingDescriptor.c_device = device.GetDevice();
 			GetDescriptorLayoutSize(&device, compositionImageBindingDescriptor.layout,
 				&compositionImageBindingDescriptor.size);
 
@@ -339,7 +339,7 @@ namespace vk
 			VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = vk::init::PipelineLayoutCreateInfo();
 			pipelineLayoutCreateInfo.pSetLayouts = composition_layouts.data();
 			pipelineLayoutCreateInfo.setLayoutCount = static_cast<uint32_t>(composition_layouts.size());
-			VK_CHECK_RESULT(vkCreatePipelineLayout(device.logical, &pipelineLayoutCreateInfo,
+			VK_CHECK_RESULT(vkCreatePipelineLayout(device.GetDevice(), &pipelineLayoutCreateInfo,
 				nullptr, &pipelineLayouts[dePipeline::COMPOSITION]));
 		}
 
@@ -352,7 +352,7 @@ namespace vk
 			setLayoutBindings[0] =
 				vk::init::DescriptorLayoutBinding(0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
 					VK_SHADER_STAGE_GEOMETRY_BIT);
-			VK_CHECK_RESULT(vkCreateDescriptorSetLayout(this->device.logical, &setLayoutCreateInfo,
+			VK_CHECK_RESULT(vkCreateDescriptorSetLayout(this->device.GetDevice(), &setLayoutCreateInfo,
 				nullptr, &uniformBindingDescriptors[dePipeline::SHADOW].layout));
 
 			//set 0: shadow UBO - per frame
@@ -371,7 +371,7 @@ namespace vk
 			pipelineLayoutCreateInfo.setLayoutCount = static_cast<uint32_t>(shadow_layouts.size());
 			pipelineLayoutCreateInfo.pPushConstantRanges = pushConstantRanges.data();
 			pipelineLayoutCreateInfo.pushConstantRangeCount = static_cast<uint32_t>(pushConstantRanges.size());
-			VK_CHECK_RESULT(vkCreatePipelineLayout(device.logical, &pipelineLayoutCreateInfo,
+			VK_CHECK_RESULT(vkCreatePipelineLayout(device.GetDevice(), &pipelineLayoutCreateInfo,
 				nullptr, &pipelineLayouts[dePipeline::SHADOW]));
 
 		}
@@ -379,14 +379,14 @@ namespace vk
 		//UNIFORM DATA  descriptors (all passes)
 		for (auto& uniformDescriptor : uniformBindingDescriptors)
 		{
-			uniformDescriptor.c_device = device.logical;
+			uniformDescriptor.c_device = device.GetDevice();
 			GetDescriptorLayoutSize(&device, uniformDescriptor.layout, &uniformDescriptor.size);
 			GetDescriptorLayoutBindingOffsets(&device, uniformDescriptor.layout,
 				uniformDescriptor.binding_offsets.data());
 		}
 	
 		//TEXTURE IMAGE descriptor (static)
-		textureBindingDescriptor.c_device = device.logical;
+		textureBindingDescriptor.c_device = device.GetDevice();
 		GetDescriptorLayoutSize(&device, textureBindingDescriptor.layout, &textureBindingDescriptor.size);
 		GetDescriptorLayoutBindingOffsets(&device, textureBindingDescriptor.layout,
 			textureBindingDescriptor.binding_offsets.data());
@@ -406,8 +406,8 @@ namespace vk
 		bufferDescriptorInfo.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 		bufferDescriptorInfo.data.pUniformBuffer = &addrInfo;
 
-		g_vkGetDescriptorEXT(device.logical, &bufferDescriptorInfo,
-			device.DescriptorBufferProperties().uniformBufferDescriptorSize,
+		g_vkGetDescriptorEXT(device.GetDevice(), &bufferDescriptorInfo,
+			device.GetDescriptorBufferProperties().uniformBufferDescriptorSize,
 			descriptor_ptr);
 	}
 
@@ -490,8 +490,8 @@ namespace vk
 				rt_descriptor_get_infos.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 				rt_descriptor_get_infos.data.pCombinedImageSampler = &rt_descriptor_image_info;
 
-				g_vkGetDescriptorEXT(device.logical, &rt_descriptor_get_infos,
-					device.DescriptorBufferProperties().combinedImageSamplerDescriptorSize,
+				g_vkGetDescriptorEXT(device.GetDevice(), &rt_descriptor_get_infos,
+					device.GetDescriptorBufferProperties().combinedImageSamplerDescriptorSize,
 					image_descriptor_ptr + compositionImageBindingDescriptor.binding_offsets[i]);
 			}
 
@@ -508,8 +508,8 @@ namespace vk
 			rt_descriptor_get_infos.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 			rt_descriptor_get_infos.data.pCombinedImageSampler = &rt_descriptor_image_info;
 
-			g_vkGetDescriptorEXT(device.logical, &rt_descriptor_get_infos,
-				device.DescriptorBufferProperties().combinedImageSamplerDescriptorSize,
+			g_vkGetDescriptorEXT(device.GetDevice(), &rt_descriptor_get_infos,
+				device.GetDescriptorBufferProperties().combinedImageSamplerDescriptorSize,
 				image_descriptor_ptr + compositionImageBindingDescriptor.binding_offsets.back());
 		}
 
@@ -702,10 +702,10 @@ namespace vk
 		/////////////////////////////////////////////////////////////
 		//pipeline #1: composition stage of deferred shading
 		{
-			vertShaderInfo = vk::ShaderModuleInfo(device.logical,
+			vertShaderInfo = vk::ShaderModuleInfo(device.GetDevice(),
 				"deferred-render/deComposition.vert", VK_SHADER_STAGE_VERTEX_BIT);
-			fragShaderInfo = vk::ShaderModuleInfo(device.logical,
-				"deferred-render/deComposition.frag", VK_SHADER_STAGE_FRAGMENT_BIT, shaderc_fragment_shader);
+			fragShaderInfo = vk::ShaderModuleInfo(device.GetDevice(),
+				"deferred-render/deComposition-PBR.frag", VK_SHADER_STAGE_FRAGMENT_BIT, shaderc_fragment_shader);
 
 			shaderStages[0] = vk::init::PipelineShaderStageCreateInfo(vertShaderInfo.mHandle, vertShaderInfo.mFlags);
 			shaderStages[1] = vk::init::PipelineShaderStageCreateInfo(fragShaderInfo.mHandle, fragShaderInfo.mFlags);
@@ -716,7 +716,7 @@ namespace vk
 			pipelineManager.AddModule(dePipeline::COMPOSITION, fragShaderInfo);
 
 			VkPipeline lightPassPipeline = VK_NULL_HANDLE;
-			VK_CHECK_RESULT(vkCreateGraphicsPipelines(device.logical, VK_NULL_HANDLE, 1, &pipelineCI,
+			VK_CHECK_RESULT(vkCreateGraphicsPipelines(device.GetDevice(), VK_NULL_HANDLE, 1, &pipelineCI,
 				nullptr, &lightPassPipeline));
 
 			//for the hot reloading - light pass 
@@ -734,7 +734,7 @@ namespace vk
 
 					if (pipeline != VK_NULL_HANDLE)
 					{
-						vkDestroyPipeline(device.logical, pipeline, nullptr);
+						vkDestroyPipeline(device.GetDevice(), pipeline, nullptr);
 						pipeline = VK_NULL_HANDLE;
 					}
 
@@ -770,7 +770,7 @@ namespace vk
 					shaderStages[0] = vk::init::PipelineShaderStageCreateInfo(shaders[0].mHandle, shaders[0].mFlags);
 					shaderStages[1] = vk::init::PipelineShaderStageCreateInfo(shaders[1].mHandle, shaders[1].mFlags);
 
-					VK_CHECK_RESULT(vkCreateGraphicsPipelines(device.logical, VK_NULL_HANDLE, 1,
+					VK_CHECK_RESULT(vkCreateGraphicsPipelines(device.GetDevice(), VK_NULL_HANDLE, 1,
 						&pipelineCI, nullptr, &pipeline));
 
 					pipelineManager.AddPipeline(dePipeline::COMPOSITION, pipeline);
@@ -785,9 +785,9 @@ namespace vk
 		/////////////////////////////////////////////////////////////
 		//pipeline #2: MRT stage of deferred shading -- outputting to color/textures
 		{
-			vertShaderInfo = ShaderModuleInfo(device.logical,
+			vertShaderInfo = ShaderModuleInfo(device.GetDevice(),
 				"deferred-render/deMRT.vert", VK_SHADER_STAGE_VERTEX_BIT);
-			fragShaderInfo = ShaderModuleInfo(device.logical,
+			fragShaderInfo = ShaderModuleInfo(device.GetDevice(),
 				"deferred-render/deMRT.frag", VK_SHADER_STAGE_FRAGMENT_BIT, shaderc_fragment_shader);
 
 
@@ -829,7 +829,7 @@ namespace vk
 			pipelineManager.AddModule(dePipeline::MRT, fragShaderInfo);
 
 			VkPipeline mrtPipeline = VK_NULL_HANDLE;
-			VK_CHECK_RESULT(vkCreateGraphicsPipelines(device.logical, VK_NULL_HANDLE, 1,
+			VK_CHECK_RESULT(vkCreateGraphicsPipelines(device.GetDevice(), VK_NULL_HANDLE, 1,
 				&pipelineCI, nullptr, &mrtPipeline));
 
 			//for hot reloading - MRT pass
@@ -846,7 +846,7 @@ namespace vk
 
 					if (pipeline != VK_NULL_HANDLE)
 					{
-						vkDestroyPipeline(device.logical, pipeline, nullptr);
+						vkDestroyPipeline(device.GetDevice(), pipeline, nullptr);
 						pipeline = VK_NULL_HANDLE;
 					}
 
@@ -899,7 +899,7 @@ namespace vk
 					shaderStages[0] = vk::init::PipelineShaderStageCreateInfo(shaders[0].mHandle, shaders[0].mFlags);
 					shaderStages[1] = vk::init::PipelineShaderStageCreateInfo(shaders[1].mHandle, shaders[1].mFlags);
 
-					VK_CHECK_RESULT(vkCreateGraphicsPipelines(device.logical, VK_NULL_HANDLE, 1,
+					VK_CHECK_RESULT(vkCreateGraphicsPipelines(device.GetDevice(), VK_NULL_HANDLE, 1,
 						&pipelineCI, nullptr, &pipeline));
 
 					pipelineManager.AddPipeline(dePipeline::MRT, pipeline);
@@ -913,9 +913,9 @@ namespace vk
 		/////////////////////////////////////////////////////////////
 		//pipeline #3: deferred shadow mapping
 		{
-			vertShaderInfo = ShaderModuleInfo(device.logical, "deferred-render/deShadow.vert",
+			vertShaderInfo = ShaderModuleInfo(device.GetDevice(), "deferred-render/deShadow.vert",
 				VK_SHADER_STAGE_VERTEX_BIT);
-			ShaderModuleInfo geoShaderInfo(device.logical, "deferred-render/deShadow.geom",
+			ShaderModuleInfo geoShaderInfo(device.GetDevice(), "deferred-render/deShadow.geom",
 				VK_SHADER_STAGE_GEOMETRY_BIT, shaderc_geometry_shader);
 
 			shaderStages[0] = vk::init::PipelineShaderStageCreateInfo(vertShaderInfo.mHandle, vertShaderInfo.mFlags);
@@ -952,7 +952,7 @@ namespace vk
 			pipelineCI.pVertexInputState = &vertexInputStateCI;
 
 			VkPipeline shadowPipeline = VK_NULL_HANDLE;
-			VK_CHECK_RESULT(vkCreateGraphicsPipelines(device.logical, VK_NULL_HANDLE, 1, &pipelineCI,
+			VK_CHECK_RESULT(vkCreateGraphicsPipelines(device.GetDevice(), VK_NULL_HANDLE, 1, &pipelineCI,
 				nullptr, &shadowPipeline));
 
 			pipelineManager.AddModule(dePipeline::SHADOW, vertShaderInfo);

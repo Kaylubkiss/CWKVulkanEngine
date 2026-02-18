@@ -17,41 +17,43 @@ namespace vk
 		CheckRequestedExtensions();
 
 		//device properties
-		vkGetPhysicalDeviceMemoryProperties(this->physical, &memoryProperties);
+		vkGetPhysicalDeviceMemoryProperties(m_gpu, &m_memoryProperties);
 		
 		//descriptor buffer info
 		VkPhysicalDeviceProperties2KHR deviceProperties2 = {};
-		descriptorBufferProperties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_BUFFER_PROPERTIES_EXT;
+		m_descriptorBufferProperties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_BUFFER_PROPERTIES_EXT;
 		deviceProperties2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2_KHR;
-		deviceProperties2.pNext = &descriptorBufferProperties;
-		vkGetPhysicalDeviceProperties2(this->physical, &deviceProperties2);
+		deviceProperties2.pNext = &m_descriptorBufferProperties;
+		vkGetPhysicalDeviceProperties2(m_gpu, &deviceProperties2);
 
-		assert(descriptorBufferProperties.maxDescriptorBufferBindings >= 2);
+		assert(m_descriptorBufferProperties.maxDescriptorBufferBindings >= 2);
 
 		FindQueueFamilies(windowSurface);
 
 		InitializeLogicalDevice();
 
-		vkGetDeviceQueue(this->logical, graphicsQueue.family, 0, &graphicsQueue.handle);
-		vkGetDeviceQueue(this->logical, presentQueue.family, 0, &presentQueue.handle);
-		vkGetDeviceQueue(this->logical, transferQueue.family, 0, &transferQueue.handle);
+
+		for (auto& queue : m_queues)
+		{
+			vkGetDeviceQueue(m_device, queue.family, 0, &queue.handle);
+		}
 
 		g_vkGetDescriptorSetLayoutBindingOffsetEXT =
 			(PFN_vkGetDescriptorSetLayoutBindingOffsetEXT)
-			(vkGetDeviceProcAddr(logical, "vkGetDescriptorSetLayoutBindingOffsetEXT"));
+			(vkGetDeviceProcAddr(m_device, "vkGetDescriptorSetLayoutBindingOffsetEXT"));
 		
 		g_vkGetDescriptorSetLayoutSizeEXT = 
 			(PFN_vkGetDescriptorSetLayoutSizeEXT)
-			(vkGetDeviceProcAddr(logical, "vkGetDescriptorSetLayoutSizeEXT"));
+			(vkGetDeviceProcAddr(m_device, "vkGetDescriptorSetLayoutSizeEXT"));
 		
 		g_vkGetDescriptorEXT = 
-			(PFN_vkGetDescriptorEXT)(vkGetDeviceProcAddr(logical, "vkGetDescriptorEXT"));
+			(PFN_vkGetDescriptorEXT)(vkGetDeviceProcAddr(m_device, "vkGetDescriptorEXT"));
 		
 		g_vkCmdBindDescriptorBuffersEXT = 
-			(PFN_vkCmdBindDescriptorBuffersEXT)(vkGetDeviceProcAddr(logical, "vkCmdBindDescriptorBuffersEXT"));
+			(PFN_vkCmdBindDescriptorBuffersEXT)(vkGetDeviceProcAddr(m_device, "vkCmdBindDescriptorBuffersEXT"));
 		
 		g_vkCmdSetDescriptorBufferOffsetsEXT = 
-			(PFN_vkCmdSetDescriptorBufferOffsetsEXT)(vkGetDeviceProcAddr(logical, "vkCmdSetDescriptorBufferOffsetsEXT"));
+			(PFN_vkCmdSetDescriptorBufferOffsetsEXT)(vkGetDeviceProcAddr(m_device, "vkCmdSetDescriptorBufferOffsetsEXT"));
 
 		assert(g_vkGetDescriptorSetLayoutSizeEXT);
 		assert(g_vkGetDescriptorSetLayoutBindingOffsetEXT);
@@ -59,22 +61,22 @@ namespace vk
 		assert(g_vkCmdBindDescriptorBuffersEXT);
 		assert(g_vkCmdSetDescriptorBufferOffsetsEXT);
 
-		this->commandPool = vk::init::CommandPool(this->logical,
-			VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT, graphicsQueue.family);
+		m_commandPool = vk::init::CommandPool(m_device,
+			VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT, m_queues[DeviceQueue::GRAPHICS].family);
 	}
 
 	void Device::Destroy()
 	{
-		if (this->logical != VK_NULL_HANDLE)
+		if (m_device != VK_NULL_HANDLE)
 		{
-			if (this->commandPool != VK_NULL_HANDLE)
+			if (m_commandPool != VK_NULL_HANDLE)
 			{
-				vkDestroyCommandPool(this->logical, this->commandPool, nullptr);
-				this->commandPool = VK_NULL_HANDLE;
+				vkDestroyCommandPool(m_device, m_commandPool, nullptr);
+				m_commandPool = VK_NULL_HANDLE;
 			}
 
-			vkDestroyDevice(this->logical, nullptr);
-			this->logical = VK_NULL_HANDLE;
+			vkDestroyDevice(m_device, nullptr);
+			m_device = VK_NULL_HANDLE;
 		}
 	}
 
@@ -125,7 +127,7 @@ namespace vk
 			throw std::runtime_error("could not find suitable physical device!");
 		}
 
-		this->physical = gpus[g_index];
+		m_gpu = gpus[g_index];
 
 	}
 
@@ -137,10 +139,10 @@ namespace vk
 		//no use for memory properties right now.
 		VkPhysicalDeviceMemoryProperties physicalDeviceMemoryProperties;
 
-		vkGetPhysicalDeviceMemoryProperties(this->physical, &physicalDeviceMemoryProperties);
+		vkGetPhysicalDeviceMemoryProperties(m_gpu, &physicalDeviceMemoryProperties);
 
 		//similar maneuver to vkEnumeratePhysicalDevices
-		vkGetPhysicalDeviceQueueFamilyProperties(this->physical, &queueFamilyPropertyCount, nullptr);
+		vkGetPhysicalDeviceQueueFamilyProperties(m_gpu, &queueFamilyPropertyCount, nullptr);
 
 		if (queueFamilyPropertyCount == 0)
 		{
@@ -149,7 +151,7 @@ namespace vk
 
 		queueFamilies.resize(queueFamilyPropertyCount);
 
-		vkGetPhysicalDeviceQueueFamilyProperties(this->physical, &queueFamilyPropertyCount, queueFamilies.data());
+		vkGetPhysicalDeviceQueueFamilyProperties(m_gpu, &queueFamilyPropertyCount, queueFamilies.data());
 
 		bool setGraphicsQueue = false;
 		bool setPresentQueue = false;
@@ -160,20 +162,20 @@ namespace vk
 			if ((queueFamilies[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) == 0 &&
 				(queueFamilies[i].queueFlags & VK_QUEUE_TRANSFER_BIT) != 0) 
 			{
-				transferQueue.family = i;
+				m_queues[DeviceQueue::TRANSFER].family = i;
 				setTransferQueue = true;
 			}
 
 			if ((queueFamilies[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) != 0)
 			{
-				graphicsQueue.family = i;
+				m_queues[DeviceQueue::GRAPHICS].family = i;
 				setGraphicsQueue = true;
 
 				VkBool32 presentSupport = false;
-				VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceSupportKHR(this->physical, i, windowSurface, &presentSupport));
+				VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceSupportKHR(m_gpu, i, windowSurface, &presentSupport));
 				if (presentSupport)
 				{
-					presentQueue.family = i;
+					m_queues[DeviceQueue::PRESENT].family = i;
 					setPresentQueue = true;
 				}
 			}
@@ -194,7 +196,7 @@ namespace vk
 			throw std::runtime_error("could not find all required queues on this device!\n");
 		}
 
-		if (presentQueue.family != graphicsQueue.family)
+		if (m_queues[DeviceQueue::PRESENT].family != m_queues[DeviceQueue::GRAPHICS].family)
 		{
 			std::cerr << "present queue and graphics queue families are different. Not supported in this code base.\n";
 			throw std::runtime_error("vk::Device() failed!\n");
@@ -204,11 +206,16 @@ namespace vk
 
 	void Device::InitializeLogicalDevice()
 	{
-		assert(graphicsQueue.family != -1 && presentQueue.family != -1);
+		assert(m_queues[DeviceQueue::GRAPHICS].family != -1 && m_queues[DeviceQueue::PRESENT].family != -1);
 
 		std::vector<VkDeviceQueueCreateInfo> deviceQueueCreateInfos; //presentation and graphics.
+		std::vector<uint32_t> uniqueQueueFamilies;
+		uniqueQueueFamilies.reserve(m_queues.size());
 
-		std::array<uint32_t, 3> uniqueQueueFamilies = { graphicsQueue.family, presentQueue.family, transferQueue.family };
+		for (auto& queue : m_queues)
+		{
+			uniqueQueueFamilies.push_back(queue.family);
+		}
 
 		float queuePriority[1] = { 1.f };
 
@@ -231,7 +238,7 @@ namespace vk
 		else {
 			VkDeviceQueueCreateInfo deviceQueueInfo = {}; //to be passed into deviceCreateInfo's struct members.
 			deviceQueueInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-			deviceQueueInfo.queueFamilyIndex = graphicsQueue.family;
+			deviceQueueInfo.queueFamilyIndex = m_queues[DeviceQueue::GRAPHICS].family;
 			deviceQueueInfo.queueCount = 1;
 			//THIS IS APPARENTLY REQUIRED --> REFERENCE BOOK DID NOT SHOW THIS...
 			deviceQueueInfo.pQueuePriorities = queuePriority; //normalized values between 0.f to 1.f that ranks the priority of the queue in the array.
@@ -245,22 +252,20 @@ namespace vk
 		deviceQueueInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
 		deviceQueueInfo.flags = 0;
 		deviceQueueInfo.pNext = nullptr;
-		deviceQueueInfo.queueFamilyIndex = transferQueue.family;
+		deviceQueueInfo.queueFamilyIndex = m_queues[DeviceQueue::TRANSFER].family;
 		deviceQueueInfo.queueCount = 1;
 		//THIS IS APPARENTLY REQUIRED --> REFERENCE BOOK DID NOT SHOW THIS...
 		deviceQueueInfo.pQueuePriorities = queuePriority; //normalized values between 0.f to 1.f that ranks the priority of the queue in the array.
 
 		deviceQueueCreateInfos.push_back(deviceQueueInfo);
 
-		
-
 		VkDeviceCreateInfo deviceCreateInfo = {};
 		deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
 		deviceCreateInfo.flags = 0;
 		deviceCreateInfo.pNext = nullptr;
 
-		deviceCreateInfo.enabledExtensionCount = static_cast<uint32_t>(requestedExtensions.size());
-		deviceCreateInfo.ppEnabledExtensionNames = requestedExtensions.data();
+		deviceCreateInfo.enabledExtensionCount = static_cast<uint32_t>(m_requestedExtensions.size());
+		deviceCreateInfo.ppEnabledExtensionNames = m_requestedExtensions.data();
 
 		VkPhysicalDeviceFeatures deviceFeatures = {};
 		deviceFeatures.geometryShader = VK_TRUE;
@@ -283,19 +288,19 @@ namespace vk
 		deviceCreateInfo.pQueueCreateInfos = deviceQueueCreateInfos.data();
 		deviceCreateInfo.queueCreateInfoCount = (uint32_t)(deviceQueueCreateInfos.size());
 
-		VK_CHECK_RESULT(vkCreateDevice(this->physical, &deviceCreateInfo, nullptr, &this->logical));
+		VK_CHECK_RESULT(vkCreateDevice(m_gpu, &deviceCreateInfo, nullptr, &m_device));
 
 	}
 
 	void Device::CheckRequestedExtensions() 
 	{
 		uint32_t extension_count = 0;
-		vkEnumerateDeviceExtensionProperties(this->physical, nullptr, &extension_count, nullptr);
+		vkEnumerateDeviceExtensionProperties(m_gpu, nullptr, &extension_count, nullptr);
 
 		std::vector<VkExtensionProperties> supportedExtensions(extension_count);
-		vkEnumerateDeviceExtensionProperties(this->physical, nullptr, &extension_count, supportedExtensions.data());
+		vkEnumerateDeviceExtensionProperties(m_gpu, nullptr, &extension_count, supportedExtensions.data());
 
-		for (auto& e : requestedExtensions) 
+		for (auto& e : m_requestedExtensions)
 		{
 			bool foundExtension = false;
 			for (auto& se : supportedExtensions) 
@@ -314,11 +319,11 @@ namespace vk
 	uint32_t Device::GetMemoryType( uint32_t typeBits, VkMemoryPropertyFlags properties )
 	{
 
-		for (uint32_t i = 0; i < this->memoryProperties.memoryTypeCount; ++i)
+		for (uint32_t i = 0; i < m_memoryProperties.memoryTypeCount; ++i)
 		{
 			if ((typeBits & 1) == 1)
 			{
-				if ((this->memoryProperties.memoryTypes[i].propertyFlags & properties) == properties)
+				if ((m_memoryProperties.memoryTypes[i].propertyFlags & properties) == properties)
 				{
 					return i;
 				}
@@ -331,9 +336,35 @@ namespace vk
 		throw std::runtime_error("couldn't find the requested memory type on device");
 	}
 
-	VkPhysicalDeviceDescriptorBufferPropertiesEXT Device::DescriptorBufferProperties() const
+	VkPhysicalDeviceDescriptorBufferPropertiesEXT Device::GetDescriptorBufferProperties() const
 	{
-		return descriptorBufferProperties;
+		return m_descriptorBufferProperties;
+	}
+
+	const VkDevice Device::GetDevice() const
+	{
+		return m_device;
+	}
+
+	const VkPhysicalDevice Device::GetGPU() const
+	{
+		return m_gpu;
+	}
+
+	const vk::Queue& Device::GetQueue( DeviceQueue queue ) const
+	{
+		//NOTE: queue is an enum namespace, so these operators work.
+		if (queue < m_queues.size())
+		{
+			return m_queues[queue];
+		}
+		else
+		{
+			std::cerr << "\033[31m" << "requested queue is outside the range" << "\033[0m\n";
+			throw std::runtime_error("Device::GetQueue() Failed!");
+		}
+
+		return m_queues[0];
 	}
 
 	Buffer Device::CreateBuffer( size_t size, VkBufferUsageFlags usage, VkMemoryPropertyFlags flags, void* data )
@@ -341,16 +372,30 @@ namespace vk
 		return Buffer(this, usage, flags, size, data);
 	}
 
+	void Device::AllocateCommandBuffers( VkCommandBuffer* commandBuffers, uint32_t count ) const
+	{
+		VkCommandBufferAllocateInfo cmdBufferAllocateInfo = vk::init::CommandBufferAllocateInfo();
+		cmdBufferAllocateInfo.commandBufferCount = count;
+		cmdBufferAllocateInfo.commandPool = m_commandPool;
+		cmdBufferAllocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+		VK_CHECK_RESULT(vkAllocateCommandBuffers(m_device, &cmdBufferAllocateInfo, commandBuffers));
+	}
+
+	void Device::FreeCommandBuffers( const VkCommandBuffer* commandBuffers, uint32_t count ) const
+	{
+		vkFreeCommandBuffers(m_device, m_commandPool, count, commandBuffers);
+	}
+
 	VkCommandBuffer Device::CreateCommandBuffer( VkCommandBufferLevel level, bool begin )
 	{
 
 		VkCommandBufferAllocateInfo cmdBufAllocateInfo = vk::init::CommandBufferAllocateInfo();
-		cmdBufAllocateInfo.commandPool = commandPool;
+		cmdBufAllocateInfo.commandPool = m_commandPool;
 		cmdBufAllocateInfo.level = level;
 		cmdBufAllocateInfo.commandBufferCount = 1;
 		
 		VkCommandBuffer cmdBuffer;
-		VK_CHECK_RESULT(vkAllocateCommandBuffers(this->logical, &cmdBufAllocateInfo, &cmdBuffer));
+		VK_CHECK_RESULT(vkAllocateCommandBuffers(m_device, &cmdBufAllocateInfo, &cmdBuffer));
 
 		if (begin) 
 		{
@@ -361,7 +406,7 @@ namespace vk
 		return cmdBuffer;
 	}
 
-	void Device::FlushCommandBuffer( VkCommandBuffer cmdBuffer, VkQueue queue, VkCommandPool pool, bool free )
+	void Device::FlushCommandBuffer( VkCommandBuffer cmdBuffer, VkQueue queue, bool free )
 	{
 		//create a fence, submit the work to the gpu, and then delete the fence and free the command buffer
 		VkSubmitInfo submitInfo = vk::init::SubmitInfo();
@@ -372,17 +417,17 @@ namespace vk
 
 		VkFenceCreateInfo fenceCI = vk::init::FenceCreateInfo();
 		VkFence fence;
-		VK_CHECK_RESULT(vkCreateFence(this->logical, &fenceCI, nullptr, &fence));	
+		VK_CHECK_RESULT(vkCreateFence(m_device, &fenceCI, nullptr, &fence));
 
 		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, fence));
 
-		VK_CHECK_RESULT(vkWaitForFences(this->logical, 1, &fence, VK_TRUE, UINT64_MAX));
+		VK_CHECK_RESULT(vkWaitForFences(m_device, 1, &fence, VK_TRUE, UINT64_MAX));
 
-		vkDestroyFence(this->logical, fence, nullptr);
+		vkDestroyFence(m_device, fence, nullptr);
 
 		if (free) 
 		{
-			vkFreeCommandBuffers(this->logical, pool, 1, &cmdBuffer);
+			vkFreeCommandBuffers(m_device, m_commandPool, 1, &cmdBuffer);
 			cmdBuffer = VK_NULL_HANDLE;
 		}
 
@@ -391,7 +436,7 @@ namespace vk
 	void Device::AddExtension( const char* name )
 	{
 		//gotta save memory.
-		for (auto& extension : requestedExtensions) 
+		for (auto& extension : m_requestedExtensions)
 		{
 			if (strcmp(extension, name) == 0)
 			{
@@ -399,6 +444,6 @@ namespace vk
 			}
 		}
 
-		requestedExtensions.push_back(name);
+		m_requestedExtensions.push_back(name);
 	}
 }

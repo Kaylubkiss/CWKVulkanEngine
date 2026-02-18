@@ -86,15 +86,15 @@ namespace vk {
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
 			static_cast<size_t>(imageSize), pixels);
 
-		m_image = vk::init::CreateImage(devicePtr->physical,
-			devicePtr->logical, textureWidth, textureHeight, mipLevels, VK_FORMAT_R8G8B8A8_SRGB,
+		m_image = vk::init::CreateImage(devicePtr->GetGPU(),
+			devicePtr->GetDevice(), textureWidth, textureHeight, mipLevels, VK_FORMAT_R8G8B8A8_SRGB,
 			VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
 			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_memory);
 
-		VkCommandPool transferCmdPool = vk::init::CommandPool(devicePtr->logical,
-			VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT, devicePtr->transferQueue.family);
+		VkCommandPool transferCmdPool = vk::init::CommandPool(devicePtr->GetDevice(),
+			VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT, devicePtr->GetQueue(DeviceQueue::TRANSFER).family);
 
-		VkCommandBuffer transferCmd = beginSingleTimeCommand(devicePtr->logical, transferCmdPool);
+		VkCommandBuffer transferCmd = beginSingleTimeCommand(devicePtr->GetDevice(), transferCmdPool);
 		VkSubmitInfo submitInfo = {};
 
 		//transition image to dst-optimal layout so the staging buffer can be copied into it.
@@ -136,11 +136,11 @@ namespace vk {
 
 			{
 				std::lock_guard<std::mutex> lock(transferMutex);
-				VK_CHECK_RESULT(vkQueueSubmit(devicePtr->transferQueue.handle, 1, &submitInfo,
+				VK_CHECK_RESULT(vkQueueSubmit(devicePtr->GetQueue(DeviceQueue::TRANSFER).handle, 1, &submitInfo,
 					VK_NULL_HANDLE));
 			}
 
-			VK_CHECK_RESULT(vkQueueWaitIdle(devicePtr->transferQueue.handle));
+			VK_CHECK_RESULT(vkQueueWaitIdle(devicePtr->GetQueue(DeviceQueue::TRANSFER).handle));
 		}
 
 		//copy buffer into image.
@@ -177,11 +177,11 @@ namespace vk {
 
 			{
 				std::lock_guard<std::mutex> lock(transferMutex);
-				VK_CHECK_RESULT(vkQueueSubmit(devicePtr->transferQueue.handle, 1, &submitInfo,
+				VK_CHECK_RESULT(vkQueueSubmit(devicePtr->GetQueue(DeviceQueue::TRANSFER).handle, 1, &submitInfo,
 					VK_NULL_HANDLE));
 			}
 
-			VK_CHECK_RESULT(vkQueueWaitIdle(devicePtr->transferQueue.handle));
+			VK_CHECK_RESULT(vkQueueWaitIdle(devicePtr->GetQueue(DeviceQueue::TRANSFER).handle));
 		}
 
 		//release transfer queue to graphics queue
@@ -190,8 +190,8 @@ namespace vk {
 			releaseBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
 			releaseBarrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
 			releaseBarrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-			releaseBarrier.srcQueueFamilyIndex = devicePtr->transferQueue.family;
-			releaseBarrier.dstQueueFamilyIndex = devicePtr->graphicsQueue.family;
+			releaseBarrier.srcQueueFamilyIndex = devicePtr->GetQueue(DeviceQueue::TRANSFER).family;
+			releaseBarrier.dstQueueFamilyIndex = devicePtr->GetQueue(DeviceQueue::GRAPHICS).family;
 			releaseBarrier.image = m_image;
 			releaseBarrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 			releaseBarrier.subresourceRange.baseMipLevel = 0;
@@ -220,26 +220,26 @@ namespace vk {
 
 			{
 				std::lock_guard<std::mutex> lock(transferMutex);
-				VK_CHECK_RESULT(vkQueueSubmit(devicePtr->transferQueue.handle, 1, &submitInfo,
+				VK_CHECK_RESULT(vkQueueSubmit(devicePtr->GetQueue(DeviceQueue::TRANSFER).handle, 1, &submitInfo,
 					VK_NULL_HANDLE));
 			}
 
-			VK_CHECK_RESULT(vkQueueWaitIdle(devicePtr->transferQueue.handle));
+			VK_CHECK_RESULT(vkQueueWaitIdle(devicePtr->GetQueue(DeviceQueue::TRANSFER).handle));
 		}
 
-		vkFreeCommandBuffers(devicePtr->logical, transferCmdPool, 1, &transferCmd);
-		vkDestroyCommandPool(devicePtr->logical, transferCmdPool, nullptr);
+		vkFreeCommandBuffers(devicePtr->GetDevice(), transferCmdPool, 1, &transferCmd);
+		vkDestroyCommandPool(devicePtr->GetDevice(), transferCmdPool, nullptr);
 
 		stagingBuffer.Destroy();
 		stbi_image_free(pixels);
 
-		m_imageView = vk::Texture::CreateImageView(devicePtr->logical, m_image, 1);
-		m_sampler   = vk::Texture::CreateSampler(devicePtr->physical, devicePtr->logical, 1);
+		m_imageView = vk::Texture::CreateImageView(devicePtr->GetDevice(), m_image, 1);
+		m_sampler   = vk::Texture::CreateSampler(devicePtr->GetGPU(), devicePtr->GetDevice(), 1);
 		m_descriptor.imageView = m_imageView;
 		m_descriptor.sampler = m_sampler;
 		m_descriptor.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
-		c_device    = devicePtr->logical;
+		c_device    = devicePtr->GetDevice();
 	}
 
 	Texture::~Texture()

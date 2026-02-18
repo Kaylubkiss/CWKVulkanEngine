@@ -24,9 +24,6 @@ namespace vk
 			const VkImage& textureImage, uint32_t mipLevels );
 		static VkSampler CreateSampler( VkPhysicalDevice p_device,
 			VkDevice l_device, uint32_t mipLevels );
-
-
-
 	private:
 		//member variables
 		VkDevice c_device = VK_NULL_HANDLE;
