@@ -25,36 +25,10 @@ void Controller::MoveCamera( Camera& camera, float dt )
 	{
 		ImGui_ImplSDL2_ProcessEvent(&e);
 
-		if (e.type == SDL_WINDOWEVENT) 
+		if (e.type == SDL_QUIT)
 		{
-			std::cout << "window event\n";
-			switch (e.window.event) 
-			{
-				case SDL_WINDOWEVENT_CLOSE:
-					//it should exit.
-					_Application->RequestExit();
-					break;
-				case SDL_WINDOWEVENT_MINIMIZED:
-					_GraphicsContext->GetWindow().isMinimized = true;
-					break;
-				case SDL_WINDOWEVENT_MAXIMIZED:
-					return;
-				case SDL_WINDOWEVENT_RESTORED:
-					_GraphicsContext->GetWindow().isMinimized = false;
-					return;
-				case SDL_WINDOWEVENT_SIZE_CHANGED:
-					break;
-				case SDL_WINDOWEVENT_FOCUS_GAINED:
-					break;
-				case SDL_WINDOWEVENT_FOCUS_LOST:
-					break;	
-				case SDL_WINDOWEVENT_RESIZED:
-					break;
-				default:
-					break;
-			}
-
-			continue;
+			_Application->RequestExit(); //don't want to process any further input, so return here.
+			return;
 		}
 
 		if (e.type == SDL_KEYUP)
@@ -97,6 +71,7 @@ void Controller::MoveCamera( Camera& camera, float dt )
 
 		if (SDL_GetRelativeMouseMode() == SDL_FALSE)
 		{
+			//if ImGui wants the input after checking for relative mode, then it will eat up the remaining inputs
 			if (ImGui::GetIO().WantCaptureMouse)
 			{
 				continue;

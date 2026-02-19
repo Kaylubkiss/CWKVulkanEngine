@@ -2,9 +2,8 @@
 #include "Timer.h"
 #include "Camera.h"
 #include "Physics.h"
-#include "ObjectManager.h"
 #include "vkContextBase.h"
-#include "vkCubemap.h" //TODO: remove once the implementation is done --> this is just to resolve symbol errs
+#include "vkInstance.h"
 
 class Application
 {
@@ -15,12 +14,12 @@ public:
 	const Timer& GetTime() const;
 
 	PhysicsSystem& GetPhysics();
-	vk::ContextBase* Context();
+	vk::ContextBase* Context() const;
 
 	void run();
 	void RequestExit();
-	void SelectWorldObjects(const vk::Window& appWindow,
-		Camera& camera, const uTransformObject& uTransform, PhysicsSystem& physics);
+	/*void SelectWorldObjects(const vk::Window& appWindow,
+		Camera& camera, const uTransformObject& uTransform, PhysicsSystem& physics);*/
 
 private:
 	void init();
@@ -30,7 +29,7 @@ private:
 	PhysicsSystem m_physics;
 	Timer mTime;
 
-	std::unique_ptr<vk::ContextBase> m_graphicsContext;	//this MUST be declared at the top so that it's destructor is called last.
+	std::unique_ptr<vk::ContextBase> m_vulkanGraphicsContext;	//this MUST be declared at the top so that it's destructor is called last.
 
 	bool exitApplication = false;
 };

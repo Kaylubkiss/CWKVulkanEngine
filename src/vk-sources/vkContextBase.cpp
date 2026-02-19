@@ -10,46 +10,48 @@ namespace vk
 	{
 		assert(_Application != NULL);
 
-		CreateWindow();
-		CreateInstance();
-		if (SDL_Vulkan_CreateSurface(window.sdl_ptr, instance, &window.surface) != SDL_TRUE)
-		{
-			throw std::runtime_error("could not create window surface! " + std::string(SDL_GetError()));
-		}
+		m_window.Init(640, 480);
+
+		std::vector<const char*> instanceLayers = {"VK_LAYER_KHRONOS_validation"};
+		std::vector<const char*> instanceExtensions = m_window.GetInstanceExtensions();
+		m_instance.Create(instanceExtensions, instanceLayers);
+
+		m_window.CreateSurface(m_instance.GetHandle());
+
 		
 		device.AddExtension(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
 		device.AddExtension(VK_EXT_DESCRIPTOR_BUFFER_EXTENSION_NAME);
 		device.AddExtension(VK_EXT_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME);
-		device.Init(instance, window.surface);
+		device.Init(m_instance.GetHandle(), m_window.Surface());
 
-		swapChain.Init(&this->device, window); //need window for its surface and viewport info.
-		swapChain.Create(window);
+		swapChain.Init(&this->device, m_window); //need window for its surface and viewport info.
+		swapChain.Create(m_window);
 
 		//conforms to higher frame counts to prevent flickering.
-		if (swapChain.createInfo.minImageCount > settings.maxFramesInFlight)
+		if (swapChain.createInfo.minImageCount > m_settings.maxFramesInFlight)
 		{
-			settings.maxFramesInFlight = swapChain.createInfo.minImageCount;
+			m_settings.maxFramesInFlight = swapChain.createInfo.minImageCount;
 		}
 
 		ContextBase::InitializeRenderPass();
-		this->swapChain.CreateFrameBuffers(window.viewport, renderPass);
+		this->swapChain.CreateFrameBuffers(m_window.Viewport(), renderPass);
 
 		CreateSynchronizationPrimitives();
 
 		//each swapchain should have its own command buffer
 		device.AllocateCommandBuffers(commandBuffers.data(), static_cast<uint32_t>(commandBuffers.size()));
 
-		if (this->settings.UIDisplay)
+		if (m_settings.UIDisplay)
 		{
 			UserInterfaceInitInfo userInterfaceCI = {};
-			userInterfaceCI.contextInstance = this->instance;
+			userInterfaceCI.contextInstance = m_instance.GetHandle();
 			userInterfaceCI.contextLogicalDevice = this->device.GetDevice();
 			userInterfaceCI.contextPhysicalDevice = this->device.GetGPU();
 			userInterfaceCI.contextQueue = this->device.GetQueue(DeviceQueue::GRAPHICS);
-			userInterfaceCI.contextWindow = this->window.sdl_ptr;
+			userInterfaceCI.contextWindow = m_window.WindowPtr();
 			userInterfaceCI.renderPass = this->renderPass;
-			userInterfaceCI.minImages = this->settings.maxFramesInFlight;
-			userInterfaceCI.viewPortExtent = window.Extents();
+			userInterfaceCI.minImages = m_settings.maxFramesInFlight;
+			userInterfaceCI.viewPortExtent = m_window.Extents();
 
 			this->UIOverlay = UserInterface(userInterfaceCI);
 		}
@@ -65,16 +67,6 @@ namespace vk
 	//destructor
 	ContextBase::~ContextBase()
 	{
-		if (settings.debugMessenger != nullptr)
-		{
-			auto func = (PFN_vkDestroyDebugUtilsMessengerEXT)
-				(vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT"));
-			if (func != nullptr)
-			{
-				func(instance, settings.debugMessenger, nullptr);
-			}
-		}
-
 		if (device.GetDevice() != VK_NULL_HANDLE)
 		{
 			pipelineManager.Destroy();
@@ -98,124 +90,13 @@ namespace vk
 			//must destroy the device before instance
 			this->device.Destroy();
 
-			vkDestroySurfaceKHR(this->instance, this->window.surface, nullptr);
-			vkDestroyInstance(this->instance, nullptr);
+			vkDestroySurfaceKHR(m_instance.GetHandle(), m_window.Surface(), nullptr);
 		}
 	}
 
 
 
 	//helper(s)
-	void ContextBase::CreateInstance()
-	{
-		assert(window.sdl_ptr != nullptr);
-
-		//create instance info.
-		VkApplicationInfo appInfo = {};
-		appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-		appInfo.apiVersion = VK_API_VERSION_1_4;
-		appInfo.pApplicationName = "Caleb Vulkan Engine";
-		appInfo.engineVersion = 1;
-		appInfo.pNext = nullptr;
-
-		VkInstanceCreateInfo createInfo = {};
-		createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
-		createInfo.flags = 0;
-
-		createInfo.pApplicationInfo = &appInfo;
-
-		//must get the SDL extensions to use SDL2
-		uint32_t sdl_extensionCount = 0;
-		if (SDL_Vulkan_GetInstanceExtensions(window.sdl_ptr, &sdl_extensionCount, nullptr) != SDL_TRUE)
-		{
-			throw std::runtime_error("could not grab extensions from SDL!");
-		}
-
-		std::vector<const char*> extensionNames(sdl_extensionCount);
-		if (SDL_Vulkan_GetInstanceExtensions(window.sdl_ptr, &sdl_extensionCount, extensionNames.data()) != SDL_TRUE)
-		{
-			throw std::runtime_error("could not grab extensions from SDL!");
-		}
-
-		extensionNames.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
-		
-		createInfo.enabledExtensionCount = static_cast<uint32_t>(extensionNames.size());
-		createInfo.ppEnabledExtensionNames = extensionNames.data();
-
-		if (!vk::util::CheckInstanceExtensionSupport(extensionNames.data(),
-			static_cast<int>(extensionNames.size())))
-		{
-			throw std::runtime_error("one or more instance extensions are not supported\n");
-		}
-
-		//enabling validation layers
-		if (settings.validationLayers == true) 
-		{
-			std::vector<const char*> instanceLayers;
-			instanceLayers.push_back("VK_LAYER_KHRONOS_validation");
-
-			if (!vk::util::CheckInstanceLayerSupport(instanceLayers.data(),
-				static_cast<int>(instanceLayers.size())))
-			{
-				throw std::runtime_error("one or more layers are not supported\n");
-			}
-
-			createInfo.enabledLayerCount = static_cast<uint32_t>(instanceLayers.size());
-			createInfo.ppEnabledLayerNames = instanceLayers.data();
-
-			VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo = vk::util::DebugMessengerCreateInfo();
-			createInfo.pNext = (VkDebugUtilsMessengerCreateInfoEXT*)(&debugCreateInfo);
-
-			VK_CHECK_RESULT(vkCreateInstance(&createInfo, nullptr, &this->instance));
-
-			//create messenger object handle that actually calls debugCallback.
-			auto func = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance,
-				"vkCreateDebugUtilsMessengerEXT");
-
-			if (func != nullptr) 
-			{
-				VK_CHECK_RESULT(func(instance, &debugCreateInfo, nullptr, &settings.debugMessenger));
-			}
-			else 
-			{
-				throw std::runtime_error("failed to load vkCreateDebugUtilsMessengerEXT");
-			}
-
-		}
-		else //no layers.
-		{
-			VK_CHECK_RESULT(vkCreateInstance(&createInfo, nullptr, &this->instance));
-		}
-	}
-
-	void ContextBase::CreateWindow() 
-	{
-		window.viewport.width = 640;
-		window.viewport.height = 480;
-		window.viewport.minDepth = 0;
-		window.viewport.maxDepth = 1;
-
-		window.scissor.extent.width = (uint32_t)window.viewport.width;
-		window.scissor.extent.height = (uint32_t)window.viewport.height;
-
-		if (SDL_Init(SDL_INIT_VIDEO) < 0)
-		{
-			printf("SDL could not initialize! SDL_Error: %s\n", SDL_GetError());
-		}
-
-		window.sdl_ptr = SDL_CreateWindow("Caleb's Vulkan Engine", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
-			int(window.viewport.width), int(window.viewport.height), SDL_WINDOW_VULKAN | SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_INPUT_FOCUS);
-
-		if (window.sdl_ptr == nullptr)
-		{
-			printf("Window could not be created! SDL_Error: %s\n", SDL_GetError());
-		}
-
-		SDL_RaiseWindow(window.sdl_ptr);
-
-		window.isPrepared = true;
-	}
-
 	void ContextBase::CreateSynchronizationPrimitives() 
 	{
 		for (int i = 0; i < gMaxFramesInFlight; ++i)
@@ -229,23 +110,19 @@ namespace vk
 
 	void ContextBase::ResizeWindow() 
 	{
-
-		if (window.isMinimized)
-		{
-			window.isPrepared = false;
-			return;
-		}
-
-		window.isPrepared = false;
-
 		VK_CHECK_RESULT(vkDeviceWaitIdle(device.GetDevice()));
 
 		VkSurfaceCapabilitiesKHR surfaceCapabilities;
-		VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device.GetGPU(), window.surface, &surfaceCapabilities));
+		VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device.GetGPU(), m_window.Surface(), &surfaceCapabilities));
 
-		window.UpdateExtents(surfaceCapabilities.currentExtent);
+		m_window.UpdateExtents(surfaceCapabilities.currentExtent);
 
-		swapChain.Recreate(renderPass, window);
+		if (m_window.IsMinimized())
+		{
+			return; //window is minimized, and 0 sizes will cause errors/crashes --> isPrepared will remain false.
+		}
+
+		swapChain.Recreate(renderPass, m_window);
 
 		for (int i = 0; i < gMaxFramesInFlight; ++i)
 		{
@@ -265,9 +142,6 @@ namespace vk
 		CreateSynchronizationPrimitives();
 
 		ResizeWindowDerived();
-
-		window.isPrepared = true;
-		
 	}
 
 	void ContextBase::UpdateSceneObjects(float dt) const
@@ -277,11 +151,10 @@ namespace vk
 
 	void ContextBase::ToggleUI(bool enable)
 	{
-		settings.UIEnabled = enable;
+		m_settings.UIToggled = enable;
 	}
 
 	//initializers
-
 	void ContextBase::InitializeRenderPass() 
 	{
 		assert(swapChain.handle != VK_NULL_HANDLE);
@@ -364,7 +237,7 @@ namespace vk
 		//TODO: a little janky way to initialize as more of mInfo is filled with derived classes.
 		m_info->devicePtr = &this->device;
 
-		if (settings.UIEnabled) 
+		if (m_settings.UIDisplay)
 		{
 			m_info->contextUIPtr = &UIOverlay;
 		}
@@ -379,7 +252,7 @@ namespace vk
 
 	vk::Window& ContextBase::GetWindow() 
 	{
-		return this->window;
+		return m_window;
 	}
 
 	std::shared_ptr<GraphicsContextInfo> ContextBase::GetGraphicsContextInfo() const
@@ -397,25 +270,39 @@ namespace vk
 
 	bool ContextBase::PrepareFrame() 
 	{
-		if (window.isPrepared == false) 
+		if (m_window.IsPrepared() == false)
 		{
-			return false;
+			VkSurfaceCapabilitiesKHR surfaceCapabilities;
+			VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device.GetGPU(), m_window.Surface(), &surfaceCapabilities));
+
+			//the question is: CAN the window be resized? If the window's minimized, then we shouldn't proceed with
+			//preparing the frame. Otherwise, we should resize the window as ImGui will crash without
+			if (surfaceCapabilities.currentExtent.width == 0 && surfaceCapabilities.currentExtent.height == 0)
+			{
+				return false;
+			}
+			else
+			{
+				ResizeWindow();
+			}
 		}
 
 		VK_CHECK_RESULT(vkWaitForFences(device.GetDevice(), 1, &inFlightFences[currentFrame], VK_TRUE, UINT64_MAX));
 		VK_CHECK_RESULT(vkResetFences(device.GetDevice(), 1, &inFlightFences[currentFrame]));
 
-		if (settings.UIDisplay)
+		if (m_settings.UIDisplay)
 		{
 			UIOverlay.Prepare();
 
-			ImGui::SetNextWindowSize(ImVec2(static_cast<float>(window.Extents().width) / 3,
-			static_cast<float>(window.Extents().height) / 2 ));
+			VkExtent2D windowExtent = m_window.Extents();
+
+			ImGui::SetNextWindowSize(ImVec2(static_cast<float>(windowExtent.width) / 3,
+			static_cast<float>(windowExtent.height) / 2 ));
 
 			ImGui::SetNextWindowPos(ImVec2(0,0));
 
 			int flags = ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize;
-			if (!settings.UIEnabled)
+			if (!m_settings.UIToggled)
 			{
 				flags |= ImGuiWindowFlags_NoInputs;
 			}
@@ -500,7 +387,7 @@ namespace vk
 		//we need to ensure that the queue submission completes.
 		if (textureSubmitted == false)
 		{
-			currentFrame = (currentFrame + 1) % settings.maxFramesInFlight;
+			currentFrame = (currentFrame + 1) % m_settings.maxFramesInFlight;
 		}
 
 	}

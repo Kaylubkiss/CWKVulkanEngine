@@ -13,11 +13,11 @@ namespace vk
 
 		createInfo = {};
 		createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-		createInfo.surface = appWindow.surface;
+		createInfo.surface = appWindow.Surface();
 
 		uint32_t surfaceFormatCount = 0;
 		std::vector<VkSurfaceFormatKHR> surfaceFormats;
-		VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceFormatsKHR(m_devicePtr->GetGPU(), appWindow.surface, &surfaceFormatCount, nullptr));
+		VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceFormatsKHR(m_devicePtr->GetGPU(), appWindow.Surface(), &surfaceFormatCount, nullptr));
 
 		//surfaceFormatCount now filled..
 		if (!surfaceFormatCount)
@@ -27,7 +27,7 @@ namespace vk
 
 		surfaceFormats.resize(surfaceFormatCount);
 
-		VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceFormatsKHR(m_devicePtr->GetGPU(), appWindow.surface, &surfaceFormatCount, surfaceFormats.data()));
+		VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceFormatsKHR(m_devicePtr->GetGPU(), appWindow.Surface(), &surfaceFormatCount, surfaceFormats.data()));
 
 		//choose suitable format
 		int surfaceIndex = 0;
@@ -44,7 +44,7 @@ namespace vk
 
 
 		VkSurfaceCapabilitiesKHR deviceCapabilities;
-		VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(m_devicePtr->GetGPU(), appWindow.surface, &deviceCapabilities));
+		VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(m_devicePtr->GetGPU(), appWindow.Surface(), &deviceCapabilities));
 
 		uint32_t imageCount = deviceCapabilities.minImageCount < 2 ? 2 : deviceCapabilities.minImageCount;
 
@@ -71,7 +71,7 @@ namespace vk
 
 
 		VkSurfaceCapabilitiesKHR deviceCapabilities;
-		VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(m_devicePtr->GetGPU(), appWindow.surface, &deviceCapabilities));
+		VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(m_devicePtr->GetGPU(), appWindow.Surface(), &deviceCapabilities));
 
 		uint32_t desiredImageCount = deviceCapabilities.minImageCount < 2 ? 2 : deviceCapabilities.minImageCount;
 		if (deviceCapabilities.maxImageCount > 0 && desiredImageCount > deviceCapabilities.maxImageCount)
@@ -79,7 +79,7 @@ namespace vk
 			desiredImageCount = deviceCapabilities.maxImageCount;
 		}
 
-		createInfo.surface = appWindow.surface;
+		createInfo.surface = appWindow.Surface();
 		createInfo.minImageCount = desiredImageCount;
 		createInfo.imageExtent = deviceCapabilities.currentExtent;
 		createInfo.imageArrayLayers = 1;
@@ -173,7 +173,7 @@ namespace vk
 	void SwapChain::Recreate(const VkRenderPass renderPass, const vk::Window& appWindow)
 	{
 		SwapChain::Create(appWindow);
-		SwapChain::CreateFrameBuffers(appWindow.viewport, renderPass);
+		SwapChain::CreateFrameBuffers(appWindow.Viewport(), renderPass);
 	}
 
 	void SwapChain::Destroy() 

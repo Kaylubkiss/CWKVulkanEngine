@@ -526,12 +526,13 @@ namespace vk
 
 	void DeferredContext::UpdateScreenUniforms()
 	{
+		VkViewport windowViewport = m_window.Viewport();
 		//transform(s)
 		uniformDataMRT.uTransform =
 		{
 			mCamera.LookAt(),
 			glm::perspective(glm::radians(FOV),
-				(float)window.viewport.width / window.viewport.height, 0.1f, 1000.f)
+				(float)windowViewport.width / windowViewport.height, 0.1f, 1000.f)
 		};
 
 		uniformDataMRT.uTransform.proj[1][1] *= -1;
@@ -1083,14 +1084,16 @@ namespace vk
 
 		//Composition
 		{
+			VkViewport windowViewport = m_window.Viewport();
+
 			clearValues[0].color = { 0,0,0,0 };
 			clearValues[1].depthStencil = { 1.f, 0 };
 
 			VkRenderPassBeginInfo renderPassBeginInfo = vk::init::RenderPassBeginInfo();
 			renderPassBeginInfo.clearValueCount = 2;
 			renderPassBeginInfo.pClearValues = clearValues;
-			renderPassBeginInfo.renderArea.extent = {(uint32_t)window.viewport.width,
-				(uint32_t)window.viewport.height};
+			renderPassBeginInfo.renderArea.extent =
+				{static_cast<uint32_t>(windowViewport.width), static_cast<uint32_t>(windowViewport.height)};
 			renderPassBeginInfo.renderPass = renderPass;
 			renderPassBeginInfo.framebuffer = swapChain.framebuffers[currentFrame].handle;
 
@@ -1099,10 +1102,10 @@ namespace vk
 			
 			vkCmdBeginRenderPass(cmdBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-			VkViewport sceneViewport = window.viewport;
+			VkViewport sceneViewport = windowViewport;
 			vkCmdSetViewport(cmdBuffer, 0, 1, &sceneViewport);
 
-			VkRect2D sceneScissor = window.scissor;
+			VkRect2D sceneScissor = m_window.Scissor();
 			vkCmdSetScissor(cmdBuffer, 0, 1, &sceneScissor);
 
 			// Binding 0 = image samplers
@@ -1134,7 +1137,7 @@ namespace vk
 
 			vkCmdDraw(cmdBuffer, 3, 1, 0, 0);
 
-			if (settings.UIDisplay)
+			if (m_settings.UIDisplay)
 			{
 				UIOverlay.Render(cmdBuffer);
 			}

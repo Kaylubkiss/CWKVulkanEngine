@@ -2,26 +2,33 @@
 
 namespace vk 
 {
-	struct Window 
+	class Window
 	{
-		VkViewport viewport = {};
-		VkRect2D scissor = {};
-
-		SDL_Window* sdl_ptr = nullptr;
-		VkSurfaceKHR surface = VK_NULL_HANDLE;
-
-		int center_x = 0.f;
-		int center_y = 0.f;
-
-		bool isPrepared = false;
-		bool isMinimized = false;
-		
-
+	public:
+		Window() = default;
 		~Window();
 
-		void UpdateExtents(const VkExtent2D& area);
+		void Init( uint32_t width, uint32_t height );
+		void CreateSurface( VkInstance vulkanInstance );
 
 		VkExtent2D Extents() const;
+		VkViewport Viewport() const;
+		VkRect2D Scissor() const;
+		VkSurfaceKHR Surface() const;
+		SDL_Window* WindowPtr() const;
+		std::vector<const char*> GetInstanceExtensions() const;
+
+		bool IsPrepared() const;
+		bool IsMinimized() const;
+		void UpdateExtents(const VkExtent2D& area);
+	private:
+		VkViewport m_viewport = {};
+		VkRect2D m_scissor = {};
+
+		SDL_Window* m_sdlPtr = nullptr;
+		VkSurfaceKHR m_surface = VK_NULL_HANDLE;
+
+		bool isPrepared = false;
 	};
 
 }

@@ -1,6 +1,8 @@
 #pragma once
 
 #include "vkWindow.h"
+#include "vkInstance.h"
+#include "ObjectManager.h"
 #include "vkSwapChain.h"
 #include "vkFramebuffer.h"
 #include "vkPipelineManager.h"
@@ -25,13 +27,13 @@ namespace vk
 		virtual void UpdateUI() = 0;
 		virtual void ResizeWindowDerived() = 0;
 		virtual void InitializeScene() = 0;
+
 		//operations
 		void WaitForDevice() const;
 		void SubmitFrame();
 		void ResizeWindow();
 		void UpdateSceneObjects(float dt) const;
 		void ToggleUI(bool enable);
-
 	protected:
 		bool PrepareFrame();
 		//more pure virtual function(s)
@@ -41,26 +43,28 @@ namespace vk
 		virtual void InitializeRenderPass();
 		virtual void FillOutGraphicsContextInfo();
 	private:
-		void CreateWindow();
 		void CreateInstance();
 		void CreateSynchronizationPrimitives();
 	protected:
-		std::shared_ptr<GraphicsContextInfo> m_info;//this is for textureManager and potentially any other discrete systems.
-		//WARNING: context specific!!!
 
-		struct Settings {
+		struct AppSettings //TODO: make this into a bitmask
+		{
 			uint32_t maxFramesInFlight = 2;
 			bool minimized = false;
 			bool UIDisplay = true;
-			bool UIEnabled = false;
+			bool UIToggled = true; //can consume inputs upon intialization
 			bool validationLayers = true;
-			VkDebugUtilsMessengerEXT debugMessenger = VK_NULL_HANDLE;
-		} settings;
+		} m_settings = {};
 
-		VkInstance instance = VK_NULL_HANDLE;
+		//this is for textureManager and potentially any other discrete systems.
+		std::shared_ptr<GraphicsContextInfo> m_info;
+
+		//MUST BE DEINIT LAST!
+
 		VkRenderPass renderPass = VK_NULL_HANDLE;
 
-		vk::Window window;
+		vk::Instance m_instance;
+		vk::Window m_window;
 		vk::Device device;
 		vk::SwapChain swapChain;
 		vk::PipelineManager pipelineManager;
@@ -79,6 +83,6 @@ namespace vk
 		Camera mCamera;
 		UserInterface UIOverlay;
 
-		std::unique_ptr<ObjectManager> m_objectManager; //application technically owns this pointer.
+		std::unique_ptr<ObjectManager> m_objectManager;
 	};
 }	

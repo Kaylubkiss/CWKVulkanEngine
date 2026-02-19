@@ -6,10 +6,9 @@ PhysicsSystem& Application::GetPhysics()
 	return this->m_physics;
 }
 
-vk::ContextBase* Application::Context()
+vk::ContextBase* Application::Context() const
 {
-
-	return m_graphicsContext.get();
+	return m_vulkanGraphicsContext.get();
 }
 
 
@@ -28,10 +27,16 @@ void Application::run()
 
 void Application::init() 
 {
-	m_graphicsContext = std::make_unique<vk::DeferredContext>();
+	if (SDL_Init(SDL_INIT_VIDEO) < 0)
+	{
+		printf("SDL could not initialize! SDL_Error: %s\n", SDL_GetError());
+	}
+
+	m_vulkanGraphicsContext = std::make_unique<vk::DeferredContext>();
+
 	if (exitApplication == false)
 	{
-		m_graphicsContext->InitializeScene(); //TODO: deserialize a scene
+		m_vulkanGraphicsContext->InitializeScene(); //TODO: deserialize a scene
 
 		mTime = Timer(SDL_GetPerformanceCounter());
 	}
@@ -44,7 +49,7 @@ const Timer& Application::GetTime() const
 }
 
 
-void Application::SelectWorldObjects(const vk::Window& appWindow, 
+/*void Application::SelectWorldObjects(const vk::Window& appWindow,
 									 Camera& camera, const uTransformObject& uTransform, PhysicsSystem& physics)
 {
 	
@@ -96,7 +101,7 @@ void Application::SelectWorldObjects(const vk::Window& appWindow,
 
 	physics.World()->raycast(ray, &callbackObject);
 
-}
+}*/
 
 void Application::RequestExit() 
 {
@@ -105,28 +110,29 @@ void Application::RequestExit()
 
 void Application::loop()
 {
-	if (m_graphicsContext != nullptr)
+	if (m_vulkanGraphicsContext != nullptr)
 	{
 		//render graphics.
 		while (exitApplication == false)
 		{
 			double dt = mTime.CalculateDeltaTime();
 
-			Controller::MoveCamera(m_graphicsContext->GetCamera(), static_cast<float>(dt));
+			Controller::MoveCamera(m_vulkanGraphicsContext->GetCamera(), static_cast<float>(dt));
 
-			m_graphicsContext->UpdateSceneObjects(m_physics.InterpFactor(static_cast<float>(dt)));
+			m_vulkanGraphicsContext->UpdateSceneObjects(m_physics.InterpFactor(static_cast<float>(dt)));
 
-			m_graphicsContext->Render();
+			m_vulkanGraphicsContext->Render();
 		}
 
 		//when we're done with the loop, we should make sure the logical device is flushed.
-		m_graphicsContext->WaitForDevice();
+		m_vulkanGraphicsContext->WaitForDevice();
 	}
 }
 
 
 void Application::exit()
 {
+	SDL_Quit();
 }
 
 
