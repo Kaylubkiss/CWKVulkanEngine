@@ -1,12 +1,6 @@
 #include "CameraController.h"
 #include "vk-scenes/vkDeferredShadingContext.h"
 
-std::atomic_bool vk::g_textureUploadSubmitted;
-//NOTE: to remove pesky warnings from visual studio, on dynamically allocated arrays,
-//I've used the syntax: *(array + i) to access the array instead of array[i].
-//the static analyzer of visual studio is bad.
-
-
 PhysicsSystem& Application::GetPhysics() 
 {
 	return this->m_physics;

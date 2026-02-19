@@ -4,7 +4,7 @@
 
 namespace vk 
 {
-	typedef enum FramebufferAttachmentFlagBits
+	typedef enum FramebufferAttachmentFlagBits : uint32_t
 	{
 		VKC_ATTACHMENT_IS_NULL = 0,
 		VKC_ATTACHMENT_IS_COLOR = 1,
@@ -38,7 +38,7 @@ namespace vk
 		VkFormat format = {};
 		VkImageSubresourceRange subresourceRange = {};
 		VkAttachmentDescription description = {};
-		VkImageLayout layout;
+		VkImageLayout layout = {};
 		FramebufferAttachmentFlags flags = 0;
 
 		void Destroy(VkDevice l_device);
@@ -47,23 +47,22 @@ namespace vk
 
 	struct Framebuffer 
 	{
-		public:
-			uint32_t width = 0;
-			uint32_t height = 0;
-			VkFramebuffer handle = VK_NULL_HANDLE;
-			VkRenderPass renderPass = VK_NULL_HANDLE;
-			VkSampler sampler = VK_NULL_HANDLE;
-			std::vector<FramebufferAttachment> attachments;
+	public:
+		void Init( vk::Device* contextDevice );
+		void Destroy();
+		void CreateSampler(VkFilter minFilter, VkFilter magFilter, VkSamplerAddressMode addressMode);
+		void CreateRenderPass();
+		void CreateFramebuffer();
+		void AddAttachment(const vk::FramebufferAttachmentCreateInfo& createInfo);
+	public:
+		uint32_t width = 0;
+		uint32_t height = 0;
+		VkFramebuffer handle = VK_NULL_HANDLE;
+		VkRenderPass renderPass = VK_NULL_HANDLE;
+		VkSampler sampler = VK_NULL_HANDLE;
+		std::vector<FramebufferAttachment> attachments;
 
-		private:
-			vk::Device* contextDevice = nullptr;
-
-		public:
-			void Init( vk::Device* contextDevice );
-			void Destroy();
-			void CreateSampler(VkFilter minFilter, VkFilter magFilter, VkSamplerAddressMode addressMode);
-			void CreateRenderPass();
-			void CreateFramebuffer();
-			void AddAttachment(const vk::FramebufferAttachmentCreateInfo& createInfo);
+	private:
+		vk::Device* contextDevice = nullptr;
 	};
 }

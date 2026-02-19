@@ -103,23 +103,17 @@ namespace vk {
 			barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
 			barrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 			barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-			barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED; //this might be the key to help sync
+			barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 			barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 			barrier.image = m_image;
 			barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 			barrier.subresourceRange.baseMipLevel = 0;
-			barrier.subresourceRange.levelCount = mipLevels;
+			barrier.subresourceRange.levelCount = VK_REMAINING_MIP_LEVELS;
 			barrier.subresourceRange.baseArrayLayer = 0;
-			barrier.subresourceRange.layerCount = 1;
+			barrier.subresourceRange.layerCount = VK_REMAINING_ARRAY_LAYERS;
 			barrier.srcAccessMask = 0;
 			barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
 
-
-			VkCommandBufferBeginInfo beginInfo = {};
-			beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-			beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-
-			/*VK_CHECK_RESULT(vkBeginCommandBuffer(transferCmd, &beginInfo));*/
 
 			vkCmdPipelineBarrier(transferCmd, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
 				VK_PIPELINE_STAGE_TRANSFER_BIT,
@@ -177,8 +171,8 @@ namespace vk {
 
 			{
 				std::lock_guard<std::mutex> lock(transferMutex);
-				VK_CHECK_RESULT(vkQueueSubmit(devicePtr->GetQueue(DeviceQueue::TRANSFER).handle, 1, &submitInfo,
-					VK_NULL_HANDLE));
+				VK_CHECK_RESULT(vkQueueSubmit(devicePtr->GetQueue(DeviceQueue::TRANSFER).handle,
+					1, &submitInfo, VK_NULL_HANDLE));
 			}
 
 			VK_CHECK_RESULT(vkQueueWaitIdle(devicePtr->GetQueue(DeviceQueue::TRANSFER).handle));
@@ -195,9 +189,9 @@ namespace vk {
 			releaseBarrier.image = m_image;
 			releaseBarrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 			releaseBarrier.subresourceRange.baseMipLevel = 0;
-			releaseBarrier.subresourceRange.levelCount = mipLevels;
+			releaseBarrier.subresourceRange.levelCount = VK_REMAINING_MIP_LEVELS;
 			releaseBarrier.subresourceRange.baseArrayLayer = 0;
-			releaseBarrier.subresourceRange.layerCount = 1;
+			releaseBarrier.subresourceRange.layerCount = VK_REMAINING_ARRAY_LAYERS;
 
 			VkCommandBufferBeginInfo beginInfo = {};
 			beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -239,7 +233,7 @@ namespace vk {
 		m_descriptor.sampler = m_sampler;
 		m_descriptor.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
-		c_device    = devicePtr->GetDevice();
+		c_device = devicePtr->GetDevice();
 	}
 
 	Texture::~Texture()

@@ -2,8 +2,6 @@
 #include <reactphysics3d/reactphysics3d.h>
 using namespace reactphysics3d;
 
-
-
 struct Capsule 
 {
 	float mRadius;

@@ -175,7 +175,7 @@ bool TextureManager::UploadTextureDataToGPU( uint32_t currentFrame, const VkSema
 		imageDescriptorInfo.data.pCombinedImageSampler = &textureDescriptor;
 
 		char* imageBindingDescriptorPtr =
-			(char*)(s_graphicsContextInfo->contextTextureDescriptorPtr->buffers.front().GetMappedMemory());
+			static_cast<char*>(s_graphicsContextInfo->contextTextureDescriptorPtr->buffers.front().GetMappedMemory());
 
 		g_vkGetDescriptorEXT(s_graphicsContextInfo->devicePtr->GetDevice(), &imageDescriptorInfo,
 			combinedImageSamplerSize,
@@ -193,7 +193,7 @@ size_t TextureManager::GetSize()
 
 void TextureManager::BindTextureToModelPrimitive( const std::string& fileName, Primitive& primitive )
 {
-	if (fileName != "")
+	if (fileName.empty() == false)
 	{
 		primitive.textureIndex = AddTexture(fileName);
 	}

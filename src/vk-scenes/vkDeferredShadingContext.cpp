@@ -393,10 +393,10 @@ namespace vk
 
 	}
 
-	inline void GetUniformDescriptor( vk::Buffer& descriptorBuffer, const vk::Buffer& dataBuffer,
+	inline void GetUniformDescriptor( const vk::Buffer& descriptorBuffer, const vk::Buffer& dataBuffer,
 		const vk::Device& device )
 	{
-		char* descriptor_ptr = (char*)descriptorBuffer.GetMappedMemory();
+		char* descriptor_ptr = static_cast<char*>(descriptorBuffer.GetMappedMemory());
 		VkDescriptorAddressInfoEXT addrInfo = { VK_STRUCTURE_TYPE_DESCRIPTOR_ADDRESS_INFO_EXT };
 		addrInfo.address = dataBuffer.GetDeviceAddress();
 		addrInfo.range = dataBuffer.GetSize();
@@ -428,7 +428,6 @@ namespace vk
 
 			uniformBindingDescriptors[dePipeline::MRT].buffers[frame].Map(); //persistent
 
-		
 			GetUniformDescriptor(
 				uniformBindingDescriptors[dePipeline::MRT].buffers[frame],
 				uniformBuffers[frame].mrt, device
@@ -679,7 +678,7 @@ namespace vk
 		VkPipelineDynamicStateCreateInfo dynamicStateCI = 
 			vk::init::PipelineDynamicStateCreateInfo(dynamicStates);
 
-		std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages;
+		std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages = {};
 
 		VkGraphicsPipelineCreateInfo pipelineCI = vk::init::PipelineCreateInfo(pipelineLayouts[dePipeline::COMPOSITION],
 			renderPass, VK_PIPELINE_CREATE_DESCRIPTOR_BUFFER_BIT_EXT);
@@ -747,7 +746,7 @@ namespace vk
 					VkPipelineDynamicStateCreateInfo dynamicStateCI =
 						vk::init::PipelineDynamicStateCreateInfo(dynamicStates);
 
-					std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages;
+					std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages = {};
 
 					VkGraphicsPipelineCreateInfo pipelineCI = 
 						vk::init::PipelineCreateInfo(
@@ -1141,7 +1140,6 @@ namespace vk
 			}
 
 			vkCmdEndRenderPass(cmdBuffer);
-
 		}
 
 		VK_CHECK_RESULT(vkEndCommandBuffer(cmdBuffer));

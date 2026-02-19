@@ -1,5 +1,5 @@
 #include "GLTFModel.h"
-
+#include <glm/gtc/type_ptr.hpp>
 #include <fastgltf/core.hpp>
 #include <fastgltf/types.hpp>
 #include <fastgltf/tools.hpp>
@@ -147,7 +147,7 @@ void GLTFModel::LoadTextures( TextureManager& textureManager, const std::vector<
 		{
 			if (primitive.textureIndex.has_value())
 			{
-				//NOTE: the primitive's texture index gets "corrected"
+				//NOTE: the primitive's texture index gets "corrected" in BindTextureToModelPrimtive()
 				textureManager.BindTextureToModelPrimitive(
 					textureNames[primitive.textureIndex.value()], primitive);
 			}

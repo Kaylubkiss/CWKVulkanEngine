@@ -217,26 +217,26 @@ namespace vk
 			uniqueQueueFamilies.push_back(queue.family);
 		}
 
-		float queuePriority[1] = { 1.f };
+		float queuePriority[1] = { 1.f }; //each queue gets an equal amount of time to work.
 
-		if (uniqueQueueFamilies[0] != uniqueQueueFamilies[1])
+		VkDeviceQueueCreateInfo deviceQueueInfo = {}; //to be passed into deviceCreateInfo's struct members.
+
+		if (uniqueQueueFamilies[DeviceQueue::GRAPHICS] != uniqueQueueFamilies[DeviceQueue::PRESENT])
 		{
 			for (unsigned i = 0; i < 2; ++i)
 			{
-				VkDeviceQueueCreateInfo deviceQueueInfo = {}; //to be passed into deviceCreateInfo's struct members.
 				deviceQueueInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
 				deviceQueueInfo.flags = 0;
 				deviceQueueInfo.pNext = nullptr;
 				deviceQueueInfo.queueFamilyIndex = uniqueQueueFamilies[i];
 				deviceQueueInfo.queueCount = 1;
-				//THIS IS APPARENTLY REQUIRED --> REFERENCE BOOK DID NOT SHOW THIS...
 				deviceQueueInfo.pQueuePriorities = queuePriority; //normalized values between 0.f to 1.f that ranks the priority of the queue in the array.
 
 				deviceQueueCreateInfos.push_back(deviceQueueInfo);
 			}
 		}
-		else {
-			VkDeviceQueueCreateInfo deviceQueueInfo = {}; //to be passed into deviceCreateInfo's struct members.
+		else
+		{
 			deviceQueueInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
 			deviceQueueInfo.queueFamilyIndex = m_queues[DeviceQueue::GRAPHICS].family;
 			deviceQueueInfo.queueCount = 1;
@@ -244,17 +244,15 @@ namespace vk
 			deviceQueueInfo.pQueuePriorities = queuePriority; //normalized values between 0.f to 1.f that ranks the priority of the queue in the array.
 
 			deviceQueueCreateInfos.push_back(deviceQueueInfo);
-
 		}
 
 		//transfer queue addition.
-		VkDeviceQueueCreateInfo deviceQueueInfo = {}; //to be passed into deviceCreateInfo's struct members.
+		deviceQueueInfo = {};
 		deviceQueueInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
 		deviceQueueInfo.flags = 0;
 		deviceQueueInfo.pNext = nullptr;
 		deviceQueueInfo.queueFamilyIndex = m_queues[DeviceQueue::TRANSFER].family;
 		deviceQueueInfo.queueCount = 1;
-		//THIS IS APPARENTLY REQUIRED --> REFERENCE BOOK DID NOT SHOW THIS...
 		deviceQueueInfo.pQueuePriorities = queuePriority; //normalized values between 0.f to 1.f that ranks the priority of the queue in the array.
 
 		deviceQueueCreateInfos.push_back(deviceQueueInfo);
@@ -289,10 +287,9 @@ namespace vk
 		deviceCreateInfo.queueCreateInfoCount = (uint32_t)(deviceQueueCreateInfos.size());
 
 		VK_CHECK_RESULT(vkCreateDevice(m_gpu, &deviceCreateInfo, nullptr, &m_device));
-
 	}
 
-	void Device::CheckRequestedExtensions() 
+	void Device::CheckRequestedExtensions() const
 	{
 		uint32_t extension_count = 0;
 		vkEnumerateDeviceExtensionProperties(m_gpu, nullptr, &extension_count, nullptr);
@@ -316,7 +313,7 @@ namespace vk
 		}
 	}
 
-	uint32_t Device::GetMemoryType( uint32_t typeBits, VkMemoryPropertyFlags properties )
+	uint32_t Device::GetMemoryType( uint32_t typeBits, VkMemoryPropertyFlags properties ) const
 	{
 
 		for (uint32_t i = 0; i < m_memoryProperties.memoryTypeCount; ++i)
@@ -360,7 +357,7 @@ namespace vk
 		}
 		else
 		{
-			std::cerr << "\033[31m" << "requested queue is outside the range" << "\033[0m\n";
+			std::cerr << "\033[31m" << "requested queue is outside the range of supported queues" << "\033[0m" << "\n";
 			throw std::runtime_error("Device::GetQueue() Failed!");
 		}
 

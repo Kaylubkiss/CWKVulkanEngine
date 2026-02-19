@@ -9,6 +9,7 @@ struct UserInterfaceInitInfo
 
 	vk::Queue contextQueue = {};
 	VkRenderPass renderPass = VK_NULL_HANDLE;
+	VkExtent2D viewPortExtent = {};
 
 	uint32_t minImages = 0;
 };

@@ -15,7 +15,7 @@ namespace vk
 		VkRenderPass RenderPass( const VkDevice l_device, const VkFormat& depthFormat );
 
 		VkCommandPool CommandPool( const VkDevice& l_device, VkCommandPoolCreateFlags createFlag,
-			uint32_t queueFamilyIndex = 0 );
+			uint32_t queueFamilyIndex );
 
 		VkCommandBuffer CommandBuffer( const VkDevice l_device, const VkCommandPool cmdPool,
 			VkCommandBufferLevel cmdLevel );

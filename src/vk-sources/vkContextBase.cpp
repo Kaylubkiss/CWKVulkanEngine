@@ -49,6 +49,7 @@ namespace vk
 			userInterfaceCI.contextWindow = this->window.sdl_ptr;
 			userInterfaceCI.renderPass = this->renderPass;
 			userInterfaceCI.minImages = this->settings.maxFramesInFlight;
+			userInterfaceCI.viewPortExtent = window.Extents();
 
 			this->UIOverlay = UserInterface(userInterfaceCI);
 		}
@@ -321,20 +322,24 @@ namespace vk
 		//depth writing/reading dependencies
 		dependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL;
 		dependencies[0].dstSubpass = 0;
-		dependencies[0].srcStageMask = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
+		//some pipelines may do the depth test before fragment shader starts, or after,
+		//depending on if FragCoord.z is edited in a shader.
+		dependencies[0].srcStageMask = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT |
+			VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
 		dependencies[0].dstStageMask = dependencies[0].srcStageMask;
 		dependencies[0].srcAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
-		dependencies[0].dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT;
+		dependencies[0].dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT |
+			VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT;
 		dependencies[0].dependencyFlags = 0;
 
 		//color writing/reading dependencies. This is to ensure that the color attachment read/writes are finished before subpass 0 begins and uses them again for reading/writing.
 		dependencies[1].srcSubpass = VK_SUBPASS_EXTERNAL;
-		dependencies[1].dstSubpass = static_cast<uint32_t>(0);
+		dependencies[1].dstSubpass = 0;
 		dependencies[1].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
 		dependencies[1].dstStageMask = dependencies[1].srcStageMask;
 		dependencies[1].srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT; //this can also be 0
 		dependencies[1].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_COLOR_ATTACHMENT_READ_BIT;
-		dependencies[1].dependencyFlags = static_cast<uint32_t>(0);
+		dependencies[1].dependencyFlags = 0;
 
 		VkRenderPassCreateInfo renderPassCI = {};
 		renderPassCI.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
@@ -397,15 +402,20 @@ namespace vk
 		if (settings.UIEnabled) 
 		{
 			UIOverlay.Prepare();
-			if (!ImGui::Begin("CWKVulkanEngine"))
+
+			ImGui::SetNextWindowSize(ImVec2(static_cast<float>(window.Extents().width) / 3,
+			static_cast<float>(window.Extents().height) / 2 ));
+
+			ImGui::SetNextWindowPos(ImVec2(0,0));
+
+			if (ImGui::Begin("CWKVulkanEngine", nullptr,
+				ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize) == true)
 			{
-				ImGui::End();
-			}
-			else
-			{
+
 				UpdateUI();
-				ImGui::End();
 			}
+
+			ImGui::End();
 		}
 
 		VkResult result = 
@@ -434,7 +444,7 @@ namespace vk
 		submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 
 		std::vector<VkPipelineStageFlags> pipelineWaitStages = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
-		std::vector<VkSemaphore> waitSemaphores = {presentCompleteSemaphores[currentFrame]};
+		std::vector<VkSemaphore> waitSemaphores = { presentCompleteSemaphores[currentFrame] };
 
 		bool textureSubmitted = m_objectManager->SyncIO(currentFrame, textureUploadSemaphores[currentFrame]);
 		if (textureSubmitted == true)

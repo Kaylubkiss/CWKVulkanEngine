@@ -28,8 +28,8 @@ namespace vk
 		Device& operator=(Device&&) = delete;
 
 		//functionality
-		uint32_t GetMemoryType( uint32_t typeBits, VkMemoryPropertyFlags properties );
-		VkPhysicalDeviceDescriptorBufferPropertiesEXT GetDescriptorBufferProperties() const;
+		[[nodiscard]] uint32_t GetMemoryType( uint32_t typeBits, VkMemoryPropertyFlags properties ) const;
+		[[nodiscard]] VkPhysicalDeviceDescriptorBufferPropertiesEXT GetDescriptorBufferProperties() const;
 
 		const VkDevice GetDevice() const;
 		const VkPhysicalDevice GetGPU() const;
@@ -47,7 +47,7 @@ namespace vk
 		void FindPhysicalDevices( VkInstance instance );
 		void FindQueueFamilies( VkSurfaceKHR windowSurface );
 		void InitializeLogicalDevice();
-		void CheckRequestedExtensions();
+		void CheckRequestedExtensions() const;
 	private:
 		std::vector<const char*> m_requestedExtensions;
 		std::array<vk::Queue, DeviceQueue::MAX_QUEUES> m_queues;

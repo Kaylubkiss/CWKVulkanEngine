@@ -56,9 +56,7 @@ namespace vk
 	class Buffer;
 	class Device;
 
-	extern std::atomic_bool g_textureUploadSubmitted;
-
-	struct DescriptorBufferData //240 BYTES!!!
+	struct DescriptorBufferData //248 BYTES!!!
 	{
 		std::array<vk::Buffer, gMaxFramesInFlight> buffers; //descriptors are stored in BUFFERS, not VkDescriptorSet
 		std::vector<VkDeviceSize> binding_offsets = { 0ull }; //at least 1 binding (binding 0)
