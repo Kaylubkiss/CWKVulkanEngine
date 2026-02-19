@@ -1134,7 +1134,7 @@ namespace vk
 
 			vkCmdDraw(cmdBuffer, 3, 1, 0, 0);
 
-			if (settings.UIEnabled) 
+			if (settings.UIDisplay)
 			{
 				UIOverlay.Render(cmdBuffer);
 			}

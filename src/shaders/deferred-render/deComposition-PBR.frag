@@ -11,10 +11,10 @@ layout(set = 0, binding = 2) uniform sampler2D samplerAlbedo;
 layout(set = 0, binding = 3) uniform sampler2DArray samplerShadowMap;
 
 #define LIGHT_COUNT 2
-#define AMBIENT_COLOR .05
+#define AMBIENT_COLOR .2
 #define M_PI 4.0 * atan(1.0)
-#define MAT_ROUGHNESS 1.0f
-#define MAT_METALLIC 0.f
+#define MAT_ROUGHNESS 0.2f
+#define MAT_METALLIC 0.1f
 
 struct Light 
 {
@@ -64,7 +64,7 @@ vec3 Radiance(vec3 P, vec3 L, vec3 lightAlbedo)
 {
     //because it's a point light, we will just attenuate the intensity of the light's color.
     float distance = length(L - P);
-    float attenuation = 1.0 / (distance * distance) + 0.0001; //just in-case, the distance is 0, add a small fraction.
+    float attenuation = 1.0 / (distance * distance) + 0.0001; //just in-case the distance is 0, add a small fraction.
     //NOTE: might want to use a quadratic version of attenuation for more control of the roll-off.
 
     return (lightAlbedo * attenuation);
@@ -74,8 +74,8 @@ float GeometrySchlickGGX(float NdotX)
 {
 
     //k is computed based on direct lighting (which is the lighting method I'm using for now)
-    float kNum = MAT_ROUGHNESS + 1;
-    float kDirect = (kNum * kNum) / 8;
+    float kNum = MAT_ROUGHNESS + 1.0;
+    float kDirect = (kNum * kNum) / 8.0;
 
     return ((NdotX) / (NdotX * (1-kDirect) + kDirect));
 }
@@ -91,15 +91,13 @@ float GeometrySmith(float NdotV, float NdotL)
 
 vec3 FresnelSchlick(float cosTheta, vec3 F0)
 {
-    //TODO
     //clamp to avoid black spots
-    return (F0 + (1-F0) * pow(clamp(1-cosTheta, 0.0, 1.0), 5.0f));
+    return (F0 + (1.0-F0) * pow(clamp(1.0-cosTheta, 0.0, 1.0), 5.0));
 }
 
 
 float DistributionGGX(float NdotH)
 {
-    //TODO
     float a2 = MAT_ROUGHNESS * MAT_ROUGHNESS;
 
     float denom = NdotH * NdotH * (a2 - 1) + 1;
@@ -111,7 +109,6 @@ float DistributionGGX(float NdotH)
 vec3 Fr(vec3 P, vec3 L,
     vec3 N, vec3 H, vec3 V)
 {
-    //TODO
     float NdotV = max(dot(N, V), 0.0);
     float NdotL = max(dot(N, L), 0.0);
     float NdotH = max(dot(N, H), 0.0);
@@ -127,7 +124,7 @@ vec3 Fr(vec3 P, vec3 L,
     vec3 F   = FresnelSchlick(max(dot(H, V), 0.0), F0);
 
     vec3 nom    =  NDF * F * G;
-    float denom = max(4.0 * NdotV * NdotL, 0.0001f); //want to make sure division by 0 is impossible
+    float denom = 4.0 * max(NdotV * NdotL, 0.0001f); //want to make sure division by 0 is impossible
 
     vec3 specular = nom / denom;
 
@@ -149,7 +146,7 @@ vec3 CookTorrenceReflectance(vec3 P, vec3 N)
         vec3 V = normalize(ubo.viewPosition - P);
         vec3 H = normalize(L + V);
 
-        Lo += Fr(P, L, N, H, V) * Radiance(P, L, ubo.lights[i].albedo) *  max(dot(N, L), 0.0);
+        Lo += Fr(P, L, N, H, V) * Radiance(P, ubo.lights[i].position, vec3(500.f)) *  max(dot(N, L), 0.0);
     }
 
     return Lo;
@@ -163,9 +160,9 @@ void main()
     vec3 albedo = texture(samplerAlbedo, inUV).rgb;
 
     //NOTE:
-    //NdotL computed multiple times
-    //F0 computed multiple times
-    //albedo computed multiple times
+    // NdotL computed multiple times
+    // F0 computed multiple times
+    // albedo computed multiple times
 
     fragColor.rgb = AMBIENT_COLOR * albedo + CookTorrenceReflectance(position, normal);
 

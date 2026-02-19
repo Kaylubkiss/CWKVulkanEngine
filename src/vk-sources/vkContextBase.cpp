@@ -39,7 +39,7 @@ namespace vk
 		//each swapchain should have its own command buffer
 		device.AllocateCommandBuffers(commandBuffers.data(), static_cast<uint32_t>(commandBuffers.size()));
 
-		if (this->settings.UIEnabled)
+		if (this->settings.UIDisplay)
 		{
 			UserInterfaceInitInfo userInterfaceCI = {};
 			userInterfaceCI.contextInstance = this->instance;
@@ -274,6 +274,12 @@ namespace vk
 	{
 		m_objectManager->Update(dt);
 	}
+
+	void ContextBase::ToggleUI(bool enable)
+	{
+		settings.UIEnabled = enable;
+	}
+
 	//initializers
 
 	void ContextBase::InitializeRenderPass() 
@@ -399,7 +405,7 @@ namespace vk
 		VK_CHECK_RESULT(vkWaitForFences(device.GetDevice(), 1, &inFlightFences[currentFrame], VK_TRUE, UINT64_MAX));
 		VK_CHECK_RESULT(vkResetFences(device.GetDevice(), 1, &inFlightFences[currentFrame]));
 
-		if (settings.UIEnabled) 
+		if (settings.UIDisplay)
 		{
 			UIOverlay.Prepare();
 
@@ -408,8 +414,13 @@ namespace vk
 
 			ImGui::SetNextWindowPos(ImVec2(0,0));
 
-			if (ImGui::Begin("CWKVulkanEngine", nullptr,
-				ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize) == true)
+			int flags = ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize;
+			if (!settings.UIEnabled)
+			{
+				flags |= ImGuiWindowFlags_NoInputs;
+			}
+
+			if (ImGui::Begin("CWKVulkanEngine", nullptr, flags) == true)
 			{
 
 				UpdateUI();

@@ -30,6 +30,7 @@ namespace vk
 		void SubmitFrame();
 		void ResizeWindow();
 		void UpdateSceneObjects(float dt) const;
+		void ToggleUI(bool enable);
 
 	protected:
 		bool PrepareFrame();
@@ -50,9 +51,10 @@ namespace vk
 		struct Settings {
 			uint32_t maxFramesInFlight = 2;
 			bool minimized = false;
-			bool UIEnabled = true;
+			bool UIDisplay = true;
+			bool UIEnabled = false;
 			bool validationLayers = true;
-			VkDebugUtilsMessengerEXT debugMessenger = nullptr;
+			VkDebugUtilsMessengerEXT debugMessenger = VK_NULL_HANDLE;
 		} settings;
 
 		VkInstance instance = VK_NULL_HANDLE;

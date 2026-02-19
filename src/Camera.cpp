@@ -31,17 +31,17 @@ void Camera::MoveDown()
 	//TODO
 }
 
-void Camera::UpdatePosition(reactphysics3d::Vector3& velocity, const float& dt) 
+void Camera::UpdatePosition( reactphysics3d::Vector3& velocity, float dt )
 {
+	if (velocity.isZero() == false)
+	{
+		velocity.normalize();
 
-	velocity.normalize();
+		mMovementTransform.setPosition(mMovementTransform.getPosition() + velocity * constant_velocity * dt);
 
-	velocity *= this->constant_velocity * dt;
-
-	reactphysics3d::Vector3 nPosition = this->mMovementTransform.getPosition() + velocity;
-
-	this->mMovementTransform.setPosition(nPosition);
-
+		reactphysics3d::Vector3 currTransform = mMovementTransform.getPosition();
+		this->mEye = glm::vec3(-currTransform.x, -currTransform.y, -currTransform.z);
+	}
 }
 
 glm::vec3 Camera::ViewDirection() 
@@ -49,25 +49,27 @@ glm::vec3 Camera::ViewDirection()
 	return this->mLookDir;
 }
 
-void Camera::Update(const float& dt) 
+bool Camera::IsUpdated() const
 {
-	Camera::UpdatePosition(this->accumulatedVelocity, dt);
-	
-	reactphysics3d::Vector3 currTransform = this->mMovementTransform.getPosition();
-	this->mEye = glm::vec3(-currTransform.x, -currTransform.y, -currTransform.z);
-	
-	this->accumulatedVelocity = reactphysics3d::Vector3::zero();
+	return isUpdate;
+}
 
-	isUpdate = false;
-	
+void Camera::Update( float dt )
+{
+	if (isUpdate)
+	{
+		Camera::UpdatePosition(accumulatedVelocity, dt);
+		accumulatedVelocity = reactphysics3d::Vector3::zero();
+		isUpdate = false;
+	}
 }
 
 void Camera::MoveLeft() 
 {
 	isUpdate = true;
 	
-	reactphysics3d::Vector3 velocity = reactphysics3d::Vector3(mLookDir.x,
-		0, mLookDir.z).cross({ mUpVector.x, mUpVector.y, mUpVector.z });
+	reactphysics3d::Vector3 velocity =
+		reactphysics3d::Vector3(mLookDir.x,0, mLookDir.z).cross({ mUpVector.x, mUpVector.y, mUpVector.z });
 	
 	this->accumulatedVelocity += velocity;
 }
@@ -86,7 +88,8 @@ void Camera::MoveForward()
 {
 	isUpdate = true;
 	
-	reactphysics3d::Vector3 velocity = -reactphysics3d::Vector3(mLookDir.x, mLookDir.y, mLookDir.z);
+	reactphysics3d::Vector3 velocity =
+		-reactphysics3d::Vector3(mLookDir.x, mLookDir.y, mLookDir.z);
 	
 	this->accumulatedVelocity += velocity;
 }
@@ -95,7 +98,8 @@ void Camera::MoveBack()
 {
 	isUpdate = true;
 
-	reactphysics3d::Vector3 velocity = reactphysics3d::Vector3(mLookDir.x, mLookDir.y, mLookDir.z);
+	reactphysics3d::Vector3 velocity =
+		reactphysics3d::Vector3(mLookDir.x, mLookDir.y, mLookDir.z);
 
 	this->accumulatedVelocity += velocity;
 

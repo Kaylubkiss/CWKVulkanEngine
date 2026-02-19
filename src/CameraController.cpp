@@ -6,7 +6,7 @@ enum keys {
 	W = 0, A, S, D
 };
 
-static bool keys[4] = {  };
+static std::array<bool, 4> keys = {  };
 
 inline void ChangeCameraPosition(Camera& camera, const float& dt)
 {
@@ -15,21 +15,19 @@ inline void ChangeCameraPosition(Camera& camera, const float& dt)
 	if (keys[S]) { camera.MoveBack(); }
 	if (keys[D]) { camera.MoveRight(); }
 
-	if (camera.isUpdate) 
-	{
-		camera.Update(dt);
-	}
+	camera.Update(dt);
 }
 
-
-
-void Controller::MoveCamera(Camera& camera, const float& dt)
+void Controller::MoveCamera( Camera& camera, float dt )
 {
 	SDL_Event e;
 	while (SDL_PollEvent(&e))
 	{
+		ImGui_ImplSDL2_ProcessEvent(&e);
+
 		if (e.type == SDL_WINDOWEVENT) 
 		{
+			std::cout << "window event\n";
 			switch (e.window.event) 
 			{
 				case SDL_WINDOWEVENT_CLOSE:
@@ -55,8 +53,74 @@ void Controller::MoveCamera(Camera& camera, const float& dt)
 				default:
 					break;
 			}
+
+			continue;
 		}
-	
+
+		if (e.type == SDL_KEYUP)
+		{
+			switch (e.key.keysym.sym)
+			{
+				case SDLK_w:
+					keys[W] = false;
+					break;
+				case SDLK_s:
+					keys[S] = false;
+					break;
+				case SDLK_a:
+					keys[A] = false;
+					break;
+				case SDLK_d:
+					keys[D] = false;
+					break;
+				default:
+					break;
+			}
+		}
+
+		if (e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_ESCAPE)
+		{
+			if (SDL_GetRelativeMouseMode() == SDL_TRUE)
+			{
+				_GraphicsContext->ToggleUI(true);
+				if (SDL_SetRelativeMouseMode(SDL_FALSE) < 0)
+				{
+					std::cerr << SDL_GetError() << std::endl;
+				}
+			}
+			else
+			{
+				_Application->RequestExit();
+				return;
+			}
+		}
+
+		if (SDL_GetRelativeMouseMode() == SDL_FALSE)
+		{
+			if (ImGui::GetIO().WantCaptureMouse)
+			{
+				continue;
+			}
+
+			if (e.type == SDL_MOUSEBUTTONDOWN)
+			{
+				_GraphicsContext->ToggleUI(false);
+				if (SDL_SetRelativeMouseMode(SDL_TRUE) < 0)
+				{
+					std::cerr << SDL_GetError() << std::endl;
+				}
+			}
+		}
+
+		if (e.type == SDL_MOUSEMOTION &&
+			SDL_GetRelativeMouseMode() == SDL_TRUE)
+		{
+			Sint32 deltaX = e.motion.xrel;
+			Sint32 deltaY = e.motion.yrel;
+
+			camera.Rotate(deltaX, deltaY);
+		}
+
 		const SDL_Keycode& keySymbol = e.key.keysym.sym;
 		if (e.type == SDL_KEYDOWN)
 		{
@@ -74,71 +138,12 @@ void Controller::MoveCamera(Camera& camera, const float& dt)
 				case SDLK_d:
 					keys[D] = true;
 					break;
-			}
-	
-			if (keySymbol == SDLK_ESCAPE)
-			{
-				if (SDL_GetRelativeMouseMode() == SDL_TRUE)
-				{
-					if (SDL_SetRelativeMouseMode(SDL_FALSE) < 0)
-					{
-						std::cerr << SDL_GetError() << std::endl;
-					}
-				}
-				else
-				{
-					//it should exit.
-					_Application->RequestExit();
-					return;
-				}
-			}
-		}
-		else if (e.type == SDL_KEYUP)
-		{
-			switch (keySymbol)
-			{
-				case SDLK_w:
-					keys[W] = false;
-					break;
-				case SDLK_s:
-					keys[S] = false;
-					break;
-				case SDLK_a:
-					keys[A] = false;
-					break;
-				case SDLK_d:
-					keys[D] = false;
+				default:
 					break;
 			}
-		}
-	
-		
-		ImGui_ImplSDL2_ProcessEvent(&e);
-		ImGuiIO& io = ImGui::GetIO();
-		if (io.WantCaptureMouse || io.WantCaptureKeyboard)
-		{
-			return;
-		}
-
-		if (e.button.button == SDL_BUTTON(SDL_BUTTON_LEFT) && e.button.state == SDL_PRESSED)
-		{
-
-			if (SDL_SetRelativeMouseMode(SDL_TRUE) < 0) 
-			{
-				std::cerr << SDL_GetError() << std::endl;
-			}
-		}
-	
-		if (e.type == SDL_MOUSEMOTION && SDL_GetRelativeMouseMode() == SDL_TRUE)
-		{
-			Sint32 deltaX = e.motion.xrel;
-			Sint32 deltaY = e.motion.yrel;
-	
-			camera.Rotate(deltaX, deltaY);
-	
 		}
 	}
-	
+
 	ChangeCameraPosition(camera, dt);
 
 }

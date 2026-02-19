@@ -13,8 +13,7 @@ UserInterface::UserInterface(const UserInterfaceInitInfo& initInfo)
 	ImGuiIO& io = ImGui::GetIO();
 
 	io.IniFilename = nullptr;
-	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard | ImGuiConfigFlags_NoMouseCursorChange;
-	;
+	io.ConfigFlags |= ImGuiConfigFlags_NoMouseCursorChange;
 
 	if (!ImGui_ImplSDL2_InitForVulkan(initInfo.contextWindow)) {
 
