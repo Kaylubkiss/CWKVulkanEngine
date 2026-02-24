@@ -53,7 +53,7 @@ namespace vk
 			float shininess      = 0.f; /* exponent value */
 			glm::vec3 pos        = glm::vec3(0.f); /* position of light */
 			glm::vec3 ambient    = glm::vec3(0.f); /* scene color */
-			glm::vec3 albedo     = glm::vec3(1.f); /* base color of light */
+			glm::vec3 albedo     = glm::vec3(1000.f); /* base color of light */
 			glm::vec3 specular   = glm::vec3(0.f); /* reflectivity of the light */
 			glm::mat4 viewMatrix = glm::mat4(1.f);
 		};
@@ -106,7 +106,7 @@ namespace vk
 
 		struct {
 			glm::vec3 cubePosition   = { 1.0, 20, -5.f };
-			glm::vec3 freddyPosition = { 1.0f, 1.0, 5.f };
+			glm::vec3 freddyPosition = { 1.0f, 1.0, 3.f };
 		} sceneSettings{};
 
 	};

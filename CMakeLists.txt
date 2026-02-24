@@ -141,6 +141,7 @@ ${VULKAN_HEADER_DIR}/vkPipelineManager.h
 ${VULKAN_HEADER_DIR}/vkFramebuffer.h
 ${VULKAN_HEADER_DIR}/vkCubemap.h
 ${VULKAN_HEADER_DIR}/vkInstance.h
+${VULKAN_HEADER_DIR}/vkModel.h
 )
 
 source_group("Header Files/VulkanHeaders" FILES ${VULKAN_ENGINE_HEADERS})	

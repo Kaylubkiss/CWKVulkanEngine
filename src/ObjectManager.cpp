@@ -37,7 +37,7 @@ ObjectManager::ObjectManager( std::shared_ptr<vk::GraphicsContextInfo>& contextI
 	c_devicePtr = contextInfo->devicePtr;
 }
 
-void ObjectManager::Update(float dt) const
+void ObjectManager::Update( float dt ) const
 {
 	for (auto& obj : m_objects)
 	{

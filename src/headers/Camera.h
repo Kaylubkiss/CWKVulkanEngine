@@ -1,5 +1,7 @@
 #pragma once
 #include <reactphysics3d/reactphysics3d.h>
+
+#include "Physics.h"
 using namespace reactphysics3d;
 
 struct Capsule 
@@ -31,6 +33,7 @@ public:
 	glm::vec3 ViewDirection();
 private:
 	bool isUpdate = false;
+	bool isInterpolating = false;
 
 	glm::vec3 mEye;
 	glm::vec3 mUpVector;

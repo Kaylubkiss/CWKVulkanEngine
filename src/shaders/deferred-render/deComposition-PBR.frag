@@ -13,7 +13,7 @@ layout(set = 0, binding = 3) uniform sampler2DArray samplerShadowMap;
 #define LIGHT_COUNT 2
 #define AMBIENT_COLOR .2
 #define M_PI 4.0 * atan(1.0)
-#define MAT_ROUGHNESS 0.2f
+#define MAT_ROUGHNESS 0.3f
 #define MAT_METALLIC 0.1f
 
 struct Light 
@@ -64,7 +64,7 @@ vec3 Radiance(vec3 P, vec3 L, vec3 lightAlbedo)
 {
     //because it's a point light, we will just attenuate the intensity of the light's color.
     float distance = length(L - P);
-    float attenuation = 1.0 / (distance * distance) + 0.0001; //just in-case the distance is 0, add a small fraction.
+    float attenuation = 1.0 / (distance * distance + 0.0001); //just in-case the distance is 0, add a small fraction.
     //NOTE: might want to use a quadratic version of attenuation for more control of the roll-off.
 
     return (lightAlbedo * attenuation);
@@ -98,7 +98,8 @@ vec3 FresnelSchlick(float cosTheta, vec3 F0)
 
 float DistributionGGX(float NdotH)
 {
-    float a2 = MAT_ROUGHNESS * MAT_ROUGHNESS;
+    float a = MAT_ROUGHNESS * MAT_ROUGHNESS;
+    float a2 = a * a;
 
     float denom = NdotH * NdotH * (a2 - 1) + 1;
     denom = M_PI * denom * denom;
@@ -124,29 +125,29 @@ vec3 Fr(vec3 P, vec3 L,
     vec3 F   = FresnelSchlick(max(dot(H, V), 0.0), F0);
 
     vec3 nom    =  NDF * F * G;
-    float denom = 4.0 * max(NdotV * NdotL, 0.0001f); //want to make sure division by 0 is impossible
+    float denom = 4.0 * NdotV * NdotL; //want to make sure division by 0 is impossible
 
-    vec3 specular = nom / denom;
+    vec3 specular = nom / max(denom, 0.0001);
 
     vec3 kS = F;
     vec3 kD = vec3(1.0) - kS;
     kD *= 1.0 - MAT_METALLIC; //because metals don't refract, we nullify the diffuse portion if it's 100% metal.
 
-    return (kD * albedo / M_PI + specular);
+    return ((kD * albedo / M_PI) + specular);
 }
 
 
 vec3 CookTorrenceReflectance(vec3 P, vec3 N)
 {
     vec3 Lo = vec3(0.f);
+    vec3 V = normalize(ubo.viewPosition - P);
+
     for (int i = 0; i < LIGHT_COUNT; ++i)
     {
         vec3 L = normalize(ubo.lights[i].position - P);
-
-        vec3 V = normalize(ubo.viewPosition - P);
         vec3 H = normalize(L + V);
 
-        Lo += Fr(P, L, N, H, V) * Radiance(P, ubo.lights[i].position, vec3(500.f)) *  max(dot(N, L), 0.0);
+        Lo += Fr(P, L, N, H, V) * Radiance(P, ubo.lights[i].position, ubo.lights[i].albedo) *  max(dot(N, L), 0.0);
     }
 
     return Lo;
@@ -170,6 +171,7 @@ void main()
     fragColor.rgb = fragColor.rgb / (fragColor.rgb + vec3(1.0));
     fragColor.rgb = pow(fragColor.rgb, vec3(1.0/2.2));
 
-	fragColor.rgb *= vec3(ShadowSampling(vec4(position, 1)));
+	//fragColor.rgb *= vec3(ShadowSampling(vec4(position, 1)));
+
 	fragColor.a = 1.f;
 }

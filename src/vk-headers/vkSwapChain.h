@@ -22,9 +22,9 @@ namespace vk
 
 		void Destroy();
 
-		void Recreate(const VkRenderPass renderPass, const vk::Window& appWindow);
+		void Recreate( const VkRenderPass renderPass, const vk::Window& appWindow );
 
-		void CreateFrameBuffers(const VkViewport& vp, const VkRenderPass renderPass);
+		void CreateFrameBuffers( const VkViewport& vp, const VkRenderPass renderPass );
 	private:
 		Device* m_devicePtr = nullptr;
 

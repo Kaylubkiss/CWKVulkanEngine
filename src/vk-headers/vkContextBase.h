@@ -43,7 +43,6 @@ namespace vk
 		virtual void InitializeRenderPass();
 		virtual void FillOutGraphicsContextInfo();
 	private:
-		void CreateInstance();
 		void CreateSynchronizationPrimitives();
 	protected:
 

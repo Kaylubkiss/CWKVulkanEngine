@@ -5,7 +5,6 @@
 #pragma once
 #include "shaderc/shaderc.hpp"
 
-
 //ShaderModuleInfo 
 namespace vk 
 {
@@ -29,7 +28,8 @@ namespace vk
 			*@param shaderc_kind: similar to shaderFlags, argument needed for shader compilation to sprv.
 		*/
 		ShaderModuleInfo() = default;
-		ShaderModuleInfo(const VkDevice l_device, std::string filename, VkShaderStageFlagBits shaderFlags, shaderc_shader_kind shaderc_kind = shaderc_vertex_shader);
+		ShaderModuleInfo(const VkDevice l_device, std::string_view filename,
+			VkShaderStageFlagBits shaderFlags, shaderc_shader_kind shaderc_kind = shaderc_vertex_shader);
 
 
 	};

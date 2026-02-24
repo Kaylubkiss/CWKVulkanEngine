@@ -1,6 +1,5 @@
 #pragma once
 
-#include "Vertex.h"
 #include "vkBuffer.h"
 #include "vkDevice.h"
 #include "vkTexture.h"
@@ -34,7 +33,7 @@ struct Primitive
 	uint32_t firstVertex = 0;
 	uint32_t vertexCount = 0;
 
-	std::optional<uint32_t> textureIndex = std::nullopt;
+	std::optional<uint32_t> baseColorTextureIndex = std::nullopt;
 };
 
 struct Mesh

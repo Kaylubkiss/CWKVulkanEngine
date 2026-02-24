@@ -15,6 +15,6 @@ layout( location = 2 ) out vec4 outAlbedo;
 void main()
 {
 	outPosition = inWorldPosition;
-	outNormal = inWorldNormal;
+	outNormal = vec4(normalize(vec3(inWorldNormal)), 1.f);
 	outAlbedo = texture(colorSampler, inTexCoord);
 }

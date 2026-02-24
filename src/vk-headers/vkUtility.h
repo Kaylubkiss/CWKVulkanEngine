@@ -59,17 +59,14 @@ namespace vk
 		void GenerateMipMaps(const VkPhysicalDevice p_device, const VkDevice l_device, const VkCommandPool& cmdPool, const VkQueue gfxQueue, VkImage image, VkFormat imgFormat, uint32_t textureWidth, uint32_t textureHeight, uint32_t mipLevels);
 		//...END OF TODO
 
-		bool FormatIsFilterable(const VkPhysicalDevice p_device, VkFormat format, VkImageTiling tiling);
+		bool FormatIsFilterable( const VkPhysicalDevice p_device, VkFormat format, VkImageTiling tiling );
 
-		uint32_t CalculateMipLevels(const uint32_t& imageWidth, const uint32_t& imageHeight);
+		uint32_t CalculateMipLevels ( const uint32_t& imageWidth, const uint32_t& imageHeight );
 
-		std::string ReadFile(const std::string& filename);
+		std::optional<std::string> ReadFile( const std::string& filename );
 
-		void WriteSpirvFile(const char* filename, const std::vector<uint32_t>& data);
+		bool CheckInstanceLayerSupport( const char* layers[], int layersSize );
 
-		std::string ReadSourceAndWriteToSprv(std::string fileName, shaderc_shader_kind shader_kind);
-
-		bool CheckInstanceLayerSupport(const char* layers[], int layersSize);
-		bool CheckInstanceExtensionSupport(const char* extensions[], int extension_count);
+		bool CheckInstanceExtensionSupport( const char* extensions[], int extension_count );
 	}
 }

@@ -82,6 +82,5 @@ void main()
 	}
 
 	fragColor.rgb *= vec3(shadowFactor);
-
 	fragColor.a = 1.f;
 }

@@ -26,6 +26,6 @@ void main()
 	gl_Position = camera.proj * camera.view * modelMatrix * vec4(aPos, 1);
 	
 	outWorldPosition = modelMatrix * vec4(aPos, 1);
-	outWorldNormal = normalize(transpose(inverse(modelMatrix)) * vec4(aNorm, 0));
+	outWorldNormal = transpose(inverse(modelMatrix)) * vec4(aNorm, 0);
 	outTexCoord = aUv;
 }

@@ -195,7 +195,7 @@ void TextureManager::BindTextureToModelPrimitive( const std::string& fileName, P
 {
 	if (fileName.empty() == false)
 	{
-		primitive.textureIndex = AddTexture(fileName);
+		primitive.baseColorTextureIndex = AddTexture(fileName);
 	}
 
 }

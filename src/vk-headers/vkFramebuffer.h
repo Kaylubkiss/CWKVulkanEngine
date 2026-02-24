@@ -50,10 +50,10 @@ namespace vk
 	public:
 		void Init( vk::Device* contextDevice );
 		void Destroy();
-		void CreateSampler(VkFilter minFilter, VkFilter magFilter, VkSamplerAddressMode addressMode);
+		void CreateSampler( VkFilter minFilter, VkFilter magFilter, VkSamplerAddressMode addressMode );
 		void CreateRenderPass();
 		void CreateFramebuffer();
-		void AddAttachment(const vk::FramebufferAttachmentCreateInfo& createInfo);
+		void AddAttachment( const vk::FramebufferAttachmentCreateInfo& createInfo );
 	public:
 		uint32_t width = 0;
 		uint32_t height = 0;

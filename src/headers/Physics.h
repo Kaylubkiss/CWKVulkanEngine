@@ -49,7 +49,7 @@ private:
 
 class RayCastObject : public reactphysics3d::RaycastCallback {
 public:
-	reactphysics3d::decimal notifyRaycastHit(const RaycastInfo& info) override
+	reactphysics3d::decimal notifyRaycastHit(const reactphysics3d::RaycastInfo& info) override
 	{
 		// Display the world hit point coordinates
 		std::cout << " Hit point : " <<

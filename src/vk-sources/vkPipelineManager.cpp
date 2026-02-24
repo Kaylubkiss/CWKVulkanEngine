@@ -3,31 +3,31 @@
 	* author: Caleb Kissinger
 */
 #include "vkPipelineManager.h"
-#include "vkUtility.h"
-#include "vkInit.h"
-#include <string> //std::sting
-#include <iostream> //std::cerr
+#include "SpirvHelper.h"
 #include <sys/stat.h>
 
 //ShaderModuleInfo 
 namespace vk 
 {
-	ShaderModuleInfo::ShaderModuleInfo( const VkDevice l_device, std::string filename,
-		VkShaderStageFlagBits shaderFlags, shaderc_shader_kind shaderc_kind ) : mFlags(shaderFlags), mShaderKind(shaderc_kind)
+	ShaderModuleInfo::ShaderModuleInfo( const VkDevice l_device, std::string_view filename,
+		VkShaderStageFlagBits shaderFlags, shaderc_shader_kind shaderc_kind )
 	{
+		mFlags = shaderFlags;
+		mShaderKind = shaderc_kind;
 
-		std::string shaderPath = vk::util::ReadSourceAndWriteToSprv(SHADER_PATH + filename, shaderc_kind);
+		std::string sourceFilePath = SHADER_PATH + std::string(filename);
+		auto spirvPath = vk::spirv::ReadSourceAndWriteToSpirv(sourceFilePath, shaderc_kind);
 	
-		if (shaderPath.empty())
+		if (spirvPath.has_value() == false)
 		{			
 			return;
 		}
 		else 
 		{
-			mFilePath = SHADER_PATH + filename;
+			mFilePath = sourceFilePath;
 		}
 
-		mHandle = vk::init::ShaderModule(l_device, shaderPath.data());
+		mHandle = vk::init::ShaderModule(l_device, spirvPath.value().c_str());
 
 		struct stat fileStat;
 		if (stat(mFilePath.c_str(), &fileStat) != 0)
@@ -105,12 +105,15 @@ namespace vk
 				//check if the filesystem saw any changes.
 				if (fileStat.st_mtime != shader.lastModificationTime)
 				{
-					std::string shaderPath =
-						vk::util::ReadSourceAndWriteToSprv(shader.mFilePath, shader.mShaderKind);
+					shader.lastModificationTime = fileStat.st_mtime; //this is so errors don't pop up forever.
 
-					if (shaderPath.empty())
+					auto shaderPath =
+						vk::spirv::ReadSourceAndWriteToSpirv(shader.mFilePath, shader.mShaderKind, true);
+
+					if (shaderPath.has_value() == false)
 					{
 						std::cerr << "[ERROR] Couldn't successfully write to file " << shader.mFilePath << '\n';
+
 						continue;
 					}
 
@@ -119,9 +122,7 @@ namespace vk
 					VK_CHECK_RESULT(vkDeviceWaitIdle(contextLogicalDevice))
 
 					vkDestroyShaderModule(contextLogicalDevice, shader.mHandle, nullptr);
-					shader.mHandle = vk::init::ShaderModule(contextLogicalDevice, shaderPath.data());
-
-					shader.lastModificationTime = fileStat.st_mtime;
+					shader.mHandle = vk::init::ShaderModule(contextLogicalDevice, shaderPath.value().c_str());
 				}	
 			}
 
@@ -148,10 +149,4 @@ namespace vk
 	{
 		return pipelines[pipeline].shaderModules;
 	}
-
-
-	 
-
-
-
 }

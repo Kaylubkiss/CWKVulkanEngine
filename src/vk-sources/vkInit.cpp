@@ -208,24 +208,30 @@ namespace vk
 			return fenceCI;
 		}
 
-		VkShaderModule ShaderModule(const VkDevice& l_device, const char* filename)
+		VkShaderModule ShaderModule( const VkDevice& l_device, const char* filename )
 		{
-			
-			std::string source_file = vk::util::ReadFile(filename);
+			VkShaderModule nShaderModule = VK_NULL_HANDLE;
 
-			VkShaderModuleCreateInfo shaderVertModuleInfo =
+			auto source_file = vk::util::ReadFile(filename);
+
+			if (source_file.has_value() == true)
 			{
-				VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
-				nullptr,
-				0,
-				source_file.size(),
-				reinterpret_cast<const uint32_t*>(source_file.data())
-			};
+				VkShaderModuleCreateInfo shaderVertModuleInfo =
+				{
+					VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
+					nullptr,
+					0,
+					source_file.value().size(),
+					reinterpret_cast<const uint32_t*>(source_file.value().data())
+				};
 
-			
-
-			VkShaderModule nShaderModule;
-			VK_CHECK_RESULT(vkCreateShaderModule(l_device, &shaderVertModuleInfo, nullptr, &nShaderModule));
+				VK_CHECK_RESULT(vkCreateShaderModule(l_device, &shaderVertModuleInfo, nullptr, &nShaderModule));
+			}
+			else
+			{
+				std::cerr << "Couldn't create shader module with file: " << filename << "\n";
+				throw std::runtime_error("vk::init::ShaderModule() Failed!\n");
+			}
 
 			return nShaderModule;
 		}

@@ -34,6 +34,7 @@
 #include <unordered_map>
 #include <algorithm>
 
+#include "Vertex.h"
 #include "vkGlobal.h"
 #include "vkUtility.h"
 #include "vkInit.h"

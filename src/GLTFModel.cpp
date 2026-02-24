@@ -109,29 +109,7 @@ void GLTFModel::Draw( const vk::DrawInfo& drawInfo )
 							sizeof(matrix), matrix.data());
 					}
 
-					for (auto& primitive : mesh->m_primitives)
-					{
-						if (primitive.textureIndex.has_value() == true)
-						{
-							VkDeviceSize descriptorBufferOffset =
-								primitive.textureIndex.value() * drawInfo.textureBindingSize;
-
-							g_vkCmdSetDescriptorBufferOffsetsEXT(drawInfo.cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-								drawInfo.pipelineLayout, drawInfo.firstSet, drawInfo.setCount,
-								&drawInfo.imageBufferIndex, &descriptorBufferOffset);
-						}
-						else
-						{
-							VkDeviceSize descriptorBufferOffset = 0;
-
-							g_vkCmdSetDescriptorBufferOffsetsEXT(drawInfo.cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-								drawInfo.pipelineLayout, drawInfo.firstSet, drawInfo.setCount,
-								&drawInfo.imageBufferIndex, &descriptorBufferOffset);
-						}
-
-						vkCmdDrawIndexed(drawInfo.cmdBuffer, primitive.indexCount, 1,
-							primitive.firstIndex, static_cast<int32_t>(primitive.firstVertex), 0);
-					}
+					DrawMeshPrimitives(drawInfo, mesh->m_primitives);
 				}
 
 			});
@@ -145,11 +123,11 @@ void GLTFModel::LoadTextures( TextureManager& textureManager, const std::vector<
 	{
 		for (auto& primitive : mesh->m_primitives)
 		{
-			if (primitive.textureIndex.has_value())
+			if (primitive.baseColorTextureIndex.has_value())
 			{
 				//NOTE: the primitive's texture index gets "corrected" in BindTextureToModelPrimtive()
 				textureManager.BindTextureToModelPrimitive(
-					textureNames[primitive.textureIndex.value()], primitive);
+					textureNames[primitive.baseColorTextureIndex.value()], primitive);
 			}
 		}
 	}
@@ -179,7 +157,9 @@ void GLTFModel::LoadMesh( fastgltf::Mesh& mesh, std::vector<Vertex>& vertexBuffe
 			baseTextureIndex = static_cast<uint32_t>(pbr.baseColorTexture.value().textureIndex);
 		}
 
-		newPrim.textureIndex = baseTextureIndex; //TODO: start with this. Try to get texture index for base color here.
+		//TODO: support normal texture, occlusion, emissive with accompanying parameters in fastgltf::Material
+
+		newPrim.baseColorTextureIndex = baseTextureIndex; //TODO: start with this. Try to get texture index for base color here.
 
 		//vertex
 		{
@@ -219,7 +199,7 @@ void GLTFModel::LoadMesh( fastgltf::Mesh& mesh, std::vector<Vertex>& vertexBuffe
 
 			}
 
-			auto texCoordAttrib = primitive.findAttribute("TEXCOORD_0");
+			auto texCoordAttrib = primitive.findAttribute("TEXCOORD_" + std::to_string(0));
 			if (texCoordAttrib != primitive.attributes.end())
 			{
 				fastgltf::Accessor& texCoordAccessor = m_asset.accessors[texCoordAttrib->accessorIndex];

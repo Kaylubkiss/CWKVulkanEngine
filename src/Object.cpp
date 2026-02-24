@@ -25,7 +25,7 @@ Object::Object( const ObjectCreateInfo& objectCI, TextureManager& textureManager
 
         m_model = std::make_unique<GLTFModel>(objectCI.devicePtr, filePath);
 
-        std::vector<std::string> gltf_fileNames = reinterpret_cast<GLTFModel*>(m_model.get())->GetTextureFileNames();
+        std::vector<std::string> gltf_fileNames = dynamic_cast<GLTFModel*>(m_model.get())->GetTextureFileNames();
         m_model->LoadTextures(textureManager, gltf_fileNames);
     }
     else if (filePath.extension() == ".obj")
@@ -90,11 +90,6 @@ void Object::InitPhysics()
     {
         glm::vec3 worldHalfExtent = glm::vec3((worldMaxPoints - worldMinPoints) * .5f);
         m_physicsComponent.shape = appPhysics.CreateBoxShape({ std::abs(worldHalfExtent.x), std::abs(worldHalfExtent.y), std::abs(worldHalfExtent.z) });
-    }
-    else if (m_physicsComponent.colliderType == PhysicsComponent::ColliderType::PLANE)
-    {
-        glm::vec3 worldHalfExtent2D = glm::vec3((worldMaxPoints - worldMinPoints) * .5f);
-        m_physicsComponent.shape = appPhysics.CreatePlaneShape({ std::abs(worldHalfExtent2D.x), std::abs(worldHalfExtent2D.z) });
     }
 
     //the collider transform is relative to the rigidbody origin.

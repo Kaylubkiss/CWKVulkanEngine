@@ -12,7 +12,6 @@ Camera::Camera(const glm::vec3& eye, const glm::vec3& lookDirection, const glm::
 	
 	this->mMovementTransform.setPosition({ nPosition.x, nPosition.y, nPosition.z });
 
-
 }
 
 glm::mat4 Camera::LookAt() 
@@ -22,22 +21,21 @@ glm::mat4 Camera::LookAt()
 
 glm::vec3 Camera::Position() 
 {
-	return -mEye;
+	return mEye;
 }
-
 
 void Camera::MoveDown() 
 {
 	//TODO
 }
 
-void Camera::UpdatePosition( reactphysics3d::Vector3& velocity, float dt )
+void Camera::UpdatePosition( reactphysics3d::Vector3& direction, float dt )
 {
-	if (velocity.isZero() == false)
+	if (direction.isZero() == false)
 	{
-		velocity.normalize();
+		direction.normalize();
 
-		mMovementTransform.setPosition(mMovementTransform.getPosition() + velocity * constant_velocity * dt);
+		mMovementTransform.setPosition(mMovementTransform.getPosition() + direction * constant_velocity * dt);
 
 		reactphysics3d::Vector3 currTransform = mMovementTransform.getPosition();
 		this->mEye = glm::vec3(-currTransform.x, -currTransform.y, -currTransform.z);
@@ -59,7 +57,9 @@ void Camera::Update( float dt )
 	if (isUpdate)
 	{
 		Camera::UpdatePosition(accumulatedVelocity, dt);
+
 		accumulatedVelocity = reactphysics3d::Vector3::zero();
+
 		isUpdate = false;
 	}
 }
@@ -109,14 +109,14 @@ void Camera::Rotate(const int& mouseX, const int& mouseY)
 {
 	isUpdate = true;
 
-	mPitch -= mouseY;
-	mYaw += mouseX;
+	mPitch -= static_cast<float>(mouseY);
+	mYaw += static_cast<float>(mouseX);
 	
-	if (mPitch > 89)
+	if (mPitch >= 89.f)
 	{
 		mPitch = 89.f;
 	}
-	else if (mPitch < -89.f) 
+	else if (mPitch <= -89.f)
 	{
 		mPitch = -89.f;
 	}
@@ -125,6 +125,5 @@ void Camera::Rotate(const int& mouseX, const int& mouseY)
 	mLookDir.y = glm::sin(glm::radians(mPitch));
 	mLookDir.z = glm::sin(glm::radians(mYaw)) * glm::cos(glm::radians(mPitch));
 
-	mLookDir /= glm::length(mLookDir);
-
+	mLookDir = glm::normalize(mLookDir);
 }

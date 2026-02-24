@@ -121,6 +121,34 @@ namespace vk
 
 		m_objectManager->LoadObject(objectCI);
 
+		//initializing light positions
+		uniformDataLightPass.lights[0].pos = { 3, 27, -14 };
+		uniformDataLightPass.lights[1].pos = { 33, 33, 30 };
+
+		uniformDataLightPass.viewPosition = mCamera.Position();
+		uniformDataLightPass.lights[0].viewMatrix = uniformDataDeferredShadow.viewMatrices[0];
+		uniformDataLightPass.lights[1].viewMatrix = uniformDataDeferredShadow.viewMatrices[1];
+
+		//...position - light 0
+		uniformDataLightPass.lights[0].albedo = glm::vec3(1000.f);
+		uniformDataLightPass.lights[0].ambient = uniformDataLightPass.lights[0].albedo * 0.1f;
+		uniformDataLightPass.lights[0].specular = { 0.5f, 0.5f, 0.5f };
+		uniformDataLightPass.lights[0].shininess = 32.f;
+
+		//...position - light 1
+		uniformDataLightPass.lights[1].albedo = uniformDataLightPass.lights[0].albedo;
+		uniformDataLightPass.lights[1].ambient = uniformDataLightPass.lights[0].ambient;
+		uniformDataLightPass.lights[1].specular = uniformDataLightPass.lights[0].specular;
+		uniformDataLightPass.lights[1].shininess = uniformDataLightPass.lights[0].shininess;
+
+
+		//shadow map view matrix
+		glm::mat4 perspective = glm::perspective(glm::radians(lightFOV), 1.f, zNear, zFar);
+		uniformDataDeferredShadow.viewMatrices[0] = perspective * glm::lookAt(uniformDataLightPass.lights[0].pos,
+			sceneSettings.freddyPosition, glm::vec3(0, 1, 0));
+		uniformDataDeferredShadow.viewMatrices[1] = perspective * glm::lookAt(uniformDataLightPass.lights[1].pos,
+			sceneSettings.cubePosition, glm::vec3(0, 1, 0));
+
 	}
 
 	void DeferredContext::ResizeWindowDerived()
@@ -189,17 +217,8 @@ namespace vk
 				(void*)(&uniformDataMRT));
 			uniformBuffers[i].mrt.Map(); //persistent data
 
-			//initializing light positions
-			uniformDataLightPass.lights[0].pos = { 3, 27, -14 };
-			uniformDataLightPass.lights[1].pos = { 33, 33, 30 };
-
 			//////////////////////////////////
-			//#2 - deferred shadow
-			glm::mat4 perspective = glm::perspective(glm::radians(lightFOV), 1.f, zNear, zFar);
-			uniformDataDeferredShadow.viewMatrices[0] = perspective * glm::lookAt(uniformDataLightPass.lights[0].pos,
-				sceneSettings.freddyPosition, glm::vec3(0, 1, 0));
-			uniformDataDeferredShadow.viewMatrices[1] = perspective * glm::lookAt(uniformDataLightPass.lights[1].pos,
-				sceneSettings.cubePosition, glm::vec3(0, 1, 0));
+			//#2 - deferred shadows
 
 			uniformBuffers[i].shadow = device.CreateBuffer(sizeof(uniformDataDeferredShadow),
 				VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
@@ -209,27 +228,11 @@ namespace vk
 
 			//////////////////////////////////
 			//#3 - deferred light pass
-			uniformDataLightPass.viewPosition = mCamera.Position();
-			uniformDataLightPass.lights[0].viewMatrix = uniformDataDeferredShadow.viewMatrices[0];
-			uniformDataLightPass.lights[1].viewMatrix = uniformDataDeferredShadow.viewMatrices[1];
-
-			//...position - light 0
-			uniformDataLightPass.lights[0].albedo = { 1.0, 1.0, 1.0 };
-			uniformDataLightPass.lights[0].ambient = uniformDataLightPass.lights[0].albedo * 0.1f;
-			uniformDataLightPass.lights[0].specular = { 0.5f, 0.5f, 0.5f };
-			uniformDataLightPass.lights[0].shininess = 32.f;
-
-			//...position - light 1
-			uniformDataLightPass.lights[1].albedo = uniformDataLightPass.lights[0].albedo;
-			uniformDataLightPass.lights[1].ambient = uniformDataLightPass.lights[0].ambient;
-			uniformDataLightPass.lights[1].specular = uniformDataLightPass.lights[0].specular;
-			uniformDataLightPass.lights[1].shininess = uniformDataLightPass.lights[0].shininess;
-
 			uniformBuffers[i].composition = device.CreateBuffer(sizeof(uniformDataLightPass),
 				VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
 				VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
 				(void*)(&uniformDataLightPass));
-			uniformBuffers[i].composition.Map();
+			uniformBuffers[i].composition.Map(); //persistent data
 		}
 	}
 
@@ -473,7 +476,8 @@ namespace vk
 
 
 			compositionImageBindingDescriptor.buffers[frame].Map();
-			char* image_descriptor_ptr = (char*)compositionImageBindingDescriptor.buffers[frame].GetMappedMemory();
+			char* image_descriptor_ptr =
+				static_cast<char*>(compositionImageBindingDescriptor.buffers[frame].GetMappedMemory());
 			for (int i = 0; i < RT_COUNT; ++i) 
 			{
 				//info
@@ -622,7 +626,6 @@ namespace vk
 		framebuffers.deShadow.Init(&this->device);
 
 		vk::FramebufferAttachmentCreateInfo attachmentCI = {};
-
 		attachmentCI.format = VK_FORMAT_D32_SFLOAT_S8_UINT;
 		attachmentCI.width = framebuffers.deShadow.width;
 		attachmentCI.height = framebuffers.deShadow.height;
@@ -781,7 +784,6 @@ namespace vk
 				std::move(lightPassCreationFunction));
 		}
 
-	
 		/////////////////////////////////////////////////////////////
 		//pipeline #2: MRT stage of deferred shading -- outputting to color/textures
 		{
@@ -909,7 +911,6 @@ namespace vk
 			pipelineManager.AddPipeline(dePipeline::MRT, mrtPipeline, std::move(MRTPassCreationFunction));
 		}
 
-
 		/////////////////////////////////////////////////////////////
 		//pipeline #3: deferred shadow mapping
 		{
@@ -926,7 +927,7 @@ namespace vk
 			colorBlendStateCI.pAttachments = nullptr;
 
 			//enable depth bias as a dynamic state
-			rasterizationStateCI.cullMode = VK_CULL_MODE_FRONT_BIT;
+			//rasterizationStateCI.cullMode = VK_CULL_MODE_FRONT_BIT; //--> only works on closed objects.
 			rasterizationStateCI.depthBiasEnable = VK_TRUE;
 
 			dynamicStates.push_back(VK_DYNAMIC_STATE_DEPTH_BIAS);

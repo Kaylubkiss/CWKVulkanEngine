@@ -87,7 +87,7 @@ namespace vk {
 		}
 
 
-		bool FormatIsFilterable(const VkPhysicalDevice p_device, VkFormat format, VkImageTiling tiling) 
+		bool FormatIsFilterable( const VkPhysicalDevice p_device, VkFormat format, VkImageTiling tiling )
 		{
 			VkFormatProperties formatProperties;
 			vkGetPhysicalDeviceFormatProperties(p_device, format, &formatProperties);
@@ -302,21 +302,20 @@ namespace vk {
 
 		}
 
-		std::string ReadFile(const std::string& filename) 
+		std::optional<std::string> ReadFile( const std::string& filename )
 		{
 			std::ifstream file(filename, std::ios::ate | std::ios::binary); //when we initialize, we std::ios::ate points to the end.
 
 			if (!file.is_open())
 			{
 				std::cerr << "failed to open " + filename << std::endl;
-				return "";
+				return std::nullopt;
 			}
 
 			//reads the offset from the beginning of the file
 			size_t fileSize = (size_t)file.tellg();
 
 			std::vector<char> buffer (fileSize);
-
 
 			//set the stream to the beginning of the file after being positioned at the end.
 			file.seekg(0);
@@ -330,75 +329,7 @@ namespace vk {
 			return src_string;
 		}
 
-		void WriteSpirvFile(const char* filename, const std::vector<uint32_t>& data) 
-		{
-			std::ofstream output(filename,std::ios::out | std::ios::binary);
-
-			if (!output.is_open()) {
-
-				std::cerr << "could not write to file: " + std::string(filename) << "\n";
-			}
-
-			output.write((char*)(data.data()), data.size());
-
-			output.close();
-		}
-
-		std::string ReadSourceAndWriteToSprv(std::string fileNamePath, shaderc_shader_kind shader_kind) 
-		{
-
-			//std::cout << "WARNING: make sure to load .spv instead of .vert in release!\n";
-			
-			//vertex shader reading and compilation
-			vk::shader::CompilationInfo shaderInfo = {};
-			shaderInfo.source = vk::util::ReadFile(fileNamePath);
-			if (shaderInfo.source.empty()) 
-			{
-				std::cerr << "[ERROR] Couldn't successfully read shader file " << fileNamePath << '\n';
-				return std::string();
-			}
-
-			shaderInfo.filename = fileNamePath.c_str();
-			shaderInfo.kind = shader_kind;
-
-			std::vector<uint32_t> output = vk::shader::SourceToSpv(shaderInfo);
-
-			if (output.empty()) 
-			{
-				std::cerr << "[ERROR] Couldn't successfully read shader file " << fileNamePath << '\n';
-				return std::string();
-			}
-
-			//WARNING: sloow!!!
-			for (size_t i = 0; i < fileNamePath.size(); ++i)
-			{
-				if (fileNamePath[i] == '.')
-				{
-					size_t ext_size = fileNamePath.size() - i;
-
-					fileNamePath.resize(fileNamePath.size() - ext_size);
-
-					break;
-				}
-			}
-
-			if (shader_kind == shaderc_vertex_shader) { fileNamePath += "vert"; }
-			else if (shader_kind == shaderc_fragment_shader) { fileNamePath += "frag"; }
-			else if (shader_kind == shaderc_geometry_shader) { fileNamePath += "geom"; }
-			else {
-				std::cerr << "unsupported shader type: " << shader_kind << '\n';
-				std::cerr << "[ERROR] Couldn't successfully read shader file " << fileNamePath << '\n';
-				return std::string();
-			}
-
-			fileNamePath += ".spv";
-
-			vk::util::WriteSpirvFile(fileNamePath.data(), output);
-
-			return fileNamePath;
-		}	
-
-		bool CheckInstanceLayerSupport(const char* layers[], int layersSize)
+		bool CheckInstanceLayerSupport( const char* layers[], int layersSize )
 		{
 			uint32_t layerCount = 0;
     		vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
@@ -427,7 +358,7 @@ namespace vk {
 			return true;
 		}
 
-		bool CheckInstanceExtensionSupport(const char* enabled_extensions[], int enabled_extension_count)
+		bool CheckInstanceExtensionSupport( const char* enabled_extensions[], int enabled_extension_count )
 		{
 			uint32_t instance_extension_count = 0;
 			std::vector<VkExtensionProperties> instance_extensions;

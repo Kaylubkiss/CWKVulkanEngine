@@ -12,8 +12,8 @@ namespace vk
 	{
 		m_viewport.width = static_cast<float>(width);
 		m_viewport.height = static_cast<float>(height);
-		m_viewport.minDepth = 0;
-		m_viewport.maxDepth = 1;
+		m_viewport.minDepth = 0.f;
+		m_viewport.maxDepth = 1.f;
 
 		m_scissor.extent.width = width;
 		m_scissor.extent.height = height;
@@ -33,11 +33,14 @@ namespace vk
 
 	void Window::CreateSurface( VkInstance vulkanInstance )
 	{
-		if (m_surface == VK_NULL_HANDLE)
+		if (vulkanInstance != VK_NULL_HANDLE)
 		{
-			if (SDL_Vulkan_CreateSurface(m_sdlPtr, vulkanInstance, &m_surface) != SDL_TRUE)
+			if (m_surface == VK_NULL_HANDLE)
 			{
-				throw std::runtime_error("could not create window surface! " + std::string(SDL_GetError()));
+				if (SDL_Vulkan_CreateSurface(m_sdlPtr, vulkanInstance, &m_surface) != SDL_TRUE)
+				{
+					throw std::runtime_error("could not create window surface! " + std::string(SDL_GetError()));
+				}
 			}
 		}
 	}
@@ -96,7 +99,7 @@ namespace vk
 	bool Window::IsMinimized() const
 	{
 		constexpr float epsilon = 0.0001f;
-		return (m_viewport.width <= epsilon || m_viewport.height == epsilon);
+		return (m_viewport.width <= epsilon || m_viewport.height <= epsilon);
 	}
 
 	void Window::UpdateExtents(const VkExtent2D& area)
