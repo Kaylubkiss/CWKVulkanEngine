@@ -34,27 +34,24 @@ layout(set = 1, binding = 0) uniform UBO
 
 
 
-float ShadowSampling(vec4 fragPos)
+float ShadowSampling(vec4 fragPos, int i)
 {
 	float shadow = 1.0;
 
-	for (int layer = 0; layer < LIGHT_COUNT; ++layer)
-	{
-		vec4 shadowClip = ubo.lights[layer].viewMatrix * fragPos;
-		vec3 shadowCoord = shadowClip.xyz / shadowClip.w;
+    vec4 shadowClip = ubo.lights[i].viewMatrix * fragPos;
+    vec3 shadowCoord = shadowClip.xyz / shadowClip.w;
 
-		shadowCoord.xy = shadowCoord.xy * 0.5 + 0.5;
+    shadowCoord.xy = shadowCoord.xy * 0.5 + 0.5;
 
-		if (shadowCoord.z >= 0.0 && shadowCoord.z <= 1.0)
-		{
-		    float dist = texture(samplerShadowMap, vec3(shadowCoord.xy, layer)).r;
+    if (shadowCoord.z >= 0.0 && shadowCoord.z <= 1.0)
+    {
+        float dist = texture(samplerShadowMap, vec3(shadowCoord.xy, i)).r;
 
-		    if (dist < shadowCoord.z)
-			{
-				shadow *= AMBIENT_COLOR;
-			}
-		}
-	}
+        if (dist < shadowCoord.z)
+        {
+            shadow *= AMBIENT_COLOR;
+        }
+    }
 
     return shadow;
 }
@@ -147,7 +144,9 @@ vec3 CookTorrenceReflectance(vec3 P, vec3 N)
         vec3 L = normalize(ubo.lights[i].position - P);
         vec3 H = normalize(L + V);
 
-        Lo += Fr(P, L, N, H, V) * Radiance(P, ubo.lights[i].position, ubo.lights[i].albedo) *  max(dot(N, L), 0.0);
+        float shadowFactor = ShadowSampling(vec4(P, 1), i);
+
+        Lo += shadowFactor * Fr(P, L, N, H, V) * Radiance(P, ubo.lights[i].position, ubo.lights[i].albedo) *  max(dot(N, L), 0.0);
     }
 
     return Lo;
@@ -170,8 +169,6 @@ void main()
     //gamma correction using the Reinhard operator -- I DON'T REALLY UNDERSTAND THIS
     fragColor.rgb = fragColor.rgb / (fragColor.rgb + vec3(1.0));
     fragColor.rgb = pow(fragColor.rgb, vec3(1.0/2.2));
-
-	//fragColor.rgb *= vec3(ShadowSampling(vec4(position, 1)));
 
 	fragColor.a = 1.f;
 }
