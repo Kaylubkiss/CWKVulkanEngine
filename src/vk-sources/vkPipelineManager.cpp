@@ -6,6 +6,8 @@
 #include "SpirvHelper.h"
 #include <sys/stat.h>
 
+#define SHADER_PATH "shaders/"
+
 //ShaderModuleInfo 
 namespace vk 
 {
@@ -119,7 +121,7 @@ namespace vk
 
 					somethingChanged = true;
 
-					VK_CHECK_RESULT(vkDeviceWaitIdle(contextLogicalDevice))
+					VK_CHECK_RESULT(vkDeviceWaitIdle(contextLogicalDevice));
 
 					vkDestroyShaderModule(contextLogicalDevice, shader.mHandle, nullptr);
 					shader.mHandle = vk::init::ShaderModule(contextLogicalDevice, shaderPath.value().c_str());

@@ -535,7 +535,7 @@ namespace vk
 		uniformDataMRT.uTransform =
 		{
 			mCamera.LookAt(),
-			glm::perspective(glm::radians(FOV),
+			glm::perspective(glm::radians(cameraFOV),
 				(float)windowViewport.width / windowViewport.height, 0.1f, 1000.f)
 		};
 

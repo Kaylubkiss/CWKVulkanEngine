@@ -2,6 +2,11 @@
 #include "GLTFModel.h"
 #include "OBJModel.h"
 
+//normally I'd say ObjectManager should take care of these paths, but since loading was already
+//implemented with checking the extensions, they'll be placed here. Perhaps change this later.
+#define GLTF_OBJECT_PATH "art/objects/gltf/"
+#define OBJECT_PATH "art/objects/"
+
 Object::Object( const ObjectCreateInfo& objectCI, TextureManager& textureManager )
 {
     assert(objectCI.devicePtr != nullptr);
@@ -20,7 +25,7 @@ Object::Object( const ObjectCreateInfo& objectCI, TextureManager& textureManager
 
         if (objectCI.textureFileName != nullptr)
         {
-            std::cerr << "WARNING: .gltf will not use specified texture name in ObjectCreateInfo\n";
+            std::cout << "\033[33m[WARNING] .gltf will not use specified texture name in ObjectCreateInfo\033[0m\n";
         }
 
         m_model = std::make_unique<GLTFModel>(objectCI.devicePtr, filePath);

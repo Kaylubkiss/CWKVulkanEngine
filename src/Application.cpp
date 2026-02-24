@@ -6,7 +6,7 @@ PhysicsSystem& Application::GetPhysics()
 	return this->m_physics;
 }
 
-vk::ContextBase* Application::Context() const
+vk::ContextBase* Application::GetVulkanContext() const
 {
 	return m_vulkanGraphicsContext.get();
 }
@@ -37,15 +37,7 @@ void Application::init()
 	if (exitApplication == false)
 	{
 		m_vulkanGraphicsContext->InitializeScene(); //TODO: deserialize a scene
-
-		mTime = Timer(SDL_GetPerformanceCounter());
 	}
-}
-
-
-const Timer& Application::GetTime() const
-{
-	return this->mTime;
 }
 
 
@@ -115,11 +107,11 @@ void Application::loop()
 		//render graphics.
 		while (exitApplication == false)
 		{
-			double dt = mTime.CalculateDeltaTime();
+			float dt = m_physics.InterpFactor(static_cast<float>(mTime.CalculateDeltaTime()));
 
-			Controller::MoveCamera(m_vulkanGraphicsContext->GetCamera(), static_cast<float>(dt));
+			Controller::MoveCamera(m_vulkanGraphicsContext->GetCamera(), dt);
 
-			m_vulkanGraphicsContext->UpdateSceneObjects(m_physics.InterpFactor(static_cast<float>(dt)));
+			m_vulkanGraphicsContext->UpdateSceneObjects(dt);
 
 			m_vulkanGraphicsContext->Render();
 		}

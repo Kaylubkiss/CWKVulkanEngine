@@ -3,6 +3,7 @@
 #include "vkInit.h"
 #include "ApplicationGlobal.h"
 
+#define TEXTURE_PATH "art/textures/"
 
 void TextureManager::Init( std::shared_ptr<vk::GraphicsContextInfo>& contextInfo )
 {
@@ -61,7 +62,7 @@ uint32_t TextureManager::AddTexture( const std::string& fileName )
 
 	//TODO: generate checker-board texture for objects if texture loading failed.
 	std::shared_ptr<vk::Texture> newTexture =
-			std::make_shared<vk::Texture>(s_graphicsContextInfo->devicePtr, fileName, m_transferMutex);
+			std::make_shared<vk::Texture>(s_graphicsContextInfo->devicePtr, TEXTURE_PATH + fileName, m_transferMutex);
 
 	{
 		std::lock_guard<std::mutex> lock(m_textureMutex);

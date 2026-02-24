@@ -4,7 +4,6 @@
 
 namespace vk {
 
-
 	VkImageView Texture::CreateImageView(VkDevice l_device, const VkImage& textureImage, uint32_t mipLevels)
 	{
 
@@ -59,19 +58,19 @@ namespace vk {
 	}
 
 
-	Texture::Texture( const vk::Device* devicePtr, const std::string& fileName, std::mutex& transferMutex )
+	Texture::Texture( const vk::Device* devicePtr, const std::string& filePath, std::mutex& transferMutex )
 	{
 
 		assert(devicePtr);
 		//Might want to make command pool a member variable.
 
 		int textureWidth, textureHeight, textureChannels;
-		stbi_uc* pixels = fileName.empty() ? nullptr : stbi_load((TEXTURE_PATH + fileName).c_str(),
+		stbi_uc* pixels = filePath.empty() ? nullptr : stbi_load(filePath.c_str(),
 			&textureWidth, &textureHeight, &textureChannels, STBI_rgb_alpha);
 
 		if (pixels == nullptr)
 		{
-			std::cerr << "could not load in specified texture " + std::string(TEXTURE_PATH + fileName) << std::endl;
+			std::cerr << "could not load in specified texture " + filePath << std::endl;
 			throw std::runtime_error("Texture() FAILED");
 		}
 

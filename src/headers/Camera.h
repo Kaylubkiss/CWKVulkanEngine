@@ -4,12 +4,6 @@
 #include "Physics.h"
 using namespace reactphysics3d;
 
-struct Capsule 
-{
-	float mRadius;
-	float mHeight;
-};
-
 class Camera final
 {
 public:
@@ -25,7 +19,7 @@ public:
 	void MoveBack();
 	void MoveForward();
 	void MoveDown();
-	void Rotate(const int& mouseX, const int& mouseY);
+	void Rotate( const int& mouseX, const int& mouseY );
 
 	//getter functions.
 	glm::mat4 LookAt();
@@ -42,7 +36,7 @@ private:
 	float mPitch = 0.f;
 	float mYaw = 0.f;
 
-	float constant_velocity = 15.f;
+	float constant_velocity = 0.3f;
 
 	reactphysics3d::Transform mMovementTransform;
 	reactphysics3d::Vector3 accumulatedVelocity = Vector3::zero();

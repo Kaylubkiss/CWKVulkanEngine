@@ -15,5 +15,4 @@ private:
 extern ApplicationManager appManager;
 
 #define _Application appManager.GetApplication()
-#define _GraphicsContext appManager.GetApplication()->Context()
-#define _ObjectManager appManager.GetApplication()->GetObjectManager()
+#define _GraphicsContext appManager.GetApplication()->GetVulkanContext()

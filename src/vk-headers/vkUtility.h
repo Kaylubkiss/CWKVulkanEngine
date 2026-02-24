@@ -1,11 +1,7 @@
 #pragma once
 
-
-#include "shaderc/shaderc.h"
-
-#define VK_CHECK_RESULT(function) {VkResult check = function; if (check != VK_SUCCESS) {std::cout << check << '\n';} assert(check == VK_SUCCESS);}
-
-#define SHADER_PATH "shaders/"
+//this should be made to do something more useful, but for now it can be a useful alias
+#define VK_CHECK_RESULT(function) assert(function == VK_SUCCESS)
 
 extern PFN_vkGetDescriptorSetLayoutBindingOffsetEXT g_vkGetDescriptorSetLayoutBindingOffsetEXT;
 extern PFN_vkGetDescriptorSetLayoutSizeEXT g_vkGetDescriptorSetLayoutSizeEXT;

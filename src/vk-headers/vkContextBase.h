@@ -33,7 +33,7 @@ namespace vk
 		void SubmitFrame();
 		void ResizeWindow();
 		void UpdateSceneObjects(float dt) const;
-		void ToggleUI(bool enable);
+		void ToggleUIActive(bool enable);
 	protected:
 		bool PrepareFrame();
 		//more pure virtual function(s)
@@ -55,13 +55,14 @@ namespace vk
 			bool validationLayers = true;
 		} m_settings = {};
 
+		float cameraFOV = 45.f;
+		Camera mCamera;
+		UserInterface UIOverlay;
+
 		//this is for textureManager and potentially any other discrete systems.
 		std::shared_ptr<GraphicsContextInfo> m_info;
 
-		//MUST BE DEINIT LAST!
-
 		VkRenderPass renderPass = VK_NULL_HANDLE;
-
 		vk::Instance m_instance;
 		vk::Window m_window;
 		vk::Device device;
@@ -77,10 +78,7 @@ namespace vk
 		std::array<VkSemaphore, gMaxFramesInFlight> textureUploadSemaphores; //for I/O synchronization
 		std::array<VkFence, gMaxFramesInFlight> inFlightFences;
 
-		float FOV = 45.f;
 
-		Camera mCamera;
-		UserInterface UIOverlay;
 
 		std::unique_ptr<ObjectManager> m_objectManager;
 	};

@@ -11,26 +11,23 @@ public:
 	Application() = default;
 	~Application();
 
-	const Timer& GetTime() const;
-
 	PhysicsSystem& GetPhysics();
-	vk::ContextBase* Context() const;
+
+	vk::ContextBase* GetVulkanContext() const;
 
 	void run();
 	void RequestExit();
 	/*void SelectWorldObjects(const vk::Window& appWindow,
 		Camera& camera, const uTransformObject& uTransform, PhysicsSystem& physics);*/
-
 private:
 	void init();
 	void loop();
 	void exit();
 private:
-	PhysicsSystem m_physics;
 	Timer mTime;
+	PhysicsSystem m_physics;
 
-	std::unique_ptr<vk::ContextBase> m_vulkanGraphicsContext;	//this MUST be declared at the top so that it's destructor is called last.
-
+	std::unique_ptr<vk::ContextBase> m_vulkanGraphicsContext;
 	bool exitApplication = false;
 };
 

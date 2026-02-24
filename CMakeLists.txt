@@ -12,7 +12,7 @@ add_subdirectory(extern/fastgltf)
 add_subdirectory(extern/reactphysics3d)
 
 add_compile_definitions(GLM_ENABLE_EXPERIMENTAL)
-add_compile_definitions(GLM_FORCE_DEPTH_ZERO_TO_ONE)
+add_compile_definitions(GLM_FORCE_DEPTH_ZERO_TO_ONE) #vulkan's NDC z-coordinate ranges from 0 to 1.
 add_compile_definitions(GLM_FORCE_DEFAULT_ALIGNED_GENTYPES) #need to have aligned storage for shaders
 add_subdirectory(extern/glm)
 
@@ -24,6 +24,9 @@ set(SDL_DISKAUDIO OFF CACHE BOOL "" FORCE)
 set(SDL_DUMMYAUDIO OFF CACHE BOOL "" FORCE)
 set(SDL_DUMMYVIDEO OFF CACHE BOOL "" FORCE)
 set(SDL_ALTIVEC OFF CACHE BOOL "" FORCE)
+set(SDL_WASAPI OFF CACHE BOOL "" FORCE)
+set(SDL_VIRTUAL_JOYSTICK OFF CACHE BOOL "" FORCE)
+set(SDL_RENDER_D3D OFF CACHE BOOL "" FORCE)
 add_subdirectory(extern/sdl2)
 
 set(SHADERC_SKIP_TESTS ON CACHE BOOL "" FORCE)
@@ -180,13 +183,13 @@ extern/shaderc/libshaderc/include
 )
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
+imgui #created this library within this script
 SDL2::SDL2main
 SDL2::SDL2-static
 glm::glm
 reactphysics3d
 shaderc_combined
-imgui
-fastgltf
+fastgltf::fastgltf
 Vulkan::Vulkan
 )
 

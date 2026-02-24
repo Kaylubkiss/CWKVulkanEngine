@@ -149,7 +149,7 @@ namespace vk
 		m_objectManager->Update(dt);
 	}
 
-	void ContextBase::ToggleUI(bool enable)
+	void ContextBase::ToggleUIActive(bool enable)
 	{
 		m_settings.UIToggled = enable;
 	}

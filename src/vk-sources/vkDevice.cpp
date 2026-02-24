@@ -91,7 +91,7 @@ namespace vk
 		uint32_t max_devices = 0;
 
 		//vulkan will ignor whatever was set in physicalDeviceCount and overwrite max_devices 
-		VK_CHECK_RESULT(vkEnumeratePhysicalDevices(instance, &max_devices, nullptr))
+		VK_CHECK_RESULT(vkEnumeratePhysicalDevices(instance, &max_devices, nullptr));
 
 		if (!max_devices)
 		{
@@ -100,7 +100,7 @@ namespace vk
 
 		gpus.resize(max_devices);
 
-		VK_CHECK_RESULT(vkEnumeratePhysicalDevices(instance, &max_devices, gpus.data()))
+		VK_CHECK_RESULT(vkEnumeratePhysicalDevices(instance, &max_devices, gpus.data()));
 
 		for (size_t i = 0; i < max_devices; ++i)
 		{

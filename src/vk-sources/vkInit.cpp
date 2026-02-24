@@ -180,7 +180,7 @@ namespace vk
 			semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
 
 			VkSemaphore nSemaphore;
-			VK_CHECK_RESULT(vkCreateSemaphore(l_device, &semaphoreInfo, nullptr, &nSemaphore))
+			VK_CHECK_RESULT(vkCreateSemaphore(l_device, &semaphoreInfo, nullptr, &nSemaphore));
 			
 			return nSemaphore;
 		}

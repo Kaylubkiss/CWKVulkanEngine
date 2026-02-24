@@ -56,11 +56,12 @@ void Controller::MoveCamera( Camera& camera, float dt )
 		{
 			if (SDL_GetRelativeMouseMode() == SDL_TRUE)
 			{
-				_GraphicsContext->ToggleUI(true);
 				if (SDL_SetRelativeMouseMode(SDL_FALSE) < 0)
 				{
 					std::cerr << SDL_GetError() << std::endl;
 				}
+
+				_GraphicsContext->ToggleUIActive(true);
 			}
 			else
 			{
@@ -79,11 +80,12 @@ void Controller::MoveCamera( Camera& camera, float dt )
 
 			if (e.type == SDL_MOUSEBUTTONDOWN)
 			{
-				_GraphicsContext->ToggleUI(false);
 				if (SDL_SetRelativeMouseMode(SDL_TRUE) < 0)
 				{
 					std::cerr << SDL_GetError() << std::endl;
 				}
+
+				_GraphicsContext->ToggleUIActive(false);
 			}
 		}
 
