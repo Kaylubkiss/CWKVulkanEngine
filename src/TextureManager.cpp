@@ -1,7 +1,4 @@
 #include "TextureManager.h"
-#include "vkUtility.h"
-#include "vkInit.h"
-#include "ApplicationGlobal.h"
 
 #define TEXTURE_PATH "art/textures/"
 
@@ -21,7 +18,6 @@ void TextureManager::Init( std::shared_ptr<vk::GraphicsContextInfo>& contextInfo
 	cmdBufferAllocateInfo.commandBufferCount = static_cast<uint32_t>(m_commandBuffers.size());
 	VK_CHECK_RESULT(vkAllocateCommandBuffers(s_graphicsContextInfo->devicePtr->GetDevice(), &cmdBufferAllocateInfo,
 		m_commandBuffers.data()));
-
 }
 
 void TextureManager::Destroy()
@@ -33,7 +29,6 @@ void TextureManager::Destroy()
 
 		vkDestroyCommandPool(s_graphicsContextInfo->devicePtr->GetDevice(), m_graphicsCommandPool, nullptr);
 	}
-
 
 	//NOTE: object/asset manager should call terminate on all threads before this code
 	//so these shouldn't be locked up.
@@ -168,19 +163,19 @@ bool TextureManager::UploadTextureDataToGPU( uint32_t currentFrame, const VkSema
 		VkDeviceSize combinedImageSamplerSize =
 			s_graphicsContextInfo->devicePtr->GetDescriptorBufferProperties().combinedImageSamplerDescriptorSize;
 
-		VkDeviceSize bindingOffset =
-			s_graphicsContextInfo->contextTextureDescriptorPtr->binding_offsets.front();
+		for (auto& bindingOffset : s_graphicsContextInfo->contextTextureDescriptorPtr->binding_offsets)
+		{
+			VkDescriptorGetInfoEXT imageDescriptorInfo = { VK_STRUCTURE_TYPE_DESCRIPTOR_GET_INFO_EXT };
+			imageDescriptorInfo.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+			imageDescriptorInfo.data.pCombinedImageSampler = &textureDescriptor;
 
-		VkDescriptorGetInfoEXT imageDescriptorInfo = { VK_STRUCTURE_TYPE_DESCRIPTOR_GET_INFO_EXT };
-		imageDescriptorInfo.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		imageDescriptorInfo.data.pCombinedImageSampler = &textureDescriptor;
+			char* imageBindingDescriptorPtr =
+				static_cast<char*>(s_graphicsContextInfo->contextTextureDescriptorPtr->buffers.front().GetMappedMemory());
 
-		char* imageBindingDescriptorPtr =
-			static_cast<char*>(s_graphicsContextInfo->contextTextureDescriptorPtr->buffers.front().GetMappedMemory());
-
-		g_vkGetDescriptorEXT(s_graphicsContextInfo->devicePtr->GetDevice(), &imageDescriptorInfo,
-			combinedImageSamplerSize,
-			imageBindingDescriptorPtr + t.index * textureBindingSize + bindingOffset);
+			g_vkGetDescriptorEXT(s_graphicsContextInfo->devicePtr->GetDevice(), &imageDescriptorInfo,
+				combinedImageSamplerSize,
+				imageBindingDescriptorPtr + t.index * textureBindingSize + bindingOffset);
+		}
 	}
 
 	return true;
@@ -192,11 +187,11 @@ size_t TextureManager::GetSize()
 	return m_textures.size();
 }
 
-void TextureManager::BindTextureToModelPrimitive( const std::string& fileName, Primitive& primitive )
+void TextureManager::BindTextureToModelPrimitive( const std::string& fileName, uint32_t& primitive_texture_index )
 {
 	if (fileName.empty() == false)
 	{
-		primitive.baseColorTextureIndex = AddTexture(fileName);
+		primitive_texture_index = AddTexture(fileName);
 	}
 
 }

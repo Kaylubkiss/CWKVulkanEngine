@@ -55,10 +55,9 @@ target_link_libraries(imgui PRIVATE SDL2-static Vulkan::Vulkan)
 
 
 #------------------SOURCES----------------------
-set(SOURCE_FILES 
+set(SOURCE_FILES
 src/Application.cpp 
 src/Camera.cpp
-src/Common.cpp
 src/Main.cpp
 src/Object.cpp
 src/Physics.cpp
@@ -125,6 +124,7 @@ ${HEADER_SRC_DIR}/UserInterface.h
 ${HEADER_SRC_DIR}/GLTFModel.h
 ${HEADER_SRC_DIR}/OBJModel.h
 ${HEADER_SRC_DIR}/IModel.h
+${HEADER_SRC_DIR}/Mesh.h
 )
 				 
 set(VULKAN_HEADER_DIR src/vk-headers)

@@ -82,8 +82,7 @@ namespace vk
 		VkDescriptorSetLayoutCreateInfo DescriptorSetLayoutCreateInfo(
 			const std::vector<VkDescriptorSetLayoutBinding>& bindings );
 
-		VkDescriptorSetLayoutCreateInfo DescriptorSetLayoutCreateInfo( VkDescriptorSetLayoutBinding* bindings,
-			uint32_t binding_count );
+		VkDescriptorSetLayoutCreateInfo DescriptorSetLayoutCreateInfo();
 
 		VkDescriptorSetAllocateInfo DescriptorSetAllocateInfo( VkDescriptorPool descriptorPool,
 			const VkDescriptorSetLayout* descriptorLayout, uint32_t descriptorSetCount );

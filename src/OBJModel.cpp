@@ -213,6 +213,7 @@ OBJModel::OBJModel( vk::Device* device, const std::filesystem::path& filePath )
     Primitive primitive;
     primitive.indexCount = static_cast<uint32_t>(indexBuffer.size());
     primitive.vertexCount = static_cast<uint32_t>(vertexBuffer.size());
+    primitive.baseColorTextureIndex = 0;
     
     std::vector<Primitive> primitive_vector = { primitive };
 
@@ -270,6 +271,8 @@ void OBJModel::LoadTextures( TextureManager& textureManager, const std::vector<s
     //this code-base will treat .obj as a primitive format for only geometry and texture data.
     Mesh& mesh = *m_meshes.back().get();
     Primitive& primitive = mesh.m_primitives.back();
-    textureManager.BindTextureToModelPrimitive(textureNames.back(), primitive);
-
+    if (primitive.baseColorTextureIndex.has_value() == true)
+    {
+        textureManager.BindTextureToModelPrimitive(textureNames.front(), primitive.baseColorTextureIndex.value());
+    }
 }

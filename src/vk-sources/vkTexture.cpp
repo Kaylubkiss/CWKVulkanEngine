@@ -1,10 +1,12 @@
 #include "vkTexture.h"
 #include "vkUtility.h"
+#define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 
-namespace vk {
+namespace vk
+{
 
-	VkImageView Texture::CreateImageView(VkDevice l_device, const VkImage& textureImage, uint32_t mipLevels)
+	VkImageView Texture::CreateImageView( VkDevice l_device, const VkImage& textureImage, uint32_t mipLevels )
 	{
 
 		VkImageViewCreateInfo viewInfo = {};
@@ -24,7 +26,7 @@ namespace vk {
 		return nTextImageView;
 	}
 
-	VkSampler Texture::CreateSampler( VkPhysicalDevice p_device, VkDevice l_device, uint32_t mipLevels)
+	VkSampler Texture::CreateSampler( VkPhysicalDevice p_device, VkDevice l_device, uint32_t mipLevels )
 	{
 		VkSamplerCreateInfo createInfo = {};
 		createInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;

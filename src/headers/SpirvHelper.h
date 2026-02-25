@@ -2,7 +2,6 @@
 
 #include "shaderc/shaderc.hpp"
 
-
 namespace vk::spirv
 {
 	struct CompilationInfo
@@ -89,6 +88,22 @@ namespace vk::spirv
 
 		sourceFilePath.replace_extension("spv");
 
+		//NOTE: this is a very strange way to verify the path of the file while specifying it.
+		//Will need to move this elsewhere for functional clarity. Also don't like the hardcoding of "spirv"
+		//and "shaders" (TODO)
+		std::filesystem::path shader_root_path = sourceFilePath.parent_path();
+		while (shader_root_path != "shaders")
+		{
+			if (shader_root_path.has_parent_path() == false)
+			{
+				throw std::runtime_error("couldn't find path: 'shaders/' !");
+			}
+
+			shader_root_path = shader_root_path.parent_path();
+		}
+
+		sourceFilePath = shader_root_path.string() + std::string("/spirv/") + sourceFilePath.filename().string();
+
 		return sourceFilePath.string();
 	}
 
@@ -124,6 +139,7 @@ namespace vk::spirv
 			std::cerr << "[ERROR] Couldn't successfully read shader file " << sourceFilePath << '\n';
 			return std::nullopt;
 		}
+
 
 		WriteSpirvFile(spirvFilePath.c_str(), output.value());
 

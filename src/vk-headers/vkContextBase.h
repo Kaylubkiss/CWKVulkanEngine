@@ -37,7 +37,7 @@ namespace vk
 	protected:
 		bool PrepareFrame();
 		//more pure virtual function(s)
-		virtual void InitializePipeline( std::string vsFile, std::string fsFile ) = 0;
+		virtual void InitializePipeline() = 0;
 		virtual void InitializeDescriptors() = 0;
 		//non-pure virtual functions
 		virtual void InitializeRenderPass();

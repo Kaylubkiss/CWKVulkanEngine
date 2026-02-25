@@ -2,51 +2,8 @@
 
 #include "vkBuffer.h"
 #include "vkDevice.h"
-#include "vkTexture.h"
 
 constexpr uint32_t gMaxFramesInFlight = 3;
-
-//these don't need to be tied to the vulkan API!!!
-struct uTransformObject
-{
-	glm::mat4 view = glm::mat4(1.f);
-	glm::mat4 proj = glm::mat4(1.f);
-};
-
-
-struct uLightObject
-{
-	float shininess = 0.f; /* exponent value */
-
-	glm::vec3 pos      = glm::vec3(0.f); /* position of light */
-	glm::vec3 ambient  = glm::vec3(0.f); /* scene color */
-	glm::vec3 albedo   = glm::vec3(0.f); /* base color of light */
-	glm::vec3 specular = glm::vec3(0.f); /* reflectivity of the light */
-
-};
-
-struct Primitive
-{
-	uint32_t firstIndex = 0;
-	uint32_t indexCount = 0;
-
-	uint32_t firstVertex = 0;
-	uint32_t vertexCount = 0;
-
-	std::optional<uint32_t> baseColorTextureIndex = std::nullopt;
-};
-
-struct Mesh
-{
-	std::string m_name;
-	std::vector<Primitive> m_primitives;
-	Mesh() = default;
-	Mesh( const std::string& name, const std::vector<Primitive>& primitives )
-	{
-		m_name = name;
-		m_primitives = primitives;
-	}
-};
 
 class UserInterface;
 
@@ -57,8 +14,12 @@ namespace vk
 
 	struct DescriptorBufferData //248 BYTES!!!
 	{
-		std::array<vk::Buffer, gMaxFramesInFlight> buffers; //descriptors are stored in BUFFERS, not VkDescriptorSet
-		std::vector<VkDeviceSize> binding_offsets = { 0ull }; //at least 1 binding (binding 0)
+		//per-frame resources need to be independently updated according to which frame is active.
+		//1st index of "buffers" is the minimum ever used by a descriptor buffer.
+		std::array<vk::Buffer, gMaxFramesInFlight> buffers;
+
+		//at least 1 binding (binding 0)
+		std::vector<VkDeviceSize> binding_offsets = { 0ull };
 		
 		VkDescriptorSetLayout layout = VK_NULL_HANDLE;
 		VkDevice c_device            = VK_NULL_HANDLE;

@@ -1,5 +1,5 @@
 #pragma once
-
+#include "vkTexture.h"
 
 class TextureManager
 {
@@ -12,7 +12,7 @@ class TextureManager
 
 		size_t GetSize();
 
-		void BindTextureToModelPrimitive( const std::string& fileName, Primitive& primitive );
+		void BindTextureToModelPrimitive( const std::string& fileName, uint32_t& primitive );
 
 		//returns whether or not a command was recorded.
 		bool UploadTextureDataToGPU( uint32_t currentFrame, VkSemaphore textureUploadSemaphore );

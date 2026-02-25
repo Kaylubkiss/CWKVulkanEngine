@@ -86,12 +86,10 @@ namespace vk
 			return nInfo;
 		}
 
-		VkDescriptorSetLayoutCreateInfo DescriptorSetLayoutCreateInfo(VkDescriptorSetLayoutBinding* bindings, uint32_t binding_count) 
+		VkDescriptorSetLayoutCreateInfo DescriptorSetLayoutCreateInfo()
 		{
 			VkDescriptorSetLayoutCreateInfo nInfo = {};
 			nInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-			nInfo.pBindings = bindings;
-			nInfo.bindingCount = binding_count;
 			return nInfo;
 		}
 

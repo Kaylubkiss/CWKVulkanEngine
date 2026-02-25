@@ -8,21 +8,17 @@ layout(location = 0) out vec4 fragColor;
 layout(set = 0, binding = 0) uniform sampler2D samplerPosition;
 layout(set = 0, binding = 1) uniform sampler2D samplerNormal;
 layout(set = 0, binding = 2) uniform sampler2D samplerAlbedo;
-layout(set = 0, binding = 3) uniform sampler2DArray samplerShadowMap;
+layout(set = 0, binding = 3) uniform sampler2D samplerMetallicRoughness;
+layout(set = 0, binding = 4) uniform sampler2DArray samplerShadowMap;
 
 #define LIGHT_COUNT 2
 #define AMBIENT_COLOR .2
 #define M_PI 4.0 * atan(1.0)
-#define MAT_ROUGHNESS 0.3f
-#define MAT_METALLIC 0.1f
 
 struct Light 
 {
-	float shininess; /* exponent value */
 	vec3 position; /* position of light */
-	vec3 ambient; /* scene color */
 	vec3 albedo; /* base color of light */
-	vec3 specular; /* reflectivity of the light */
 	mat4 viewMatrix; /* projects a point to the light's POV */
 };
 
@@ -60,28 +56,29 @@ float ShadowSampling(vec4 fragPos, int i)
 vec3 Radiance(vec3 P, vec3 L, vec3 lightAlbedo)
 {
     //because it's a point light, we will just attenuate the intensity of the light's color.
+
     float distance = length(L - P);
     float attenuation = 1.0 / (distance * distance + 0.0001); //just in-case the distance is 0, add a small fraction.
+
     //NOTE: might want to use a quadratic version of attenuation for more control of the roll-off.
 
     return (lightAlbedo * attenuation);
 }
 
-float GeometrySchlickGGX(float NdotX)
+float GeometrySchlickGGX(float NdotX, float roughness)
 {
 
     //k is computed based on direct lighting (which is the lighting method I'm using for now)
-    float kNum = MAT_ROUGHNESS + 1.0;
+    float kNum = roughness + 1.0;
     float kDirect = (kNum * kNum) / 8.0;
 
     return ((NdotX) / (NdotX * (1-kDirect) + kDirect));
 }
 
-float GeometrySmith(float NdotV, float NdotL)
+float GeometrySmith(float NdotV, float NdotL, float roughness)
 {
-
-    float ggx1 = GeometrySchlickGGX(NdotV);
-    float ggx2 = GeometrySchlickGGX(NdotL);
+    float ggx1 = GeometrySchlickGGX(NdotV, roughness);
+    float ggx2 = GeometrySchlickGGX(NdotL, roughness);
 
     return ggx1 * ggx2;
 }
@@ -93,9 +90,9 @@ vec3 FresnelSchlick(float cosTheta, vec3 F0)
 }
 
 
-float DistributionGGX(float NdotH)
+float DistributionGGX(float NdotH, float roughness)
 {
-    float a = MAT_ROUGHNESS * MAT_ROUGHNESS;
+    float a = roughness * roughness;
     float a2 = a * a;
 
     float denom = NdotH * NdotH * (a2 - 1) + 1;
@@ -104,49 +101,48 @@ float DistributionGGX(float NdotH)
     return (a2 / denom);
 }
 
-vec3 Fr(vec3 P, vec3 L,
-    vec3 N, vec3 H, vec3 V)
+vec3 CookTorrenceReflectance(vec3 P, vec3 N, vec3 albedo, vec3 metallicRoughness)
 {
-    float NdotV = max(dot(N, V), 0.0);
-    float NdotL = max(dot(N, L), 0.0);
-    float NdotH = max(dot(N, H), 0.0);
-
-    vec3 albedo = texture(samplerAlbedo, inUV).rgb;
-
-    float NDF = DistributionGGX(NdotH);
-    float G   = GeometrySmith(NdotV, NdotL);
-
-    float baseReflectivity = 0.04f;
-    vec3 F0                = mix(vec3(baseReflectivity), albedo, MAT_METALLIC);
-
-    vec3 F   = FresnelSchlick(max(dot(H, V), 0.0), F0);
-
-    vec3 nom    =  NDF * F * G;
-    float denom = 4.0 * NdotV * NdotL; //want to make sure division by 0 is impossible
-
-    vec3 specular = nom / max(denom, 0.0001);
-
-    vec3 kS = F;
-    vec3 kD = vec3(1.0) - kS;
-    kD *= 1.0 - MAT_METALLIC; //because metals don't refract, we nullify the diffuse portion if it's 100% metal.
-
-    return ((kD * albedo / M_PI) + specular);
-}
-
-
-vec3 CookTorrenceReflectance(vec3 P, vec3 N)
-{
-    vec3 Lo = vec3(0.f);
     vec3 V = normalize(ubo.viewPosition - P);
 
+    float NdotV = max(dot(N, V), 0.0);
+
+    float metalness = metallicRoughness.b;
+    float roughness = metallicRoughness.g;
+
+    float baseReflectivity = 0.04f;
+
+    vec3 F0 = mix(vec3(baseReflectivity), albedo, metalness);
+
+    vec3 Lo = vec3(0.f);
     for (int i = 0; i < LIGHT_COUNT; ++i)
     {
         vec3 L = normalize(ubo.lights[i].position - P);
         vec3 H = normalize(L + V);
 
+        float NdotL = max(dot(N, L), 0.0);
+        float NdotH = max(dot(N, H), 0.0);
+
+        float NDF = DistributionGGX(NdotH, roughness);
+        float G   = GeometrySmith(NdotV, NdotL, roughness);
+
+
+        vec3 F  = FresnelSchlick(max(dot(H, V), 0.0), F0);
+
+        vec3 nom    =  NDF * F * G;
+        float denom = 4.0 * NdotV * NdotL; //want to make sure division by 0 is impossible
+
+        vec3 specular = nom / max(denom, 0.0001);
+
+        vec3 kS = F;
+        vec3 kD = vec3(1.0) - kS;
+
+        kD *= 1.0 - metalness; //because metals don't refract, we nullify the diffuse portion if it's 100% metal.
+
         float shadowFactor = ShadowSampling(vec4(P, 1), i);
 
-        Lo += shadowFactor * Fr(P, L, N, H, V) * Radiance(P, ubo.lights[i].position, ubo.lights[i].albedo) *  max(dot(N, L), 0.0);
+        Lo += shadowFactor * ((kD * albedo / M_PI) + specular) *
+            Radiance(P, ubo.lights[i].position, ubo.lights[i].albedo) * NdotL;
     }
 
     return Lo;
@@ -159,12 +155,15 @@ void main()
 	vec3 normal = texture(samplerNormal, inUV).rgb;
     vec3 albedo = texture(samplerAlbedo, inUV).rgb;
 
+    //g = roughness, b = metalness
+    vec3 metallicRoughness = texture(samplerMetallicRoughness, inUV).rgb;
+
     //NOTE:
     // NdotL computed multiple times
     // F0 computed multiple times
     // albedo computed multiple times
 
-    fragColor.rgb = AMBIENT_COLOR * albedo + CookTorrenceReflectance(position, normal);
+    fragColor.rgb = AMBIENT_COLOR * albedo + CookTorrenceReflectance(position, normal, albedo, metallicRoughness);
 
     //gamma correction using the Reinhard operator -- I DON'T REALLY UNDERSTAND THIS
     fragColor.rgb = fragColor.rgb / (fragColor.rgb + vec3(1.0));

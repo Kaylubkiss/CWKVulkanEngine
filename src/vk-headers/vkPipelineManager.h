@@ -74,7 +74,7 @@ namespace vk
 			*/
 			void AddModule( uint32_t pipeline, const ShaderModuleInfo& shaderModuleInfo );
 
-			void AddPipeline( uint32_t pipeline, const VkPipeline handle, std::function<void()> createFunc = nullptr );
+			void AddPipeline( uint32_t pipeline, const VkPipeline handle, std::function<void()>&& createFunc = nullptr );
 
 			void HotReloadShaders();
 			

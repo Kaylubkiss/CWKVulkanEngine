@@ -46,6 +46,7 @@ void ObjectManager::Update( float dt ) const
 	}
 }
 
+//NOTE: ONLY CALL THIS ON THE MAIN THREAD!!
 bool ObjectManager::SyncIO( uint32_t currentFrame, VkSemaphore textureUploadSemaphore )
 {
 	return m_textureManager.UploadTextureDataToGPU(currentFrame, textureUploadSemaphore);
@@ -55,7 +56,6 @@ std::map<const char*, std::unique_ptr<Object>, str_cmp>& ObjectManager::Objects(
 {
 	return m_objects;
 }
-
 
 void ObjectManager::DrawObjects( const vk::DrawInfo& drawInfo ) const
 {

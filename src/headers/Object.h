@@ -1,7 +1,8 @@
 #pragma once
 
 #include "IModel.h"
-#include "TextureManager.h"
+
+class TextureManager;
 
 struct ObjectCreateInfo
 {

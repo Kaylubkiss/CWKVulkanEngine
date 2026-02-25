@@ -78,7 +78,7 @@ namespace vk
 		pipelines[pipeline].shaderModules.push_back(shaderModuleInfo);
 	}
 
-	void PipelineManager::AddPipeline( uint32_t pipeline, const VkPipeline handle, std::function<void()> createFunc )
+	void PipelineManager::AddPipeline( uint32_t pipeline, const VkPipeline handle, std::function<void()>&& createFunc )
 	{
 		pipelines[pipeline].handle = handle;
 

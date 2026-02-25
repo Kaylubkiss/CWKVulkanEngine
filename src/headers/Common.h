@@ -33,8 +33,11 @@
 #include <list>
 #include <unordered_map>
 #include <algorithm>
+#include <filesystem>
 
 #include "Vertex.h"
+#include "Mesh.h"
+
 #include "vkGlobal.h"
 #include "vkUtility.h"
 #include "vkInit.h"

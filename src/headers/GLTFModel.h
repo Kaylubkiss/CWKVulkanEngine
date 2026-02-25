@@ -2,6 +2,7 @@
 //NOTE (11/5/25): JUST SUPPORTING MESH AND TEXTURES FOR NOW
 #include "vkModel.h"
 
+#include <fastgltf/types.hpp>
 
 class GLTFModel : public vk::Model
 {

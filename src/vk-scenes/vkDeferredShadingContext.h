@@ -18,7 +18,7 @@ namespace vk
 		void ResizeWindowDerived() override;
 		void Render() override;
 	protected:
-		void InitializePipeline( std::string vsFile, std::string fsFile ) override;
+		void InitializePipeline() override;
 		void InitializeDescriptors() override;
 		void FillOutGraphicsContextInfo() override;
 	private:
@@ -30,7 +30,7 @@ namespace vk
 		void UpdateScreenUniforms();
 		void UpdateLights();
 		void DrawObjectsWithTexture( VkCommandBuffer cmdBuffer, VkPipelineLayout pipelineLayout,
-			ObjectManager& objManager );
+			const ObjectManager& objManager );
 	private:
 		enum dePipeline
 		{
@@ -45,27 +45,26 @@ namespace vk
 			RT_POSITION = 0,
 			RT_NORMAL,
 			RT_ALBEDO,
+			RT_METALLIC_ROUGHNESS,
 			RT_COUNT
 		};
 
 		struct Light
 		{
-			float shininess      = 0.f; /* exponent value */
 			glm::vec3 pos        = glm::vec3(0.f); /* position of light */
-			glm::vec3 ambient    = glm::vec3(0.f); /* scene color */
 			glm::vec3 albedo     = glm::vec3(1000.f); /* base color of light */
-			glm::vec3 specular   = glm::vec3(0.f); /* reflectivity of the light */
-			glm::mat4 viewMatrix = glm::mat4(1.f);
+			glm::mat4 viewMatrix = glm::mat4(1.f); /* the viewpoint of the light toward a certain point */
 		};
 
 		struct UniformDataMRT
 		{
-			uTransformObject uTransform;
+			glm::mat4 eyeMatrix = glm::mat4(1.f);
+			glm::mat4 projectionMatrix = glm::mat4(1.f);
 		} uniformDataMRT{};
 
 		struct UniformDataLightPass {
 			std::array<Light, LIGHT_COUNT> lights;
-			glm::vec3 viewPosition;
+			glm::vec3 eyePosition;
 		} uniformDataLightPass {};
 
 		struct UniformDataDeferredShadow
@@ -83,10 +82,11 @@ namespace vk
 
 		std::array<UniformBuffers, gMaxFramesInFlight> uniformBuffers;
 
+
 		std::array<DescriptorBufferData, dePipeline::PIPELINE_COUNT> uniformBindingDescriptors;
-		//might be an abuse of map? Big memory cost.
+
 		DescriptorBufferData textureBindingDescriptor;
-		DescriptorBufferData compositionImageBindingDescriptor; //multiple frames in flight.
+		DescriptorBufferData compositionImageBindingDescriptor;
 
 		//NOTE: this will all be done offscreen because we have a main renderpass from the swapchain we'll
 		//read the results of this from

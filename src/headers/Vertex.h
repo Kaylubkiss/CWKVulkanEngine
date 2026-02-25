@@ -1,7 +1,5 @@
 #pragma once
 
-
-
 struct Vertex
 {
 	glm::vec3 pos = { 0,0,0 };

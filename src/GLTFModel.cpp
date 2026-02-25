@@ -123,11 +123,19 @@ void GLTFModel::LoadTextures( TextureManager& textureManager, const std::vector<
 	{
 		for (auto& primitive : mesh->m_primitives)
 		{
+			//NOTE: the primitive's texture index gets "corrected" in BindTextureToModelPrimitive()
 			if (primitive.baseColorTextureIndex.has_value())
 			{
-				//NOTE: the primitive's texture index gets "corrected" in BindTextureToModelPrimtive()
 				textureManager.BindTextureToModelPrimitive(
-					textureNames[primitive.baseColorTextureIndex.value()], primitive);
+					textureNames[primitive.baseColorTextureIndex.value()],
+					primitive.baseColorTextureIndex.value());
+			}
+
+			if (primitive.metallicRoughnessTextureIndex.has_value())
+			{
+				textureManager.BindTextureToModelPrimitive(
+					textureNames[primitive.metallicRoughnessTextureIndex.value()],
+					primitive.metallicRoughnessTextureIndex.value());
 			}
 		}
 	}
@@ -152,14 +160,21 @@ void GLTFModel::LoadMesh( fastgltf::Mesh& mesh, std::vector<Vertex>& vertexBuffe
 		fastgltf::Material& material = m_asset.materials[materialIndex];
 		fastgltf::PBRData& pbr = material.pbrData;
 		uint32_t baseTextureIndex = 0;
+		uint32_t metallicRoughnessTextureIndex = 0;
+
 		if (pbr.baseColorTexture.has_value())
 		{
 			baseTextureIndex = static_cast<uint32_t>(pbr.baseColorTexture.value().textureIndex);
+		}
+		if (pbr.metallicRoughnessTexture.has_value())
+		{
+			metallicRoughnessTextureIndex = static_cast<uint32_t>(pbr.metallicRoughnessTexture.value().textureIndex);
 		}
 
 		//TODO: support normal texture, occlusion, emissive with accompanying parameters in fastgltf::Material
 
 		newPrim.baseColorTextureIndex = baseTextureIndex; //TODO: start with this. Try to get texture index for base color here.
+		newPrim.metallicRoughnessTextureIndex = metallicRoughnessTextureIndex;
 
 		//vertex
 		{

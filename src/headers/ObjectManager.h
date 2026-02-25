@@ -1,6 +1,6 @@
 #pragma once
-#include "ThreadPool.h"
 #include "Object.h"
+#include "ThreadPool.h"
 #include "TextureManager.h"
 
 struct str_cmp

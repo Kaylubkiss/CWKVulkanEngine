@@ -1,8 +1,5 @@
 #pragma once
 
-#include <fastgltf/core.hpp>
-#include <fastgltf/types.hpp>
-
 namespace vk 
 {
 	class Texture
@@ -18,10 +15,8 @@ namespace vk
 		[[nodiscard]] VkDescriptorImageInfo GetDescriptor() const;
 		[[nodiscard]] VkImage GetImage() const;
 
-		static VkImageView CreateImageView( VkDevice l_device,
-			const VkImage& textureImage, uint32_t mipLevels );
-		static VkSampler CreateSampler( VkPhysicalDevice p_device,
-			VkDevice l_device, uint32_t mipLevels );
+		static VkImageView CreateImageView( VkDevice l_device, const VkImage& textureImage, uint32_t mipLevels );
+		static VkSampler CreateSampler( VkPhysicalDevice p_device, VkDevice l_device, uint32_t mipLevels );
 	private:
 		//member variables
 		VkDevice c_device = VK_NULL_HANDLE;
