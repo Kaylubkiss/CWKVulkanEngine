@@ -81,6 +81,11 @@ std::vector<std::string> GLTFModel::GetTextureFileNames() const
 	return fileNames;
 }
 
+void GLTFModel::UpdateModelTransform( const glm::mat4& newModelMatrix )
+{
+	m_modelMatrix = newModelMatrix;
+}
+
 void GLTFModel::Draw( const vk::DrawInfo& drawInfo )
 {
 	const size_t sceneIndex = m_asset.defaultScene.value_or(0);
@@ -93,26 +98,40 @@ void GLTFModel::Draw( const vk::DrawInfo& drawInfo )
 	vkCmdBindVertexBuffers(drawInfo.cmdBuffer, 0, 1, &vertexBuffer, offsets);
 	//TODO: assuming unsigned short for now, will have to change the way primitives perceive this.
 	vkCmdBindIndexBuffer(drawInfo.cmdBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT16);
+
+
 	if (!m_asset.scenes.empty())
 	{
+		//TODO: inefficient copy
+		//Ideally, this codebase will use one math library as its basis.
+		fastgltf::math::fmat4x4 modelMatrix;
+		for (size_t i = 0; i < modelMatrix.rows(); ++i)
+		{
+			for (size_t j = 0; j < modelMatrix.columns(); ++j)
+			{
+				modelMatrix[i][j] = m_modelMatrix[i][j];
+			}
+		}
+
 		fastgltf::iterateSceneNodes(m_asset, sceneIndex, fastgltf::math::fmat4x4(),
 			[&](fastgltf::Node& node, fastgltf::math::fmat4x4 matrix)
+		{
+			if (node.meshIndex.has_value())
 			{
-				if (node.meshIndex.has_value())
+				matrix = modelMatrix * matrix;
+
+				auto mesh = m_meshes[node.meshIndex.value()];
+
+				if (drawInfo.pipelineLayout != VK_NULL_HANDLE)
 				{
-					auto mesh = m_meshes[node.meshIndex.value()];
-
-					if (drawInfo.pipelineLayout != VK_NULL_HANDLE)
-					{
-						vkCmdPushConstants(drawInfo.cmdBuffer, drawInfo.pipelineLayout,
-							VK_SHADER_STAGE_VERTEX_BIT, 0,
-							sizeof(matrix), matrix.data());
-					}
-
-					DrawMeshPrimitives(drawInfo, mesh->m_primitives);
+					vkCmdPushConstants(drawInfo.cmdBuffer, drawInfo.pipelineLayout,
+						VK_SHADER_STAGE_VERTEX_BIT, 0,
+						sizeof(matrix), matrix.data());
 				}
 
-			});
+				DrawMeshPrimitives(drawInfo, mesh->m_primitives);
+			}
+		});
 	}
 }
 
@@ -123,19 +142,13 @@ void GLTFModel::LoadTextures( TextureManager& textureManager, const std::vector<
 	{
 		for (auto& primitive : mesh->m_primitives)
 		{
-			//NOTE: the primitive's texture index gets "corrected" in BindTextureToModelPrimitive()
-			if (primitive.baseColorTextureIndex.has_value())
+			//TODO: this < 2 is TEMPORARY. The shaders only support up to 2 bindings
+			for (size_t i = 0; i < textureNames.size() && i < 2; ++i)
 			{
 				textureManager.BindTextureToModelPrimitive(
-					textureNames[primitive.baseColorTextureIndex.value()],
-					primitive.baseColorTextureIndex.value());
-			}
-
-			if (primitive.metallicRoughnessTextureIndex.has_value())
-			{
-				textureManager.BindTextureToModelPrimitive(
-					textureNames[primitive.metallicRoughnessTextureIndex.value()],
-					primitive.metallicRoughnessTextureIndex.value());
+					textureNames[i],
+					static_cast<uint32_t>(i),
+					primitive.textureSetLayoutIndex);
 			}
 		}
 	}
@@ -157,24 +170,10 @@ void GLTFModel::LoadMesh( fastgltf::Mesh& mesh, std::vector<Vertex>& vertexBuffe
 		newPrim.indexCount  = 0;
 		newPrim.vertexCount = 0;
 		uint32_t materialIndex = static_cast<uint32_t>(primitive.materialIndex.value_or(0));
-		fastgltf::Material& material = m_asset.materials[materialIndex];
-		fastgltf::PBRData& pbr = material.pbrData;
-		uint32_t baseTextureIndex = 0;
-		uint32_t metallicRoughnessTextureIndex = 0;
-
-		if (pbr.baseColorTexture.has_value())
-		{
-			baseTextureIndex = static_cast<uint32_t>(pbr.baseColorTexture.value().textureIndex);
-		}
-		if (pbr.metallicRoughnessTexture.has_value())
-		{
-			metallicRoughnessTextureIndex = static_cast<uint32_t>(pbr.metallicRoughnessTexture.value().textureIndex);
-		}
+		/*fastgltf::Material& material = m_asset.materials[materialIndex];
+		fastgltf::PBRData& pbr = material.pbrData;*/
 
 		//TODO: support normal texture, occlusion, emissive with accompanying parameters in fastgltf::Material
-
-		newPrim.baseColorTextureIndex = baseTextureIndex; //TODO: start with this. Try to get texture index for base color here.
-		newPrim.metallicRoughnessTextureIndex = metallicRoughnessTextureIndex;
 
 		//vertex
 		{

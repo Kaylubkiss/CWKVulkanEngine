@@ -19,23 +19,12 @@ namespace vk
         {
             for (auto& primitive : primitives)
             {
-                if (primitive.baseColorTextureIndex.has_value() == true)
-                {
-                    VkDeviceSize descriptorBufferOffset =
-                        primitive.baseColorTextureIndex.value() * drawInfo.textureBindingSize;
+                VkDeviceSize descriptorBufferOffset =
+                    primitive.textureSetLayoutIndex * drawInfo.textureBindingSize;
 
-                    g_vkCmdSetDescriptorBufferOffsetsEXT(drawInfo.cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-                        drawInfo.pipelineLayout, drawInfo.firstSet, drawInfo.setCount,
-                        &drawInfo.imageBufferIndex, &descriptorBufferOffset);
-                }
-                else
-                {
-                    VkDeviceSize descriptorBufferOffset = 0;
-
-                    g_vkCmdSetDescriptorBufferOffsetsEXT(drawInfo.cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-                        drawInfo.pipelineLayout, drawInfo.firstSet, drawInfo.setCount,
-                        &drawInfo.imageBufferIndex, &descriptorBufferOffset);
-                }
+                g_vkCmdSetDescriptorBufferOffsetsEXT(drawInfo.cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
+                           drawInfo.pipelineLayout, drawInfo.firstSet, drawInfo.setCount,
+                           &drawInfo.imageBufferIndex, &descriptorBufferOffset);
 
                 vkCmdDrawIndexed(drawInfo.cmdBuffer, primitive.indexCount, 1,
                     primitive.firstIndex, static_cast<int32_t>(primitive.firstVertex), 0);

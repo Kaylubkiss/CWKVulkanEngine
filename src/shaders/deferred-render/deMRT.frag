@@ -17,7 +17,7 @@ layout( location = 3) out vec4 outMetallicRoughness;
 void main()
 {
 	outPosition = inWorldPosition;
-	outNormal = vec4(normalize(vec3(inWorldNormal)), 1.f);
+	outNormal = inWorldNormal;
 	outAlbedo = texture(colorSampler, inTexCoord);
 	outMetallicRoughness = texture(metallicRoughnessSampler, inTexCoord);
 }

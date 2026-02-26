@@ -171,21 +171,6 @@ OBJModel::OBJModel( vk::Device* device, const std::filesystem::path& filePath )
                 };
             }
 
-            /*if (index.normal_index > 0)
-            {
-                vert.nrm =
-                {
-                    attrib.normals[3 * index.normal_index + 0],
-                    attrib.normals[3 * index.normal_index + 1],
-                    attrib.normals[3 * index.normal_index + 2]
-                };
-            }
-            else
-            {
-                std::cerr << "vertex normals must be provided for .obj files\n";
-                throw std::runtime_error("OBJModel() Failed!\n");
-            }*/
-
             if (uniqueVertices.contains(vert) == false)
             {
                 uniqueVertices[vert] = static_cast<uint32_t>(vertexBuffer.size());
@@ -213,7 +198,7 @@ OBJModel::OBJModel( vk::Device* device, const std::filesystem::path& filePath )
     Primitive primitive;
     primitive.indexCount = static_cast<uint32_t>(indexBuffer.size());
     primitive.vertexCount = static_cast<uint32_t>(vertexBuffer.size());
-    primitive.baseColorTextureIndex = 0;
+    primitive.textureSetLayoutIndex = 0;
     
     std::vector<Primitive> primitive_vector = { primitive };
 
@@ -271,8 +256,5 @@ void OBJModel::LoadTextures( TextureManager& textureManager, const std::vector<s
     //this code-base will treat .obj as a primitive format for only geometry and texture data.
     Mesh& mesh = *m_meshes.back().get();
     Primitive& primitive = mesh.m_primitives.back();
-    if (primitive.baseColorTextureIndex.has_value() == true)
-    {
-        textureManager.BindTextureToModelPrimitive(textureNames.front(), primitive.baseColorTextureIndex.value());
-    }
+    textureManager.BindTextureToModelPrimitive(textureNames.front(), 0, primitive.textureSetLayoutIndex);
 }

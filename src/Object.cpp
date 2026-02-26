@@ -4,8 +4,8 @@
 
 //normally I'd say ObjectManager should take care of these paths, but since loading was already
 //implemented with checking the extensions, they'll be placed here. Perhaps change this later.
-#define GLTF_OBJECT_PATH "art/objects/gltf/"
-#define OBJECT_PATH "art/objects/"
+#define GLTF_OBJECT_PATH "art/gltf/"
+#define OBJ_PATH "art/obj/"
 
 Object::Object( const ObjectCreateInfo& objectCI, TextureManager& textureManager )
 {
@@ -31,11 +31,17 @@ Object::Object( const ObjectCreateInfo& objectCI, TextureManager& textureManager
         m_model = std::make_unique<GLTFModel>(objectCI.devicePtr, filePath);
 
         std::vector<std::string> gltf_fileNames = dynamic_cast<GLTFModel*>(m_model.get())->GetTextureFileNames();
+
+        for (auto& fileName : gltf_fileNames)
+        {
+            fileName = filePath.parent_path().string() + "/" + fileName;
+        }
+
         m_model->LoadTextures(textureManager, gltf_fileNames);
     }
     else if (filePath.extension() == ".obj")
     {
-        filePath = OBJECT_PATH + filePath.string();
+        filePath = OBJ_PATH + filePath.string();
 
         if (std::filesystem::exists(filePath) == false)
         {

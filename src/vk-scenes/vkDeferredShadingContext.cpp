@@ -64,7 +64,7 @@ namespace vk
 		
 		//object 1 - freddy
 		objectCI.objName = "freddy.obj";
-		objectCI.textureFileName = "myface.JPG";
+		objectCI.textureFileName = "art/extern-textures/myface.JPG";
 		objectCI.modelTransform = glm::translate(glm::mat4(1.f), sceneSettings.freddyPosition) * 
 			glm::scale(glm::mat4(1.f), glm::vec3(3.f));
 		objectCI.devicePtr = &this->device;
@@ -80,7 +80,7 @@ namespace vk
 		
 		objectCI.objName = "cube.obj";
 		//NOTE: cube.obj doesn't have UVs.
-		objectCI.textureFileName = "myface.JPG";
+		objectCI.textureFileName = "art/extern-textures/myface.JPG";
 		objectCI.physicsComponent = physicsComponent;
 		objectCI.hasPhysicsComponent = true;
 		objectCI.modelTransform = glm::translate(glm::mat4(1.f), glm::vec3(sceneSettings.cubePosition));
@@ -94,7 +94,7 @@ namespace vk
 		physicsComponent.bodyType = reactphysics3d::BodyType::STATIC;
 
 		objectCI.objName = "base.obj";
-		objectCI.textureFileName = "wood-floor.png";
+		objectCI.textureFileName = "art/extern-textures/wood-floor.png";
 		objectCI.physicsComponent = physicsComponent;
 		objectCI.modelTransform = glm::translate(glm::mat4(1.f), glm::vec3(0, -5.f, 0)) *
 			glm::scale(glm::mat4(1.f), glm::vec3(30.f));
@@ -105,8 +105,15 @@ namespace vk
 
 		objectCI = {};
 
-		objectCI.modelTransform = glm::translate(glm::mat4(1.f), glm::vec3(0, 5.f, 0));
-		objectCI.objName = "AnimatedCube.gltf";
+		objectCI.modelTransform = glm::translate(glm::mat4(1.f), glm::vec3(-3, 1.f, 0));
+		objectCI.objName = "AnimatedCube/glTF/AnimatedCube.gltf";
+		objectCI.devicePtr = &this->device;
+
+		m_objectManager->LoadObject(objectCI);
+
+		objectCI = {};
+		objectCI.modelTransform = glm::translate(glm::mat4(1.f), glm::vec3(0.f, 1.f, 0));
+		objectCI.objName = "SciFiHelmet/glTF/SciFiHelmet.gltf";
 		objectCI.devicePtr = &this->device;
 
 		m_objectManager->LoadObject(objectCI);
@@ -132,6 +139,8 @@ namespace vk
 			sceneSettings.freddyPosition, glm::vec3(0, 1, 0));
 		uniformDataDeferredShadow.viewMatrices[1] = perspective * glm::lookAt(uniformDataLightPass.lights[1].pos,
 			sceneSettings.cubePosition, glm::vec3(0, 1, 0));
+
+
 
 	}
 
@@ -237,14 +246,33 @@ namespace vk
 		}
 	}
 
+	inline void GetUniformDescriptor( const vk::Buffer& descriptorBuffer, const vk::Buffer& dataBuffer,
+		const vk::Device& device )
+	{
+		char* descriptor_ptr = static_cast<char*>(descriptorBuffer.GetMappedMemory());
+		VkDescriptorAddressInfoEXT addrInfo = { VK_STRUCTURE_TYPE_DESCRIPTOR_ADDRESS_INFO_EXT };
+		addrInfo.address = dataBuffer.GetDeviceAddress();
+		addrInfo.range = dataBuffer.GetSize();
+		addrInfo.format = VK_FORMAT_UNDEFINED;
+
+		VkDescriptorGetInfoEXT bufferDescriptorInfo = { VK_STRUCTURE_TYPE_DESCRIPTOR_GET_INFO_EXT };
+		bufferDescriptorInfo.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		bufferDescriptorInfo.data.pUniformBuffer = &addrInfo;
+
+		g_vkGetDescriptorEXT(device.GetDevice(), &bufferDescriptorInfo,
+			device.GetDescriptorBufferProperties().uniformBufferDescriptorSize,
+			descriptor_ptr);
+	}
+
 	void DeferredContext::InitializeDescriptorLayouts()
 	{
 		//MRT PASS DESCRIPTORS
 		{
 			std::array<VkDescriptorSetLayoutBinding, 2> setLayoutBindings = {};
 
-			//per-frame scene transform
+			//per-frame scene transform (ubo)
 			setLayoutBindings.front() = {};
+			setLayoutBindings.front().binding = 0;
 			setLayoutBindings.front().descriptorCount = 1;
 			setLayoutBindings.front().descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 			setLayoutBindings.front().stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
@@ -257,10 +285,11 @@ namespace vk
 			VK_CHECK_RESULT(vkCreateDescriptorSetLayout(this->device.GetDevice(), &setLayoutCreateInfo,
 				nullptr, &uniformBindingDescriptors[dePipeline::MRT].layout));
 
-			//per-model image samplers
+			//per-model image samplers (sampler2D)
 
 			//albedo
 			setLayoutBindings.front() = {};
+			setLayoutBindings.front().binding = 0;
 			setLayoutBindings.front().descriptorCount = 1;
 			setLayoutBindings.front().descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 			setLayoutBindings.front().stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
@@ -275,6 +304,16 @@ namespace vk
 
 			VK_CHECK_RESULT(vkCreateDescriptorSetLayout(this->device.GetDevice(), &setLayoutCreateInfo,
 				nullptr, &textureBindingDescriptor.layout));
+
+			//TEXTURE IMAGE descriptor (static)
+			textureBindingDescriptor.c_device = device.GetDevice();
+			GetDescriptorLayoutSize(&device, textureBindingDescriptor.layout, &textureBindingDescriptor.size);
+
+			textureBindingDescriptor.binding_offsets.resize(2);
+
+			GetDescriptorLayoutBindingOffsets(&device, textureBindingDescriptor.layout,
+				textureBindingDescriptor.binding_offsets.data(),
+				static_cast<uint32_t>(textureBindingDescriptor.binding_offsets.size()));
 
 			std::vector<VkPushConstantRange> pushConstantRanges =
 			{
@@ -296,16 +335,7 @@ namespace vk
 			VK_CHECK_RESULT(vkCreatePipelineLayout(device.GetDevice(), &pipelineLayoutCreateInfo,
 				nullptr, &pipelineLayouts[dePipeline::MRT]));
 
-			//TEXTURE IMAGE descriptor (static)
-			textureBindingDescriptor.c_device = device.GetDevice();
 
-			GetDescriptorLayoutSize(&device, textureBindingDescriptor.layout, &textureBindingDescriptor.size);
-
-			textureBindingDescriptor.binding_offsets.resize(2);
-
-			GetDescriptorLayoutBindingOffsets(&device, textureBindingDescriptor.layout,
-				textureBindingDescriptor.binding_offsets.data(),
-				static_cast<uint32_t>(textureBindingDescriptor.binding_offsets.size()));
 		}
 
 		//COMPOSITION PASS DESCRIPTORS
@@ -351,8 +381,10 @@ namespace vk
 				compositionImageBindingDescriptor.binding_offsets.data(), RT_COUNT + 1);
 
 			VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = vk::init::PipelineLayoutCreateInfo();
+
 			//order of layouts need to be in order of they appear in shader(s)
 			std::array<VkDescriptorSetLayout, 2> composition_layouts = {
+				//set 0: image samplers, set 1: light ubo
 				compositionImageBindingDescriptor.layout, uniformBindingDescriptors[dePipeline::COMPOSITION].layout
 			};
 			pipelineLayoutCreateInfo.pSetLayouts = composition_layouts.data();
@@ -407,28 +439,12 @@ namespace vk
 		}
 	}
 
-	inline void GetUniformDescriptor( const vk::Buffer& descriptorBuffer, const vk::Buffer& dataBuffer,
-		const vk::Device& device )
-	{
-		char* descriptor_ptr = static_cast<char*>(descriptorBuffer.GetMappedMemory());
-		VkDescriptorAddressInfoEXT addrInfo = { VK_STRUCTURE_TYPE_DESCRIPTOR_ADDRESS_INFO_EXT };
-		addrInfo.address = dataBuffer.GetDeviceAddress();
-		addrInfo.range = dataBuffer.GetSize();
-		addrInfo.format = VK_FORMAT_UNDEFINED;
-
-		VkDescriptorGetInfoEXT bufferDescriptorInfo = { VK_STRUCTURE_TYPE_DESCRIPTOR_GET_INFO_EXT };
-		bufferDescriptorInfo.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		bufferDescriptorInfo.data.pUniformBuffer = &addrInfo;
-
-		g_vkGetDescriptorEXT(device.GetDevice(), &bufferDescriptorInfo,
-			device.GetDescriptorBufferProperties().uniformBufferDescriptorSize,
-			descriptor_ptr);
-	}
-
 	void DeferredContext::InitializeDescriptorBuffers() 
 	{
-		//TODO: need to remove and properly initialize the descriptor's buffer here
 		//1 for scene uniform in MRT pass, 1 for composition pass, 1 for scene uniform shadow pass
+
+		//for the ease of programming, each frame buffer is allocated separately.
+		//however, (TODO) I'll need to make each buffer one big allocation for each frame.
 		for (int frame = 0; frame < gMaxFramesInFlight; ++frame) 
 		{
 			//MRT pass UBO (global transforms)
@@ -478,7 +494,8 @@ namespace vk
 				uniformBuffers[frame].composition, device);
 
 			//Composition Image Samplers 
-			compositionImageBindingDescriptor.buffers[frame] = vk::Buffer(&device, 
+
+			compositionImageBindingDescriptor.buffers[frame] = vk::Buffer(&device,
 				VK_BUFFER_USAGE_RESOURCE_DESCRIPTOR_BUFFER_BIT_EXT | 
 				VK_BUFFER_USAGE_SAMPLER_DESCRIPTOR_BUFFER_BIT_EXT |
 				VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT, 
@@ -534,7 +551,7 @@ namespace vk
 			VK_BUFFER_USAGE_SAMPLER_DESCRIPTOR_BUFFER_BIT_EXT | 
 			VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT, 
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			OBJECT_COUNT * textureBindingDescriptor.size);
+			OBJECT_COUNT * textureBindingDescriptor.size); // * 2 for the metallicRoughness texture
 
 		//fill in the default texture first, then try to figure out texture manager.
 		textureBindingDescriptor.buffers.front().Map();
@@ -571,22 +588,6 @@ namespace vk
 		uniformDataLightPass.lights[1].viewMatrix = uniformDataDeferredShadow.viewMatrices[1];
 		memcpy(uniformBuffers[currentFrame].composition.GetMappedMemory(), (void*)(&uniformDataLightPass),
 			sizeof(uniformDataLightPass));
-	}
-
-	void DeferredContext::DrawObjectsWithTexture(
-		VkCommandBuffer cmdBuffer, 
-		VkPipelineLayout pipelineLayout, 
-		const ObjectManager& objManager)
-	{
-		vk::DrawInfo drawInfo = {};
-		drawInfo.imageBufferIndex = 1;
-		drawInfo.cmdBuffer = cmdBuffer;
-		drawInfo.setCount = 1;
-		drawInfo.firstSet = 0;
-		drawInfo.pipelineLayout = pipelineLayout;
-		drawInfo.textureBindingSize = textureBindingDescriptor.size;
-
-		objManager.DrawObjects(drawInfo);
 	}
 
 	void DeferredContext::InitializeDeferredFramebuffer()
@@ -1071,7 +1072,7 @@ namespace vk
 			// Binding 1 = Image
 			descriptor_buffer_binding_info[1].sType = VK_STRUCTURE_TYPE_DESCRIPTOR_BUFFER_BINDING_INFO_EXT;
 			descriptor_buffer_binding_info[1].address = 
-				textureBindingDescriptor.buffers.front().GetDeviceAddress(); //only need one texture buffer.
+				textureBindingDescriptor.buffers.front().GetDeviceAddress();
 			descriptor_buffer_binding_info[1].usage = VK_BUFFER_USAGE_SAMPLER_DESCRIPTOR_BUFFER_BIT_EXT |
 				VK_BUFFER_USAGE_RESOURCE_DESCRIPTOR_BUFFER_BIT_EXT;
 

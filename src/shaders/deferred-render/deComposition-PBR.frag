@@ -53,11 +53,11 @@ float ShadowSampling(vec4 fragPos, int i)
 }
 
 
-vec3 Radiance(vec3 P, vec3 L, vec3 lightAlbedo)
+vec3 Radiance(vec3 fragPos, vec3 lightPos, vec3 lightAlbedo)
 {
     //because it's a point light, we will just attenuate the intensity of the light's color.
 
-    float distance = length(L - P);
+    float distance = length(fragPos - lightPos);
     float attenuation = 1.0 / (distance * distance + 0.0001); //just in-case the distance is 0, add a small fraction.
 
     //NOTE: might want to use a quadratic version of attenuation for more control of the roll-off.
@@ -72,15 +72,13 @@ float GeometrySchlickGGX(float NdotX, float roughness)
     float kNum = roughness + 1.0;
     float kDirect = (kNum * kNum) / 8.0;
 
-    return ((NdotX) / (NdotX * (1-kDirect) + kDirect));
+    return ((NdotX) / (NdotX * (1.0-kDirect) + kDirect));
 }
 
 float GeometrySmith(float NdotV, float NdotL, float roughness)
 {
-    float ggx1 = GeometrySchlickGGX(NdotV, roughness);
-    float ggx2 = GeometrySchlickGGX(NdotL, roughness);
-
-    return ggx1 * ggx2;
+    return GeometrySchlickGGX(NdotV, roughness) *
+           GeometrySchlickGGX(NdotL, roughness);
 }
 
 vec3 FresnelSchlick(float cosTheta, vec3 F0)
@@ -95,7 +93,7 @@ float DistributionGGX(float NdotH, float roughness)
     float a = roughness * roughness;
     float a2 = a * a;
 
-    float denom = NdotH * NdotH * (a2 - 1) + 1;
+    float denom = NdotH * NdotH * (a2 - 1.0) + 1;
     denom = M_PI * denom * denom;
 
     return (a2 / denom);
@@ -111,7 +109,6 @@ vec3 CookTorrenceReflectance(vec3 P, vec3 N, vec3 albedo, vec3 metallicRoughness
     float roughness = metallicRoughness.g;
 
     float baseReflectivity = 0.04f;
-
     vec3 F0 = mix(vec3(baseReflectivity), albedo, metalness);
 
     vec3 Lo = vec3(0.f);
@@ -130,9 +127,9 @@ vec3 CookTorrenceReflectance(vec3 P, vec3 N, vec3 albedo, vec3 metallicRoughness
         vec3 F  = FresnelSchlick(max(dot(H, V), 0.0), F0);
 
         vec3 nom    =  NDF * F * G;
-        float denom = 4.0 * NdotV * NdotL; //want to make sure division by 0 is impossible
+        float denom = 4.0 * NdotV * NdotL + .0001; //want to make sure division by 0 is impossible
 
-        vec3 specular = nom / max(denom, 0.0001);
+        vec3 specular = nom / denom;
 
         vec3 kS = F;
         vec3 kD = vec3(1.0) - kS;
@@ -141,8 +138,7 @@ vec3 CookTorrenceReflectance(vec3 P, vec3 N, vec3 albedo, vec3 metallicRoughness
 
         float shadowFactor = ShadowSampling(vec4(P, 1), i);
 
-        Lo += shadowFactor * ((kD * albedo / M_PI) + specular) *
-            Radiance(P, ubo.lights[i].position, ubo.lights[i].albedo) * NdotL;
+        Lo += shadowFactor * ((kD * albedo / M_PI) + specular) * Radiance(P, ubo.lights[i].position, ubo.lights[i].albedo) * NdotL;
     }
 
     return Lo;
@@ -152,7 +148,9 @@ vec3 CookTorrenceReflectance(vec3 P, vec3 N, vec3 albedo, vec3 metallicRoughness
 void main()
 {
 	vec3 position = texture(samplerPosition, inUV).rgb;
-	vec3 normal = texture(samplerNormal, inUV).rgb;
+
+	//linear interpolation during the texture sampling process still distorts normals
+	vec3 normal = normalize(texture(samplerNormal, inUV).rgb);
     vec3 albedo = texture(samplerAlbedo, inUV).rgb;
 
     //g = roughness, b = metalness

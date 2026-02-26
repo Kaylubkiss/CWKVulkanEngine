@@ -1,7 +1,5 @@
 #include "TextureManager.h"
 
-#define TEXTURE_PATH "art/textures/"
-
 void TextureManager::Init( std::shared_ptr<vk::GraphicsContextInfo>& contextInfo )
 {
 	assert(contextInfo->devicePtr != nullptr);
@@ -41,23 +39,34 @@ void TextureManager::Destroy()
 		std::lock_guard<std::mutex> lock(m_textureMutex);
 		m_textures.clear(); //this should call ~Texture()
 	}
-
 }
 
-uint32_t TextureManager::AddTexture( const std::string& fileName )
+uint32_t TextureManager::AddTexture( const std::string& fileName, uint32_t bindingIndex, uint32_t& layoutIndex )
 {
+	if (fileName.empty())
+	{
+		return 0;
+	}
+
 	//quick check.
 	{
 		std::lock_guard<std::mutex> lock(m_textureMutex);
 		if (m_textures.contains(fileName) == true)
 		{
+			layoutIndex = m_textures[fileName].index;
 			return m_textures[fileName].index;
 		}
 	}
 
 	//TODO: generate checker-board texture for objects if texture loading failed.
 	std::shared_ptr<vk::Texture> newTexture =
-			std::make_shared<vk::Texture>(s_graphicsContextInfo->devicePtr, TEXTURE_PATH + fileName, m_transferMutex);
+			std::make_shared<vk::Texture>(s_graphicsContextInfo->devicePtr, fileName, m_transferMutex);
+
+	if (s_graphicsContextInfo->contextTextureDescriptorPtr->binding_offsets.size() <= bindingIndex)
+	{
+		std::cerr << "binding index " << bindingIndex << " is greater than the binding count supported in the shaders.\n";
+		throw std::runtime_error("AddTexture() Failed!\n");
+	}
 
 	{
 		std::lock_guard<std::mutex> lock(m_textureMutex);
@@ -72,16 +81,62 @@ uint32_t TextureManager::AddTexture( const std::string& fileName )
 
 	{
 		std::lock_guard<std::mutex> lock(m_pendingTexturesMutex);
-		m_pendingTextures.push_back(m_textures[fileName]); //sync with this later.
+		PendingTextureInfo pendingInfo = {};
+		pendingInfo.texture_to_process = m_textures[fileName].handle;
+		pendingInfo.bindingIndex = bindingIndex;
+		//because layoutIndex 0 is the null/default texture, we assume that because a texture
+		//was successfully allocated, the layout's base index starts where the newly allocated
+		//texture does in the buffer.
+		if (layoutIndex == 0)
+		{
+			layoutIndex = m_textures[fileName].index;
+		}
+		pendingInfo.layoutIndex = layoutIndex;
+		m_pendingTextures.push_back(pendingInfo); //sync with this later.
 	}
 
 	std::cout << "texture loaded... " << fileName << " loaded.\n";
 	return m_textures[fileName].index;
 }
 
+void TextureManager::FillDescriptorBuffer(const std::vector<PendingTextureInfo>& texturesToProcess) const
+{
+	for (auto& t : texturesToProcess)
+	{
+		vk::Texture* curr_texture = t.texture_to_process.get();
+
+		auto& UI = s_graphicsContextInfo->contextUIPtr;
+		if (UI)
+		{
+			UI->AddImage(*curr_texture);
+		}
+
+		VkDescriptorImageInfo textureDescriptor = curr_texture->GetDescriptor();
+
+		VkDeviceSize bindingOffset = s_graphicsContextInfo->contextTextureDescriptorPtr->binding_offsets[t.bindingIndex];
+
+		VkDescriptorGetInfoEXT imageDescriptorInfo = { VK_STRUCTURE_TYPE_DESCRIPTOR_GET_INFO_EXT };
+		imageDescriptorInfo.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		imageDescriptorInfo.data.pCombinedImageSampler = &textureDescriptor;
+
+		VkDeviceSize textureBindingSize =
+			s_graphicsContextInfo->contextTextureDescriptorPtr->size;
+
+		VkDeviceSize imageSamplerSize =
+			s_graphicsContextInfo->devicePtr->GetDescriptorBufferProperties().combinedImageSamplerDescriptorSize;
+
+		char* imageBindingDescriptorPtr =
+			static_cast<char*>(s_graphicsContextInfo->contextTextureDescriptorPtr->buffers.front().GetMappedMemory());
+
+		g_vkGetDescriptorEXT(s_graphicsContextInfo->devicePtr->GetDevice(), &imageDescriptorInfo,
+			imageSamplerSize,
+			imageBindingDescriptorPtr + t.layoutIndex * textureBindingSize + bindingOffset);
+	}
+}
+
 bool TextureManager::UploadTextureDataToGPU( uint32_t currentFrame, const VkSemaphore signalSemaphore )
 {
-	std::vector<TextureInfo> texturesToProcess;
+	std::vector<PendingTextureInfo> texturesToProcess;
 
 	{
 		std::lock_guard<std::mutex> lock(m_pendingTexturesMutex);
@@ -106,7 +161,7 @@ bool TextureManager::UploadTextureDataToGPU( uint32_t currentFrame, const VkSema
 
 	for (auto& t : texturesToProcess)
 	{
-		vk::Texture* curr_texture = t.handle.get();
+		vk::Texture* curr_texture = t.texture_to_process.get();
 
 		VkImageMemoryBarrier acquireBarrier = {};
 		acquireBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -145,38 +200,8 @@ bool TextureManager::UploadTextureDataToGPU( uint32_t currentFrame, const VkSema
 
 	VK_CHECK_RESULT(vkQueueSubmit(devicePtr->GetQueue(vk::DeviceQueue::GRAPHICS).handle, 1, &submitInfo, VK_NULL_HANDLE));
 
-	//fill descriptors -- NOTE: this is incomplete until the submission is synced on the GPU
-	for (auto& t : texturesToProcess)
-	{
-		vk::Texture* curr_texture = t.handle.get();
-		VkDescriptorImageInfo textureDescriptor = curr_texture->GetDescriptor();
-
-		auto& UI = s_graphicsContextInfo->contextUIPtr;
-		if (UI)
-		{
-			UI->AddImage(*curr_texture);
-		}
-
-		VkDeviceSize textureBindingSize =
-			s_graphicsContextInfo->contextTextureDescriptorPtr->size;
-
-		VkDeviceSize combinedImageSamplerSize =
-			s_graphicsContextInfo->devicePtr->GetDescriptorBufferProperties().combinedImageSamplerDescriptorSize;
-
-		for (auto& bindingOffset : s_graphicsContextInfo->contextTextureDescriptorPtr->binding_offsets)
-		{
-			VkDescriptorGetInfoEXT imageDescriptorInfo = { VK_STRUCTURE_TYPE_DESCRIPTOR_GET_INFO_EXT };
-			imageDescriptorInfo.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-			imageDescriptorInfo.data.pCombinedImageSampler = &textureDescriptor;
-
-			char* imageBindingDescriptorPtr =
-				static_cast<char*>(s_graphicsContextInfo->contextTextureDescriptorPtr->buffers.front().GetMappedMemory());
-
-			g_vkGetDescriptorEXT(s_graphicsContextInfo->devicePtr->GetDevice(), &imageDescriptorInfo,
-				combinedImageSamplerSize,
-				imageBindingDescriptorPtr + t.index * textureBindingSize + bindingOffset);
-		}
-	}
+	// NOTE: this is incomplete until the submission is synced on the GPU
+	FillDescriptorBuffer(texturesToProcess);
 
 	return true;
 }
@@ -187,11 +212,7 @@ size_t TextureManager::GetSize()
 	return m_textures.size();
 }
 
-void TextureManager::BindTextureToModelPrimitive( const std::string& fileName, uint32_t& primitive_texture_index )
+void TextureManager::BindTextureToModelPrimitive( const std::string& fileName, uint32_t bindingIndex, uint32_t& layoutIndex )
 {
-	if (fileName.empty() == false)
-	{
-		primitive_texture_index = AddTexture(fileName);
-	}
-
+	AddTexture(fileName, bindingIndex, layoutIndex);
 }

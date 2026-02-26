@@ -62,7 +62,6 @@ namespace vk
 	{
 		VkCommandBuffer cmdBuffer = VK_NULL_HANDLE;
 		VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
-		VkDeviceSize bufferOffset = 0; //just in case I ever decide to make a more compact buffer.
 		VkDeviceSize textureBindingSize = 0; //used for buffer offset calculation
 		uint32_t imageBufferIndex = 0;
 		uint32_t firstSet = 0;

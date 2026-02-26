@@ -12,8 +12,7 @@ struct Primitive
     uint32_t firstVertex = 0;
     uint32_t vertexCount = 0;
 
-    std::optional<uint32_t> baseColorTextureIndex = std::nullopt;
-    std::optional<uint32_t> metallicRoughnessTextureIndex = std::nullopt;
+    uint32_t textureSetLayoutIndex = 0;
 };
 
 struct Mesh

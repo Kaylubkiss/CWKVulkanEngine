@@ -389,7 +389,6 @@ namespace vk
 		{
 			currentFrame = (currentFrame + 1) % m_settings.maxFramesInFlight;
 		}
-
 	}
 
 }

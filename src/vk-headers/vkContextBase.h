@@ -17,7 +17,7 @@ namespace vk
 		virtual ~ContextBase();
 
 		//getters(s)
-		std::shared_ptr<GraphicsContextInfo> GetGraphicsContextInfo() const;
+		[[nodiscard]] std::shared_ptr<GraphicsContextInfo> GetGraphicsContextInfo() const;
 		Camera& GetCamera();
 		vk::Window& GetWindow();
 

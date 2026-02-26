@@ -59,7 +59,6 @@ namespace vk
 		return nTextureSampler;
 	}
 
-
 	Texture::Texture( const vk::Device* devicePtr, const std::string& filePath, std::mutex& transferMutex )
 	{
 
@@ -277,6 +276,7 @@ namespace vk
 	{
 		return m_image;
 	}
+
 
 
 }

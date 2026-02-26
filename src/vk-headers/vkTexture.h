@@ -27,6 +27,7 @@ namespace vk
 		VkSampler m_sampler = VK_NULL_HANDLE; //different mip-levels might need different samplers
 
 		VkDescriptorImageInfo m_descriptor = {};
+
 	};
 
 }

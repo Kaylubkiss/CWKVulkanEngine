@@ -29,8 +29,6 @@ namespace vk
 		void InitializeDescriptorLayouts();
 		void UpdateScreenUniforms();
 		void UpdateLights();
-		void DrawObjectsWithTexture( VkCommandBuffer cmdBuffer, VkPipelineLayout pipelineLayout,
-			const ObjectManager& objManager );
 	private:
 		enum dePipeline
 		{
@@ -81,7 +79,6 @@ namespace vk
 		};
 
 		std::array<UniformBuffers, gMaxFramesInFlight> uniformBuffers;
-
 
 		std::array<DescriptorBufferData, dePipeline::PIPELINE_COUNT> uniformBindingDescriptors;
 
