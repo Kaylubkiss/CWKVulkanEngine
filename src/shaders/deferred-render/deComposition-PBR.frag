@@ -9,7 +9,8 @@ layout(set = 0, binding = 0) uniform sampler2D samplerPosition;
 layout(set = 0, binding = 1) uniform sampler2D samplerNormal;
 layout(set = 0, binding = 2) uniform sampler2D samplerAlbedo;
 layout(set = 0, binding = 3) uniform sampler2D samplerMetallicRoughness;
-layout(set = 0, binding = 4) uniform sampler2DArray samplerShadowMap;
+layout(set = 0, binding = 4) uniform sampler2D samplerAmbientOcclusion;
+layout(set = 0, binding = 5) uniform sampler2DArray samplerShadowMap;
 
 #define LIGHT_COUNT 2
 #define AMBIENT_COLOR .2
@@ -149,23 +150,22 @@ void main()
 {
 	vec3 position = texture(samplerPosition, inUV).rgb;
 
-	//linear interpolation during the texture sampling process still distorts normals
+	//linear filtering during the texture sampling process still distorts normals
 	vec3 normal = normalize(texture(samplerNormal, inUV).rgb);
     vec3 albedo = texture(samplerAlbedo, inUV).rgb;
+
+    albedo = vec3(1.f);
+
+    vec3 ambientOcclusion = texture(samplerAmbientOcclusion, inUV).rgb;
 
     //g = roughness, b = metalness
     vec3 metallicRoughness = texture(samplerMetallicRoughness, inUV).rgb;
 
-    //NOTE:
-    // NdotL computed multiple times
-    // F0 computed multiple times
-    // albedo computed multiple times
+    fragColor.rgb = AMBIENT_COLOR * ambientOcclusion.r * albedo  + CookTorrenceReflectance(position, normal, albedo, metallicRoughness);
 
-    fragColor.rgb = AMBIENT_COLOR * albedo + CookTorrenceReflectance(position, normal, albedo, metallicRoughness);
-
-    //gamma correction using the Reinhard operator -- I DON'T REALLY UNDERSTAND THIS
+    //gamma correction using the Reinhard operator so that bright spots of the image get normalized
     fragColor.rgb = fragColor.rgb / (fragColor.rgb + vec3(1.0));
     fragColor.rgb = pow(fragColor.rgb, vec3(1.0/2.2));
 
-	fragColor.a = 1.f;
+	fragColor.a = 1.0;
 }

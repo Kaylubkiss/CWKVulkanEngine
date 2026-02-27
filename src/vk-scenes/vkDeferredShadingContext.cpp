@@ -268,7 +268,7 @@ namespace vk
 	{
 		//MRT PASS DESCRIPTORS
 		{
-			std::array<VkDescriptorSetLayoutBinding, 2> setLayoutBindings = {};
+			std::array<VkDescriptorSetLayoutBinding, 3> setLayoutBindings = {};
 
 			//per-frame scene transform (ubo)
 			setLayoutBindings.front() = {};
@@ -300,6 +300,12 @@ namespace vk
 			setLayoutBindings[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 			setLayoutBindings[1].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 
+			//ambient occlusion
+			setLayoutBindings[2].binding = 2;
+			setLayoutBindings[2].descriptorCount = 1;
+			setLayoutBindings[2].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+			setLayoutBindings[2].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
 			setLayoutCreateInfo.bindingCount = static_cast<uint32_t>(setLayoutBindings.size());
 
 			VK_CHECK_RESULT(vkCreateDescriptorSetLayout(this->device.GetDevice(), &setLayoutCreateInfo,
@@ -309,7 +315,7 @@ namespace vk
 			textureBindingDescriptor.c_device = device.GetDevice();
 			GetDescriptorLayoutSize(&device, textureBindingDescriptor.layout, &textureBindingDescriptor.size);
 
-			textureBindingDescriptor.binding_offsets.resize(2);
+			textureBindingDescriptor.binding_offsets.resize(3);
 
 			GetDescriptorLayoutBindingOffsets(&device, textureBindingDescriptor.layout,
 				textureBindingDescriptor.binding_offsets.data(),
@@ -340,7 +346,7 @@ namespace vk
 
 		//COMPOSITION PASS DESCRIPTORS
 		{
-			std::array<VkDescriptorSetLayoutBinding, 5> setLayoutBindings = {};
+			std::array<VkDescriptorSetLayoutBinding, 6> setLayoutBindings = {};
 
 			//set 0: per-frame image resources
 			for (uint32_t i = 0; i < setLayoutBindings.size(); ++i)
@@ -551,7 +557,7 @@ namespace vk
 			VK_BUFFER_USAGE_SAMPLER_DESCRIPTOR_BUFFER_BIT_EXT | 
 			VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT, 
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			OBJECT_COUNT * textureBindingDescriptor.size); // * 2 for the metallicRoughness texture
+			OBJECT_COUNT * textureBindingDescriptor.size);
 
 		//fill in the default texture first, then try to figure out texture manager.
 		textureBindingDescriptor.buffers.front().Map();
@@ -623,6 +629,9 @@ namespace vk
 		//because there's no optimal tiling feature for a smaller format, I'm sticking with the albedo's format for now.
 		framebuffers.deMRT.AddAttachment(attachmentCI);
 
+		//ambient occlusion attachment
+		framebuffers.deMRT.AddAttachment(attachmentCI);
+
 		//depth attachment
 		attachmentCI.format = VK_FORMAT_D24_UNORM_S8_UINT;
 		attachmentCI.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
@@ -634,7 +643,6 @@ namespace vk
 		framebuffers.deMRT.CreateRenderPass();
 
 		framebuffers.deMRT.CreateFramebuffer();
-
 	}
 
 	void DeferredContext::InitializeDeferredShadowFramebuffer() 
@@ -818,7 +826,7 @@ namespace vk
 			pipelineCI.layout = pipelineLayouts[dePipeline::MRT];
 			pipelineCI.renderPass = framebuffers.deMRT.renderPass;
 
-			//there are 4 color outputs in this stage.
+			//there are 5 color outputs in this stage.
 			std::array<VkPipelineColorBlendAttachmentState, RT_COUNT> blendAttachmentStates = {};
 			for (auto& attachment : blendAttachmentStates)
 			{
@@ -867,12 +875,11 @@ namespace vk
 						pipeline = VK_NULL_HANDLE;
 					}
 
-					std::array<VkPipelineColorBlendAttachmentState, RT_COUNT> blendAttachmentStates = {
-						vk::init::PipelineColorBlendAttachmentState(0xf, VK_FALSE),
-						vk::init::PipelineColorBlendAttachmentState(0xf, VK_FALSE),
-						vk::init::PipelineColorBlendAttachmentState(0xf, VK_FALSE),
-						vk::init::PipelineColorBlendAttachmentState(0xf, VK_FALSE)
-					};
+					std::array<VkPipelineColorBlendAttachmentState, RT_COUNT> blendAttachmentStates = {};
+					for (auto& attachment : blendAttachmentStates)
+					{
+						attachment = vk::init::PipelineColorBlendAttachmentState(0xf, VK_FALSE);
+					}
 
 					VkPipelineColorBlendStateCreateInfo colorBlendStateCI = vk::init::PipelineColorBlendStateCreateInfo
 					(
@@ -1043,7 +1050,8 @@ namespace vk
 			clearValues[1].color = clearValues[0].color;
 			clearValues[2].color = clearValues[0].color;
 			clearValues[3].color = clearValues[0].color;
-			clearValues[4].depthStencil = { 1.f, 0 };
+			clearValues[4].color = clearValues[0].color;
+			clearValues[5].depthStencil = { 1.f, 0 };
 
 			VkRenderPassBeginInfo renderPassBeginInfo = vk::init::RenderPassBeginInfo();
 			renderPassBeginInfo.clearValueCount = RT_COUNT + 1;

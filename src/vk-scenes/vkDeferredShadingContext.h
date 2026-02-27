@@ -5,7 +5,7 @@ namespace vk
 {
 	#define LIGHT_COUNT 2
 
-	//This scene is statically 4.2 MB!!!
+	//This scene is statically 4.2 KB!!!
 	class DeferredContext : public ContextBase 
 	{
 	public:
@@ -44,6 +44,7 @@ namespace vk
 			RT_NORMAL,
 			RT_ALBEDO,
 			RT_METALLIC_ROUGHNESS,
+			RT_AMBIENT_OCCLUSION,
 			RT_COUNT
 		};
 

@@ -320,6 +320,7 @@ namespace vk
 		{
 			attachment.description.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 		}
+
 		attachment.description.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 		attachment.description.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 		attachment.description.format = createInfo.format;

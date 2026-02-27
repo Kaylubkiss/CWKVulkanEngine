@@ -33,11 +33,13 @@ GLTFModel::GLTFModel( vk::Device* device, const std::filesystem::path& filePath 
 	std::cout << "successfully loaded " << filePath.string() << std::endl;
 
 	std::vector<Vertex> vertices;
-	std::vector<uint16_t> indices;
+	//much safer to assume that values will lie in a larger range, can always
+	//downcast otherwise.
+	std::vector<uint32_t> indices_32;
 
 	for (auto& mesh : m_asset.meshes)
 	{
-		LoadMesh(mesh, vertices, indices);
+		LoadMesh(mesh, vertices, indices_32);
 	}
 
 	std::vector<std::string> fileNames(m_asset.images.size());
@@ -48,7 +50,21 @@ GLTFModel::GLTFModel( vk::Device* device, const std::filesystem::path& filePath 
 
 
 	size_t vertexBufferSize = vertices.size() * sizeof(vertices[0]);
-	size_t indexBufferSize = indices.size() * sizeof(indices[0]);
+	size_t indexBufferSize = indices_32.size() * sizeof(indices_32[0]);
+	void* indicesData = indices_32.data();
+
+	std::vector<uint16_t> indices_16;
+	if (m_indexBufferType == VK_INDEX_TYPE_UINT16)
+	{
+		indices_16.resize(indices_32.size());
+		for (size_t i = 0; i < indices_16.size(); ++i)
+		{
+			indices_16[i] = static_cast<uint16_t>(indices_32[i]);
+		}
+
+		indexBufferSize = indices_16.size() * sizeof(indices_16[0]);
+		indicesData = indices_16.data();
+	}
 
 	m_vertexBuffer = device->CreateBuffer(
 		vertexBufferSize,
@@ -60,7 +76,7 @@ GLTFModel::GLTFModel( vk::Device* device, const std::filesystem::path& filePath 
 		indexBufferSize,
 		VK_BUFFER_USAGE_INDEX_BUFFER_BIT ,
 		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
-		indices.data());
+		indicesData);
 }
 
 std::vector<std::string> GLTFModel::GetTextureFileNames() const
@@ -97,7 +113,7 @@ void GLTFModel::Draw( const vk::DrawInfo& drawInfo )
 
 	vkCmdBindVertexBuffers(drawInfo.cmdBuffer, 0, 1, &vertexBuffer, offsets);
 	//TODO: assuming unsigned short for now, will have to change the way primitives perceive this.
-	vkCmdBindIndexBuffer(drawInfo.cmdBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT16);
+	vkCmdBindIndexBuffer(drawInfo.cmdBuffer, indexBuffer, 0, m_indexBufferType);
 
 
 	if (!m_asset.scenes.empty())
@@ -105,13 +121,8 @@ void GLTFModel::Draw( const vk::DrawInfo& drawInfo )
 		//TODO: inefficient copy
 		//Ideally, this codebase will use one math library as its basis.
 		fastgltf::math::fmat4x4 modelMatrix;
-		for (size_t i = 0; i < modelMatrix.rows(); ++i)
-		{
-			for (size_t j = 0; j < modelMatrix.columns(); ++j)
-			{
-				modelMatrix[i][j] = m_modelMatrix[i][j];
-			}
-		}
+		assert(sizeof(modelMatrix) == sizeof(m_modelMatrix));
+		memcpy(modelMatrix.data(), &m_modelMatrix, sizeof(m_modelMatrix));
 
 		fastgltf::iterateSceneNodes(m_asset, sceneIndex, fastgltf::math::fmat4x4(),
 			[&](fastgltf::Node& node, fastgltf::math::fmat4x4 matrix)
@@ -137,18 +148,57 @@ void GLTFModel::Draw( const vk::DrawInfo& drawInfo )
 
 void GLTFModel::LoadTextures( TextureManager& textureManager, const std::vector<std::string>& textureNames )
 {
-	//TODO
-	for (auto& mesh: m_meshes)
+	for (size_t i = 0; i < m_asset.meshes.size(); ++i)
 	{
-		for (auto& primitive : mesh->m_primitives)
+		fastgltf::Mesh& mesh = m_asset.meshes[i];
+
+		for (size_t j = 0; j < mesh.primitives.size(); ++j)
 		{
-			//TODO: this < 2 is TEMPORARY. The shaders only support up to 2 bindings
-			for (size_t i = 0; i < textureNames.size() && i < 2; ++i)
+			fastgltf::Primitive& gltf_primitive = mesh.primitives[j];
+
+			Primitive& vkc_primitive = m_meshes[i]->m_primitives[j];
+
+			if (gltf_primitive.materialIndex.has_value())
 			{
-				textureManager.BindTextureToModelPrimitive(
-					textureNames[i],
-					static_cast<uint32_t>(i),
-					primitive.textureSetLayoutIndex);
+				fastgltf::Material& p_material = m_asset.materials[gltf_primitive.materialIndex.value()];
+				fastgltf::PBRData& p_pbr = p_material.pbrData;
+
+				uint32_t binding = 0;
+
+				if (p_pbr.baseColorTexture.has_value())
+				{
+					size_t baseColorIndex = p_pbr.baseColorTexture.value().textureIndex;
+
+					textureManager.AddTexture(textureNames[baseColorIndex], binding, vkc_primitive.textureSetLayoutIndex);
+
+					++binding;
+				}
+
+				//I want to enforce that every texture layout must begin with a colored texture.
+				//I want well-formed gltf files/assets.
+
+				if (p_pbr.metallicRoughnessTexture.has_value())
+				{
+
+					assert(vkc_primitive.textureSetLayoutIndex > 0);
+
+					size_t metallicRoughIndex = p_pbr.metallicRoughnessTexture.value().textureIndex;
+
+					textureManager.AddTexture(textureNames[metallicRoughIndex], binding, vkc_primitive.textureSetLayoutIndex);
+
+					++binding;
+				}
+
+				if (p_material.occlusionTexture.has_value())
+				{
+					assert(vkc_primitive.textureSetLayoutIndex > 0);
+
+					size_t occlusionTextureIndex = p_material.occlusionTexture.value().textureIndex;
+
+					textureManager.AddTexture(textureNames[occlusionTextureIndex], binding, vkc_primitive.textureSetLayoutIndex);
+
+					++binding;
+				}
 			}
 		}
 	}
@@ -156,7 +206,7 @@ void GLTFModel::LoadTextures( TextureManager& textureManager, const std::vector<
 }
 
 void GLTFModel::LoadMesh( fastgltf::Mesh& mesh, std::vector<Vertex>& vertexBuffer,
-	std::vector<uint16_t>& indexBuffer )
+	std::vector<uint32_t>& indexBuffer )
 {
 	std::shared_ptr<Mesh> newMesh = std::make_shared<Mesh>();
 
@@ -170,8 +220,10 @@ void GLTFModel::LoadMesh( fastgltf::Mesh& mesh, std::vector<Vertex>& vertexBuffe
 		newPrim.indexCount  = 0;
 		newPrim.vertexCount = 0;
 		uint32_t materialIndex = static_cast<uint32_t>(primitive.materialIndex.value_or(0));
-		/*fastgltf::Material& material = m_asset.materials[materialIndex];
-		fastgltf::PBRData& pbr = material.pbrData;*/
+		fastgltf::Material& material = m_asset.materials[materialIndex];
+		fastgltf::PBRData& pbr = material.pbrData;
+
+
 
 		//TODO: support normal texture, occlusion, emissive with accompanying parameters in fastgltf::Material
 
@@ -252,6 +304,8 @@ void GLTFModel::LoadMesh( fastgltf::Mesh& mesh, std::vector<Vertex>& vertexBuffe
 			{
 				std::vector<uint32_t> buf(newPrim.indexCount);
 				fastgltf::copyFromAccessor<uint32_t>(m_asset, accessor, buf.data());
+
+				m_indexBufferType = VK_INDEX_TYPE_UINT32;
 
 				for (auto& index : buf)
 				{
