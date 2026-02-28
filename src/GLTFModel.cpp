@@ -121,7 +121,6 @@ void GLTFModel::Draw( const vk::DrawInfo& drawInfo )
 		//TODO: inefficient copy
 		//Ideally, this codebase will use one math library as its basis.
 		fastgltf::math::fmat4x4 modelMatrix;
-		assert(sizeof(modelMatrix) == sizeof(m_modelMatrix));
 		memcpy(modelMatrix.data(), &m_modelMatrix, sizeof(m_modelMatrix));
 
 		fastgltf::iterateSceneNodes(m_asset, sceneIndex, fastgltf::math::fmat4x4(),

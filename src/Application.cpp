@@ -1,4 +1,5 @@
 #include "CameraController.h"
+#include "fastgltf/math.hpp"
 #include "vk-scenes/vkDeferredShadingContext.h"
 
 PhysicsSystem& Application::GetPhysics() 
@@ -27,6 +28,7 @@ void Application::run()
 
 void Application::init() 
 {
+
 	if (SDL_Init(SDL_INIT_VIDEO) < 0)
 	{
 		printf("SDL could not initialize! SDL_Error: %s\n", SDL_GetError());
