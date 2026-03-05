@@ -13,7 +13,7 @@ namespace vk
 		viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
 		viewInfo.image = textureImage;
 		viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-		viewInfo.format = VK_FORMAT_R8G8B8A8_SRGB;
+		viewInfo.format = VK_FORMAT_R8G8B8A8_UNORM;
 		viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 		viewInfo.subresourceRange.baseMipLevel = 0;
 		viewInfo.subresourceRange.levelCount = mipLevels;
@@ -47,7 +47,6 @@ namespace vk
 		createInfo.unnormalizedCoordinates = VK_FALSE;
 
 		createInfo.compareEnable = VK_FALSE;
-		createInfo.compareOp = VK_COMPARE_OP_NEVER;
 		createInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
 		createInfo.minLod = 0.f;
 		createInfo.maxLod = static_cast<float>(mipLevels);
@@ -59,7 +58,7 @@ namespace vk
 		return nTextureSampler;
 	}
 
-	Texture::Texture( const vk::Device* devicePtr, const std::string& filePath, std::mutex& transferMutex )
+	void Texture::Create( const vk::Device* devicePtr, const std::string& filePath, std::mutex& transferMutex )
 	{
 
 		assert(devicePtr);
@@ -87,7 +86,7 @@ namespace vk
 			static_cast<size_t>(imageSize), pixels);
 
 		m_image = vk::init::CreateImage(devicePtr->GetGPU(),
-			devicePtr->GetDevice(), textureWidth, textureHeight, mipLevels, VK_FORMAT_R8G8B8A8_SRGB,
+			devicePtr->GetDevice(), textureWidth, textureHeight, mipLevels, VK_FORMAT_R8G8B8A8_UNORM,
 			VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
 			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_memory);
 
@@ -192,6 +191,7 @@ namespace vk
 			releaseBarrier.subresourceRange.levelCount = VK_REMAINING_MIP_LEVELS;
 			releaseBarrier.subresourceRange.baseArrayLayer = 0;
 			releaseBarrier.subresourceRange.layerCount = VK_REMAINING_ARRAY_LAYERS;
+			releaseBarrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
 
 			VkCommandBufferBeginInfo beginInfo = {};
 			beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;

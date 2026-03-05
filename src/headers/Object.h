@@ -19,7 +19,7 @@ class Object final
 {	
 public:
 	//Constructors
-	Object() = default;
+	explicit Object() = default;
 	explicit Object( const ObjectCreateInfo& objectCI, TextureManager& textureManager );
 	//Destructors
 	~Object() = default;

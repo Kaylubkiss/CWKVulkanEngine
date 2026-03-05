@@ -113,6 +113,11 @@ void Application::loop()
 
 			Controller::MoveCamera(m_vulkanGraphicsContext->GetCamera(), dt);
 
+			if (exitApplication)
+			{
+				break;
+			}
+
 			m_vulkanGraphicsContext->UpdateSceneObjects(dt);
 
 			m_vulkanGraphicsContext->Render();

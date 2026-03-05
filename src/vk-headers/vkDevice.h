@@ -28,8 +28,9 @@ namespace vk
 		Device& operator=(Device&&) = delete;
 
 		//functionality
-		[[nodiscard]] uint32_t GetMemoryType( uint32_t typeBits, VkMemoryPropertyFlags properties ) const;
+		[[nodiscard]] uint32_t GetMemoryType( uint32_t typeBits, VkMemoryPropertyFlags flags ) const;
 		[[nodiscard]] VkPhysicalDeviceDescriptorBufferPropertiesEXT GetDescriptorBufferProperties() const;
+		[[nodiscard]] VkPhysicalDeviceProperties GetProperties() const;
 
 		const VkDevice GetDevice() const;
 		const VkPhysicalDevice GetGPU() const;
@@ -52,9 +53,9 @@ namespace vk
 		std::vector<const char*> m_requestedExtensions;
 		std::array<vk::Queue, DeviceQueue::MAX_QUEUES> m_queues;
 
-		//properties
-		VkPhysicalDeviceDescriptorBufferPropertiesEXT m_descriptorBufferProperties = {};
-		VkPhysicalDeviceMemoryProperties m_memoryProperties                        = {};
+		VkPhysicalDeviceDescriptorBufferPropertiesEXT m_descriptorBufferProps = {};
+		VkPhysicalDeviceMemoryProperties m_memoryProps = {};
+		VkPhysicalDeviceProperties m_properties = {};
 
 		VkPhysicalDevice m_gpu = VK_NULL_HANDLE;
 		VkDevice m_device      = VK_NULL_HANDLE;

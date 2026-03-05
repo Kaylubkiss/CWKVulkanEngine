@@ -787,5 +787,16 @@ namespace vk
 
 		}
 
+
+		VkComponentMapping ComponentMappingSwizzleIdentity()
+		{
+			return {
+				VK_COMPONENT_SWIZZLE_IDENTITY,
+				VK_COMPONENT_SWIZZLE_IDENTITY,
+				VK_COMPONENT_SWIZZLE_IDENTITY,
+				VK_COMPONENT_SWIZZLE_IDENTITY,
+			};
+		}
+
 	}
 }

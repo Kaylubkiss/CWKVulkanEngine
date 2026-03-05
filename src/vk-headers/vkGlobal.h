@@ -1,9 +1,19 @@
 #pragma once
 
+#include "vkUtility.h"
+#include "vkInit.h"
 #include "vkBuffer.h"
 #include "vkDevice.h"
+#include "vkDescriptorBuffer.h"
 
 constexpr uint32_t gMaxFramesInFlight = 3;
+
+
+
+inline VkDeviceSize AlignedSize(VkDeviceSize size, VkDeviceSize alignment)
+{
+	return (size + alignment - 1) & ~(alignment - 1);
+}
 
 class UserInterface;
 
@@ -11,33 +21,6 @@ namespace vk
 {
 	class Buffer;
 	class Device;
-
-	struct DescriptorBufferData //248 BYTES!!!
-	{
-		//per-frame resources need to be independently updated according to which frame is active.
-		//1st index of "buffers" is the minimum ever used by a descriptor buffer.
-		std::array<vk::Buffer, gMaxFramesInFlight> buffers;
-
-		//at least 1 binding (binding 0)
-		std::vector<VkDeviceSize> binding_offsets = { 0ull };
-		
-		VkDescriptorSetLayout layout = VK_NULL_HANDLE;
-		VkDevice c_device            = VK_NULL_HANDLE;
-
-		VkDeviceSize size = 0ull;
-
-		void Destroy()
-		{
-			if (c_device != VK_NULL_HANDLE)
-			{
-				for (auto& b : buffers)
-				{
-					b.Destroy();
-				}
-				vkDestroyDescriptorSetLayout(c_device, layout, nullptr);
-			}
-		}
-	};
 
 	//created in response to the need of texture manager. It needs a lot of graphics context state, but the calls to 
 	//function methods of the context to get this information seemed inconvenient.
@@ -48,12 +31,9 @@ namespace vk
 	{
 		vk::Device* devicePtr = nullptr;
 		UserInterface* contextUIPtr = nullptr;
-		DescriptorBufferData* contextTextureDescriptorPtr = nullptr;
+		DescriptorBuffer* contextTextureDescriptorPtr = nullptr;
 		~GraphicsContextInfo()
 		{
-			devicePtr = nullptr;
-			contextUIPtr = nullptr;
-			contextTextureDescriptorPtr = nullptr;
 		};
 	};
 

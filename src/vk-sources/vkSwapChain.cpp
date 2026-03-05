@@ -61,6 +61,7 @@ namespace vk
 		createInfo.queueFamilyIndexCount = 0;
 		createInfo.pQueueFamilyIndices = nullptr;
 
+		CreateRenderPass();
 	}
 
 	void SwapChain::Create( const vk::Window& appWindow )
@@ -68,7 +69,6 @@ namespace vk
 		assert(m_devicePtr);
 
 		VkSwapchainKHR oldSwapchain = this->handle;
-
 
 		VkSurfaceCapabilitiesKHR deviceCapabilities;
 		VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(m_devicePtr->GetGPU(), appWindow.Surface(), &deviceCapabilities));
@@ -125,7 +125,6 @@ namespace vk
 		createInfo.clipped = VK_TRUE;
 		createInfo.oldSwapchain = oldSwapchain; //resizing needs a reference to the old swap chain
 
-
 		VK_CHECK_RESULT(vkCreateSwapchainKHR(m_devicePtr->GetDevice(), &createInfo, nullptr, &this->handle));
 
 		if (oldSwapchain != VK_NULL_HANDLE)
@@ -146,6 +145,7 @@ namespace vk
 		VK_CHECK_RESULT(vkGetSwapchainImagesKHR(m_devicePtr->GetDevice(), this->handle, &imageCount, this->images.data()));
 
 		VkCommandBuffer commandBuffer = m_devicePtr->CreateCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
+
 		//transition the image layouts for presentation.
 		for (uint32_t i = 0; i < imageCount; ++i)
 		{
@@ -168,12 +168,13 @@ namespace vk
 		}
 
 		m_devicePtr->FlushCommandBuffer(commandBuffer, m_devicePtr->GetQueue(DeviceQueue::GRAPHICS).handle, true);
+
+		CreateFrameBuffers(appWindow.Viewport());
 	}
 	
-	void SwapChain::Recreate(const VkRenderPass renderPass, const vk::Window& appWindow)
+	void SwapChain::Recreate( const vk::Window& appWindow )
 	{
 		SwapChain::Create(appWindow);
-		SwapChain::CreateFrameBuffers(appWindow.Viewport(), renderPass);
 	}
 
 	void SwapChain::Destroy() 
@@ -185,14 +186,72 @@ namespace vk
 				framebuffer.Destroy();
 			}
 
+			vkDestroyRenderPass(m_devicePtr->GetDevice(), renderPass, nullptr);
+
 			vkDestroySwapchainKHR(m_devicePtr->GetDevice(), this->handle, nullptr);
 			handle = VK_NULL_HANDLE;
 		}
 	}
 
-	void SwapChain::CreateFrameBuffers(const VkViewport& vp, const VkRenderPass renderPass)
+	void SwapChain::CreateRenderPass()
 	{
-		assert(renderPass != VK_NULL_HANDLE);
+		assert( createInfo.imageFormat != VK_FORMAT_UNDEFINED );
+
+		std::array<VkAttachmentDescription, 1> attachments = {};
+		//color attachment
+		attachments[0].format = createInfo.imageFormat;
+		attachments[0].samples = VK_SAMPLE_COUNT_1_BIT;
+		attachments[0].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+		attachments[0].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+		attachments[0].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+		attachments[0].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+		attachments[0].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+		attachments[0].finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+
+		VkAttachmentReference colorReference = {};
+		colorReference.attachment = 0;
+		colorReference.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+		VkSubpassDescription subpassDescription = {};
+		subpassDescription.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+		subpassDescription.colorAttachmentCount = 1;
+		subpassDescription.pColorAttachments = &colorReference;
+
+		//for layout transitions
+		std::array<VkSubpassDependency, 2> dependencies{};
+
+		//color writing/reading dependencies. This is to ensure that the color attachment read/writes are finished before subpass 0 begins and uses them again for reading/writing.
+		dependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL;
+		dependencies[0].dstSubpass = 0;
+		dependencies[0].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+		dependencies[0].dstStageMask = dependencies[0].srcStageMask;
+		dependencies[0].srcAccessMask = 0; //this can also be 0
+		dependencies[0].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+		dependencies[0].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
+
+		dependencies[1].srcSubpass = 0;
+		dependencies[1].dstSubpass = VK_SUBPASS_EXTERNAL;
+		dependencies[1].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+		dependencies[1].dstStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+		dependencies[1].srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT; //this can also be 0
+		dependencies[1].dstAccessMask = 0;
+		dependencies[1].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
+
+		VkRenderPassCreateInfo renderPassCI = {};
+		renderPassCI.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+		renderPassCI.attachmentCount = static_cast<uint32_t>(attachments.size());
+		renderPassCI.pAttachments = attachments.data();
+		renderPassCI.subpassCount = 1;
+		renderPassCI.pSubpasses = &subpassDescription;
+		renderPassCI.dependencyCount = static_cast<uint32_t>(dependencies.size());
+		renderPassCI.pDependencies = dependencies.data();
+
+		VK_CHECK_RESULT(vkCreateRenderPass(m_devicePtr->GetDevice(), &renderPassCI, nullptr, &renderPass));
+	}
+
+	void SwapChain::CreateFrameBuffers( const VkViewport& vp )
+	{
+		assert( renderPass != VK_NULL_HANDLE );
 		
 		this->framebuffers.resize(this->images.size());
 
@@ -212,12 +271,6 @@ namespace vk
 			attachmentInfo.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 			attachmentInfo.format = createInfo.imageFormat;
 			attachmentInfo.alreadyAllocatedImage = images[i];
-
-			framebuffers[i].AddAttachment(attachmentInfo);
-
-			attachmentInfo.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
-			attachmentInfo.format = VK_FORMAT_D24_UNORM_S8_UINT;
-			attachmentInfo.alreadyAllocatedImage = VK_NULL_HANDLE;
 
 			framebuffers[i].AddAttachment(attachmentInfo);
 
@@ -245,5 +298,9 @@ namespace vk
 				nullptr, &this->framebuffers[i].handle));
 		}
 
+
 	}
+
+
+
 }

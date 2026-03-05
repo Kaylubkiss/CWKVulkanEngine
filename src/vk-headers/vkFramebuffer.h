@@ -11,8 +11,8 @@ namespace vk
 		VKC_ATTACHMENT_IS_DEPTH = 2,
 		VKC_ATTACHMENT_IS_STENCIL = 4,
 		VKC_ATTACHMENT_IS_DEPTH_STENCIL = VKC_ATTACHMENT_IS_DEPTH | VKC_ATTACHMENT_IS_STENCIL,
-		VKC_ATTACHMENT_IS_SWAPCHAIN_IMAGE = 8,
-		VKC_ATTACHMENT_IS_SAMPLED = 16
+		VKC_ATTACHMENT_IMAGE_IS_SHARED = 8,
+		VKC_ATTACHMENT_IMAGE_VIEW_IS_SHARED = 16
 	} FramebufferAttachmentFlagBits;
 	typedef uint32_t FramebufferAttachmentFlags;
 
@@ -25,8 +25,13 @@ namespace vk
 		VkFormat format = VK_FORMAT_UNDEFINED;
 		VkSampleCountFlagBits sampleCount = VK_SAMPLE_COUNT_1_BIT;		
 		VkImageUsageFlags usage = {};	
-
+		VkAttachmentLoadOp loadOP = VK_ATTACHMENT_LOAD_OP_CLEAR;
+		VkAttachmentStoreOp storeOP = VK_ATTACHMENT_STORE_OP_NONE;
+		VkImageLayout initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+		VkImageLayout finalLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+		VkImageLayout operatingLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 		VkImage alreadyAllocatedImage = VK_NULL_HANDLE;
+		VkImageView alreadyAllocatedView = VK_NULL_HANDLE;
 	};
 
 
@@ -58,7 +63,7 @@ namespace vk
 		uint32_t width = 0;
 		uint32_t height = 0;
 		VkFramebuffer handle = VK_NULL_HANDLE;
-		VkRenderPass renderPass = VK_NULL_HANDLE;
+		VkRenderPass renderPass = VK_NULL_HANDLE; //NOTE: unused in swapchain
 		VkSampler sampler = VK_NULL_HANDLE;
 		std::vector<FramebufferAttachment> attachments;
 

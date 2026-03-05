@@ -10,7 +10,10 @@ void ObjectManager::LoadObject( const ObjectCreateInfo& objectCI )
 
 		{
 			std::unique_lock<std::mutex> lock(m_objectMutex);
-			m_objects[objectCI.objName] = std::move(newObject);
+			if (m_objects.contains(objectCI.objName) == false)
+			{
+				m_objects[objectCI.objName] = std::move(newObject);
+			}
 		}
 	};
 
@@ -26,15 +29,19 @@ void ObjectManager::Destroy()
 	m_objects.clear(); //destroy objects with ~Object();
 }
 
-ObjectManager::ObjectManager( std::shared_ptr<vk::GraphicsContextInfo>& contextInfo )
+ObjectManager::ObjectManager( const std::weak_ptr<vk::GraphicsContextInfo>& contextInfo )
 {
-	assert(contextInfo->devicePtr != nullptr);
+	assert(contextInfo.expired() == false);
+
+	assert(contextInfo.lock()->devicePtr != nullptr);
+
+	auto sharedContextInfo = contextInfo.lock();
 
 	m_threadWorkers.Init(2);
 
-	m_textureManager.Init(contextInfo);
+	m_textureManager.Init(sharedContextInfo);
 
-	c_devicePtr = contextInfo->devicePtr;
+	c_devicePtr = sharedContextInfo->devicePtr;
 }
 
 void ObjectManager::Update( float dt ) const
@@ -50,11 +57,6 @@ void ObjectManager::Update( float dt ) const
 bool ObjectManager::SyncIO( uint32_t currentFrame, VkSemaphore textureUploadSemaphore )
 {
 	return m_textureManager.UploadTextureDataToGPU(currentFrame, textureUploadSemaphore);
-}
-
-std::map<const char*, std::unique_ptr<Object>, str_cmp>& ObjectManager::Objects()
-{
-	return m_objects;
 }
 
 void ObjectManager::DrawObjects( const vk::DrawInfo& drawInfo ) const

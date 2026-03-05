@@ -17,16 +17,13 @@ namespace vk
 		virtual ~ContextBase();
 
 		//getters(s)
-		[[nodiscard]] std::shared_ptr<GraphicsContextInfo> GetGraphicsContextInfo() const;
+		[[nodiscard]] std::weak_ptr<GraphicsContextInfo> GetGraphicsContextInfo() const;
 		Camera& GetCamera();
 		vk::Window& GetWindow();
 
-		//public virtual function(s)
-		virtual void Render() = 0;
-		virtual void RecordCommandBuffers() = 0;
-		virtual void UpdateUI() = 0;
-		virtual void ResizeWindowDerived() = 0;
-		virtual void InitializeScene() = 0;
+		virtual void Render() {};
+		virtual void RecordCommandBuffers() {};
+		virtual void InitializeScene() {};
 
 		//operations
 		void WaitForDevice() const;
@@ -36,22 +33,19 @@ namespace vk
 		void ToggleUIActive(bool enable);
 	protected:
 		bool PrepareFrame();
-		//more pure virtual function(s)
-		virtual void InitializePipeline() = 0;
-		virtual void InitializeDescriptors() = 0;
-		//non-pure virtual functions
-		virtual void InitializeRenderPass();
+		virtual void UpdateUI() {};
+		virtual void InitializePipeline() {};
+		virtual void InitializeDescriptors() {};
 		virtual void FillOutGraphicsContextInfo();
 	private:
 		void CreateSynchronizationPrimitives();
 	protected:
-
 		struct AppSettings //TODO: make this into a bitmask
 		{
 			uint32_t maxFramesInFlight = 2;
 			bool minimized = false;
 			bool UIDisplay = true;
-			bool UIToggled = true; //can consume inputs upon intialization
+			bool UIToggled = false; //can consume inputs upon intialization
 			bool validationLayers = true;
 		} m_settings = {};
 
@@ -62,7 +56,6 @@ namespace vk
 		//this is for textureManager and potentially any other discrete systems.
 		std::shared_ptr<GraphicsContextInfo> m_info;
 
-		VkRenderPass renderPass = VK_NULL_HANDLE;
 		vk::Instance m_instance;
 		vk::Window m_window;
 		vk::Device device;
@@ -78,8 +71,6 @@ namespace vk
 		std::array<VkSemaphore, gMaxFramesInFlight> textureUploadSemaphores; //for I/O synchronization
 		std::array<VkFence, gMaxFramesInFlight> inFlightFences;
 
-
-
-		std::unique_ptr<ObjectManager> m_objectManager;
+		std::shared_ptr<ObjectManager> m_objectManager;
 	};
 }	

@@ -1,31 +1,37 @@
 #include "TextureManager.h"
 
-void TextureManager::Init( std::shared_ptr<vk::GraphicsContextInfo>& contextInfo )
+void TextureManager::Init( const std::weak_ptr<vk::GraphicsContextInfo>& contextInfo )
 {
-	assert(contextInfo->devicePtr != nullptr);
-	assert(contextInfo->contextTextureDescriptorPtr != nullptr);
+	assert(contextInfo.expired() == false);
 
-	s_graphicsContextInfo = contextInfo;
+	std::shared_ptr<vk::GraphicsContextInfo> sharedContextInfo = contextInfo.lock();
 
-	m_graphicsCommandPool = vk::init::CommandPool(s_graphicsContextInfo->devicePtr->GetDevice(),
-		VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT, s_graphicsContextInfo->devicePtr->GetQueue(vk::DeviceQueue::GRAPHICS).family);
+	assert(sharedContextInfo->devicePtr != nullptr);
+	assert(sharedContextInfo->contextTextureDescriptorPtr != nullptr);
+
+	m_graphicsContextInfo = sharedContextInfo;
+
+	m_graphicsCommandPool = vk::init::CommandPool(m_graphicsContextInfo.lock()->devicePtr->GetDevice(),
+		VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT, m_graphicsContextInfo.lock()->devicePtr->GetQueue(vk::DeviceQueue::GRAPHICS).family);
 
 	VkCommandBufferAllocateInfo cmdBufferAllocateInfo = vk::init::CommandBufferAllocateInfo();
 	cmdBufferAllocateInfo.commandPool = m_graphicsCommandPool;
 	cmdBufferAllocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
 	cmdBufferAllocateInfo.commandBufferCount = static_cast<uint32_t>(m_commandBuffers.size());
-	VK_CHECK_RESULT(vkAllocateCommandBuffers(s_graphicsContextInfo->devicePtr->GetDevice(), &cmdBufferAllocateInfo,
+	VK_CHECK_RESULT(vkAllocateCommandBuffers(m_graphicsContextInfo.lock()->devicePtr->GetDevice(), &cmdBufferAllocateInfo,
 		m_commandBuffers.data()));
 }
 
 void TextureManager::Destroy()
 {
-	if (s_graphicsContextInfo != nullptr)
+	if (m_graphicsContextInfo.expired() != false)
 	{
-		vkFreeCommandBuffers(s_graphicsContextInfo->devicePtr->GetDevice(), m_graphicsCommandPool,
+		auto sharedContextInfo = m_graphicsContextInfo.lock();
+
+		vkFreeCommandBuffers(sharedContextInfo->devicePtr->GetDevice(), m_graphicsCommandPool,
 			static_cast<uint32_t>(m_commandBuffers.size()), m_commandBuffers.data());
 
-		vkDestroyCommandPool(s_graphicsContextInfo->devicePtr->GetDevice(), m_graphicsCommandPool, nullptr);
+		vkDestroyCommandPool(sharedContextInfo->devicePtr->GetDevice(), m_graphicsCommandPool, nullptr);
 	}
 
 	//NOTE: object/asset manager should call terminate on all threads before this code
@@ -58,11 +64,13 @@ uint32_t TextureManager::AddTexture( const std::string& fileName, uint32_t bindi
 		}
 	}
 
+	auto sharedGraphicsContextInfo = m_graphicsContextInfo.lock();
 	//TODO: generate checker-board texture for objects if texture loading failed.
-	std::shared_ptr<vk::Texture> newTexture =
-			std::make_shared<vk::Texture>(s_graphicsContextInfo->devicePtr, fileName, m_transferMutex);
+	std::shared_ptr<vk::Texture> newTexture = std::make_shared<vk::Texture>();
 
-	if (s_graphicsContextInfo->contextTextureDescriptorPtr->binding_offsets.size() <= bindingIndex)
+	newTexture->Create(sharedGraphicsContextInfo->devicePtr, fileName, m_transferMutex);
+
+	if (sharedGraphicsContextInfo->contextTextureDescriptorPtr->GetBindingOffsets().size() <= bindingIndex)
 	{
 		std::cerr << "binding index " << bindingIndex << " is greater than the binding count supported in the shaders.\n";
 		throw std::runtime_error("AddTexture() Failed!\n");
@@ -73,6 +81,7 @@ uint32_t TextureManager::AddTexture( const std::string& fileName, uint32_t bindi
 		//maybe a thread beat us to the punch, in the case that two threads call on the same texture
 		if (m_textures.contains(fileName) == true)
 		{
+			layoutIndex = m_textures[fileName].index;
 			return m_textures[fileName].index;
 		}
 		m_textures[fileName].handle = std::move(newTexture);
@@ -103,32 +112,44 @@ void TextureManager::FillDescriptorBuffer(const std::vector<PendingTextureInfo>&
 {
 	for (auto& t : texturesToProcess)
 	{
+		auto sharedGraphicsContextInfo = m_graphicsContextInfo.lock();
+
+		if (sharedGraphicsContextInfo == nullptr)
+		{
+			return;
+		}
+
 		vk::Texture* curr_texture = t.texture_to_process.get();
 
-		auto& UI = s_graphicsContextInfo->contextUIPtr;
+		/*
+		auto& UI = sharedGraphicsContextInfo->contextUIPtr;
 		if (UI)
 		{
 			UI->AddImage(*curr_texture);
 		}
+		*/
 
 		VkDescriptorImageInfo textureDescriptor = curr_texture->GetDescriptor();
 
-		VkDeviceSize bindingOffset = s_graphicsContextInfo->contextTextureDescriptorPtr->binding_offsets[t.bindingIndex];
+		const auto textureBindingDescriptorPtr = sharedGraphicsContextInfo->contextTextureDescriptorPtr;
+		auto& bindingOffsets = textureBindingDescriptorPtr->GetBindingOffsets();
+
+		VkDeviceSize bindingOffset = bindingOffsets[t.bindingIndex];
 
 		VkDescriptorGetInfoEXT imageDescriptorInfo = { VK_STRUCTURE_TYPE_DESCRIPTOR_GET_INFO_EXT };
 		imageDescriptorInfo.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 		imageDescriptorInfo.data.pCombinedImageSampler = &textureDescriptor;
 
 		VkDeviceSize textureBindingSize =
-			s_graphicsContextInfo->contextTextureDescriptorPtr->size;
+			sharedGraphicsContextInfo->contextTextureDescriptorPtr->GetLayoutSize();
 
 		VkDeviceSize imageSamplerSize =
-			s_graphicsContextInfo->devicePtr->GetDescriptorBufferProperties().combinedImageSamplerDescriptorSize;
+			sharedGraphicsContextInfo->devicePtr->GetDescriptorBufferProperties().combinedImageSamplerDescriptorSize;
 
 		char* imageBindingDescriptorPtr =
-			static_cast<char*>(s_graphicsContextInfo->contextTextureDescriptorPtr->buffers.front().GetMappedMemory());
+			static_cast<char*>(sharedGraphicsContextInfo->contextTextureDescriptorPtr->GetBuffer().GetMappedMemory());
 
-		g_vkGetDescriptorEXT(s_graphicsContextInfo->devicePtr->GetDevice(), &imageDescriptorInfo,
+		g_vkGetDescriptorEXT(sharedGraphicsContextInfo->devicePtr->GetDevice(), &imageDescriptorInfo,
 			imageSamplerSize,
 			imageBindingDescriptorPtr + t.layoutIndex * textureBindingSize + bindingOffset);
 	}
@@ -152,7 +173,13 @@ bool TextureManager::UploadTextureDataToGPU( uint32_t currentFrame, const VkSema
 		}
 	}
 
-	vk::Device* devicePtr = s_graphicsContextInfo->devicePtr;
+	auto graphicsContextInfo = m_graphicsContextInfo.lock();
+	if (graphicsContextInfo == nullptr)
+	{
+		return false;
+	}
+
+	vk::Device* devicePtr = graphicsContextInfo->devicePtr;
 
 	VkCommandBufferBeginInfo cmdBufferBeginInfo = vk::init::CommandBufferBeginInfo();
 	cmdBufferBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;

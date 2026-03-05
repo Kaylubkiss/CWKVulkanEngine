@@ -17,16 +17,19 @@ namespace vk
 		CheckRequestedExtensions();
 
 		//device properties
-		vkGetPhysicalDeviceMemoryProperties(m_gpu, &m_memoryProperties);
-		
+		vkGetPhysicalDeviceMemoryProperties(m_gpu, &m_memoryProps);
+
+		vkGetPhysicalDeviceProperties(m_gpu, &m_properties);
+
 		//descriptor buffer info
 		VkPhysicalDeviceProperties2KHR deviceProperties2 = {};
-		m_descriptorBufferProperties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_BUFFER_PROPERTIES_EXT;
+		m_descriptorBufferProps.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_BUFFER_PROPERTIES_EXT;
 		deviceProperties2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2_KHR;
-		deviceProperties2.pNext = &m_descriptorBufferProperties;
+		deviceProperties2.pNext = &m_descriptorBufferProps;
 		vkGetPhysicalDeviceProperties2(m_gpu, &deviceProperties2);
 
-		assert(m_descriptorBufferProperties.maxDescriptorBufferBindings >= 2);
+
+		assert(m_descriptorBufferProps.maxDescriptorBufferBindings >= 2);
 
 		FindQueueFamilies(windowSurface);
 
@@ -80,12 +83,12 @@ namespace vk
 		}
 	}
 
-	void Device::FindPhysicalDevices(VkInstance instance) 
+	void Device::FindPhysicalDevices( VkInstance instance )
 	{
 		assert(instance != VK_NULL_HANDLE);
 
 		std::vector<VkPhysicalDevice> gpus;
-		int g_index = -1;
+		std::optional<size_t> g_index;
 
 		//list the physical devices
 		uint32_t max_devices = 0;
@@ -93,9 +96,10 @@ namespace vk
 		//vulkan will ignor whatever was set in physicalDeviceCount and overwrite max_devices 
 		VK_CHECK_RESULT(vkEnumeratePhysicalDevices(instance, &max_devices, nullptr));
 
-		if (!max_devices)
+		if (max_devices == 0)
 		{
-			throw std::runtime_error("could not find any GPUs to use!\n");
+			std::cerr << "could not find any GPUs to use!\n";
+			throw std::runtime_error("Device::FindPhysicalDevices() Failed!\n");
 		}
 
 		gpus.resize(max_devices);
@@ -111,23 +115,23 @@ namespace vk
 			vkGetPhysicalDeviceProperties(gpus[i], &properties);
 			vkGetPhysicalDeviceFeatures(gpus[i], &features);
 
-
 			if ((properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU) &&
 				features.geometryShader && features.samplerAnisotropy)
 			{
 				std::cout << "picked device " << i << '\n';
 
-				g_index = static_cast<int>(i);
+				g_index = i;
 				break;
 			}
 		}
 
-		if (g_index < 0)
+		if (g_index.has_value() == false)
 		{
-			throw std::runtime_error("could not find suitable physical device!");
+			std::cerr << "could not find suitable physical device!";
+			throw std::runtime_error("Device::FindPhysicalDevices() Failed!\n");
 		}
 
-		m_gpu = gpus[g_index];
+		m_gpu = gpus[g_index.value()];
 
 	}
 
@@ -313,14 +317,14 @@ namespace vk
 		}
 	}
 
-	uint32_t Device::GetMemoryType( uint32_t typeBits, VkMemoryPropertyFlags properties ) const
+	uint32_t Device::GetMemoryType( uint32_t typeBits, VkMemoryPropertyFlags flags ) const
 	{
 
-		for (uint32_t i = 0; i < m_memoryProperties.memoryTypeCount; ++i)
+		for (uint32_t i = 0; i < m_memoryProps.memoryTypeCount; ++i)
 		{
 			if ((typeBits & 1) == 1)
 			{
-				if ((m_memoryProperties.memoryTypes[i].propertyFlags & properties) == properties)
+				if ((m_memoryProps.memoryTypes[i].propertyFlags & flags) == flags)
 				{
 					return i;
 				}
@@ -335,7 +339,12 @@ namespace vk
 
 	VkPhysicalDeviceDescriptorBufferPropertiesEXT Device::GetDescriptorBufferProperties() const
 	{
-		return m_descriptorBufferProperties;
+		return m_descriptorBufferProps;
+	}
+
+	VkPhysicalDeviceProperties Device::GetProperties() const
+	{
+		return m_properties;
 	}
 
 	const VkDevice Device::GetDevice() const

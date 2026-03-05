@@ -22,7 +22,7 @@ public:
 	TextureManager() = default;
 	~TextureManager() = default;
 
-	void Init( std::shared_ptr<vk::GraphicsContextInfo>& contextInfo );
+	void Init( const std::weak_ptr<vk::GraphicsContextInfo>& contextInfo );
 	void Destroy();
 
 	size_t GetSize();
@@ -38,11 +38,15 @@ private:
 	std::mutex m_textureMutex;
 	std::mutex m_transferMutex;
 	std::mutex m_pendingTexturesMutex;
+
 	VkCommandPool m_graphicsCommandPool = VK_NULL_HANDLE;
+
 	std::array<VkCommandBuffer, gMaxFramesInFlight> m_commandBuffers;
 
-	std::shared_ptr<vk::GraphicsContextInfo> s_graphicsContextInfo = {};
+	std::weak_ptr<vk::GraphicsContextInfo> m_graphicsContextInfo;
 
 	std::vector<PendingTextureInfo> m_pendingTextures; //textures that need to finish their layout transition.
 	std::unordered_map<std::string, TextureInfo> m_textures;
+
+	//TODO: make buffer pool for textures.
 };

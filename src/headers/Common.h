@@ -39,10 +39,7 @@
 #include "Mesh.h"
 
 #include "vkGlobal.h"
-#include "vkUtility.h"
-#include "vkInit.h"
-
-
+#include "TextureManager.h"
 #include "ApplicationGlobal.h"
 
 

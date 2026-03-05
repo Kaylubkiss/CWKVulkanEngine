@@ -12,13 +12,27 @@
 namespace vk 
 {
 	ShaderModuleInfo::ShaderModuleInfo( const VkDevice l_device, std::string_view filename,
-		VkShaderStageFlagBits shaderFlags, shaderc_shader_kind shaderc_kind )
+		VkShaderStageFlagBits shaderFlags )
 	{
 		mFlags = shaderFlags;
-		mShaderKind = shaderc_kind;
+
+		switch (shaderFlags)
+		{
+			case VK_SHADER_STAGE_VERTEX_BIT:
+				mShaderKind = shaderc_vertex_shader;
+				break;
+			case VK_SHADER_STAGE_FRAGMENT_BIT:
+				mShaderKind = shaderc_fragment_shader;
+				break;
+			case VK_SHADER_STAGE_GEOMETRY_BIT:
+				mShaderKind = shaderc_geometry_shader;
+				break;
+			default:
+				throw std::runtime_error("Unknown shader kind");
+		}
 
 		std::string sourceFilePath = SHADER_PATH + std::string(filename);
-		auto spirvPath = vk::spirv::ReadSourceAndWriteToSpirv(sourceFilePath, shaderc_kind);
+		auto spirvPath = vk::spirv::ReadSourceAndWriteToSpirv(sourceFilePath, mShaderKind);
 	
 		if (spirvPath.has_value() == false)
 		{			
@@ -31,7 +45,7 @@ namespace vk
 
 		mHandle = vk::init::ShaderModule(l_device, spirvPath.value().c_str());
 
-		struct stat fileStat;
+		struct stat fileStat = {};
 		if (stat(mFilePath.c_str(), &fileStat) != 0)
 		{
 			std::cerr << "[ERROR] Can't open file: " << mFilePath << '\n';

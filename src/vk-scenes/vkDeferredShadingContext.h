@@ -1,9 +1,11 @@
 #pragma once
 #include "vkContextBase.h"
+#include "vkCubemap.h"
 
 namespace vk 
 {
 	#define LIGHT_COUNT 2
+	#define OBJECT_COUNT (10 + 1) //max 10 objects in the scene, +1 for blank texture
 
 	//This scene is statically 4.2 KB!!!
 	class DeferredContext : public ContextBase 
@@ -11,22 +13,24 @@ namespace vk
 	public:
 		DeferredContext();
 		~DeferredContext() override;
-
 		void RecordCommandBuffers() override;
-		void UpdateUI() override;
 		void InitializeScene() override;
-		void ResizeWindowDerived() override;
 		void Render() override;
 	protected:
+		void UpdateUI() override;
 		void InitializePipeline() override;
 		void InitializeDescriptors() override;
 		void FillOutGraphicsContextInfo() override;
 	private:
+		void InitializeFramebuffers();
 		void InitializeDeferredFramebuffer();
 		void InitializeDeferredShadowFramebuffer();
+		void InitializeDeferredCompositionFramebuffer();
+		void InitializeDeferredSkyboxFramebuffer();
+
 		void InitializeUniforms();
 		void InitializeDescriptorBuffers();
-		void InitializeDescriptorLayouts();
+		void InitializePipelineLayouts();
 		void UpdateScreenUniforms();
 		void UpdateLights();
 	private:
@@ -35,6 +39,8 @@ namespace vk
 			COMPOSITION = 0,
 			MRT,
 			SHADOW,
+			SKY,
+			SWAPCHAIN, //non-uniformed pipeline
 			PIPELINE_COUNT
 		};
 
@@ -81,16 +87,21 @@ namespace vk
 
 		std::array<UniformBuffers, gMaxFramesInFlight> uniformBuffers;
 
-		std::array<DescriptorBufferData, dePipeline::PIPELINE_COUNT> uniformBindingDescriptors;
+		std::array<DescriptorBuffer, dePipeline::PIPELINE_COUNT> uniformBindingDescriptors;
 
-		DescriptorBufferData textureBindingDescriptor;
-		DescriptorBufferData compositionImageBindingDescriptor;
+		DescriptorBuffer textureSamplerBindingDescriptor;
+		DescriptorBuffer skyboxSamplerBindingDescriptor;
+		DescriptorBuffer compositionImageBindingDescriptor;
+		DescriptorBuffer swapChainSamplerBindingDescriptor;
 
 		//NOTE: this will all be done offscreen because we have a main renderpass from the swapchain we'll
 		//read the results of this from
-		struct {
-			Framebuffer deMRT;
+		struct
+		{
+			Framebuffer deMRT; //NOTE: should be an array
 			Framebuffer deShadow;
+			Framebuffer deComposition;
+			Framebuffer deSky;
 		} framebuffers;
 
 		std::array<VkPipelineLayout, PIPELINE_COUNT> pipelineLayouts = {};
@@ -102,11 +113,13 @@ namespace vk
 		float zFar     = 64.f;
 		float lightFOV = 100.f;
 
-		struct {
+		struct
+		{
 			glm::vec3 cubePosition   = { 1.0, 20, -5.f };
 			glm::vec3 freddyPosition = { 1.0f, 1.0, 3.f };
 		} sceneSettings{};
 
+		Cubemap test_cube;
 	};
 
 }

@@ -87,6 +87,7 @@ ${VULKAN_SRC_DIR}/vkWindow.cpp
 ${VULKAN_SRC_DIR}/vkPipelineManager.cpp
 ${VULKAN_SRC_DIR}/vkFramebuffer.cpp
 ${VULKAN_SRC_DIR}/vkInstance.cpp
+${VULKAN_SRC_DIR}/vkDescriptorBuffer.cpp
 )
 
 set(VULKAN_SCENES_DIR src/vk-scenes)
@@ -94,6 +95,10 @@ set(VULKAN_SCENES_DIR src/vk-scenes)
 set(VULKAN_ENGINE_SCENES_SOURCE
 		${VULKAN_SCENES_DIR}/vkDeferredShadingContext.cpp
 		${VULKAN_SCENES_DIR}/vkDeferredShadingContext.h
+		${VULKAN_SCENES_DIR}/vkDeferred_Descriptor_Impl.cpp
+		${VULKAN_SCENES_DIR}/vkDeferred_Framebuffer_Impl.cpp
+		${VULKAN_SCENES_DIR}/vkDeferred_Pipeline_Impl.cpp
+		${VULKAN_SCENES_DIR}/vkDeferred_RenderCommands_Impl.cpp
 )
 
 source_group("Source Files/VulkanSources" FILES ${VULKAN_ENGINE_SRC})
@@ -145,6 +150,7 @@ ${VULKAN_HEADER_DIR}/vkFramebuffer.h
 ${VULKAN_HEADER_DIR}/vkCubemap.h
 ${VULKAN_HEADER_DIR}/vkInstance.h
 ${VULKAN_HEADER_DIR}/vkModel.h
+${VULKAN_HEADER_DIR}/vkDescriptorBuffer.h
 )
 
 source_group("Header Files/VulkanHeaders" FILES ${VULKAN_ENGINE_HEADERS})	

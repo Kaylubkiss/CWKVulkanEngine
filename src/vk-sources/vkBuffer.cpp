@@ -24,28 +24,16 @@ namespace vk
 		VkPhysicalDeviceMemoryProperties	vpdmp;
 		vkGetPhysicalDeviceMemoryProperties(devicePtr->GetGPU(), &vpdmp);
 
-		uint32_t typeBits = memoryRequirments.memoryTypeBits;
-		for (uint32_t i = 0; i < vpdmp.memoryTypeCount; i++)
-		{
-			if ((typeBits & 1) == 1)
-			{
-				if ((vpdmp.memoryTypes[i].propertyFlags & flags) == flags)
-				{
-					vmai.memoryTypeIndex = i;
-					break;
-				}
-			}
-			typeBits >>= 1;
-		}
-
+		vmai.memoryTypeIndex = devicePtr->GetMemoryType(memoryRequirments.memoryTypeBits, flags);
 
 		VK_CHECK_RESULT(vkAllocateMemory(c_device, &vmai, nullptr, &m_memory));
+		VK_CHECK_RESULT(vkBindBufferMemory(c_device, m_handle, m_memory, 0));
 
 		if (data != nullptr)
 		{
 			Buffer::Map();
-			
-			if (m_mappedMemory != nullptr) 
+
+			if (m_mappedMemory != nullptr)
 			{
 				memcpy(m_mappedMemory, data, m_size);
 			}
@@ -55,12 +43,11 @@ namespace vk
 				Buffer::Flush();
 			}
 
+
 			Buffer::UnMap();
 		}
 
 		Buffer::SetDescriptor(m_size, 0);
-
-		VK_CHECK_RESULT(vkBindBufferMemory(c_device, m_handle, m_memory, 0));
 	}
 
 	VkDeviceAddress Buffer::GetDeviceAddress() const

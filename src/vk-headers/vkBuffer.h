@@ -34,7 +34,6 @@ namespace vk
 		void* m_mappedMemory    = nullptr;
 
 		VkDescriptorBufferInfo m_descriptor = {};
-
 	};
 }
 

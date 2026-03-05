@@ -133,6 +133,8 @@ namespace vk
 			uint32_t mipLevels, VkFormat format, VkImageUsageFlags usage,
 			VkMemoryPropertyFlags flags, VkDeviceMemory& imageMemory
 		);
+
+		VkComponentMapping ComponentMappingSwizzleIdentity();
 	}
 
 }

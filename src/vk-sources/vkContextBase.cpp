@@ -33,9 +33,6 @@ namespace vk
 			m_settings.maxFramesInFlight = swapChain.createInfo.minImageCount;
 		}
 
-		ContextBase::InitializeRenderPass();
-		this->swapChain.CreateFrameBuffers(m_window.Viewport(), renderPass);
-
 		CreateSynchronizationPrimitives();
 
 		//each swapchain should have its own command buffer
@@ -49,14 +46,17 @@ namespace vk
 			userInterfaceCI.contextPhysicalDevice = this->device.GetGPU();
 			userInterfaceCI.contextQueue = this->device.GetQueue(DeviceQueue::GRAPHICS);
 			userInterfaceCI.contextWindow = m_window.WindowPtr();
-			userInterfaceCI.renderPass = this->renderPass;
+			userInterfaceCI.renderPass = swapChain.renderPass;
 			userInterfaceCI.minImages = m_settings.maxFramesInFlight;
 			userInterfaceCI.viewPortExtent = m_window.Extents();
+
+			m_settings.UIToggled = true;
 
 			this->UIOverlay = UserInterface(userInterfaceCI);
 		}
 
 		m_info = std::make_shared<vk::GraphicsContextInfo>();
+
 		ContextBase::FillOutGraphicsContextInfo();
 
 		this->mCamera = Camera({ 0.f, 0.f, 10.f }, { 0.f, 0.f, -1.f }, { 0,1,0 });
@@ -85,7 +85,10 @@ namespace vk
 				vkDestroyFence(device.GetDevice(), inFlightFences[i], nullptr);
 			}
 
-			m_objectManager->Destroy();
+			if (m_objectManager != nullptr)
+			{
+				m_objectManager->Destroy();
+			}
 
 			//must destroy the device before instance
 			this->device.Destroy();
@@ -122,7 +125,7 @@ namespace vk
 			return; //window is minimized, and 0 sizes will cause errors/crashes --> isPrepared will remain false.
 		}
 
-		swapChain.Recreate(renderPass, m_window);
+		swapChain.Recreate(m_window);
 
 		for (int i = 0; i < gMaxFramesInFlight; ++i)
 		{
@@ -140,8 +143,6 @@ namespace vk
 		}
 
 		CreateSynchronizationPrimitives();
-
-		ResizeWindowDerived();
 	}
 
 	void ContextBase::UpdateSceneObjects(float dt) const
@@ -155,83 +156,6 @@ namespace vk
 	}
 
 	//initializers
-	void ContextBase::InitializeRenderPass() 
-	{
-		assert(swapChain.handle != VK_NULL_HANDLE);
-
-		std::array<VkAttachmentDescription, 2> attachments = {};
-
-		//color attachment
-		attachments[0].format = swapChain.createInfo.imageFormat;
-		attachments[0].samples = VK_SAMPLE_COUNT_1_BIT;
-		attachments[0].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-		attachments[0].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-		attachments[0].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-		attachments[0].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-		attachments[0].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-		attachments[0].finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-
-		//depth attachment
-		attachments[1].format = VK_FORMAT_D24_UNORM_S8_UINT;
-		attachments[1].samples = VK_SAMPLE_COUNT_1_BIT;
-		attachments[1].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-		attachments[1].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-		attachments[1].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-		attachments[1].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-		attachments[1].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-		attachments[1].finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-
-		VkAttachmentReference colorReference = {};
-		colorReference.attachment = 0;
-		colorReference.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
-		VkAttachmentReference depthReference = {};
-		depthReference.attachment = 1;
-		depthReference.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-
-		VkSubpassDescription subpassDescription = {};
-		subpassDescription.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-		subpassDescription.colorAttachmentCount = 1;
-		subpassDescription.pColorAttachments = &colorReference;
-		subpassDescription.pDepthStencilAttachment = &depthReference;
-
-		//for layout transitions
-		std::array<VkSubpassDependency, 2> dependencies{};
-
-		//depth writing/reading dependencies
-		dependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL;
-		dependencies[0].dstSubpass = 0;
-		//some pipelines may do the depth test before fragment shader starts, or after,
-		//depending on if FragCoord.z is edited in a shader.
-		dependencies[0].srcStageMask = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT |
-			VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
-		dependencies[0].dstStageMask = dependencies[0].srcStageMask;
-		dependencies[0].srcAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
-		dependencies[0].dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT |
-			VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT;
-		dependencies[0].dependencyFlags = 0;
-
-		//color writing/reading dependencies. This is to ensure that the color attachment read/writes are finished before subpass 0 begins and uses them again for reading/writing.
-		dependencies[1].srcSubpass = VK_SUBPASS_EXTERNAL;
-		dependencies[1].dstSubpass = 0;
-		dependencies[1].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-		dependencies[1].dstStageMask = dependencies[1].srcStageMask;
-		dependencies[1].srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT; //this can also be 0
-		dependencies[1].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_COLOR_ATTACHMENT_READ_BIT;
-		dependencies[1].dependencyFlags = 0;
-
-		VkRenderPassCreateInfo renderPassCI = {};
-		renderPassCI.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-		renderPassCI.attachmentCount = static_cast<uint32_t>(attachments.size());
-		renderPassCI.pAttachments = attachments.data();
-		renderPassCI.subpassCount = 1;
-		renderPassCI.pSubpasses = &subpassDescription;
-		renderPassCI.dependencyCount = static_cast<uint32_t>(dependencies.size());
-		renderPassCI.pDependencies = dependencies.data();
-
-		VK_CHECK_RESULT(vkCreateRenderPass(device.GetDevice(), &renderPassCI, nullptr, &renderPass));
-	}
-
 	void ContextBase::FillOutGraphicsContextInfo() 
 	{
 		//TODO: a little janky way to initialize as more of mInfo is filled with derived classes.
@@ -255,7 +179,7 @@ namespace vk
 		return m_window;
 	}
 
-	std::shared_ptr<GraphicsContextInfo> ContextBase::GetGraphicsContextInfo() const
+	std::weak_ptr<GraphicsContextInfo> ContextBase::GetGraphicsContextInfo() const
 	{
 		return m_info;
 	}
@@ -384,11 +308,7 @@ namespace vk
 			VK_CHECK_RESULT(result);
 		}
 
-		//we need to ensure that the queue submission completes.
-		if (textureSubmitted == false)
-		{
-			currentFrame = (currentFrame + 1) % m_settings.maxFramesInFlight;
-		}
+		currentFrame = (currentFrame + 1) % m_settings.maxFramesInFlight;
 	}
 
 }

@@ -7,17 +7,18 @@ namespace vk
 	public:
 		Texture() = default;
 		//From filename
-		Texture( const vk::Device* devicePtr, const std::string& fileName, std::mutex& transferMutex );
-		~Texture();
+		virtual ~Texture();
 		Texture& operator=( const Texture& other ) = delete;
 		Texture( const Texture& other ) = delete;
+
+		virtual void Create( const vk::Device* devicePtr, const std::string& fileName, std::mutex& transferMutex );
 
 		[[nodiscard]] VkDescriptorImageInfo GetDescriptor() const;
 		[[nodiscard]] VkImage GetImage() const;
 
 		static VkImageView CreateImageView( VkDevice l_device, const VkImage& textureImage, uint32_t mipLevels );
 		static VkSampler CreateSampler( VkPhysicalDevice p_device, VkDevice l_device, uint32_t mipLevels );
-	private:
+	protected:
 		//member variables
 		VkDevice c_device = VK_NULL_HANDLE;
 

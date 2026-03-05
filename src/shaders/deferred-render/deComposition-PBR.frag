@@ -163,9 +163,5 @@ void main()
 
     fragColor.rgb = AMBIENT_COLOR * ambientOcclusion.r * albedo  + CookTorrenceReflectance(position, normal, albedo, metallicRoughness);
 
-    //gamma correction using the Reinhard operator so that bright spots of the image get normalized
-    fragColor.rgb = fragColor.rgb / (fragColor.rgb + vec3(1.0));
-    fragColor.rgb = pow(fragColor.rgb, vec3(1.0/2.2));
-
 	fragColor.a = 1.0;
 }
