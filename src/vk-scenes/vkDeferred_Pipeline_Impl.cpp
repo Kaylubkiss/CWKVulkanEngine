@@ -39,7 +39,7 @@ namespace vk
 		std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages = {};
 
 		VkGraphicsPipelineCreateInfo pipelineCI = vk::init::PipelineCreateInfo(pipelineLayouts[dePipeline::COMPOSITION],
-			framebuffers.deComposition.renderPass, VK_PIPELINE_CREATE_DESCRIPTOR_BUFFER_BIT_EXT);
+			framebuffers.deComposition[0].renderPass, VK_PIPELINE_CREATE_DESCRIPTOR_BUFFER_BIT_EXT);
 		pipelineCI.pInputAssemblyState = &inputAssemblyStateCI;
 		pipelineCI.pRasterizationState = &rasterizationStateCI;
 		pipelineCI.pColorBlendState = &colorBlendStateCI;
@@ -151,7 +151,7 @@ namespace vk
 			rasterizationStateCI.cullMode = VK_CULL_MODE_BACK_BIT;
 
 			pipelineCI.layout = pipelineLayouts[dePipeline::MRT];
-			pipelineCI.renderPass = framebuffers.deMRT.renderPass;
+			pipelineCI.renderPass = framebuffers.deMRT[0].renderPass;
 
 			//there are 5 color outputs in this stage.
 			std::array<VkPipelineColorBlendAttachmentState, RT_COUNT> blendAttachmentStates = {};
@@ -233,7 +233,7 @@ namespace vk
 					std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages;
 
 					VkGraphicsPipelineCreateInfo pipelineCI =
-						vk::init::PipelineCreateInfo(pipelineLayouts[dePipeline::MRT], framebuffers.deMRT.renderPass,
+						vk::init::PipelineCreateInfo(pipelineLayouts[dePipeline::MRT], framebuffers.deMRT[0].renderPass,
 							VK_PIPELINE_CREATE_DESCRIPTOR_BUFFER_BIT_EXT);
 
 					pipelineCI.pInputAssemblyState = &inputAssemblyStateCI;
@@ -278,7 +278,7 @@ namespace vk
 
 			//using a full-screen quad method.
 			pipelineCI.pVertexInputState = &emptyVertexInputStateCI;
-			pipelineCI.renderPass = framebuffers.deSky.renderPass;
+			pipelineCI.renderPass = framebuffers.deSky[0].renderPass;
 			pipelineCI.layout = pipelineLayouts[dePipeline::SKY];
 
 			VkPipelineDepthStencilStateCreateInfo emptyDepthStencilStateCI =
@@ -357,7 +357,7 @@ namespace vk
 			dynamicStates.push_back(VK_DYNAMIC_STATE_DEPTH_BIAS);
 			dynamicStateCI = vk::init::PipelineDynamicStateCreateInfo(dynamicStates);
 
-			pipelineCI.renderPass = framebuffers.deShadow.renderPass;
+			pipelineCI.renderPass = framebuffers.deShadow[0].renderPass;
 			pipelineCI.layout = pipelineLayouts[dePipeline::SHADOW];
 
 			//shadow pass only consumes the position of vertices

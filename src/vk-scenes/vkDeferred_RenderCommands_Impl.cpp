@@ -19,19 +19,20 @@ namespace vk
 			VkRenderPassBeginInfo renderPassBI = vk::init::RenderPassBeginInfo();
 			renderPassBI.clearValueCount = 1;
 			renderPassBI.pClearValues = clearValues;
-			renderPassBI.renderArea.extent = { (uint32_t)framebuffers.deShadow.width,
-				(uint32_t)framebuffers.deShadow.height };
-			renderPassBI.renderPass = framebuffers.deShadow.renderPass;
-			renderPassBI.framebuffer = framebuffers.deShadow.handle;
+			renderPassBI.renderArea.extent = { (uint32_t)framebuffers.deShadow[currentFrame].width,
+				(uint32_t)framebuffers.deShadow[currentFrame].height };
+			renderPassBI.renderPass = framebuffers.deShadow[currentFrame].renderPass;
+			renderPassBI.framebuffer = framebuffers.deShadow[currentFrame].handle;
 
 			vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
 				pipelineManager.Get(dePipeline::SHADOW));
 			vkCmdBeginRenderPass(cmdBuffer, &renderPassBI, VK_SUBPASS_CONTENTS_INLINE);
 
-			VkViewport shadowViewport = vk::init::Viewport(framebuffers.deShadow.width, framebuffers.deShadow.height);
+			VkViewport shadowViewport = vk::init::Viewport(framebuffers.deShadow[currentFrame].width, framebuffers.deShadow[currentFrame].height);
 			vkCmdSetViewport(cmdBuffer, 0, 1, &shadowViewport);
 
-			VkRect2D shadowScissor = vk::init::Rect2D(framebuffers.deShadow.width, framebuffers.deShadow.height);
+			VkRect2D shadowScissor = vk::init::Rect2D(framebuffers.deShadow[currentFrame].width,
+				framebuffers.deShadow[currentFrame].height);
 			vkCmdSetScissor(cmdBuffer, 0, 1, &shadowScissor);
 
 			vkCmdSetDepthBias(cmdBuffer, depthBiasConstant, 0.f, depthBiasSlope);
@@ -77,10 +78,10 @@ namespace vk
 			VkRenderPassBeginInfo renderPassBeginInfo = vk::init::RenderPassBeginInfo();
 			renderPassBeginInfo.clearValueCount = RT_COUNT + 1;
 			renderPassBeginInfo.pClearValues = clearValues;
-			renderPassBeginInfo.renderArea.extent = { (uint32_t)framebuffers.deMRT.width,
-				(uint32_t)framebuffers.deMRT.height };
-			renderPassBeginInfo.renderPass = framebuffers.deMRT.renderPass;
-			renderPassBeginInfo.framebuffer = framebuffers.deMRT.handle;
+			renderPassBeginInfo.renderArea.extent = { (uint32_t)framebuffers.deMRT[currentFrame].width,
+				(uint32_t)framebuffers.deMRT[currentFrame].height };
+			renderPassBeginInfo.renderPass = framebuffers.deMRT[currentFrame].renderPass;
+			renderPassBeginInfo.framebuffer = framebuffers.deMRT[currentFrame].handle;
 
 			vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineManager.Get(dePipeline::MRT));
 
@@ -145,9 +146,10 @@ namespace vk
 			renderPassBeginInfo.clearValueCount = 1;
 			renderPassBeginInfo.pClearValues = clearValues;
 			renderPassBeginInfo.renderArea.extent =
-				{static_cast<uint32_t>(framebuffers.deComposition.width), static_cast<uint32_t>(framebuffers.deComposition.height)};
-			renderPassBeginInfo.renderPass = framebuffers.deComposition.renderPass;
-			renderPassBeginInfo.framebuffer = framebuffers.deComposition.handle;
+				{static_cast<uint32_t>(framebuffers.deComposition[currentFrame].width),
+					static_cast<uint32_t>(framebuffers.deComposition[currentFrame].height)};
+			renderPassBeginInfo.renderPass = framebuffers.deComposition[currentFrame].renderPass;
+			renderPassBeginInfo.framebuffer = framebuffers.deComposition[currentFrame].handle;
 
 			vkCmdBeginRenderPass(cmdBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
@@ -209,9 +211,10 @@ namespace vk
 			renderPassBeginInfo.clearValueCount = 2;
 			renderPassBeginInfo.pClearValues = clearValues;
 			renderPassBeginInfo.renderArea.extent =
-				{static_cast<uint32_t>(framebuffers.deSky.width), static_cast<uint32_t>(framebuffers.deSky.height)};
-			renderPassBeginInfo.renderPass = framebuffers.deSky.renderPass;
-			renderPassBeginInfo.framebuffer = framebuffers.deSky.handle;
+				{static_cast<uint32_t>(framebuffers.deSky[currentFrame].width),
+					static_cast<uint32_t>(framebuffers.deSky[currentFrame].height)};
+			renderPassBeginInfo.renderPass = framebuffers.deSky[currentFrame].renderPass;
+			renderPassBeginInfo.framebuffer = framebuffers.deSky[currentFrame].handle;
 
 			vkCmdBeginRenderPass(cmdBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 

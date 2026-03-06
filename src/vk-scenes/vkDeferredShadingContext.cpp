@@ -130,10 +130,13 @@ namespace vk
 		skyboxSamplerBindingDescriptor.Destroy();
 		swapChainSamplerBindingDescriptor.Destroy();
 
-		framebuffers.deMRT.Destroy();
-		framebuffers.deShadow.Destroy();
-		framebuffers.deSky.Destroy();
-		framebuffers.deComposition.Destroy();
+		for (size_t frame = 0; frame < gMaxFramesInFlight; ++frame)
+		{
+			framebuffers.deMRT[frame].Destroy();
+			framebuffers.deShadow[frame].Destroy();
+			framebuffers.deSky[frame].Destroy();
+			framebuffers.deComposition[frame].Destroy();
+		}
 	}
 
 	void DeferredContext::InitializeScene()

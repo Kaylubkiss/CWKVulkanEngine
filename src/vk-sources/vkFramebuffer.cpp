@@ -193,6 +193,8 @@ namespace vk
 
 	void Framebuffer::CreateFramebuffer() 
 	{
+		CreateRenderPass();
+
 		VkFramebufferCreateInfo framebufferCI = vk::init::FramebufferCreateInfo();
 		framebufferCI.width = width;
 		framebufferCI.height = height;

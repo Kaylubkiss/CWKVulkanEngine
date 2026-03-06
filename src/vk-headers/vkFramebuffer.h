@@ -56,9 +56,10 @@ namespace vk
 		void Init( vk::Device* contextDevice );
 		void Destroy();
 		void CreateSampler( VkFilter minFilter, VkFilter magFilter, VkSamplerAddressMode addressMode );
-		void CreateRenderPass();
 		void CreateFramebuffer();
 		void AddAttachment( const vk::FramebufferAttachmentCreateInfo& createInfo );
+	private:
+		void CreateRenderPass();
 	public:
 		uint32_t width = 0;
 		uint32_t height = 0;

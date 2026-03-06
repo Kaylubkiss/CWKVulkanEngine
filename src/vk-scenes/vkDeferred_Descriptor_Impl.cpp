@@ -54,16 +54,16 @@ namespace vk
 				descriptorBufferCI.imageDescriptorData[frame];
 
     		imageInfos.resize(RT_COUNT + 1);
-    		for (size_t rt = 0; rt < RT_COUNT; ++rt)
+    		for (size_t binding = 0; binding < RT_COUNT; ++binding)
     		{
-    			imageInfos[rt].imageLayout = framebuffers.deMRT.attachments[rt].layout;
-    			imageInfos[rt].imageView = framebuffers.deMRT.attachments[rt].imageView;
-    			imageInfos[rt].sampler = framebuffers.deMRT.sampler;
+    			imageInfos[binding].imageLayout = framebuffers.deMRT[frame].attachments[binding].layout;
+    			imageInfos[binding].imageView = framebuffers.deMRT[frame].attachments[binding].imageView;
+    			imageInfos[binding].sampler = framebuffers.deMRT[frame].sampler;
     		}
 
-    		imageInfos[RT_COUNT].imageLayout = framebuffers.deShadow.attachments[0].layout;
-    		imageInfos[RT_COUNT].imageView = framebuffers.deShadow.attachments[0].imageView;
-    		imageInfos[RT_COUNT].sampler = framebuffers.deShadow.sampler;
+    		imageInfos[RT_COUNT].imageLayout = framebuffers.deShadow[frame].attachments[0].layout;
+    		imageInfos[RT_COUNT].imageView = framebuffers.deShadow[frame].attachments[0].imageView;
+    		imageInfos[RT_COUNT].sampler = framebuffers.deShadow[frame].sampler;
     	}
 
     	compositionImageBindingDescriptor.Create(descriptorBufferCI);
@@ -116,8 +116,8 @@ namespace vk
     		VkDescriptorImageInfo swapchain_image_info = {};
     		//image view and sampler should be identical across framebuffers
     		swapchain_image_info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-    		swapchain_image_info.imageView = framebuffers.deSky.attachments[0].imageView;
-    		swapchain_image_info.sampler = framebuffers.deSky.sampler;
+    		swapchain_image_info.imageView = framebuffers.deSky[frame].attachments[0].imageView;
+    		swapchain_image_info.sampler = framebuffers.deSky[frame].sampler;
 
     		descriptorBufferCI.imageDescriptorData[frame].push_back(swapchain_image_info);
     	}

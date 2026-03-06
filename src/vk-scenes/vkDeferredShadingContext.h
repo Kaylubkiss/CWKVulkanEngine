@@ -104,10 +104,10 @@ namespace vk
 		//read the results of this from
 		struct
 		{
-			Framebuffer deMRT; //NOTE: should be an array
-			Framebuffer deShadow;
-			Framebuffer deComposition;
-			Framebuffer deSky;
+			std::array<Framebuffer, gMaxFramesInFlight> deMRT; //NOTE: should be an array
+			std::array<Framebuffer, gMaxFramesInFlight> deShadow;
+			std::array<Framebuffer, gMaxFramesInFlight> deComposition;
+			std::array<Framebuffer, gMaxFramesInFlight> deSky;
 		} framebuffers;
 
 		std::array<VkPipelineLayout, PIPELINE_COUNT> pipelineLayouts = {};

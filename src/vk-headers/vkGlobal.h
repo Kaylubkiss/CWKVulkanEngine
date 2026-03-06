@@ -32,9 +32,6 @@ namespace vk
 		vk::Device* devicePtr = nullptr;
 		UserInterface* contextUIPtr = nullptr;
 		DescriptorBufferCreateInfo* descriptorBufferCreateInfoPtr = nullptr;
-		~GraphicsContextInfo()
-		{
-		};
 	};
 
 	//This allows the user to pass in relevant arguments to draw an object.
