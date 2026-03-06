@@ -3,12 +3,6 @@
 //this should be made to do something more useful, but for now it can be a useful alias
 #define VK_CHECK_RESULT(function) assert(function == VK_SUCCESS)
 
-extern PFN_vkGetDescriptorSetLayoutBindingOffsetEXT g_vkGetDescriptorSetLayoutBindingOffsetEXT;
-extern PFN_vkGetDescriptorSetLayoutSizeEXT g_vkGetDescriptorSetLayoutSizeEXT;
-extern PFN_vkGetDescriptorEXT g_vkGetDescriptorEXT;
-extern PFN_vkCmdBindDescriptorBuffersEXT g_vkCmdBindDescriptorBuffersEXT;
-extern PFN_vkCmdSetDescriptorBufferOffsetsEXT g_vkCmdSetDescriptorBufferOffsetsEXT;
-
 namespace vk 
 {
 	namespace util 

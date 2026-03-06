@@ -85,9 +85,9 @@ namespace vk
 				vkDestroyFence(device.GetDevice(), inFlightFences[i], nullptr);
 			}
 
-			if (m_objectManager != nullptr)
+			if (m_assetManager != nullptr)
 			{
-				m_objectManager->Destroy();
+				m_assetManager->Destroy();
 			}
 
 			//must destroy the device before instance
@@ -147,7 +147,7 @@ namespace vk
 
 	void ContextBase::UpdateSceneObjects(float dt) const
 	{
-		m_objectManager->Update(dt);
+		m_assetManager->Update(dt);
 	}
 
 	void ContextBase::ToggleUIActive(bool enable)
@@ -268,7 +268,7 @@ namespace vk
 		std::vector<VkPipelineStageFlags> pipelineWaitStages = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
 		std::vector<VkSemaphore> waitSemaphores = { presentCompleteSemaphores[currentFrame] };
 
-		bool textureSubmitted = m_objectManager->SyncIO(currentFrame, textureUploadSemaphores[currentFrame]);
+		bool textureSubmitted = m_assetManager->SyncIO(currentFrame, textureUploadSemaphores[currentFrame]);
 		if (textureSubmitted == true)
 		{
 			pipelineWaitStages.push_back(VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);

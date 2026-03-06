@@ -26,6 +26,8 @@ public:
 	void Destroy();
 
 	size_t GetSize();
+	//don't want ill-use of this getter for some type cast.
+	[[nodiscard]] const vk::DescriptorBuffer& GetTextureSamplerDescriptor() const;
 
 	void BindTextureToModelPrimitive( const std::string& fileName, uint32_t bindingIndex, uint32_t& layoutIndex );
 
@@ -41,9 +43,11 @@ private:
 
 	VkCommandPool m_graphicsCommandPool = VK_NULL_HANDLE;
 
-	std::array<VkCommandBuffer, gMaxFramesInFlight> m_commandBuffers;
+	std::array<VkCommandBuffer, gMaxFramesInFlight> m_commandBuffers = {};
 
 	std::weak_ptr<vk::GraphicsContextInfo> m_graphicsContextInfo;
+
+	vk::DescriptorBuffer m_textureSamplerDescriptor;
 
 	std::vector<PendingTextureInfo> m_pendingTextures; //textures that need to finish their layout transition.
 	std::unordered_map<std::string, TextureInfo> m_textures;

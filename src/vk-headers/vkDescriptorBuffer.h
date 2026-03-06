@@ -1,5 +1,11 @@
 #pragma once
 
+extern PFN_vkGetDescriptorSetLayoutBindingOffsetEXT g_vkGetDescriptorSetLayoutBindingOffsetEXT;
+extern PFN_vkGetDescriptorSetLayoutSizeEXT g_vkGetDescriptorSetLayoutSizeEXT;
+extern PFN_vkGetDescriptorEXT g_vkGetDescriptorEXT;
+extern PFN_vkCmdBindDescriptorBuffersEXT g_vkCmdBindDescriptorBuffersEXT;
+extern PFN_vkCmdSetDescriptorBufferOffsetsEXT g_vkCmdSetDescriptorBufferOffsetsEXT;
+
 namespace vk
 {
 	//row = frame
@@ -25,10 +31,10 @@ namespace vk
 		DescriptorBuffer() = default;
 		~DescriptorBuffer() = default;
 
-		const vk::Buffer& GetBuffer() const;
-		const std::vector<VkDeviceSize>& GetBindingOffsets() const;
-		VkDeviceSize GetLayoutSize() const;
-		VkDescriptorSetLayout GetLayout() const;
+		[[nodiscard]] const vk::Buffer& GetBuffer() const;
+		[[nodiscard]] const std::vector<VkDeviceSize>& GetBindingOffsets() const;
+		[[nodiscard]] VkDeviceSize GetLayoutSize() const;
+		[[nodiscard]] VkDescriptorSetLayout GetLayout() const;
 
 		void Destroy();
 		void Create( const vk::DescriptorBufferCreateInfo& createInfo );

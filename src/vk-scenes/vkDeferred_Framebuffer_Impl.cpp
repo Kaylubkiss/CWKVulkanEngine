@@ -20,18 +20,20 @@ namespace vk
 		framebuffers.deMRT.width = static_cast<uint32_t>(viewport.width);
 		framebuffers.deMRT.height = static_cast<uint32_t>(viewport.height);
 
-		VkFramebufferCreateInfo framebuffer = vk::init::FramebufferCreateInfo();
-		framebuffer.width = framebuffers.deMRT.width;
-		framebuffer.height = framebuffers.deMRT.height;
-		framebuffer.layers = 1;
+		VkFramebufferCreateInfo framebufferCI = vk::init::FramebufferCreateInfo();
+		framebufferCI.width = framebuffers.deMRT.width;
+		framebufferCI.height = framebuffers.deMRT.height;
+		framebufferCI.layers = 1;
 
 		vk::FramebufferAttachmentCreateInfo attachmentCI = {};
 
 		//position attachment
 		attachmentCI.format = VK_FORMAT_R16G16B16A16_SFLOAT;
 		attachmentCI.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
-		attachmentCI.width = framebuffer.width;
-		attachmentCI.height = framebuffer.height;
+		attachmentCI.width = framebufferCI.width;
+		attachmentCI.height = framebufferCI.height;
+		attachmentCI.layerCount = 1;
+		attachmentCI.sampleCount = VK_SAMPLE_COUNT_1_BIT;
 		attachmentCI.loadOP = VK_ATTACHMENT_LOAD_OP_CLEAR;
 		attachmentCI.storeOP = VK_ATTACHMENT_STORE_OP_STORE;
 		attachmentCI.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
@@ -75,14 +77,15 @@ namespace vk
     	framebuffers.deShadow.Destroy();
     	framebuffers.deShadow.Init(&this->device);
 
-    	framebuffers.deShadow.width = static_cast<uint32_t>(viewport.width);
-    	framebuffers.deShadow.height = static_cast<uint32_t>(viewport.height);
+    	framebuffers.deShadow.width = 2048;
+    	framebuffers.deShadow.height = 2048;
 
     	vk::FramebufferAttachmentCreateInfo attachmentCI = {};
     	attachmentCI.format = VK_FORMAT_D32_SFLOAT_S8_UINT;
     	attachmentCI.width = framebuffers.deShadow.width;
     	attachmentCI.height = framebuffers.deShadow.height;
     	attachmentCI.layerCount = LIGHT_COUNT;
+		attachmentCI.sampleCount = VK_SAMPLE_COUNT_1_BIT;
     	attachmentCI.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
     	attachmentCI.loadOP = VK_ATTACHMENT_LOAD_OP_CLEAR;
     	attachmentCI.storeOP = VK_ATTACHMENT_STORE_OP_DONT_CARE;
@@ -101,9 +104,11 @@ namespace vk
 	{
 		VkViewport viewport = m_window.Viewport();
 
+		framebuffers.deComposition.Destroy();
+		framebuffers.deComposition.Init(&this->device);
+
 		framebuffers.deComposition.width = static_cast<uint32_t>(viewport.width);
 		framebuffers.deComposition.height = static_cast<uint32_t>(viewport.height);
-		framebuffers.deComposition.Init(&this->device);
 
 		vk::FramebufferAttachmentCreateInfo attachmentCI = {};
 		attachmentCI.layerCount = 1;
@@ -132,7 +137,9 @@ namespace vk
 	{
 		VkViewport viewport = m_window.Viewport();
 
+		framebuffers.deSky.Destroy();
 		framebuffers.deSky.Init(&this->device);
+
 		framebuffers.deSky.width = static_cast<uint32_t>(viewport.width);
 		framebuffers.deSky.height = static_cast<uint32_t>(viewport.height);
 

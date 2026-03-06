@@ -2,7 +2,7 @@
 
 #include "vkWindow.h"
 #include "vkInstance.h"
-#include "ObjectManager.h"
+#include "AssetManager.h"
 #include "vkSwapChain.h"
 #include "vkFramebuffer.h"
 #include "vkPipelineManager.h"
@@ -28,7 +28,7 @@ namespace vk
 		//operations
 		void WaitForDevice() const;
 		void SubmitFrame();
-		void ResizeWindow();
+		virtual void ResizeWindow();
 		void UpdateSceneObjects(float dt) const;
 		void ToggleUIActive(bool enable);
 	protected:
@@ -71,6 +71,6 @@ namespace vk
 		std::array<VkSemaphore, gMaxFramesInFlight> textureUploadSemaphores; //for I/O synchronization
 		std::array<VkFence, gMaxFramesInFlight> inFlightFences;
 
-		std::shared_ptr<ObjectManager> m_objectManager;
+		std::shared_ptr<AssetManager> m_assetManager;
 	};
 }	

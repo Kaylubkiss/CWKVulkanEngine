@@ -64,7 +64,7 @@ src/Physics.cpp
 src/Timer.cpp
 src/ThreadPool.cpp
 src/TextureManager.cpp
-src/ObjectManager.cpp
+src/AssetManager.cpp
 src/ApplicationGlobal.cpp
 src/CameraController.cpp
 src/UserInterface.cpp
@@ -120,7 +120,7 @@ ${HEADER_SRC_DIR}/Vertex.h
 ${HEADER_SRC_DIR}/Physics.h
 ${HEADER_SRC_DIR}/Timer.h
 ${HEADER_SRC_DIR}/ThreadPool.h
-${HEADER_SRC_DIR}/ObjectManager.h
+${HEADER_SRC_DIR}/AssetManager.h
 ${HEADER_SRC_DIR}/TextureManager.h
 ${HEADER_SRC_DIR}/ApplicationGlobal.h
 ${HEADER_SRC_DIR}/CameraController.h

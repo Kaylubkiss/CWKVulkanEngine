@@ -31,7 +31,7 @@ namespace vk
 	{
 		vk::Device* devicePtr = nullptr;
 		UserInterface* contextUIPtr = nullptr;
-		DescriptorBuffer* contextTextureDescriptorPtr = nullptr;
+		DescriptorBufferCreateInfo* descriptorBufferCreateInfoPtr = nullptr;
 		~GraphicsContextInfo()
 		{
 		};

@@ -16,11 +16,11 @@ namespace vk
 		void RecordCommandBuffers() override;
 		void InitializeScene() override;
 		void Render() override;
+		void ResizeWindow() override;
 	protected:
 		void UpdateUI() override;
 		void InitializePipeline() override;
 		void InitializeDescriptors() override;
-		void FillOutGraphicsContextInfo() override;
 	private:
 		void InitializeFramebuffers();
 		void InitializeDeferredFramebuffer();
@@ -29,7 +29,14 @@ namespace vk
 		void InitializeDeferredSkyboxFramebuffer();
 
 		void InitializeUniforms();
-		void InitializeDescriptorBuffers();
+
+		void InitializeCompositionSamplerDescriptor();
+		void InitializeCompositionUniformDescriptor();
+		void InitializeSwapChainDescriptor();
+		void InitializeMRTDescriptor();
+		void InitializeShadowMapDescriptor();
+		void InitializeSkyBoxDescriptor();
+
 		void InitializePipelineLayouts();
 		void UpdateScreenUniforms();
 		void UpdateLights();
@@ -89,7 +96,6 @@ namespace vk
 
 		std::array<DescriptorBuffer, dePipeline::PIPELINE_COUNT> uniformBindingDescriptors;
 
-		DescriptorBuffer textureSamplerBindingDescriptor;
 		DescriptorBuffer skyboxSamplerBindingDescriptor;
 		DescriptorBuffer compositionImageBindingDescriptor;
 		DescriptorBuffer swapChainSamplerBindingDescriptor;

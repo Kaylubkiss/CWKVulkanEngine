@@ -7,20 +7,18 @@ namespace vk
 		if ((flags & VKC_ATTACHMENT_IMAGE_VIEW_IS_SHARED) == 0)
 		{
 			vkDestroyImageView(l_device, this->imageView, nullptr);
-			this->imageView = VK_NULL_HANDLE;
 		}
+
+		this->imageView = VK_NULL_HANDLE;
 
 		if ((flags & VKC_ATTACHMENT_IMAGE_IS_SHARED) == 0)
 		{
+			vkFreeMemory(l_device, this->imageMemory, nullptr);
 			vkDestroyImage(l_device, this->image, nullptr);
-			this->image = VK_NULL_HANDLE;
 		}
 
-		if (this->imageMemory != VK_NULL_HANDLE)
-		{
-			vkFreeMemory(l_device, this->imageMemory, nullptr);
-			this->imageMemory = VK_NULL_HANDLE;
-		}
+		this->image = VK_NULL_HANDLE;
+		this->imageMemory = VK_NULL_HANDLE;
 	}
 
 	inline bool FormatHasDepth(VkFormat format) 
@@ -62,7 +60,7 @@ namespace vk
 			attachment.Destroy(contextDevice->GetDevice());
 		}
 
-		attachments.resize(0);
+		attachments.clear();
 
 		if (sampler) 
 		{

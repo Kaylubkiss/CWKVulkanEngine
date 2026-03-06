@@ -1,7 +1,7 @@
-#include "ObjectManager.h"
+#include "AssetManager.h"
 
 
-void ObjectManager::LoadObject( const ObjectCreateInfo& objectCI )
+void AssetManager::LoadObject( const ObjectCreateInfo& objectCI )
 {
 	std::function<void()> parallelFunction = [this, objectCI]()
 	{
@@ -20,7 +20,7 @@ void ObjectManager::LoadObject( const ObjectCreateInfo& objectCI )
 	m_threadWorkers.EnqueueTask(parallelFunction);
 }
 
-void ObjectManager::Destroy()
+void AssetManager::Destroy()
 {
 	m_threadWorkers.Terminate();
 
@@ -29,7 +29,7 @@ void ObjectManager::Destroy()
 	m_objects.clear(); //destroy objects with ~Object();
 }
 
-ObjectManager::ObjectManager( const std::weak_ptr<vk::GraphicsContextInfo>& contextInfo )
+AssetManager::AssetManager( const std::weak_ptr<vk::GraphicsContextInfo>& contextInfo )
 {
 	assert(contextInfo.expired() == false);
 
@@ -44,7 +44,7 @@ ObjectManager::ObjectManager( const std::weak_ptr<vk::GraphicsContextInfo>& cont
 	c_devicePtr = sharedContextInfo->devicePtr;
 }
 
-void ObjectManager::Update( float dt ) const
+void AssetManager::Update( float dt ) const
 {
 	for (auto& obj : m_objects)
 	{
@@ -53,13 +53,19 @@ void ObjectManager::Update( float dt ) const
 	}
 }
 
+
+const TextureManager& AssetManager::GetTextureManager() const
+{
+	return m_textureManager;
+}
+
 //NOTE: ONLY CALL THIS ON THE MAIN THREAD!!
-bool ObjectManager::SyncIO( uint32_t currentFrame, VkSemaphore textureUploadSemaphore )
+bool AssetManager::SyncIO( uint32_t currentFrame, VkSemaphore textureUploadSemaphore )
 {
 	return m_textureManager.UploadTextureDataToGPU(currentFrame, textureUploadSemaphore);
 }
 
-void ObjectManager::DrawObjects( const vk::DrawInfo& drawInfo ) const
+void AssetManager::DrawObjects( const vk::DrawInfo& drawInfo ) const
 {
 	for (auto& obj : m_objects)
 	{

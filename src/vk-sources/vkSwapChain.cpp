@@ -136,6 +136,7 @@ namespace vk
 
 			vkDestroySwapchainKHR(m_devicePtr->GetDevice(), oldSwapchain, nullptr);
 			oldSwapchain = VK_NULL_HANDLE;
+			images.clear();
 		}
 		
 		uint32_t imageCount = 0;
@@ -174,7 +175,7 @@ namespace vk
 	
 	void SwapChain::Recreate( const vk::Window& appWindow )
 	{
-		SwapChain::Create(appWindow);
+		SwapChain::Create( appWindow );
 	}
 
 	void SwapChain::Destroy() 
@@ -252,7 +253,8 @@ namespace vk
 	void SwapChain::CreateFrameBuffers( const VkViewport& vp )
 	{
 		assert( renderPass != VK_NULL_HANDLE );
-		
+
+		this->framebuffers.clear();
 		this->framebuffers.resize(this->images.size());
 
 		uint32_t width = static_cast<uint32_t>(vp.width);
@@ -261,6 +263,11 @@ namespace vk
 		vk::FramebufferAttachmentCreateInfo attachmentInfo = {};
 		attachmentInfo.width = width;
 		attachmentInfo.height = height;
+		attachmentInfo.layerCount = 1;
+		attachmentInfo.sampleCount = VK_SAMPLE_COUNT_1_BIT;
+		attachmentInfo.operatingLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+		attachmentInfo.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+		attachmentInfo.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
 		for (unsigned i = 0; i < this->images.size(); ++i) 
 		{
@@ -268,7 +275,6 @@ namespace vk
 			framebuffers[i].width = width;
 			framebuffers[i].height = height;
 
-			attachmentInfo.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 			attachmentInfo.format = createInfo.imageFormat;
 			attachmentInfo.alreadyAllocatedImage = images[i];
 

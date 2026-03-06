@@ -7,7 +7,9 @@ void TextureManager::Init( const std::weak_ptr<vk::GraphicsContextInfo>& context
 	std::shared_ptr<vk::GraphicsContextInfo> sharedContextInfo = contextInfo.lock();
 
 	assert(sharedContextInfo->devicePtr != nullptr);
-	assert(sharedContextInfo->contextTextureDescriptorPtr != nullptr);
+	assert(sharedContextInfo->descriptorBufferCreateInfoPtr != nullptr);
+
+	m_textureSamplerDescriptor.Create(*sharedContextInfo->descriptorBufferCreateInfoPtr);
 
 	m_graphicsContextInfo = sharedContextInfo;
 
@@ -45,6 +47,8 @@ void TextureManager::Destroy()
 		std::lock_guard<std::mutex> lock(m_textureMutex);
 		m_textures.clear(); //this should call ~Texture()
 	}
+
+	m_textureSamplerDescriptor.Destroy();
 }
 
 uint32_t TextureManager::AddTexture( const std::string& fileName, uint32_t bindingIndex, uint32_t& layoutIndex )
@@ -70,7 +74,7 @@ uint32_t TextureManager::AddTexture( const std::string& fileName, uint32_t bindi
 
 	newTexture->Create(sharedGraphicsContextInfo->devicePtr, fileName, m_transferMutex);
 
-	if (sharedGraphicsContextInfo->contextTextureDescriptorPtr->GetBindingOffsets().size() <= bindingIndex)
+	if (m_textureSamplerDescriptor.GetBindingOffsets().size() <= bindingIndex)
 	{
 		std::cerr << "binding index " << bindingIndex << " is greater than the binding count supported in the shaders.\n";
 		throw std::runtime_error("AddTexture() Failed!\n");
@@ -131,8 +135,7 @@ void TextureManager::FillDescriptorBuffer(const std::vector<PendingTextureInfo>&
 
 		VkDescriptorImageInfo textureDescriptor = curr_texture->GetDescriptor();
 
-		const auto textureBindingDescriptorPtr = sharedGraphicsContextInfo->contextTextureDescriptorPtr;
-		auto& bindingOffsets = textureBindingDescriptorPtr->GetBindingOffsets();
+		auto& bindingOffsets = m_textureSamplerDescriptor.GetBindingOffsets();
 
 		VkDeviceSize bindingOffset = bindingOffsets[t.bindingIndex];
 
@@ -141,13 +144,13 @@ void TextureManager::FillDescriptorBuffer(const std::vector<PendingTextureInfo>&
 		imageDescriptorInfo.data.pCombinedImageSampler = &textureDescriptor;
 
 		VkDeviceSize textureBindingSize =
-			sharedGraphicsContextInfo->contextTextureDescriptorPtr->GetLayoutSize();
+			m_textureSamplerDescriptor.GetLayoutSize();
 
 		VkDeviceSize imageSamplerSize =
 			sharedGraphicsContextInfo->devicePtr->GetDescriptorBufferProperties().combinedImageSamplerDescriptorSize;
 
 		char* imageBindingDescriptorPtr =
-			static_cast<char*>(sharedGraphicsContextInfo->contextTextureDescriptorPtr->GetBuffer().GetMappedMemory());
+			static_cast<char*>(m_textureSamplerDescriptor.GetBuffer().GetMappedMemory());
 
 		g_vkGetDescriptorEXT(sharedGraphicsContextInfo->devicePtr->GetDevice(), &imageDescriptorInfo,
 			imageSamplerSize,
@@ -237,6 +240,11 @@ size_t TextureManager::GetSize()
 {
 	std::lock_guard<std::mutex> lock(m_textureMutex);
 	return m_textures.size();
+}
+
+const vk::DescriptorBuffer& TextureManager::GetTextureSamplerDescriptor() const
+{
+	return m_textureSamplerDescriptor;
 }
 
 void TextureManager::BindTextureToModelPrimitive( const std::string& fileName, uint32_t bindingIndex, uint32_t& layoutIndex )

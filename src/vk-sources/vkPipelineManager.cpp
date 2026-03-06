@@ -84,6 +84,8 @@ namespace vk
 					vkDestroyShaderModule(contextLogicalDevice, shaderModule.mHandle, nullptr);
 				}
 			}
+
+			pipelines.clear();
 		}
 	}
 

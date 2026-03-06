@@ -58,11 +58,13 @@ namespace vk
 			drawInfo.cmdBuffer = cmdBuffer;
 			drawInfo.pipelineLayout = pipelineLayouts[dePipeline::SHADOW];
 
-			m_objectManager->DrawObjects(drawInfo);
+			m_assetManager->DrawObjects(drawInfo);
 
 			vkCmdEndRenderPass(cmdBuffer);
 		}
 
+    	auto& textureManager = m_assetManager->GetTextureManager();
+    	auto& textureSamplerDescriptor = textureManager.GetTextureSamplerDescriptor();
 		//MRT rendering.
 		{
 			clearValues[0].color = { 0,0,0,0 };
@@ -84,11 +86,11 @@ namespace vk
 
 			vkCmdBeginRenderPass(cmdBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-			VkViewport mrtViewport = vk::init::Viewport(framebuffers.deMRT.width, framebuffers.deMRT.height);
-			vkCmdSetViewport(cmdBuffer, 0, 1, &mrtViewport);
+			VkViewport sceneViewport =  m_window.Viewport();
+			vkCmdSetViewport(cmdBuffer, 0, 1, &sceneViewport);
 
-			VkRect2D mrtScissor = vk::init::Rect2D(framebuffers.deMRT.width, framebuffers.deMRT.height);
-			vkCmdSetScissor(cmdBuffer, 0, 1, &mrtScissor);
+			VkRect2D sceneScissor = m_window.Scissor();
+			vkCmdSetScissor(cmdBuffer, 0, 1, &sceneScissor);
 
 			// Binding 0 = uniform buffer
 			auto& mrtUniformDescriptor = uniformBindingDescriptors[dePipeline::MRT];
@@ -102,7 +104,7 @@ namespace vk
 			// Binding 1 = Image
 			descriptor_buffer_binding_info[1].sType = VK_STRUCTURE_TYPE_DESCRIPTOR_BUFFER_BINDING_INFO_EXT;
 			descriptor_buffer_binding_info[1].address =
-				textureSamplerBindingDescriptor.GetBuffer().GetDeviceAddress();
+				textureSamplerDescriptor.GetBuffer().GetDeviceAddress();
 			descriptor_buffer_binding_info[1].usage = VK_BUFFER_USAGE_SAMPLER_DESCRIPTOR_BUFFER_BIT_EXT |
 				VK_BUFFER_USAGE_RESOURCE_DESCRIPTOR_BUFFER_BIT_EXT;
 
@@ -121,9 +123,9 @@ namespace vk
 			drawInfo.imageBufferIndex = 1;
 			drawInfo.firstSet = 1;
 			drawInfo.pipelineLayout = pipelineLayouts[dePipeline::MRT];
-			drawInfo.textureBindingSize = textureSamplerBindingDescriptor.GetLayoutSize();
+			drawInfo.textureBindingSize = textureSamplerDescriptor.GetLayoutSize();
 
-			m_objectManager->DrawObjects(drawInfo);
+			m_assetManager->DrawObjects(drawInfo);
 
 			vkCmdEndRenderPass(cmdBuffer);
 		}
@@ -143,7 +145,7 @@ namespace vk
 			renderPassBeginInfo.clearValueCount = 1;
 			renderPassBeginInfo.pClearValues = clearValues;
 			renderPassBeginInfo.renderArea.extent =
-				{static_cast<uint32_t>(windowViewport.width), static_cast<uint32_t>(windowViewport.height)};
+				{static_cast<uint32_t>(framebuffers.deComposition.width), static_cast<uint32_t>(framebuffers.deComposition.height)};
 			renderPassBeginInfo.renderPass = framebuffers.deComposition.renderPass;
 			renderPassBeginInfo.framebuffer = framebuffers.deComposition.handle;
 
@@ -207,7 +209,7 @@ namespace vk
 			renderPassBeginInfo.clearValueCount = 2;
 			renderPassBeginInfo.pClearValues = clearValues;
 			renderPassBeginInfo.renderArea.extent =
-				{static_cast<uint32_t>(windowViewport.width), static_cast<uint32_t>(windowViewport.height)};
+				{static_cast<uint32_t>(framebuffers.deSky.width), static_cast<uint32_t>(framebuffers.deSky.height)};
 			renderPassBeginInfo.renderPass = framebuffers.deSky.renderPass;
 			renderPassBeginInfo.framebuffer = framebuffers.deSky.handle;
 
@@ -268,7 +270,10 @@ namespace vk
 			renderPassBeginInfo.clearValueCount = 1;
 			renderPassBeginInfo.pClearValues = clearValues;
 			renderPassBeginInfo.renderArea.extent =
-				{static_cast<uint32_t>(windowViewport.width), static_cast<uint32_t>(windowViewport.height)};
+				{
+					static_cast<uint32_t>(swapChain.framebuffers[currentImageIndex].width),
+					static_cast<uint32_t>(swapChain.framebuffers[currentImageIndex].height)
+				};
 			renderPassBeginInfo.renderPass = swapChain.renderPass;
 			renderPassBeginInfo.framebuffer = swapChain.framebuffers[currentImageIndex].handle;
 

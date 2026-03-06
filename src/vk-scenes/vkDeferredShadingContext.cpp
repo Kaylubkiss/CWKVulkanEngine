@@ -58,13 +58,48 @@ namespace vk
 		InitializeFramebuffers();
 
 		DeferredContext::InitializeDescriptors();
-		DeferredContext::InitializePipeline();
 
-		DeferredContext::FillOutGraphicsContextInfo();
+		std::array<VkDescriptorSetLayoutBinding, 3> setLayoutBindings = {};
+
+		//albedo
+		setLayoutBindings[0].binding = 0;
+		setLayoutBindings[0].descriptorCount = 1;
+		setLayoutBindings[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		setLayoutBindings[0].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+		//metallic roughness
+		setLayoutBindings[1].binding = 1;
+		setLayoutBindings[1].descriptorCount = 1;
+		setLayoutBindings[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		setLayoutBindings[1].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+		//ambient occlusion
+		setLayoutBindings[2].binding = 2;
+		setLayoutBindings[2].descriptorCount = 1;
+		setLayoutBindings[2].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		setLayoutBindings[2].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+		DescriptorBufferCreateInfo descriptorBufferCI = {};
+		descriptorBufferCI.devicePtr = &device;
+		descriptorBufferCI.bufferUsageFlags = VK_BUFFER_USAGE_RESOURCE_DESCRIPTOR_BUFFER_BIT_EXT |
+				VK_BUFFER_USAGE_SAMPLER_DESCRIPTOR_BUFFER_BIT_EXT |
+				VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
+		descriptorBufferCI.memoryProperties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+			VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+		descriptorBufferCI.pLayoutBindings = setLayoutBindings.data();
+		descriptorBufferCI.layoutBindingCount = static_cast<uint32_t>(setLayoutBindings.size());
+		descriptorBufferCI.imageDescriptorData.resize(OBJECT_COUNT);
+
+		m_info->descriptorBufferCreateInfoPtr = &descriptorBufferCI;
 
 		//TODO: not happy that I have to initialize a protected member here...
 		//but... I have to further test my implementations and fix the async issue.
-		m_objectManager = std::make_unique<ObjectManager>(m_info);
+		m_assetManager = std::make_unique<AssetManager>(m_info);
+
+		DeferredContext::InitializePipeline();
+		DeferredContext::FillOutGraphicsContextInfo();
+
+
 	}
 
 	DeferredContext::~DeferredContext()
@@ -91,7 +126,6 @@ namespace vk
 			uniformDescriptor.Destroy();
 		}
 
-		textureSamplerBindingDescriptor.Destroy();
 		compositionImageBindingDescriptor.Destroy();
 		skyboxSamplerBindingDescriptor.Destroy();
 		swapChainSamplerBindingDescriptor.Destroy();
@@ -113,7 +147,7 @@ namespace vk
 			glm::scale(glm::mat4(1.f), glm::vec3(3.f));
 		objectCI.devicePtr = &this->device;
 
-		m_objectManager->LoadObject(objectCI);
+		m_assetManager->LoadObject(objectCI);
 
 		//object 2 - cube
 		objectCI = {};
@@ -130,7 +164,7 @@ namespace vk
 		objectCI.modelTransform = glm::translate(glm::mat4(1.f), glm::vec3(sceneSettings.cubePosition));
 		objectCI.devicePtr = &this->device;
 
-		m_objectManager->LoadObject(objectCI);
+		m_assetManager->LoadObject(objectCI);
 
 		//object 3 - base
 		objectCI = {};
@@ -145,7 +179,7 @@ namespace vk
 		objectCI.hasPhysicsComponent = true;
 		objectCI.devicePtr = &this->device;
 
-		m_objectManager->LoadObject(objectCI);
+		m_assetManager->LoadObject(objectCI);
 
 		objectCI = {};
 
@@ -153,14 +187,14 @@ namespace vk
 		objectCI.objName = "AnimatedCube/glTF/AnimatedCube.gltf";
 		objectCI.devicePtr = &this->device;
 
-		m_objectManager->LoadObject(objectCI);
+		m_assetManager->LoadObject(objectCI);
 
 		objectCI = {};
 		objectCI.modelTransform = glm::translate(glm::mat4(1.f), glm::vec3(0.f, 1.f, 0));
 		objectCI.objName = "SciFiHelmet/glTF/SciFiHelmet.gltf";
 		objectCI.devicePtr = &this->device;
 
-		m_objectManager->LoadObject(objectCI);
+		m_assetManager->LoadObject(objectCI);
 
 		//initializing light positions
 		uniformDataLightPass.lights[0].pos = { 3, 27, -14 };
@@ -183,11 +217,6 @@ namespace vk
 			sceneSettings.freddyPosition, glm::vec3(0, 1, 0));
 		uniformDataDeferredShadow.viewMatrices[1] = perspective * glm::lookAt(uniformDataLightPass.lights[1].pos,
 			sceneSettings.cubePosition, glm::vec3(0, 1, 0));
-	}
-
-	void DeferredContext::FillOutGraphicsContextInfo()
-	{
-		m_info->contextTextureDescriptorPtr = &textureSamplerBindingDescriptor;
 	}
 
 	void DeferredContext::InitializeUniforms()
@@ -223,98 +252,115 @@ namespace vk
 
 	void DeferredContext::InitializePipelineLayouts()
 	{
-		//MRT PASS DESCRIPTORS
+		auto& textureManager = m_assetManager->GetTextureManager();
+
+		//MRT PASS LAYOUT
 		{
-			std::vector<VkPushConstantRange> pushConstantRanges =
+			if (pipelineLayouts[dePipeline::MRT] == VK_NULL_HANDLE)
 			{
-				vk::init::PushConstantRange(0, sizeof(glm::mat4), VK_SHADER_STAGE_VERTEX_BIT)
-			};
+				auto& textureSamplerDescriptor = textureManager.GetTextureSamplerDescriptor();
 
-			std::array<VkDescriptorSetLayout, 2> mrt_layouts =
+				std::vector<VkPushConstantRange> pushConstantRanges =
+				{
+					vk::init::PushConstantRange(0, sizeof(glm::mat4), VK_SHADER_STAGE_VERTEX_BIT)
+				};
+
+				std::array<VkDescriptorSetLayout, 2> mrt_layouts =
+				{
+					//set 0: per-frame scene transform, set 1: per-model image sampler(s)
+					uniformBindingDescriptors[dePipeline::MRT].GetLayout(), textureSamplerDescriptor.GetLayout(),
+				};
+
+				VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = vk::init::PipelineLayoutCreateInfo();
+				pipelineLayoutCreateInfo.pSetLayouts = mrt_layouts.data();
+				pipelineLayoutCreateInfo.setLayoutCount = static_cast<uint32_t>(mrt_layouts.size());
+				pipelineLayoutCreateInfo.pushConstantRangeCount = static_cast<uint32_t>(pushConstantRanges.size());
+				pipelineLayoutCreateInfo.pPushConstantRanges = pushConstantRanges.data();
+
+				VK_CHECK_RESULT(vkCreatePipelineLayout(device.GetDevice(), &pipelineLayoutCreateInfo,
+					nullptr, &pipelineLayouts[dePipeline::MRT]));
+			}
+		}
+
+		//COMPOSITION PASS LAYOUT
+		{
+			if (pipelineLayouts[dePipeline::COMPOSITION] == VK_NULL_HANDLE)
 			{
-				//set 0: per-frame scene transform, set 1: per-model image sampler(s)
-				uniformBindingDescriptors[dePipeline::MRT].GetLayout(), textureSamplerBindingDescriptor.GetLayout(),
-			};
+				//order of layouts need to be in order of they appear in shader(s)
+				std::array<VkDescriptorSetLayout, 2> composition_layouts = {
+					//set 0: image samplers, set 1: light ubo
+					compositionImageBindingDescriptor.GetLayout(), uniformBindingDescriptors[dePipeline::COMPOSITION].GetLayout()
+				};
 
-			VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = vk::init::PipelineLayoutCreateInfo();
-			pipelineLayoutCreateInfo.pSetLayouts = mrt_layouts.data();
-			pipelineLayoutCreateInfo.setLayoutCount = static_cast<uint32_t>(mrt_layouts.size());
-			pipelineLayoutCreateInfo.pushConstantRangeCount = static_cast<uint32_t>(pushConstantRanges.size());
-			pipelineLayoutCreateInfo.pPushConstantRanges = pushConstantRanges.data();
+				VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = vk::init::PipelineLayoutCreateInfo();
+				pipelineLayoutCreateInfo.pSetLayouts = composition_layouts.data();
+				pipelineLayoutCreateInfo.setLayoutCount = static_cast<uint32_t>(composition_layouts.size());
 
-			VK_CHECK_RESULT(vkCreatePipelineLayout(device.GetDevice(), &pipelineLayoutCreateInfo,
-				nullptr, &pipelineLayouts[dePipeline::MRT]));
+				VK_CHECK_RESULT(vkCreatePipelineLayout(device.GetDevice(), &pipelineLayoutCreateInfo,
+					nullptr, &pipelineLayouts[dePipeline::COMPOSITION]));
+			}
 		}
 
 
-		//COMPOSITION PASS DESCRIPTORS
+		//SHADOW MAP LAYOUT
 		{
-			//order of layouts need to be in order of they appear in shader(s)
-			std::array<VkDescriptorSetLayout, 2> composition_layouts = {
-				//set 0: image samplers, set 1: light ubo
-				compositionImageBindingDescriptor.GetLayout(), uniformBindingDescriptors[dePipeline::COMPOSITION].GetLayout()
-			};
-
-			VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = vk::init::PipelineLayoutCreateInfo();
-			pipelineLayoutCreateInfo.pSetLayouts = composition_layouts.data();
-			pipelineLayoutCreateInfo.setLayoutCount = static_cast<uint32_t>(composition_layouts.size());
-
-			VK_CHECK_RESULT(vkCreatePipelineLayout(device.GetDevice(), &pipelineLayoutCreateInfo,
-				nullptr, &pipelineLayouts[dePipeline::COMPOSITION]));
-		}
-
-
-		//SHADOW MAP DESCRIPTORS
-		{
-
-			//set 0: shadow UBO - per frame
-			std::array<VkDescriptorSetLayout, 1> shadow_layouts = {
-				uniformBindingDescriptors[dePipeline::SHADOW].GetLayout()
-			};
-			VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = vk::init::PipelineLayoutCreateInfo();
-			pipelineLayoutCreateInfo.pSetLayouts = shadow_layouts.data();
-			pipelineLayoutCreateInfo.setLayoutCount = static_cast<uint32_t>(shadow_layouts.size());
-			//per-model transform
-			std::vector<VkPushConstantRange> pushConstantRanges = {
-				vk::init::PushConstantRange(0, sizeof(glm::mat4), VK_SHADER_STAGE_VERTEX_BIT)
-			};
-			pipelineLayoutCreateInfo.pPushConstantRanges = pushConstantRanges.data();
-			pipelineLayoutCreateInfo.pushConstantRangeCount = static_cast<uint32_t>(pushConstantRanges.size());
-
-			VK_CHECK_RESULT(vkCreatePipelineLayout(device.GetDevice(), &pipelineLayoutCreateInfo,
-				nullptr, &pipelineLayouts[dePipeline::SHADOW]));
-		}
-
-
-		//SKYBOX DESCRIPTORS
-		{
-			std::array<VkDescriptorSetLayout, 2> layouts =
+			if (pipelineLayouts[dePipeline::SHADOW] == VK_NULL_HANDLE)
 			{
-				//set 0: uniforms, set 1: samplers
-				uniformBindingDescriptors[dePipeline::MRT].GetLayout(), skyboxSamplerBindingDescriptor.GetLayout()
-			};
+				//set 0: shadow UBO - per frame
+				std::array<VkDescriptorSetLayout, 1> shadow_layouts = {
+					uniformBindingDescriptors[dePipeline::SHADOW].GetLayout()
+				};
+				VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = vk::init::PipelineLayoutCreateInfo();
+				pipelineLayoutCreateInfo.pSetLayouts = shadow_layouts.data();
+				pipelineLayoutCreateInfo.setLayoutCount = static_cast<uint32_t>(shadow_layouts.size());
+				//per-model transform
+				std::vector<VkPushConstantRange> pushConstantRanges = {
+					vk::init::PushConstantRange(0, sizeof(glm::mat4), VK_SHADER_STAGE_VERTEX_BIT)
+				};
+				pipelineLayoutCreateInfo.pPushConstantRanges = pushConstantRanges.data();
+				pipelineLayoutCreateInfo.pushConstantRangeCount = static_cast<uint32_t>(pushConstantRanges.size());
 
-			VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = vk::init::PipelineLayoutCreateInfo();
-			pipelineLayoutCreateInfo.setLayoutCount = static_cast<uint32_t>(layouts.size());
-			pipelineLayoutCreateInfo.pSetLayouts = layouts.data();
-
-			VK_CHECK_RESULT(vkCreatePipelineLayout(device.GetDevice(), &pipelineLayoutCreateInfo,
-				nullptr, &pipelineLayouts[dePipeline::SKY]));
+				VK_CHECK_RESULT(vkCreatePipelineLayout(device.GetDevice(), &pipelineLayoutCreateInfo,
+					nullptr, &pipelineLayouts[dePipeline::SHADOW]));
+			}
 		}
 
-		//SWAPCHAIN QUAD DESCRIPTORS
+
+		//SKYBOX LAYOUT
 		{
-			std::array<VkDescriptorSetLayout, 1> layouts = {
-				//set 0: scene sampler
-				swapChainSamplerBindingDescriptor.GetLayout()
-			};
+			if (pipelineLayouts[dePipeline::SKY] == VK_NULL_HANDLE)
+			{
+				std::array<VkDescriptorSetLayout, 2> layouts =
+				{
+					//set 0: uniforms, set 1: samplers
+					uniformBindingDescriptors[dePipeline::MRT].GetLayout(), skyboxSamplerBindingDescriptor.GetLayout()
+				};
 
-			VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = vk::init::PipelineLayoutCreateInfo();
-			pipelineLayoutCreateInfo.setLayoutCount = static_cast<uint32_t>(layouts.size());
-			pipelineLayoutCreateInfo.pSetLayouts = layouts.data();
+				VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = vk::init::PipelineLayoutCreateInfo();
+				pipelineLayoutCreateInfo.setLayoutCount = static_cast<uint32_t>(layouts.size());
+				pipelineLayoutCreateInfo.pSetLayouts = layouts.data();
 
-			VK_CHECK_RESULT(vkCreatePipelineLayout(device.GetDevice(), &pipelineLayoutCreateInfo,
-				nullptr, &pipelineLayouts[dePipeline::SWAPCHAIN]));
+				VK_CHECK_RESULT(vkCreatePipelineLayout(device.GetDevice(), &pipelineLayoutCreateInfo,
+					nullptr, &pipelineLayouts[dePipeline::SKY]));
+			}
+		}
+
+		//SWAPCHAIN QUAD LAYOUT
+		{
+			if (pipelineLayouts[dePipeline::SWAPCHAIN] == VK_NULL_HANDLE)
+			{
+				std::array<VkDescriptorSetLayout, 1> layouts = {
+					//set 0: scene sampler
+					swapChainSamplerBindingDescriptor.GetLayout()
+				};
+
+				VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = vk::init::PipelineLayoutCreateInfo();
+				pipelineLayoutCreateInfo.setLayoutCount = static_cast<uint32_t>(layouts.size());
+				pipelineLayoutCreateInfo.pSetLayouts = layouts.data();
+
+				VK_CHECK_RESULT(vkCreatePipelineLayout(device.GetDevice(), &pipelineLayoutCreateInfo,
+					nullptr, &pipelineLayouts[dePipeline::SWAPCHAIN]));
+			}
 		}
 	}
 
@@ -357,13 +403,6 @@ namespace vk
 			sizeof(uniformDataLightPass));
 	}
 
-	void DeferredContext::InitializeDescriptors() 
-	{
-		//MOVING TO DESCRIPTOR BUFFERS; 
-		// no vkCreateDescriptorSet or vkWriteDescriptorSet() or vkCreateDescriptorPool()
-		InitializeDescriptorBuffers();
-	}
-
 	void DeferredContext::UpdateUI() 
 	{
 		static bool option = false;
@@ -380,6 +419,20 @@ namespace vk
 			UIOverlay.SeparatorText("textures in scene");
 			UIOverlay.DisplayImages();
 		}
+	}
+
+	void DeferredContext::ResizeWindow()
+	{
+		ContextBase::ResizeWindow();
+
+		InitializeFramebuffers();
+
+		//need to recreate these as their image layouts turn stale
+		compositionImageBindingDescriptor.Destroy();
+		swapChainSamplerBindingDescriptor.Destroy();
+
+		InitializeCompositionSamplerDescriptor();
+		InitializeSwapChainDescriptor();
 	}
 
 	void DeferredContext::Render() 

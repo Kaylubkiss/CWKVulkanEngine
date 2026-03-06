@@ -20,10 +20,10 @@ namespace vk {
 			void* pUserData) 
 		{
 			//NOTE: doing this to ignore an overlay bug with OBS/Steam
-			if (pCallbackData->messageIdNumber == 0x9b4c6071) 
+			/*if (pCallbackData->messageIdNumber == 0x9b4c6071)
 			{
 				return VK_FALSE;
-			}
+			}*/
 
 			std::cerr << "Validation Layer: " << pCallbackData->pMessage << std::endl;
 
