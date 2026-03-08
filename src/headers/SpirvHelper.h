@@ -47,10 +47,28 @@ namespace vk::spirv
 	{
 		std::ofstream output(filename,std::ios::out | std::ios::binary);
 
-		if (!output.is_open())
+
+
+		if (output.is_open() == false)
 		{
-			std::cerr << "could not write to file: " + std::string(filename) << "\n";
-			throw std::runtime_error("WriteSpirvFile() Failed!\n");
+			std::filesystem::path filePath = filename;
+
+			auto parentPath = filePath.parent_path();
+
+			if (parentPath == "shaders/spirv")
+			{
+				if (std::filesystem::exists(parentPath) == false)
+				{
+					std::filesystem::create_directories(filePath.parent_path());
+					output.open(filePath.string().c_str(), std::ios::out | std::ios::binary);
+				}
+			}
+
+			if (output.is_open() == false)
+			{
+				std::cerr << "could not write to file: " + std::string(filename) << "\n";
+				throw std::runtime_error("WriteSpirvFile() Failed!\n");
+			}
 		}
 
 		output.write(reinterpret_cast<const char*>(data.data()), data.size());

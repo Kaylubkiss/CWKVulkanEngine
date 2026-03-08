@@ -1,5 +1,8 @@
 @echo off
 
+::make sure that submodules are downloaded
+git submodule update --init --recursive
+
 ::make sure that vulkan is installed.
 winget install --id=KhronosGroup.VulkanSDK  -e
 
@@ -25,7 +28,7 @@ cd %previous_directory%
 
 python extern/shaderc/utils/git-sync-deps
 
-cmake -B build
+cmake -DCMAKE_BUILD_TYPE=Debug -G Ninja -B build
 
 cmake --build build -j 22
 
