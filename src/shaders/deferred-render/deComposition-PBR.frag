@@ -31,7 +31,7 @@ layout(set = 1, binding = 0) uniform UBO
 
 
 
-float ShadowSampling(vec4 fragPos, int i)
+float ShadowSampling(vec4 fragPos, float NdotL, int i)
 {
 	float shadow = 1.0;
 
@@ -40,13 +40,18 @@ float ShadowSampling(vec4 fragPos, int i)
 
     shadowCoord.xy = shadowCoord.xy * 0.5 + 0.5;
 
-    if (shadowCoord.z >= 0.0 && shadowCoord.z <= 1.0)
+    if (shadowCoord.z < 1.0)
     {
-        float dist = texture(samplerShadowMap, vec3(shadowCoord.xy, i)).r;
+        float currentDepth = shadowCoord.z;
 
-        if (dist < shadowCoord.z)
+        float closestDepth = texture(samplerShadowMap, vec3(shadowCoord.xy, i)).r;
+
+        //bias here would cause problems due to the depth bias already applied.
+        //float bias = max(0.05 * (1.0 - NdotL), .005);
+
+        if (currentDepth > closestDepth)
         {
-            shadow *= AMBIENT_COLOR;
+            shadow = AMBIENT_COLOR;
         }
     }
 
@@ -137,7 +142,7 @@ vec3 CookTorrenceReflectance(vec3 P, vec3 N, vec3 albedo, vec3 metallicRoughness
 
         kD *= 1.0 - metalness; //because metals don't refract, we nullify the diffuse portion if it's 100% metal.
 
-        float shadowFactor = ShadowSampling(vec4(P, 1), i);
+        float shadowFactor = ShadowSampling(vec4(P, 1), NdotL, i);
 
         Lo += shadowFactor * ((kD * albedo / M_PI) + specular) * Radiance(P, ubo.lights[i].position, ubo.lights[i].albedo) * NdotL;
     }
@@ -154,7 +159,7 @@ void main()
 	vec3 normal = normalize(texture(samplerNormal, inUV).rgb);
     vec3 albedo = texture(samplerAlbedo, inUV).rgb;
 
-    albedo = vec3(1.f);
+    //albedo = vec3(1.f);
 
     vec3 ambientOcclusion = texture(samplerAmbientOcclusion, inUV).rgb;
 

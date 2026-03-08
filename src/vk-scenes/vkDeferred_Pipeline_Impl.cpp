@@ -106,7 +106,7 @@ namespace vk
 
 					VkGraphicsPipelineCreateInfo pipelineCI =
 						vk::init::PipelineCreateInfo(
-							pipelineLayouts[dePipeline::COMPOSITION], swapChain.renderPass,
+							pipelineLayouts[dePipeline::COMPOSITION], framebuffers.deComposition[0].renderPass,
 							VK_PIPELINE_CREATE_DESCRIPTOR_BUFFER_BIT_EXT);
 
 					pipelineCI.pInputAssemblyState = &inputAssemblyStateCI;
@@ -351,6 +351,7 @@ namespace vk
 
 			//enable depth bias as a dynamic state
 			rasterizationStateCI.depthBiasEnable = VK_TRUE;
+        	rasterizationStateCI.cullMode = VK_CULL_MODE_FRONT_BIT;
 
 			pipelineCI.pDepthStencilState = &depthStencilStateCI;
 
