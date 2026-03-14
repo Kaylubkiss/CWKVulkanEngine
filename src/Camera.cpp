@@ -105,12 +105,12 @@ void Camera::MoveBack()
 
 }
 
-void Camera::Rotate(const int& mouseX, const int& mouseY)
+void Camera::Rotate( const int& mouseX, const int& mouseY )
 {
 	isUpdate = true;
 
-	mPitch -= static_cast<float>(mouseY);
-	mYaw += static_cast<float>(mouseX);
+	mPitch -= static_cast<float>(mouseY) * 0.5f;
+	mYaw += static_cast<float>(mouseX) * 0.5f;
 	
 	if (mPitch >= 89.f)
 	{

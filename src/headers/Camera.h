@@ -36,7 +36,7 @@ private:
 	float mPitch = 0.f;
 	float mYaw = 0.f;
 
-	float constant_velocity = 0.3f;
+	float constant_velocity = 5.f;
 
 	reactphysics3d::Transform mMovementTransform;
 	reactphysics3d::Vector3 accumulatedVelocity = Vector3::zero();

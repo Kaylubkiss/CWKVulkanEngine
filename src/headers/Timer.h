@@ -1,11 +1,19 @@
 #pragma once
 
+#include <chrono>
+
 class Timer 
 {
 public:
 	Timer();
 	double CalculateDeltaTime();
+	double GetFPS() const;
 private:
-	uint64_t timeNow    = 0;
-	uint64_t timeBefore = 0;
+	std::chrono::steady_clock::time_point timeNow;
+	std::chrono::steady_clock::time_point timeBefore;
+
+	double deltaTime = 0;
+	double fps = 0;
+	double elapsedSecond = 0;
+	int deltaCount = 0;
 };

@@ -220,8 +220,6 @@ void GLTFModel::LoadMesh( fastgltf::Mesh& mesh, std::vector<Vertex>& vertexBuffe
 		newPrim.vertexCount = 0;
 		uint32_t materialIndex = static_cast<uint32_t>(primitive.materialIndex.value_or(0));
 		fastgltf::Material& material = m_asset.materials[materialIndex];
-		fastgltf::PBRData& pbr = material.pbrData;
-
 
 
 		//TODO: support normal texture, occlusion, emissive with accompanying parameters in fastgltf::Material

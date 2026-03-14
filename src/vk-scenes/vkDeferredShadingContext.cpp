@@ -409,6 +409,7 @@ namespace vk
 	void DeferredContext::UpdateUI() 
 	{
 		static bool option = false;
+
 		if (UIOverlay.CollapsingHeader("Deferred Context Settings"))
 		{
 			UIOverlay.CheckBox("box test", &option);

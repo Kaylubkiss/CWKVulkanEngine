@@ -166,7 +166,8 @@ void main()
     //g = roughness, b = metalness
     vec3 metallicRoughness = texture(samplerMetallicRoughness, inUV).rgb;
 
-    fragColor.rgb = AMBIENT_COLOR * ambientOcclusion.r * albedo  + CookTorrenceReflectance(position, normal, albedo, metallicRoughness);
+    fragColor.rgb = AMBIENT_COLOR * ambientOcclusion.r * albedo +
+    CookTorrenceReflectance(position, normal, albedo, metallicRoughness);
 
 	fragColor.a = 1.0;
 }

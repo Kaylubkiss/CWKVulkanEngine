@@ -26,7 +26,7 @@ void TextureManager::Init( const std::weak_ptr<vk::GraphicsContextInfo>& context
 
 void TextureManager::Destroy()
 {
-	if (m_graphicsContextInfo.expired() != false)
+	if (m_graphicsContextInfo.expired() == false)
 	{
 		auto sharedContextInfo = m_graphicsContextInfo.lock();
 

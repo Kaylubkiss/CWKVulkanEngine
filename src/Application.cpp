@@ -7,11 +7,15 @@ PhysicsSystem& Application::GetPhysics()
 	return this->m_physics;
 }
 
+Timer& Application::GetTimer()
+{
+	return this->mTime;
+}
+
 vk::ContextBase* Application::GetVulkanContext() const
 {
 	return m_vulkanGraphicsContext.get();
 }
-
 
 void Application::run() 
 {
@@ -109,16 +113,18 @@ void Application::loop()
 		//render graphics.
 		while (exitApplication == false)
 		{
-			float dt = m_physics.InterpFactor(static_cast<float>(mTime.CalculateDeltaTime()));
+			double realFrameTime = mTime.CalculateDeltaTime();
 
-			Controller::MoveCamera(m_vulkanGraphicsContext->GetCamera(), dt);
+			float physicsTime = m_physics.InterpFactor(static_cast<float>(realFrameTime));
+
+			Controller::MoveCamera(m_vulkanGraphicsContext->GetCamera(), static_cast<float>(realFrameTime));
 
 			if (exitApplication)
 			{
 				break;
 			}
 
-			m_vulkanGraphicsContext->UpdateSceneObjects(dt);
+			m_vulkanGraphicsContext->UpdateSceneObjects(physicsTime);
 
 			m_vulkanGraphicsContext->Render();
 		}

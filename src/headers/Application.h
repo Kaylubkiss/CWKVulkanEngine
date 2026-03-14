@@ -12,7 +12,7 @@ public:
 	~Application();
 
 	PhysicsSystem& GetPhysics();
-
+	Timer& GetTimer();
 	vk::ContextBase* GetVulkanContext() const;
 
 	void run();

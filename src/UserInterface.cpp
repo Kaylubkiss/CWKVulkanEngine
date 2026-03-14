@@ -1,5 +1,7 @@
 #include "UserInterface.h"
 
+#include "imgui.h"
+
 UserInterface::UserInterface(const UserInterfaceInitInfo& initInfo)
 {
 	assert(initInfo.contextLogicalDevice != VK_NULL_HANDLE);
@@ -137,3 +139,4 @@ void UserInterface::Render( VkCommandBuffer cmdBuffer )
 	ImGui::Render();
 	ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), cmdBuffer);
 }
+

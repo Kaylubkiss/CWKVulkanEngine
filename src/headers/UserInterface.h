@@ -24,8 +24,12 @@ public:
 
 	void Prepare();
 	void Render( VkCommandBuffer cmdBuffer ); //after main rendering
-
 	//types of options
+	template<typename T>
+	inline void TextData( const char* fmt, T value )
+	{
+		ImGui::Text(fmt, value);
+	}
 	void CheckBox( const std::string& label, bool* condition );
 	void Slider( const std::string& label, glm::vec3& position, float min = -100, float max = 100 );
 	void SeparatorText( const std::string& text );

@@ -76,6 +76,8 @@ namespace vk
 			void AddPipeline( uint32_t pipeline, const VkPipeline handle, std::function<void()>&& createFunc = nullptr );
 
 			void HotReloadShaders();
+
+			void DetectHotReloadableShaders();
 			
 			/* getters */
 			VkPipeline Get( uint32_t pipeline );

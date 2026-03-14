@@ -140,6 +140,7 @@ namespace vk
 					VK_CHECK_RESULT(vkDeviceWaitIdle(contextLogicalDevice));
 
 					vkDestroyShaderModule(contextLogicalDevice, shader.mHandle, nullptr);
+					vkDestroyPipeline(contextLogicalDevice, pipeline.second.handle, nullptr);
 					shader.mHandle = vk::init::ShaderModule(contextLogicalDevice, shaderPath.value().c_str());
 				}	
 			}

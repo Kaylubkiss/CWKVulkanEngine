@@ -18,7 +18,7 @@ namespace vk
 
 		m_window.CreateSurface(m_instance.GetHandle());
 
-		
+
 		device.AddExtension(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
 		device.AddExtension(VK_EXT_DESCRIPTOR_BUFFER_EXTENSION_NAME);
 		device.AddExtension(VK_EXT_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME);
@@ -81,6 +81,7 @@ namespace vk
 			{
 				vkDestroySemaphore(this->device.GetDevice(), presentCompleteSemaphores[i], nullptr);
 				vkDestroySemaphore(this->device.GetDevice(), renderCompleteSemaphores[i], nullptr);
+				vkDestroySemaphore(this->device.GetDevice(), textureUploadSemaphores[i], nullptr);
 
 				vkDestroyFence(device.GetDevice(), inFlightFences[i], nullptr);
 			}
@@ -96,8 +97,6 @@ namespace vk
 			vkDestroySurfaceKHR(m_instance.GetHandle(), m_window.Surface(), nullptr);
 		}
 	}
-
-
 
 	//helper(s)
 	void ContextBase::CreateSynchronizationPrimitives() 
@@ -125,7 +124,7 @@ namespace vk
 			return; //window is minimized, and 0 sizes will cause errors/crashes --> isPrepared will remain false.
 		}
 
-		swapChain.Recreate(m_window);
+		swapChain.Recreate( m_window );
 
 		for (int i = 0; i < gMaxFramesInFlight; ++i)
 		{
@@ -233,7 +232,7 @@ namespace vk
 
 			if (ImGui::Begin("CWKVulkanEngine", nullptr, flags) == true)
 			{
-
+				UIOverlay.TextData("FPS: %d", static_cast<int>(_Timer.GetFPS()));
 				UpdateUI();
 			}
 
