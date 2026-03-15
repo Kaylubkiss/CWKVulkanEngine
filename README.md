@@ -20,6 +20,15 @@ Hi, welcome to my Github page! As of September 25th, 2025, I've made this reposi
 <p>My dream has always been to become an elite toy maker whose creations delight users around the world.</p> 
 <p>This project aims to fulfill that.</p>
 
+# Features
+
+## Hot Reloading
+
+<iframe width="640" height="480" src="https://www.youtube.com/embed/4I5qKAln_ik" 
+title="hot reload demo" frameborder="0" 
+allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share;" 
+referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+
 # Build Instructions 
 **General Requirements:**
 
