@@ -410,6 +410,12 @@ namespace vk
 	{
 		static bool option = false;
 
+		if (pipelineManager.HotReloadIsReady())
+		{
+			ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "Shaders Out of Date");
+			m_settings.hotReloadRequested = ImGui::Button("Hot Reload");
+		}
+
 		if (UIOverlay.CollapsingHeader("Deferred Context Settings"))
 		{
 			UIOverlay.CheckBox("box test", &option);
@@ -441,7 +447,6 @@ namespace vk
 
 	void DeferredContext::Render() 
 	{
-		pipelineManager.HotReloadShaders();
 		if (PrepareFrame())
 		{ 
 			UpdateScreenUniforms();

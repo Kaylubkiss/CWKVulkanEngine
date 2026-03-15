@@ -47,6 +47,7 @@ namespace vk
 			bool UIDisplay = true;
 			bool UIToggled = false; //can consume inputs upon intialization
 			bool validationLayers = true;
+			bool hotReloadRequested = false;
 		} m_settings = {};
 
 		float cameraFOV = 45.f;

@@ -213,6 +213,14 @@ namespace vk
 		VK_CHECK_RESULT(vkWaitForFences(device.GetDevice(), 1, &inFlightFences[currentFrame], VK_TRUE, UINT64_MAX));
 		VK_CHECK_RESULT(vkResetFences(device.GetDevice(), 1, &inFlightFences[currentFrame]));
 
+		if (m_settings.hotReloadRequested == true)
+		{
+			pipelineManager.HotReloadShaders();
+
+			m_settings.hotReloadRequested = false;
+		}
+
+
 		if (m_settings.UIDisplay)
 		{
 			UIOverlay.Prepare();
@@ -225,7 +233,8 @@ namespace vk
 			ImGui::SetNextWindowPos(ImVec2(0,0));
 
 			int flags = ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize;
-			if (!m_settings.UIToggled)
+
+			if (m_settings.UIToggled == false)
 			{
 				flags |= ImGuiWindowFlags_NoInputs;
 			}
@@ -255,8 +264,10 @@ namespace vk
 			VK_CHECK_RESULT(result);
 		}
 
+		pipelineManager.DetectHotReloadableShaders();
 
 		return result == VK_SUCCESS;
+
 	}
 
 	void ContextBase::SubmitFrame() 

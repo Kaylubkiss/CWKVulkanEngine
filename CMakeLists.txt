@@ -88,6 +88,7 @@ ${VULKAN_SRC_DIR}/vkPipelineManager.cpp
 ${VULKAN_SRC_DIR}/vkFramebuffer.cpp
 ${VULKAN_SRC_DIR}/vkInstance.cpp
 ${VULKAN_SRC_DIR}/vkDescriptorBuffer.cpp
+${VULKAN_SRC_DIR}/vkShaderModule.cpp
 )
 
 set(VULKAN_SCENES_DIR src/vk-scenes)
@@ -151,6 +152,7 @@ ${VULKAN_HEADER_DIR}/vkCubemap.h
 ${VULKAN_HEADER_DIR}/vkInstance.h
 ${VULKAN_HEADER_DIR}/vkModel.h
 ${VULKAN_HEADER_DIR}/vkDescriptorBuffer.h
+${VULKAN_HEADER_DIR}/vkShaderModule.h
 )
 
 source_group("Header Files/VulkanHeaders" FILES ${VULKAN_ENGINE_HEADERS})	

@@ -3,36 +3,7 @@
 	* author: Caleb Kissinger
 */
 #pragma once
-#include "shaderc/shaderc.hpp"
-
-//ShaderModuleInfo 
-namespace vk 
-{
-	struct GraphicsContextInfo;
-
-	struct ShaderModuleInfo
-	{
-		VkShaderModule mHandle = VK_NULL_HANDLE;
-		time_t lastModificationTime = 0;
-		std::string mFilePath = "";
-
-		VkShaderStageFlagBits mFlags = VK_SHADER_STAGE_ALL;
-		shaderc_shader_kind mShaderKind = shaderc_glsl_infer_from_source; /*arguments in runtime shader compilation */
-
-		/*
-			*@brief intializer list for a ShaderModuleInfo object. Compiles the specified shader source to sprv and also sets the shader stage flags.
-
-			*@param l_device: logical device associated with the application's vulkan instance.
-			*@param filename: the name of the shader source.
-			*@param shaderFlags: specifies what shader stage the source file is working in.
-			*@param shaderc_kind: similar to shaderFlags, argument needed for shader compilation to sprv.
-		*/
-		ShaderModuleInfo() = default;
-		ShaderModuleInfo( const VkDevice l_device, std::string_view filename, VkShaderStageFlagBits shaderFlags );
-
-
-	};
-}
+#include "vkShaderModule.h"
 
 //PipelineManager
 namespace vk 
@@ -44,46 +15,56 @@ namespace vk
 		VkPipeline handle = VK_NULL_HANDLE;
 	};
 
+	struct HotReloadModuleInfo
+	{
+		size_t index = 0;
+		std::string path;
+	};
+
+	struct HotReloadInfo
+	{
+		int pipeline_index = -1;
+		std::vector<HotReloadModuleInfo> modules;
+	};
+
 	/*
 		*@brief describes the process to a renderpass, containing a series of shaders
 		and rendering information. 
 	*/
-	struct PipelineManager 
+	class PipelineManager
 	{
-		private:
-			std::map<uint32_t, vk::Pipeline> pipelines;
-			VkDevice contextLogicalDevice = VK_NULL_HANDLE;
+	public:
+		void Init(std::shared_ptr<GraphicsContextInfo>& contextInfo);
 
-		public:
+		/*
+			*@brief Destroys the pipeline handle and all the vulkan objects (shaders, descriptory layout) created under it.
+		*/
+		void Destroy();
+		/*
+			*@brief Compiles a shader file to sprv, creates a shader module and puts it into a vector.
 
-			void Init(std::shared_ptr<GraphicsContextInfo>& contextInfo);
+			*@param shaderModuleInfo: added to list of module infos, which describe the shader source a part of the pipeline.
 
+			*@return void
+		*/
+		void AddModule( uint32_t pipeline, const ShaderModuleInfo& shaderModuleInfo );
 
-			/*
-				*@brief Destroys the pipeline handle and all the vulkan objects (shaders, descriptory layout) created under it.
-			*/
-			void Destroy();
+		void AddPipeline( uint32_t pipeline, const VkPipeline handle, std::function<void()>&& createFunc = nullptr );
 
-			/*
-				*@brief Compiles a shader file to sprv, creates a shader module and puts it into a vector.
-				
-				*@param shaderModuleInfo: added to list of module infos, which describe the shader source a part of the pipeline.
-				
-				*@return void
-			*/
-			void AddModule( uint32_t pipeline, const ShaderModuleInfo& shaderModuleInfo );
+		void HotReloadShaders();
 
-			void AddPipeline( uint32_t pipeline, const VkPipeline handle, std::function<void()>&& createFunc = nullptr );
+		void DetectHotReloadableShaders();
 
-			void HotReloadShaders();
+		[[nodiscard]] bool HotReloadIsReady() const;
 
-			void DetectHotReloadableShaders();
-			
-			/* getters */
-			VkPipeline Get( uint32_t pipeline );
+		/* getters */
+		VkPipeline Get( uint32_t pipeline );
 
-			const std::vector<ShaderModuleInfo>& GetPipelineShaders( uint32_t pipeline );
-
+		const std::vector<ShaderModuleInfo>& GetPipelineShaders( uint32_t pipeline );
+	private:
+		std::map<uint32_t, vk::Pipeline> pipelines;
+		std::map<uint32_t, HotReloadInfo> hotReloadInfos;
+		VkDevice contextLogicalDevice = VK_NULL_HANDLE;
 	};
 
 }
