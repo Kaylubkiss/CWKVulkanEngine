@@ -3,6 +3,7 @@
 	* author: Caleb Kissinger
 */
 #include "vkPipelineManager.h"
+#include <sys/stat.h>
 
 //PipelineManager
 namespace vk 
