@@ -24,7 +24,10 @@ Hi, welcome to my Github page! As of September 25th, 2025, I've made this reposi
 
 ## Hot Reloading
 
-<video src="https://github.com/user-attachments/assets/1dbb561a-e990-4222-8e43-2f2d0d8a2427" autoplay loop></video>
+<iframe width="640" height="480" src="https://www.youtube.com/embed/4I5qKAln_ik" 
+title="hot reload demo" frameborder="0" 
+allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share;" 
+referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
 
 # Build Instructions 
 **General Requirements:**
