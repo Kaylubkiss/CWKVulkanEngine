@@ -24,11 +24,17 @@ Hi, welcome to my Github page! As of September 25th, 2025, I've made this reposi
 
 ## Hot Reloading
 
-<video src="https://github.com/user-attachments/assets/4e925498-ed4d-47e2-873e-7b30caae419b" autoplay controls></video>
+<video controls loop muted>
+    <source src="https://github.com/user-attachments/assets/4e925498-ed4d-47e2-873e-7b30caae419b" type="video/mp4">
+    Seems like your app/browser doesn't support MP4.
+</video>
 
 ## Async Asset Loading
 
-[ TODO - show loadup scene with platform ]
+<video controls loop muted>
+    <source src="https://github.com/user-attachments/assets/1675cf47-0a2b-469f-8155-7116654d298f" type="video/mp4">
+    Seems like your app/browser doesn't support MP4.
+</video>
 
 ## PBR Texture Rendering
 
