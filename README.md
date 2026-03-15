@@ -20,11 +20,21 @@ Hi, welcome to my Github page! As of September 25th, 2025, I've made this reposi
 <p>My dream has always been to become an elite toy maker whose creations delight users around the world.</p> 
 <p>This project aims to fulfill that.</p>
 
-# Features
+# (3) Highlighted Features
 
 ## Hot Reloading
 
-<video src="https://github.com/user-attachments/assets/ef389ec8-516b-43a9-b025-7d8929785871" autoplay loop></video>
+<video src="https://github.com/user-attachments/assets/4e925498-ed4d-47e2-873e-7b30caae419b" autoplay controls></video>
+
+## Async Asset Loading
+
+[ TODO - show loadup scene with platform ]
+
+## PBR Texture Rendering
+
+[ TODO - show video of singular object in space ]
+
+
 
 # Build Instructions 
 **General Requirements:**
