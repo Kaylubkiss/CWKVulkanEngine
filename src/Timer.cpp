@@ -2,7 +2,7 @@
 
 Timer::Timer()
 {
-	timeNow = std::chrono::high_resolution_clock::now();
+	timeNow = std::chrono::steady_clock::now();
 }
 
 double Timer::GetFPS() const
@@ -13,7 +13,7 @@ double Timer::GetFPS() const
 double Timer::CalculateDeltaTime()
 {
 	this->timeBefore = this->timeNow;
-	this->timeNow = std::chrono::high_resolution_clock::now();
+	this->timeNow = std::chrono::steady_clock::now();
 
 	deltaTime = std::chrono::duration<double, std::milli>(timeNow - timeBefore).count() / 1000.0;
 
