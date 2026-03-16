@@ -1,4 +1,4 @@
-# Caleb's Custom Vulkan Graphics Engine (v1)
+# Caleb's Custom Vulkan Graphics Engine
 
 [![Windows Build](https://github.com/Kaylubkiss/CWKVulkanEngine/actions/workflows/windows-build.yml/badge.svg?branch=dev)](https://github.com/Kaylubkiss/CWKVulkanEngine/actions/workflows/windows-build.yml)
 [![Linux Build](https://github.com/Kaylubkiss/CWKVulkanEngine/actions/workflows/linux-build.yml/badge.svg?branch=dev)](https://github.com/Kaylubkiss/CWKVulkanEngine/actions/workflows/linux-build.yml)
@@ -12,12 +12,14 @@ Hi, welcome to my Github page! As of September 25th, 2025, I've made this reposi
 
 # Overview
 
-The architecture is fundamentally built off a layered approach. There is a scene/asset layer, render context layer, 
-and application layer that handles input and overall state.
+This engine fundamentally uses a <b>layered</b> architecture. There is an application layer,
+rendering layer, resource management layer, and scene layer to create clear separation of responsibility and modularity
+within the engine.
 
-It's good for clarity, but can be hard to maintain when needing to extend its features.
+In the near future, I will move over to ECS to enable more diverse types within the systems and greater performance
+potential.
 
-## Goals for this project
+### Goals for this project
 
 * Learn Vulkan and GPU architecture
 * Implement algorithms and build scalable systems for graphics development
@@ -35,11 +37,11 @@ It's good for clarity, but can be hard to maintain when needing to extend its fe
 
 ## Async Asset Loading
 
-![Async Loading Video](https://github.com/user-attachments/assets/6d235866-6575-496f-8ad8-f589ba934301)
+![Async Loading Video](https://github.com/user-attachments/assets/05ba26bc-be73-464a-8d99-8bc12c5227af)
 
 ## PBR Texture Rendering
 
-[ TODO - show video of singular object in space ]
+<img width="752" height="566" alt="Image" src="https://github.com/user-attachments/assets/547e6d3c-1b4e-4a53-8a9b-39ec4165b5c3" />
 
 # Build Instructions 
 **General Requirements:**
