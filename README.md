@@ -39,7 +39,7 @@ potential.
 
 ![Async Loading Video](https://github.com/user-attachments/assets/05ba26bc-be73-464a-8d99-8bc12c5227af)
 
-## PBR Texture Rendering
+## Physically-Based Rendering w/ Textures
 
 <img width="752" height="566" alt="Image" src="https://github.com/user-attachments/assets/547e6d3c-1b4e-4a53-8a9b-39ec4165b5c3" />
 
