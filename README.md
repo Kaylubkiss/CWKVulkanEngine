@@ -14,10 +14,11 @@ Hi, welcome to my Github page! As of September 25th, 2025, I've made this reposi
 
 This engine fundamentally uses a <b>layered</b> architecture. There is an application layer,
 rendering layer, resource management layer, and scene layer to create clear separation of responsibility and modularity
-within the engine.
+within the engine. 
 
-In the near future, I will move over to ECS to enable more diverse types within the systems and greater performance
-potential.
+This architecture was chosen to support the small-scale, educational intent of this project.
+
+In the near future, I will move over to ECS which offers greater performance potential and modularity.
 
 ### Goals for this project
 
@@ -26,8 +27,7 @@ potential.
 * Strengthen my tooling mindset
 * Have fun and make some cool freakin demos to share
 
-<p>My dream has always been to become an elite toy maker whose creations delight users around the world.</p> 
-<p>This project aims to fulfill that.</p>
+<p>My dream has always been to become an elite toy maker whose creations delight users around the world.</p>
 
 # Highlighted Features
 
