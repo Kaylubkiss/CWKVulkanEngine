@@ -43,7 +43,9 @@ potential.
 
 <img width="752" height="566" alt="Image" src="https://github.com/user-attachments/assets/547e6d3c-1b4e-4a53-8a9b-39ec4165b5c3" />
 
-# Build Instructions 
+<em><b>Supported Materials</b>: BaseColor, MetallicRoughness, AmbientOcclusion, Occlusion-Roughness-Metallic (ORMT) </em>
+
+# Build Instructions
 **General Requirements:**
 
 <ul>
