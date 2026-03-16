@@ -122,7 +122,7 @@ namespace vk
 		struct
 		{
 			glm::vec3 cubePosition   = { 1.0, 20, -5.f };
-			glm::vec3 freddyPosition = { 1.0f, 1.0, 3.f };
+			glm::vec3 freddyPosition = { 1.5f, 1.0, 3.f };
 		} sceneSettings{};
 
 		Cubemap test_cube;

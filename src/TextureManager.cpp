@@ -63,7 +63,10 @@ uint32_t TextureManager::AddTexture( const std::string& fileName, uint32_t bindi
 		std::lock_guard<std::mutex> lock(m_textureMutex);
 		if (m_textures.contains(fileName) == true)
 		{
-			layoutIndex = m_textures[fileName].index;
+			if (layoutIndex == 0)
+			{
+				layoutIndex = m_textures[fileName].index;
+			}
 			return m_textures[fileName].index;
 		}
 	}

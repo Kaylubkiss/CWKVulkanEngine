@@ -351,7 +351,7 @@ namespace vk
 
 			//enable depth bias as a dynamic state
 			rasterizationStateCI.depthBiasEnable = VK_TRUE;
-        	rasterizationStateCI.cullMode = VK_CULL_MODE_FRONT_BIT;
+        	rasterizationStateCI.cullMode = VK_CULL_MODE_BACK_BIT;
 
 			pipelineCI.pDepthStencilState = &depthStencilStateCI;
 

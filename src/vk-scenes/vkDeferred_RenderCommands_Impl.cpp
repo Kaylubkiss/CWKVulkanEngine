@@ -12,7 +12,7 @@ namespace vk
 
 		VK_CHECK_RESULT(vkBeginCommandBuffer(cmdBuffer, &cmdBufferBeginInfo));
 
-		//Shadow depth writes
+		/*//Shadow depth writes
 		{
 			clearValues[0].depthStencil = { 1.0f, 0 };
 
@@ -62,7 +62,7 @@ namespace vk
 			m_assetManager->DrawObjects(drawInfo);
 
 			vkCmdEndRenderPass(cmdBuffer);
-		}
+		}*/
 
     	auto& textureManager = m_assetManager->GetTextureManager();
     	auto& textureSamplerDescriptor = textureManager.GetTextureSamplerDescriptor();

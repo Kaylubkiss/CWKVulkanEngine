@@ -13,7 +13,7 @@ layout(set = 0, binding = 4) uniform sampler2D samplerAmbientOcclusion;
 layout(set = 0, binding = 5) uniform sampler2DArray samplerShadowMap;
 
 #define LIGHT_COUNT 2
-#define AMBIENT_COLOR .2
+#define AMBIENT_FACTOR .5
 #define M_PI 4.0 * atan(1.0)
 
 struct Light 
@@ -51,7 +51,7 @@ float ShadowSampling(vec4 fragPos, float NdotL, int i)
 
         if (currentDepth > closestDepth)
         {
-            shadow = AMBIENT_COLOR;
+            shadow = AMBIENT_FACTOR;
         }
     }
 
@@ -166,7 +166,19 @@ void main()
     //g = roughness, b = metalness
     vec3 metallicRoughness = texture(samplerMetallicRoughness, inUV).rgb;
 
-    fragColor.rgb = AMBIENT_COLOR * ambientOcclusion.r * albedo +
+
+    vec3 ambientColor = AMBIENT_FACTOR * albedo;
+
+    if (ambientOcclusion.r != 0)
+    {
+        ambientColor *= ambientOcclusion.r;
+    }
+    else if (metallicRoughness.r != 0)
+    {
+        ambientColor *= metallicRoughness.r;
+    }
+
+    fragColor.rgb = ambientColor +
     CookTorrenceReflectance(position, normal, albedo, metallicRoughness);
 
 	fragColor.a = 1.0;

@@ -5,8 +5,6 @@
 #include <fastgltf/tools.hpp>
 #include <variant>
 
-
-
 GLTFModel::GLTFModel( vk::Device* device, const std::filesystem::path& filePath )
 {
 	fastgltf::Options gltfOptions =
@@ -47,7 +45,6 @@ GLTFModel::GLTFModel( vk::Device* device, const std::filesystem::path& filePath 
 	{
 		fileNames.push_back(LoadImage(device, image));
 	}
-
 
 	size_t vertexBufferSize = vertices.size() * sizeof(vertices[0]);
 	size_t indexBufferSize = indices_32.size() * sizeof(indices_32[0]);
@@ -112,9 +109,9 @@ void GLTFModel::Draw( const vk::DrawInfo& drawInfo )
 	VkBuffer indexBuffer  = m_indexBuffer.GetHandle();
 
 	vkCmdBindVertexBuffers(drawInfo.cmdBuffer, 0, 1, &vertexBuffer, offsets);
+
 	//TODO: assuming unsigned short for now, will have to change the way primitives perceive this.
 	vkCmdBindIndexBuffer(drawInfo.cmdBuffer, indexBuffer, 0, m_indexBufferType);
-
 
 	if (!m_asset.scenes.empty())
 	{
@@ -218,11 +215,6 @@ void GLTFModel::LoadMesh( fastgltf::Mesh& mesh, std::vector<Vertex>& vertexBuffe
 		newPrim.firstVertex = static_cast<uint32_t>(vertexBuffer.size());
 		newPrim.indexCount  = 0;
 		newPrim.vertexCount = 0;
-		uint32_t materialIndex = static_cast<uint32_t>(primitive.materialIndex.value_or(0));
-		fastgltf::Material& material = m_asset.materials[materialIndex];
-
-
-		//TODO: support normal texture, occlusion, emissive with accompanying parameters in fastgltf::Material
 
 		//vertex
 		{
@@ -234,7 +226,7 @@ void GLTFModel::LoadMesh( fastgltf::Mesh& mesh, std::vector<Vertex>& vertexBuffe
 
 				newPrim.vertexCount = static_cast<uint32_t>(m_asset.accessors[positionAttrib->accessorIndex].count);
 
-				vertexBuffer.resize(newPrim.vertexCount + static_cast<uint32_t>(vertexBuffer.size()));
+				vertexBuffer.resize(newPrim.vertexCount + newPrim.firstVertex);
 
 				//this is possible with Options::LoadExternalBuffers
 				fastgltf::iterateAccessorWithIndex<fastgltf::math::fvec3>(m_asset, posAccessor,

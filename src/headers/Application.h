@@ -16,6 +16,7 @@ public:
 	vk::ContextBase* GetVulkanContext() const;
 
 	void run();
+
 	void RequestExit();
 	/*void SelectWorldObjects(const vk::Window& appWindow,
 		Camera& camera, const uTransformObject& uTransform, PhysicsSystem& physics);*/
@@ -26,8 +27,8 @@ private:
 private:
 	Timer mTime;
 	PhysicsSystem m_physics;
-
 	std::unique_ptr<vk::ContextBase> m_vulkanGraphicsContext;
+
 	bool exitApplication = false;
 };
 

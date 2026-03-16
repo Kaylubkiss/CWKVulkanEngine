@@ -186,7 +186,7 @@ namespace vk
 
 		objectCI = {};
 
-		objectCI.modelTransform = glm::translate(glm::mat4(1.f), glm::vec3(-3, 1.f, 0));
+		objectCI.modelTransform = glm::translate(glm::mat4(1.f), glm::vec3(-3.5, -1.5f, 0));
 		objectCI.objName = "AnimatedCube/glTF/AnimatedCube.gltf";
 		objectCI.devicePtr = &this->device;
 
@@ -199,9 +199,17 @@ namespace vk
 
 		m_assetManager->LoadObject(objectCI);
 
+		objectCI = {};
+		objectCI.modelTransform = glm::translate(glm::mat4(1.f), glm::vec3(0.5f, -0.5f, 8)) *
+			glm::scale(glm::mat4(1.f), glm::vec3(3));
+		objectCI.objName = "DiffuseTransmissionTeacup/glTF/DiffuseTransmissionTeacup.gltf";
+		objectCI.devicePtr = &device;
+
+		m_assetManager->LoadObject(objectCI);
+
 		//initializing light positions
-		uniformDataLightPass.lights[0].pos = { 3, 27, -14 };
-		uniformDataLightPass.lights[1].pos = { 33, 33, 30 };
+		uniformDataLightPass.lights[0].pos = { -7, 12, 3 };
+		uniformDataLightPass.lights[1].pos = { -1, -7, 14 };
 
 		uniformDataLightPass.eyePosition = mCamera.Position();
 		uniformDataLightPass.lights[0].viewMatrix = uniformDataDeferredShadow.viewMatrices[0];

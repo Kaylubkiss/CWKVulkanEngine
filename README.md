@@ -15,6 +15,8 @@ Hi, welcome to my Github page! As of September 25th, 2025, I've made this reposi
 The architecture is fundamentally built off a layered approach. There is a scene/asset layer, render context layer, 
 and application layer that handles input and overall state.
 
+It's good for clarity, but can be hard to maintain when needing to extend its features.
+
 ## Goals for this project
 
 * Learn Vulkan and GPU architecture

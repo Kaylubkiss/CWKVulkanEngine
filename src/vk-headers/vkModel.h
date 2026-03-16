@@ -27,7 +27,7 @@ namespace vk
                            &drawInfo.imageBufferIndex, &descriptorBufferOffset);
 
                 vkCmdDrawIndexed(drawInfo.cmdBuffer, primitive.indexCount, 1,
-                    primitive.firstIndex, static_cast<int32_t>(primitive.firstVertex), 0);
+                    primitive.firstIndex, 0, 0); //indexing into 1 vertex buffer.
             }
         }
     protected:
