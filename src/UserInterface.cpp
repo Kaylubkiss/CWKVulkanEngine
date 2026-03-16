@@ -1,15 +1,21 @@
 #include "UserInterface.h"
 
+#include "imgui.h"
+
 UserInterface::UserInterface(const UserInterfaceInitInfo& initInfo)
 {
+	assert(initInfo.contextLogicalDevice != VK_NULL_HANDLE);
+
 	this->contextLogicalDevice = initInfo.contextLogicalDevice;
 	UserInterface::InitializeUIDescriptorPool();
 
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
 
-	ImGuiIO& io = ImGui::GetIO(); (void)io;
-	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard | ImGuiConfigFlags_NoMouseCursorChange ;
+	ImGuiIO& io = ImGui::GetIO();
+
+	io.IniFilename = nullptr;
+	io.ConfigFlags |= ImGuiConfigFlags_NoMouseCursorChange;
 
 	if (!ImGui_ImplSDL2_InitForVulkan(initInfo.contextWindow)) {
 
@@ -41,7 +47,7 @@ void UserInterface::Destroy()
 {
 	if (isInitialized)
 	{
-		for (auto texture : displayTextures)
+		for (auto& texture : displayTextures)
 		{
 			ImGui_ImplVulkan_RemoveTexture(texture);
 		}
@@ -109,19 +115,15 @@ bool UserInterface::CollapsingHeader( const std::string& label )
 
 void UserInterface::AddImage( const vk::Texture& texture )
 {
-	if (texture.mImageView == VK_NULL_HANDLE)
+	VkDescriptorImageInfo textureInfo = texture.GetDescriptor();
+	if (textureInfo.imageView == VK_NULL_HANDLE)
 	{
 		std::cerr << "texture not intialized\n";
 		throw std::runtime_error("UserInterface::AddImage() failed\n");
 	}
 
-	displayTextures.push_back(
-		ImGui_ImplVulkan_AddTexture(
-			texture.mSampler,
-			texture.mImageView,
-			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
-		)
-	);
+	displayTextures.push_back(ImGui_ImplVulkan_AddTexture(textureInfo.sampler, textureInfo.imageView,
+		VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL));
 }
 
 void UserInterface::Prepare()
@@ -131,9 +133,10 @@ void UserInterface::Prepare()
 	ImGui::NewFrame();
 }
 
-void UserInterface::Render(VkCommandBuffer cmdBuffer)
+void UserInterface::Render( VkCommandBuffer cmdBuffer )
 {
 	//ImGui::ShowDemoWindow();
 	ImGui::Render();
 	ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), cmdBuffer);
 }
+

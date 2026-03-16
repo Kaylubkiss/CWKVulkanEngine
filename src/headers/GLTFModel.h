@@ -1,10 +1,13 @@
 #pragma once
 //NOTE (11/5/25): JUST SUPPORTING MESH AND TEXTURES FOR NOW
-#include "IModel.h"
+#include "vkModel.h"
 
-#define GLTF_OBJECT_PATH "assets/objects/gltf/"
+#include <fastgltf/types.hpp>
 
-class GLTFModel : public IModel
+//this is to ensure that we can memcpy, as the UpdateModelTransform() takes in a glm::mat4.
+static_assert(sizeof(fastgltf::math::fmat4x4) == sizeof(glm::mat4));
+
+class GLTFModel : public vk::Model
 {
 public:
 	GLTFModel() = default;
@@ -13,15 +16,17 @@ public:
 	[[nodiscard]] glm::vec3 GetMinPoint() const override{ return glm::vec3(0); };
 	[[nodiscard]] glm::vec3 GetMaxPoint() const override { return glm::vec3(0); };
 	[[nodiscard]] std::vector<std::string> GetTextureFileNames() const; //unique to GLTFModel since it specifies many different textures.
-	void UpdateModelTransform( const glm::mat4& newModelMatrix ) override { }; //no physics for GLTF yet.
+	void UpdateModelTransform( const glm::mat4& newModelMatrix ) override; //no physics for GLTF yet.
 	void Draw( const vk::DrawInfo& drawInfo ) override;
 	void LoadTextures( TextureManager& textureManager, const std::vector<std::string>& textureNames ) override;
 private:
 	//helpers
-	void LoadMesh( fastgltf::Mesh& mesh, std::vector<Vertex>& vertexBuffer, std::vector<uint16_t>& indexBuffer );
+	void LoadMesh( fastgltf::Mesh& mesh, std::vector<Vertex>& vertexBuffer, std::vector<uint32_t>& indexBuffer );
 	std::string LoadImage( vk::Device* devicePtr, fastgltf::Image& image );
 private:
+	glm::mat4 m_modelMatrix = glm::mat4(1.0f);
 	fastgltf::Asset m_asset; //TODO: move this out because it's too big.
+	VkIndexType m_indexBufferType = VK_INDEX_TYPE_UINT16;
 	std::vector<std::shared_ptr<vk::Texture>> m_textures;
 
 

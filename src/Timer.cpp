@@ -1,12 +1,31 @@
 #include "Timer.h"
 
+Timer::Timer()
+{
+	timeNow = std::chrono::steady_clock::now();
+}
 
-Timer::Timer(uint64_t currentTime) : timeNow(currentTime), timeBefore(), deltaTime() {}
+double Timer::GetFPS() const
+{
+	return fps;
+}
 
 double Timer::CalculateDeltaTime()
 {
 	this->timeBefore = this->timeNow;
-	this->timeNow = SDL_GetPerformanceCounter();
+	this->timeNow = std::chrono::steady_clock::now();
 
-	return ((this->timeNow - this->timeBefore)) / (double)SDL_GetPerformanceFrequency();
+	deltaTime = std::chrono::duration<double, std::milli>(timeNow - timeBefore).count() / 1000.0;
+
+	if (elapsedSecond >= 1.0)
+	{
+		fps = deltaCount;
+		deltaCount = 0;
+		elapsedSecond = 0;
+	}
+
+	elapsedSecond += deltaTime;
+	++deltaCount;
+
+	return deltaTime;
 }

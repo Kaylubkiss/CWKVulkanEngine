@@ -2,6 +2,11 @@
 #include "GLTFModel.h"
 #include "OBJModel.h"
 
+//normally I'd say ObjectManager should take care of these paths, but since loading was already
+//implemented with checking the extensions, they'll be placed here. Perhaps change this later.
+#define GLTF_OBJECT_PATH "art/gltf/"
+#define OBJ_PATH "art/obj/"
+
 Object::Object( const ObjectCreateInfo& objectCI, TextureManager& textureManager )
 {
     assert(objectCI.devicePtr != nullptr);
@@ -18,19 +23,25 @@ Object::Object( const ObjectCreateInfo& objectCI, TextureManager& textureManager
             throw std::runtime_error("Object() Failed!");
         }
 
-        if (objectCI.textureFileName != nullptr)
+        if (strcmp(objectCI.textureFileName, "") > 0)
         {
-            std::cerr << "WARNING: .gltf will not use specified texture name in ObjectCreateInfo\n";
+            std::cout << "\033[33m[WARNING] .gltf will not use specified texture name in ObjectCreateInfo\033[0m\n";
         }
 
         m_model = std::make_unique<GLTFModel>(objectCI.devicePtr, filePath);
 
-        std::vector<std::string> gltf_fileNames = reinterpret_cast<GLTFModel*>(m_model.get())->GetTextureFileNames();
+        std::vector<std::string> gltf_fileNames = dynamic_cast<GLTFModel*>(m_model.get())->GetTextureFileNames();
+
+        for (auto& fileName : gltf_fileNames)
+        {
+            fileName = filePath.parent_path().string() + "/" + fileName;
+        }
+
         m_model->LoadTextures(textureManager, gltf_fileNames);
     }
     else if (filePath.extension() == ".obj")
     {
-        filePath = OBJECT_PATH + filePath.string();
+        filePath = OBJ_PATH + filePath.string();
 
         if (std::filesystem::exists(filePath) == false)
         {
@@ -40,7 +51,7 @@ Object::Object( const ObjectCreateInfo& objectCI, TextureManager& textureManager
 
         m_model = std::make_unique<OBJModel>(objectCI.devicePtr, filePath);
 
-        if (objectCI.textureFileName != nullptr)
+        if (strcmp(objectCI.textureFileName, "") > 0)
         {
             m_model->LoadTextures(textureManager, {objectCI.textureFileName});
         }
@@ -90,11 +101,6 @@ void Object::InitPhysics()
     {
         glm::vec3 worldHalfExtent = glm::vec3((worldMaxPoints - worldMinPoints) * .5f);
         m_physicsComponent.shape = appPhysics.CreateBoxShape({ std::abs(worldHalfExtent.x), std::abs(worldHalfExtent.y), std::abs(worldHalfExtent.z) });
-    }
-    else if (m_physicsComponent.colliderType == PhysicsComponent::ColliderType::PLANE)
-    {
-        glm::vec3 worldHalfExtent2D = glm::vec3((worldMaxPoints - worldMinPoints) * .5f);
-        m_physicsComponent.shape = appPhysics.CreatePlaneShape({ std::abs(worldHalfExtent2D.x), std::abs(worldHalfExtent2D.z) });
     }
 
     //the collider transform is relative to the rigidbody origin.

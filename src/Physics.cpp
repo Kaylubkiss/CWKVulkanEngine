@@ -22,9 +22,9 @@ PhysicsSystem::~PhysicsSystem()
 	}
 }
 
-void PhysicsSystem::Update(float dt)
+float PhysicsSystem::InterpFactor( float dt )
 {
-	if (mPhysicsWorld == nullptr) { return; }
+	if (mPhysicsWorld == nullptr) { return 0; }
 
 	//capping the iteration count so we don't have odd fluctuations.
 	if (dt > 0.25) 
@@ -41,7 +41,8 @@ void PhysicsSystem::Update(float dt)
 		this->mAccumulator -= this->timeStep;
 	}
 
-	this->interpFactor = this->mAccumulator / this->timeStep;
+	return this->mAccumulator / this->timeStep;
+
 
 }
 
@@ -49,11 +50,6 @@ PhysicsWorld* PhysicsSystem::World() const
 {
 	return this->mPhysicsWorld;
 
-}
-
-float PhysicsSystem::InterpFactor() const
-{
-	return this->interpFactor;
 }
 
 reactphysics3d::RigidBody* PhysicsSystem::AddRigidBody(const reactphysics3d::Transform& transform)

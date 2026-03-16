@@ -9,6 +9,7 @@ struct UserInterfaceInitInfo
 
 	vk::Queue contextQueue = {};
 	VkRenderPass renderPass = VK_NULL_HANDLE;
+	VkExtent2D viewPortExtent = {};
 
 	uint32_t minImages = 0;
 };
@@ -22,9 +23,13 @@ public:
 	void Destroy();
 
 	void Prepare();
-	void Render(VkCommandBuffer cmdBuffer); //after main rendering
-
+	void Render( VkCommandBuffer cmdBuffer ); //after main rendering
 	//types of options
+	template<typename T>
+	inline void TextData( const char* fmt, T value )
+	{
+		ImGui::Text(fmt, value);
+	}
 	void CheckBox( const std::string& label, bool* condition );
 	void Slider( const std::string& label, glm::vec3& position, float min = -100, float max = 100 );
 	void SeparatorText( const std::string& text );
@@ -39,6 +44,6 @@ private:
 	std::vector<VkDescriptorSet> displayTextures;
 	VkDevice contextLogicalDevice = VK_NULL_HANDLE;
 	VkDescriptorPool UIDescriptorPool = VK_NULL_HANDLE; //just for the sampler.
-	uint32_t max_textures = 100;
+	static constexpr uint32_t max_textures = 100;
 	bool isInitialized = false;
 };

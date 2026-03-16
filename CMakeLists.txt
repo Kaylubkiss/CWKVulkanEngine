@@ -12,10 +12,21 @@ add_subdirectory(extern/fastgltf)
 add_subdirectory(extern/reactphysics3d)
 
 add_compile_definitions(GLM_ENABLE_EXPERIMENTAL)
+add_compile_definitions(GLM_FORCE_DEPTH_ZERO_TO_ONE) #vulkan's NDC z-coordinate ranges from 0 to 1.
+add_compile_definitions(GLM_FORCE_DEFAULT_ALIGNED_GENTYPES) #need to have aligned storage for shaders
 add_subdirectory(extern/glm)
 
 set(SDL_TEST OFF CACHE BOOL "" FORCE)
 set(SDL_TEST_LIBRARY OFF CACHE BOOL "" FORCE)
+set(SDL_OPENGL OFF CACHE BOOL "" FORCE)
+set(SDL_OPENGLES OFF CACHE BOOL "" FORCE)
+set(SDL_DISKAUDIO OFF CACHE BOOL "" FORCE)
+set(SDL_DUMMYAUDIO OFF CACHE BOOL "" FORCE)
+set(SDL_DUMMYVIDEO OFF CACHE BOOL "" FORCE)
+set(SDL_ALTIVEC OFF CACHE BOOL "" FORCE)
+set(SDL_WASAPI OFF CACHE BOOL "" FORCE)
+set(SDL_VIRTUAL_JOYSTICK OFF CACHE BOOL "" FORCE)
+set(SDL_RENDER_D3D OFF CACHE BOOL "" FORCE)
 add_subdirectory(extern/sdl2)
 
 set(SHADERC_SKIP_TESTS ON CACHE BOOL "" FORCE)
@@ -23,7 +34,6 @@ set(SHADERC_SKIP_EXAMPLES ON CACHE BOOL "" FORCE)
 set(SHADERC_SKIP_COPYRIGHT_CHECK ON CACHE BOOL "" FORCE)
 set(SHADERC_ENABLE_SHARED_CRT ON CACHE BOOL "" FORCE)
 add_subdirectory(extern/shaderc)
-
 
 #don't need to build these every time so set STATIC
 add_library(imgui STATIC
@@ -45,17 +55,16 @@ target_link_libraries(imgui PRIVATE SDL2-static Vulkan::Vulkan)
 
 
 #------------------SOURCES----------------------
-set(SOURCE_FILES 
+set(SOURCE_FILES
 src/Application.cpp 
 src/Camera.cpp
-src/Common.cpp
 src/Main.cpp
 src/Object.cpp
 src/Physics.cpp
 src/Timer.cpp
 src/ThreadPool.cpp
 src/TextureManager.cpp
-src/ObjectManager.cpp
+src/AssetManager.cpp
 src/ApplicationGlobal.cpp
 src/CameraController.cpp
 src/UserInterface.cpp
@@ -63,7 +72,7 @@ src/GLTFModel.cpp
 src/OBJModel.cpp
 )
 
-set(VULKAN_SRC_DIR src/vulkan-srcs)
+set(VULKAN_SRC_DIR src/vk-sources)
 
 set(VULKAN_ENGINE_SRC 
 ${VULKAN_SRC_DIR}/vkUtility.cpp
@@ -77,13 +86,20 @@ ${VULKAN_SRC_DIR}/vkDevice.cpp
 ${VULKAN_SRC_DIR}/vkWindow.cpp
 ${VULKAN_SRC_DIR}/vkPipelineManager.cpp
 ${VULKAN_SRC_DIR}/vkFramebuffer.cpp
+${VULKAN_SRC_DIR}/vkInstance.cpp
+${VULKAN_SRC_DIR}/vkDescriptorBuffer.cpp
+${VULKAN_SRC_DIR}/vkShaderModule.cpp
 )
 
-set(VULKAN_SCENES_DIR src/vulkan-scenes)
+set(VULKAN_SCENES_DIR src/vk-scenes)
 
 set(VULKAN_ENGINE_SCENES_SOURCE
 		${VULKAN_SCENES_DIR}/vkDeferredShadingContext.cpp
 		${VULKAN_SCENES_DIR}/vkDeferredShadingContext.h
+		${VULKAN_SCENES_DIR}/vkDeferred_Descriptor_Impl.cpp
+		${VULKAN_SCENES_DIR}/vkDeferred_Framebuffer_Impl.cpp
+		${VULKAN_SCENES_DIR}/vkDeferred_Pipeline_Impl.cpp
+		${VULKAN_SCENES_DIR}/vkDeferred_RenderCommands_Impl.cpp
 )
 
 source_group("Source Files/VulkanSources" FILES ${VULKAN_ENGINE_SRC})
@@ -96,7 +112,7 @@ list(APPEND SOURCE_FILES ${VULKAN_ENGINE_SCENES_SOURCE})
 
 set(HEADER_SRC_DIR src/headers)
 
-set(HEADER_FILES 
+set(HEADER_FILES
 ${HEADER_SRC_DIR}/Application.h
 ${HEADER_SRC_DIR}/Camera.h
 ${HEADER_SRC_DIR}/Common.h
@@ -105,7 +121,7 @@ ${HEADER_SRC_DIR}/Vertex.h
 ${HEADER_SRC_DIR}/Physics.h
 ${HEADER_SRC_DIR}/Timer.h
 ${HEADER_SRC_DIR}/ThreadPool.h
-${HEADER_SRC_DIR}/ObjectManager.h
+${HEADER_SRC_DIR}/AssetManager.h
 ${HEADER_SRC_DIR}/TextureManager.h
 ${HEADER_SRC_DIR}/ApplicationGlobal.h
 ${HEADER_SRC_DIR}/CameraController.h
@@ -114,9 +130,10 @@ ${HEADER_SRC_DIR}/UserInterface.h
 ${HEADER_SRC_DIR}/GLTFModel.h
 ${HEADER_SRC_DIR}/OBJModel.h
 ${HEADER_SRC_DIR}/IModel.h
+${HEADER_SRC_DIR}/Mesh.h
 )
 				 
-set(VULKAN_HEADER_DIR src/vulkan-headers)
+set(VULKAN_HEADER_DIR src/vk-headers)
 
 set(VULKAN_ENGINE_HEADERS 
 ${VULKAN_HEADER_DIR}/vkUtility.h
@@ -131,6 +148,11 @@ ${VULKAN_HEADER_DIR}/vkDevice.h
 ${VULKAN_HEADER_DIR}/vkDevice.h
 ${VULKAN_HEADER_DIR}/vkPipelineManager.h
 ${VULKAN_HEADER_DIR}/vkFramebuffer.h
+${VULKAN_HEADER_DIR}/vkCubemap.h
+${VULKAN_HEADER_DIR}/vkInstance.h
+${VULKAN_HEADER_DIR}/vkModel.h
+${VULKAN_HEADER_DIR}/vkDescriptorBuffer.h
+${VULKAN_HEADER_DIR}/vkShaderModule.h
 )
 
 source_group("Header Files/VulkanHeaders" FILES ${VULKAN_ENGINE_HEADERS})	
@@ -140,24 +162,14 @@ list(APPEND HEADER_FILES ${VULKAN_ENGINE_HEADERS})
 set(SHADER_SRC_DIR src/shaders)
 
 set(SHADER_FILES
-#blinn-phong
-${SHADER_SRC_DIR}/blinnForward.frag	
-${SHADER_SRC_DIR}/blinnForward.vert
-#shadow mapping
-${SHADER_SRC_DIR}/offscreenShadowMap.frag
-${SHADER_SRC_DIR}/offscreenShadowMap.vert
-${SHADER_SRC_DIR}/sceneShadowMap.frag
-${SHADER_SRC_DIR}/sceneShadowMap.vert
-${SHADER_SRC_DIR}/debugShadowMap.vert
-${SHADER_SRC_DIR}/debugShadowMap.frag
 #deferred shading
-${SHADER_SRC_DIR}/deferredMRT.vert
-${SHADER_SRC_DIR}/deferredMRT.frag
-${SHADER_SRC_DIR}/deferredLightPass.vert
-${SHADER_SRC_DIR}/deferredLightPass.frag
+${SHADER_SRC_DIR}/deferred-render/deMRT.vert
+${SHADER_SRC_DIR}/deferred-render/deMRT.frag
+${SHADER_SRC_DIR}/deferred-render/deComposition.vert
+${SHADER_SRC_DIR}/deferred-render/deComposition.frag
 #deferred shadowing
-${SHADER_SRC_DIR}/deferredShadow.geom
-${SHADER_SRC_DIR}/deferredShadow.vert
+${SHADER_SRC_DIR}/deferred-render/deShadow.geom
+${SHADER_SRC_DIR}/deferred-render/deShadow.vert
 )
 
 
@@ -166,10 +178,9 @@ add_executable(${PROJECT_NAME} ${SOURCE_FILES} ${SHADER_FILES} ${HEADER_FILES})
 
 target_precompile_headers(${PROJECT_NAME} PUBLIC ${HEADER_SRC_DIR}/pch.h)
 
-
-target_include_directories(${PROJECT_NAME} PRIVATE 
+target_include_directories(${PROJECT_NAME} PRIVATE
 src/headers
-src/vulkan-headers
+src/vk-headers
 extern/stb
 extern/tinyobjloader
 extern/imgui
@@ -180,13 +191,13 @@ extern/shaderc/libshaderc/include
 )
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
+imgui #created this library within this script
 SDL2::SDL2main
 SDL2::SDL2-static
 glm::glm
 reactphysics3d
 shaderc_combined
-imgui
-fastgltf
+fastgltf::fastgltf
 Vulkan::Vulkan
 )
 

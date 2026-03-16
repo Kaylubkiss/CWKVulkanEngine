@@ -1,8 +1,8 @@
 #pragma once
 
 #include "IModel.h"
-#include "TextureManager.h"
-#define OBJECT_PATH "assets/objects/"
+
+class TextureManager;
 
 struct ObjectCreateInfo
 {
@@ -19,7 +19,7 @@ class Object final
 {	
 public:
 	//Constructors
-	Object() = default;
+	explicit Object() = default;
 	explicit Object( const ObjectCreateInfo& objectCI, TextureManager& textureManager );
 	//Destructors
 	~Object() = default;

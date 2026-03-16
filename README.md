@@ -1,6 +1,6 @@
 # Caleb's Custom Vulkan Graphics Engine
 
-[![Windows Build](https://github.com/Kaylubkiss/CWKVulkanEngine/actions/workflows/window-build.yml/badge.svg?branch=dev)](https://github.com/Kaylubkiss/CWKVulkanEngine/actions/workflows/window-build.yml)
+[![Windows Build](https://github.com/Kaylubkiss/CWKVulkanEngine/actions/workflows/windows-build.yml/badge.svg?branch=dev)](https://github.com/Kaylubkiss/CWKVulkanEngine/actions/workflows/windows-build.yml)
 [![Linux Build](https://github.com/Kaylubkiss/CWKVulkanEngine/actions/workflows/linux-build.yml/badge.svg?branch=dev)](https://github.com/Kaylubkiss/CWKVulkanEngine/actions/workflows/linux-build.yml)
 
 Hi, welcome to my Github page! As of September 25th, 2025, I've made this repository public for all to see my progress! There'll be lots of updates in the coming weeks, months, maybe even years!
@@ -10,17 +10,42 @@ Hi, welcome to my Github page! As of September 25th, 2025, I've made this reposi
   <p><em>A shadow mapping implementation written under my codebase</em></p>
 </div>
 
-# Goals for this project
+# Overview
+
+This engine fundamentally uses a <b>layered</b> architecture. There is an application layer,
+rendering layer, resource management layer, and scene layer to create clear separation of responsibility and modularity
+within the engine. 
+
+This architecture was chosen to support the small-scale, educational intent of this project.
+
+In the near future, I will move over to ECS which offers greater performance potential and modularity.
+
+### Goals for this project
 
 * Learn Vulkan and GPU architecture
 * Implement algorithms and build scalable systems for graphics development
 * Strengthen my tooling mindset
 * Have fun and make some cool freakin demos to share
 
-<p>My dream has always been to become an elite toy maker whose experiences delight users around the world.</p> 
-<p>This project aims to fulfill that.</p>
+<p>My dream has always been to become an elite toy maker whose creations delight users around the world.</p>
 
-# Build Instructions 
+# Highlighted Features
+
+## Hot Reloading
+
+![Hot Reloading Video](https://github.com/user-attachments/assets/79b6e14c-a74a-4d81-863c-fd1512a32f3a)
+
+## Async Asset Loading
+
+![Async Loading Video](https://github.com/user-attachments/assets/05ba26bc-be73-464a-8d99-8bc12c5227af)
+
+## Physically-Based Rendering w/ Textures
+
+<img width="752" height="566" alt="Image" src="https://github.com/user-attachments/assets/547e6d3c-1b4e-4a53-8a9b-39ec4165b5c3" />
+
+<em><b>Supported Materials</b>: BaseColor, MetallicRoughness, AmbientOcclusion, Occlusion-Roughness-Metallic (ORMT) </em>
+
+# Build Instructions
 **General Requirements:**
 
 <ul>
@@ -92,7 +117,4 @@ An IDE is <em>highly</em> recommended for development:
   <li>Start Coding</li>
 </ol> 
 
-# Works In Progress (Updated 01/31/2026)
-<ul>
-  <li>Animation and Material support through <em><a href="https://www.khronos.org/Gltf">.glTF</a></em> specifications and GLSL shading</li>
-</ul>
+# 

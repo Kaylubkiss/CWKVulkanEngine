@@ -1,7 +1,5 @@
 #pragma once
 
-
-
 struct Vertex
 {
 	glm::vec3 pos = { 0,0,0 };
@@ -40,7 +38,6 @@ struct Vertex
 		vInputAttribute[2].offset = offsetof(struct Vertex, uv);
 
 		return vInputAttribute;
-
 	}
 };
 

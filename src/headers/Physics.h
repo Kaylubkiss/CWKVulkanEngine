@@ -31,9 +31,7 @@ public:
 	PhysicsSystem();
 	~PhysicsSystem();
 
-	float InterpFactor() const;
-
-	void Update(float dt);
+	float InterpFactor(float dt);
 	reactphysics3d::PhysicsWorld* World() const;
 	reactphysics3d::RigidBody* AddRigidBody(const reactphysics3d::Transform& transform);
 	reactphysics3d::BoxShape* CreateBoxShape(const reactphysics3d::Vector3& extent);
@@ -51,7 +49,7 @@ private:
 
 class RayCastObject : public reactphysics3d::RaycastCallback {
 public:
-	reactphysics3d::decimal notifyRaycastHit(const RaycastInfo& info) override
+	reactphysics3d::decimal notifyRaycastHit(const reactphysics3d::RaycastInfo& info) override
 	{
 		// Display the world hit point coordinates
 		std::cout << " Hit point : " <<

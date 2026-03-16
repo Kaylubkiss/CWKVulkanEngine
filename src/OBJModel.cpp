@@ -1,77 +1,93 @@
 #include "OBJModel.h"
 #include <glm/glm.hpp>
 #include "ApplicationGlobal.h"
-#include <algorithm>
+#define TINYOBJLOADER_DISABLE_FAST_FLOAT
 #define TINYOBJLOADER_IMPLEMENTATION
 #include "tiny_obj_loader.h"
 
 void OBJModel::ComputeVertexNormals( std::vector<Vertex>& vertexBuffer, std::vector<uint16_t>& indexBuffer )
 {
-    for (int i = 0; i < vertexBuffer.size(); ++i)
+    //NOTE: assumes that faces are triangulated.
+
+    for (auto& vertex : vertexBuffer)
     {
-        glm::vec3 total_vec(0.0f);
+        vertex.nrm = {};
+    }
 
-        for (int j = 0; j < indexBuffer.size(); ++j)
+    for (size_t index = 0; index < indexBuffer.size(); index += 3)
+    {
+        const int i0 = indexBuffer[index];
+        const int i1 = indexBuffer[index + 1];
+        const int i2 = indexBuffer[index + 2];
+
+        Vertex& v0 = vertexBuffer[i0];
+        Vertex& v1 = vertexBuffer[i1]; //take this center as reference for the edges
+        Vertex& v2 = vertexBuffer[i2];
+
+        //should be clockwise... then the normals would point toward the viewer of the faces.
+        glm::vec3 E0 = vertexBuffer[i1].pos - vertexBuffer[i0].pos;
+        glm::vec3 E1 = vertexBuffer[i2].pos - vertexBuffer[i0].pos;
+
+        glm::vec3 faceNormal = glm::normalize(glm::cross(E0, E1));
+
+        glm::vec3 e00 =  glm::normalize(vertexBuffer[i1].pos - vertexBuffer[i0].pos);
+        glm::vec3 e01 = glm::normalize(vertexBuffer[i2].pos - vertexBuffer[i0].pos);
+        float alpha0 = acosf(glm::clamp(glm::dot(e00, e01), -1.f, 1.f));
+
+        glm::vec3 e10 = glm::normalize(vertexBuffer[i0].pos - vertexBuffer[i1].pos);
+        glm::vec3 e11 = glm::normalize(vertexBuffer[i2].pos - vertexBuffer[i1].pos);
+        float alpha1 = acosf(glm::clamp(glm::dot(e10, e11), -1.f, 1.f));
+
+
+        glm::vec3 e20 = -e11;
+        glm::vec3 e21 = -e01;
+        float alpha2 = acosf(glm::clamp(glm::dot(e20, e21), -1.f, 1.f));
+
+        v0.nrm += faceNormal * alpha0;
+        v1.nrm += faceNormal * alpha1;
+        v2.nrm += faceNormal * alpha2;
+    }
+
+
+    //TODO: not optimized
+    std::vector<glm::vec3> merged_normals(vertexBuffer.size(), {0.0f, 0.0f, 0.0f});
+
+    //slowly looking for duplicates of the same vertex.
+    for (size_t i = 0; i < vertexBuffer.size(); ++i)
+    {
+        glm::vec3 accumulated_normal = vertexBuffer[i].nrm;
+        const glm::vec3& v_pos = vertexBuffer[i].pos;
+
+        for (size_t j = 0; j < vertexBuffer.size(); ++j)
         {
-            //total_vec
-            if (indexBuffer[j] == i)
+            if (i != j && vertexBuffer[j].pos == v_pos)
             {
-                //angle = glm::angle(q -p, r - p)
-                //total_vec += angle * cross(q - r, r - p)
-                float angle;
-                glm::vec3 normal;
-                glm::vec3 orientation_QP;
-                glm::vec3 orientation_RP;
-                glm::vec3 edge_1;
-                glm::vec3 edge_2;
-
-                if (j % 3 == 0) //beginning of the face index
-                {
-                    orientation_QP = vertexBuffer[indexBuffer[j + 1]].pos - vertexBuffer[indexBuffer[j]].pos;
-                    orientation_RP = vertexBuffer[indexBuffer[j + 2]].pos - vertexBuffer[indexBuffer[j]].pos;
-
-                    edge_1 = orientation_QP;
-                    edge_2 = orientation_RP;
-                }
-                else if (j % 3 == 1) //middle of the face index
-                {
-                    orientation_QP = vertexBuffer[indexBuffer[j]].pos - vertexBuffer[indexBuffer[j - 1]].pos;
-                    orientation_RP = vertexBuffer[indexBuffer[j + 1]].pos - vertexBuffer[indexBuffer[j - 1]].pos;
-
-                    edge_1 = vertexBuffer[indexBuffer[j - 1]].pos - vertexBuffer[indexBuffer[j]].pos;
-                    edge_2 = vertexBuffer[indexBuffer[j + 1]].pos - vertexBuffer[indexBuffer[j]].pos;
-
-                }
-                else if (j % 3 == 2) //end of face index sequence
-                {
-                    orientation_QP = vertexBuffer[indexBuffer[j - 1]].pos - vertexBuffer[indexBuffer[j - 2]].pos;
-                    orientation_RP = vertexBuffer[indexBuffer[j]].pos - vertexBuffer[indexBuffer[j - 2]].pos;
-
-                    edge_1 = vertexBuffer[indexBuffer[j - 2]].pos - vertexBuffer[indexBuffer[j]].pos;
-                    edge_2 = vertexBuffer[indexBuffer[j - 1]].pos - vertexBuffer[indexBuffer[j]].pos;
-                }
-
-
-                angle = glm::degrees(acos((abs(glm::dot(edge_1, edge_2)) /
-                    (glm::length(edge_1) * glm::length(edge_2)))));
-                normal = glm::cross(orientation_QP, orientation_RP);
-                //The angle needs to be between the edges that *SHARE* the vertex.
-                total_vec += (angle * normal);
+                accumulated_normal += vertexBuffer[j].nrm;
             }
         }
 
-        vertexBuffer[i].nrm = glm::normalize(total_vec); //point + vector equals another point
+        merged_normals[i] = accumulated_normal;
     }
+
+    for (size_t i = 0; i < merged_normals.size(); ++i)
+    {
+        vertexBuffer[i].nrm = merged_normals[i];
+        if (glm::length2(vertexBuffer[i].nrm) > 0.f)
+        {
+            vertexBuffer[i].nrm = glm::normalize(vertexBuffer[i].nrm);
+        }
+    }
+
+
 }
 
 void OBJModel::ComputeVertices( std::vector<Vertex>& vertexBuffer, std::vector<uint16_t>& indexBuffer )
 {
-    int numVertices = static_cast<int>(vertexBuffer.size());
 
     glm::vec3 min_points(0.f);
     glm::vec3 max_points(0.f);
 
-    for (unsigned i = 0; i < vertexBuffer.size(); ++i)
+    for (size_t i = 0; i < vertexBuffer.size(); ++i)
     {
 
         min_points.x = std::min(min_points.x, vertexBuffer[i].pos.x);
@@ -92,10 +108,8 @@ void OBJModel::ComputeVertices( std::vector<Vertex>& vertexBuffer, std::vector<u
     float unitScale = std::max({ glm::length(max_points.x - min_points.x),
         glm::length(max_points.y - min_points.y), glm::length(max_points.z - min_points.z) });
 
-    max_points = { -std::numeric_limits<float>::min(),
-        -std::numeric_limits<float>::min() , -std::numeric_limits<float>::min() };
-    min_points = { std::numeric_limits<float>::max(),
-        std::numeric_limits<float>::max(), std::numeric_limits<float>::max() };
+    max_points = { };
+    min_points = { };
 
     for (size_t i = 0; i < vertexBuffer.size(); ++i)
     {
@@ -112,8 +126,6 @@ void OBJModel::ComputeVertices( std::vector<Vertex>& vertexBuffer, std::vector<u
 
     m_maxLocalPoint = max_points;
     m_minLocalPoint = min_points;
-
-    OBJModel::ComputeVertexNormals(vertexBuffer, indexBuffer);
 }
 
 OBJModel::OBJModel( vk::Device* device, const std::filesystem::path& filePath )
@@ -137,6 +149,7 @@ OBJModel::OBJModel( vk::Device* device, const std::filesystem::path& filePath )
 
     std::unordered_map<Vertex, uint32_t> uniqueVertices = {};
 
+
     for (const auto& shape : shapes)
     {
         for (const auto& index : shape.mesh.indices)
@@ -157,21 +170,21 @@ OBJModel::OBJModel( vk::Device* device, const std::filesystem::path& filePath )
                     attrib.texcoords[2 * index.texcoord_index + 0],
                     1 - attrib.texcoords[2 * index.texcoord_index + 1] //vulkan is upside down.
                 };
-
             }
 
-            if (uniqueVertices.count(vert) == 0)
+            if (uniqueVertices.contains(vert) == false)
             {
                 uniqueVertices[vert] = static_cast<uint32_t>(vertexBuffer.size());
                 vertexBuffer.push_back(vert);
             }
 
             indexBuffer.push_back(uniqueVertices[vert]);
-
         }
     }
 
     ComputeVertices(vertexBuffer, indexBuffer);
+
+    ComputeVertexNormals(vertexBuffer, indexBuffer);
 
     size_t sizeOfVertexBuffer = (sizeof(vertexBuffer[0]) * vertexBuffer.size());
     m_vertexBuffer = 
@@ -186,6 +199,7 @@ OBJModel::OBJModel( vk::Device* device, const std::filesystem::path& filePath )
     Primitive primitive;
     primitive.indexCount = static_cast<uint32_t>(indexBuffer.size());
     primitive.vertexCount = static_cast<uint32_t>(vertexBuffer.size());
+    primitive.textureSetLayoutIndex = 0;
     
     std::vector<Primitive> primitive_vector = { primitive };
 
@@ -230,35 +244,9 @@ void OBJModel::Draw( const vk::DrawInfo& drawInfo )
     //meaning: m_meshes.size() == 1, primitives.size() == 1
     //this written out so that the difference between obj model and gltf get smaller overtime.
     //ideally, Draw() would just be a generic function under IModel.
-    for (auto& mesh : m_meshes) 
+    for (auto& mesh : m_meshes)
     {
-        for (auto& primitive : mesh->m_primitives)
-        {
-
-            if (primitive.textureIndex.has_value())
-            {
-                VkDeviceSize descriptorBufferOffset =
-                    primitive.textureIndex.value() * drawInfo.textureBindingSize;
-
-                g_vkCmdSetDescriptorBufferOffsetsEXT(drawInfo.cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-                    drawInfo.pipelineLayout, drawInfo.firstSet, drawInfo.setCount,
-                    &drawInfo.imageBufferIndex, &descriptorBufferOffset);
-            }
-            else
-            {
-                VkDeviceSize descriptorBufferOffset = 0;
-
-                g_vkCmdSetDescriptorBufferOffsetsEXT(drawInfo.cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-                    drawInfo.pipelineLayout, drawInfo.firstSet, drawInfo.setCount,
-                    &drawInfo.imageBufferIndex, &descriptorBufferOffset);
-            }
-
-            vkCmdDrawIndexed(drawInfo.cmdBuffer, primitive.indexCount, 1,
-                primitive.firstIndex, static_cast<int32_t>(primitive.firstVertex), 0);
-
-            vkCmdDrawIndexed(drawInfo.cmdBuffer, primitive.indexCount,
-                1, primitive.firstIndex, primitive.firstVertex, 0);
-        }
+        DrawMeshPrimitives(drawInfo, mesh->m_primitives);
     }
 }
 
@@ -269,6 +257,5 @@ void OBJModel::LoadTextures( TextureManager& textureManager, const std::vector<s
     //this code-base will treat .obj as a primitive format for only geometry and texture data.
     Mesh& mesh = *m_meshes.back().get();
     Primitive& primitive = mesh.m_primitives.back();
-    textureManager.BindTextureToModelPrimitive(textureNames.back(), primitive);
-
+    textureManager.BindTextureToModelPrimitive(textureNames.front(), 0, primitive.textureSetLayoutIndex);
 }

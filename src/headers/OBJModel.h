@@ -1,7 +1,7 @@
 #pragma once
-#include "IModel.h"
+#include "vkModel.h"
 
-class OBJModel : public IModel
+class OBJModel : public vk::Model
 {
 public:
 	OBJModel() = default;

@@ -7,11 +7,12 @@ class ThreadPool
 {
 public:
 	ThreadPool() = default;
+	~ThreadPool() = default;
 	void Init(size_t num_threads);
-	void EnqueueTask(std::function<void()>& task);
+	//MUST CALL THIS BEFORE EXITING PROGRAM.
 	void Terminate();
+	void EnqueueTask(std::function<void()>& task);
 	bool isBusy();
-	~ThreadPool();
 private:
 	void ThreadLoop();
 private:

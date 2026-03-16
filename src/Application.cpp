@@ -1,26 +1,21 @@
 #include "CameraController.h"
-#include "vulkan-scenes/vkDeferredShadingContext.h"
-
-//NOTE: to remove pesky warnings from visual studio, on dynamically allocated arrays,
-//I've used the syntax: *(array + i) to access the array instead of array[i].
-//the static analyzer of visual studio is bad.
-
+#include "fastgltf/math.hpp"
+#include "vk-scenes/vkDeferredShadingContext.h"
 
 PhysicsSystem& Application::GetPhysics() 
 {
-	return this->mPhysics;
+	return this->m_physics;
 }
 
-vk::ContextBase* Application::Context() {
-
-	return m_graphicsContext.get();
-}
-
-std::unique_ptr<ObjectManager>& Application::GetObjectManager()
+Timer& Application::GetTimer()
 {
-	return m_objectManager;
+	return this->mTime;
 }
 
+vk::ContextBase* Application::GetVulkanContext() const
+{
+	return m_vulkanGraphicsContext.get();
+}
 
 void Application::run() 
 {
@@ -37,24 +32,22 @@ void Application::run()
 
 void Application::init() 
 {
-	m_graphicsContext = std::make_unique<vk::DeferredContext>();
 
-	vk::GraphicsContextInfo contextInfo = m_graphicsContext->GetGraphicsContextInfo();
-	m_objectManager = std::make_unique<ObjectManager>(contextInfo);
-	
-	m_graphicsContext->InitializeScene(m_objectManager.get());
-	
-	mTime = Timer(SDL_GetPerformanceCounter());
+	if (SDL_Init(SDL_INIT_VIDEO) < 0)
+	{
+		printf("SDL could not initialize! SDL_Error: %s\n", SDL_GetError());
+	}
+
+	m_vulkanGraphicsContext = std::make_unique<vk::DeferredContext>();
+
+	if (exitApplication == false)
+	{
+		m_vulkanGraphicsContext->InitializeScene(); //TODO: deserialize a scene
+	}
 }
 
 
-const Timer& Application::GetTime() const
-{
-	return this->mTime;
-}
-
-
-void Application::SelectWorldObjects(const vk::Window& appWindow, 
+/*void Application::SelectWorldObjects(const vk::Window& appWindow,
 									 Camera& camera, const uTransformObject& uTransform, PhysicsSystem& physics)
 {
 	
@@ -106,7 +99,7 @@ void Application::SelectWorldObjects(const vk::Window& appWindow,
 
 	physics.World()->raycast(ray, &callbackObject);
 
-}
+}*/
 
 void Application::RequestExit() 
 {
@@ -115,31 +108,36 @@ void Application::RequestExit()
 
 void Application::loop()
 {
-	if (m_graphicsContext != nullptr) 
+	if (m_vulkanGraphicsContext != nullptr)
 	{
 		//render graphics.
 		while (exitApplication == false)
 		{
-			double dt = mTime.CalculateDeltaTime();
+			double realFrameTime = mTime.CalculateDeltaTime();
 
-			Controller::MoveCamera(m_graphicsContext->GetCamera(), static_cast<float>(dt));
+			float physicsTime = m_physics.InterpFactor(static_cast<float>(realFrameTime));
 
-			mPhysics.Update(static_cast<float>(dt));
+			Controller::MoveCamera(m_vulkanGraphicsContext->GetCamera(), static_cast<float>(realFrameTime));
 
-			m_objectManager->Update(mPhysics.InterpFactor());
+			if (exitApplication)
+			{
+				break;
+			}
 
-			//sync this up with primary command buffer in graphics system...
-			m_graphicsContext->Render();
+			m_vulkanGraphicsContext->UpdateSceneObjects(physicsTime);
+
+			m_vulkanGraphicsContext->Render();
 		}
 
 		//when we're done with the loop, we should make sure the logical device is flushed.
-		m_graphicsContext->WaitForDevice();
+		m_vulkanGraphicsContext->WaitForDevice();
 	}
 }
 
 
 void Application::exit()
 {
+	SDL_Quit();
 }
 
 
