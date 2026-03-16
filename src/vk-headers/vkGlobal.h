@@ -8,8 +8,6 @@
 
 constexpr uint32_t gMaxFramesInFlight = 3;
 
-
-
 inline VkDeviceSize AlignedSize(VkDeviceSize size, VkDeviceSize alignment)
 {
 	return (size + alignment - 1) & ~(alignment - 1);

@@ -38,7 +38,6 @@ struct Vertex
 		vInputAttribute[2].offset = offsetof(struct Vertex, uv);
 
 		return vInputAttribute;
-
 	}
 };
 

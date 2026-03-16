@@ -1,4 +1,4 @@
-# Caleb's Custom Vulkan Graphics Engine
+# Caleb's Custom Vulkan Graphics Engine (v1)
 
 [![Windows Build](https://github.com/Kaylubkiss/CWKVulkanEngine/actions/workflows/windows-build.yml/badge.svg?branch=dev)](https://github.com/Kaylubkiss/CWKVulkanEngine/actions/workflows/windows-build.yml)
 [![Linux Build](https://github.com/Kaylubkiss/CWKVulkanEngine/actions/workflows/linux-build.yml/badge.svg?branch=dev)](https://github.com/Kaylubkiss/CWKVulkanEngine/actions/workflows/linux-build.yml)
@@ -10,7 +10,12 @@ Hi, welcome to my Github page! As of September 25th, 2025, I've made this reposi
   <p><em>A shadow mapping implementation written under my codebase</em></p>
 </div>
 
-# Goals for this project
+# Overview
+
+The architecture is fundamentally built off a layered approach. There is a scene/asset layer, render context layer, 
+and application layer that handles input and overall state.
+
+## Goals for this project
 
 * Learn Vulkan and GPU architecture
 * Implement algorithms and build scalable systems for graphics development
@@ -20,7 +25,7 @@ Hi, welcome to my Github page! As of September 25th, 2025, I've made this reposi
 <p>My dream has always been to become an elite toy maker whose creations delight users around the world.</p> 
 <p>This project aims to fulfill that.</p>
 
-# (3) Highlighted Features
+# Highlighted Features
 
 ## Hot Reloading
 
@@ -33,8 +38,6 @@ Hi, welcome to my Github page! As of September 25th, 2025, I've made this reposi
 ## PBR Texture Rendering
 
 [ TODO - show video of singular object in space ]
-
-
 
 # Build Instructions 
 **General Requirements:**
@@ -108,7 +111,4 @@ An IDE is <em>highly</em> recommended for development:
   <li>Start Coding</li>
 </ol> 
 
-# Works In Progress (Updated 01/31/2026)
-<ul>
-  <li>Animation and Material support through <em><a href="https://www.khronos.org/Gltf">.glTF</a></em> specifications and GLSL shading</li>
-</ul>
+# 
