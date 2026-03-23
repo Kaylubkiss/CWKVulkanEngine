@@ -51,28 +51,33 @@ target_include_directories(imgui PUBLIC
 		extern/imgui
 		extern/imgui/backends
 )
+
 target_link_libraries(imgui PRIVATE SDL2-static Vulkan::Vulkan)
 
+#------------------CORE ENGINE DIRECTORIES----------------------
+set(CORE_MANAGERS_DIR src_core/managers)
+set(CORE_RESOURCES_DIR src_core/resources)
 
-#------------------SOURCES----------------------
+#------------------CORE ENGINE SOURCES----------------------
 set(SOURCE_FILES
-src/Application.cpp 
-src/Camera.cpp
-src/Main.cpp
-src/Object.cpp
-src/Physics.cpp
-src/Timer.cpp
-src/ThreadPool.cpp
-src/TextureManager.cpp
-src/AssetManager.cpp
-src/ApplicationGlobal.cpp
-src/CameraController.cpp
-src/UserInterface.cpp
-src/GLTFModel.cpp
-src/OBJModel.cpp
+		src_core/Application.cpp
+		src_core/Camera.cpp
+		src_core/Main.cpp
+		src_core/Object.cpp
+		src_core/Physics.cpp
+		src_core/Timer.cpp
+		src_core/ThreadPool.cpp
+		src_core/ApplicationGlobal.cpp
+		src_core/CameraController.cpp
+		src_core/UserInterface.cpp
+		src_core/resources/GLTFModel.cpp
+		src_core/resources/OBJModel.cpp
+		src_core/managers/SceneManager.cpp
 )
 
-set(VULKAN_SRC_DIR src/vk-sources)
+
+#------------------VULKAN IMPLEMENTATION SOURCES----------------------
+set(VULKAN_SRC_DIR src_vulkan)
 
 set(VULKAN_ENGINE_SRC 
 ${VULKAN_SRC_DIR}/vkUtility.cpp
@@ -91,11 +96,10 @@ ${VULKAN_SRC_DIR}/vkDescriptorBuffer.cpp
 ${VULKAN_SRC_DIR}/vkShaderModule.cpp
 )
 
-set(VULKAN_SCENES_DIR src/vk-scenes)
+set(VULKAN_SCENES_DIR src_vulkan/scenes)
 
 set(VULKAN_ENGINE_SCENES_SOURCE
 		${VULKAN_SCENES_DIR}/vkDeferredShadingContext.cpp
-		${VULKAN_SCENES_DIR}/vkDeferredShadingContext.h
 		${VULKAN_SCENES_DIR}/vkDeferred_Descriptor_Impl.cpp
 		${VULKAN_SCENES_DIR}/vkDeferred_Framebuffer_Impl.cpp
 		${VULKAN_SCENES_DIR}/vkDeferred_Pipeline_Impl.cpp
@@ -108,34 +112,47 @@ list(APPEND SOURCE_FILES ${VULKAN_ENGINE_SRC})
 source_group("Source Files/VulkanSources/Scenes" FILES ${VULKAN_ENGINE_SCENES_SOURCE})
 list(APPEND SOURCE_FILES ${VULKAN_ENGINE_SCENES_SOURCE})
 
-#------------------HEADERS----------------------
+#------------------CORE ENGINE HEADERS----------------------
 
-set(HEADER_SRC_DIR src/headers)
+set(HEADER_SRC_DIR src_core/headers)
 
 set(HEADER_FILES
 ${HEADER_SRC_DIR}/Application.h
 ${HEADER_SRC_DIR}/Camera.h
 ${HEADER_SRC_DIR}/Common.h
 ${HEADER_SRC_DIR}/Object.h
-${HEADER_SRC_DIR}/Vertex.h
 ${HEADER_SRC_DIR}/Physics.h
 ${HEADER_SRC_DIR}/Timer.h
 ${HEADER_SRC_DIR}/ThreadPool.h
-${HEADER_SRC_DIR}/AssetManager.h
-${HEADER_SRC_DIR}/TextureManager.h
 ${HEADER_SRC_DIR}/ApplicationGlobal.h
 ${HEADER_SRC_DIR}/CameraController.h
 ${HEADER_SRC_DIR}/SpirvHelper.h
 ${HEADER_SRC_DIR}/UserInterface.h
-${HEADER_SRC_DIR}/GLTFModel.h
-${HEADER_SRC_DIR}/OBJModel.h
-${HEADER_SRC_DIR}/IModel.h
-${HEADER_SRC_DIR}/Mesh.h
+${HEADER_SRC_DIR}/Resource.h
+${HEADER_SRC_DIR}/ResourceHandle.h
 )
-				 
-set(VULKAN_HEADER_DIR src/vk-headers)
 
-set(VULKAN_ENGINE_HEADERS 
+set(CORE_MANAGERS_HEADERS
+		${CORE_MANAGERS_DIR}/SceneManager.h
+		${CORE_MANAGERS_DIR}/ResourceManager.h
+)
+
+list(APPEND HEADER_FILES ${CORE_MANAGERS_HEADERS})
+
+set(CORE_RESOURCES_HEADERS
+	${CORE_RESOURCES_DIR}/GLTFModel.h
+	${CORE_RESOURCES_DIR}/OBJModel.h
+	${CORE_RESOURCES_DIR}/Model.h
+	${CORE_RESOURCES_DIR}/primitives/Mesh.h
+	${CORE_RESOURCES_DIR}/primitives/Vertex.h
+)
+
+list(APPEND HEADER_FILES ${CORE_RESOURCES_HEADERS})
+
+#------------------VULKAN IMPLEMENTATION HEADERS----------------------
+set(VULKAN_HEADER_DIR src_vulkan/headers)
+
+set(VULKAN_HEADERS
 ${VULKAN_HEADER_DIR}/vkUtility.h
 ${VULKAN_HEADER_DIR}/vkGlobal.h
 ${VULKAN_HEADER_DIR}/vkInit.h
@@ -150,16 +167,20 @@ ${VULKAN_HEADER_DIR}/vkPipelineManager.h
 ${VULKAN_HEADER_DIR}/vkFramebuffer.h
 ${VULKAN_HEADER_DIR}/vkCubemap.h
 ${VULKAN_HEADER_DIR}/vkInstance.h
-${VULKAN_HEADER_DIR}/vkModel.h
 ${VULKAN_HEADER_DIR}/vkDescriptorBuffer.h
 ${VULKAN_HEADER_DIR}/vkShaderModule.h
 )
 
-source_group("Header Files/VulkanHeaders" FILES ${VULKAN_ENGINE_HEADERS})	
-list(APPEND HEADER_FILES ${VULKAN_ENGINE_HEADERS})
+# vulkan scenes
+set(VULKAN_SCENES_HEADERS ${VULKAN_SCENES_DIR}/vkDeferredShadingContext.h)
 
+list(APPEND VULKAN_HEADERS ${VULKAN_SCENES_HEADERS})
 
-set(SHADER_SRC_DIR src/shaders)
+source_group("Header Files/VulkanHeaders" FILES ${VULKAN_HEADERS})
+list(APPEND HEADER_FILES ${VULKAN_HEADERS})
+
+#------------------SHADERS----------------------
+set(SHADER_SRC_DIR shaders)
 
 set(SHADER_FILES
 #deferred shading
@@ -179,8 +200,12 @@ add_executable(${PROJECT_NAME} ${SOURCE_FILES} ${SHADER_FILES} ${HEADER_FILES})
 target_precompile_headers(${PROJECT_NAME} PUBLIC ${HEADER_SRC_DIR}/pch.h)
 
 target_include_directories(${PROJECT_NAME} PRIVATE
-src/headers
-src/vk-headers
+src_core/headers
+src_core/managers
+src_core/resources
+src_core/resources/primitives
+src_vulkan #for scenes/
+src_vulkan/headers
 extern/stb
 extern/tinyobjloader
 extern/imgui

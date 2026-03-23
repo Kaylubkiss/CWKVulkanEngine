@@ -1,0 +1,68 @@
+#include "ThreadPool.h"
+
+void ThreadPool::Init(size_t num_threads)
+{
+	for (size_t i = 0; i < num_threads; ++i)
+	{
+		threads.emplace_back(&ThreadPool::ThreadLoop, this);
+	}
+}
+
+bool ThreadPool::isBusy() 
+{
+	bool isBusy = false;
+	{
+		std::unique_lock<std::mutex> lock(queue_mutex);
+		isBusy = !tasks.empty();
+	}
+	return isBusy;
+}
+
+
+void ThreadPool::ThreadLoop() 
+{
+	while (true) 
+	{
+		std::function<void()> func;
+
+		{
+			std::unique_lock<std::mutex> lock(queue_mutex);
+			condition_variable.wait(lock, [this] {
+				return (!tasks.empty() || terminate);
+			});
+
+			if (terminate)
+			{
+				return;
+			}
+
+			if (tasks.empty())
+			{
+				continue;
+			}
+
+			func = std::move(tasks.front());
+			tasks.pop();
+		}
+
+		func();
+	}
+
+}
+
+
+void ThreadPool::Terminate()
+{
+	{
+		std::lock_guard<std::mutex> lock(queue_mutex);
+		terminate = true;
+	}
+
+	condition_variable.notify_all();
+	
+	for (std::thread& active_thread : threads) {
+		active_thread.join();
+	}
+
+	threads.clear();
+}
