@@ -1,5 +1,5 @@
-#include "vkInit.h"
-#include "vkUtility.h"
+#include "headers/vkInit.h"
+#include "headers/vkUtility.h"
 #include "Vertex.h"
 
 namespace vk

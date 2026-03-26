@@ -36,9 +36,8 @@
 #include <filesystem>
 
 #include "Vertex.h"
-#include "Mesh.h"
 
-#include "vkGlobal.h"
+#include "../vk/headers/vkGlobal.h"
 #include "TextureManager.h"
 #include "ApplicationGlobal.h"
 

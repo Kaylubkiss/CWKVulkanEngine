@@ -5,19 +5,19 @@
 namespace vk 
 {
 	#define LIGHT_COUNT 2
-	#define OBJECT_COUNT (10 + 1) //max 10 objects in the scene, +1 for blank texture
+	#define OBJECT_COUNT (10000 + 1) //max 10 objects in the scene, +1 for blank texture
 
 	//This scene is statically 4.2 KB!!!
 	class DeferredContext : public ContextBase 
 	{
 	public:
-		DeferredContext();
+		DeferredContext( TextureManager* textureManagerPtr );
 		~DeferredContext() override;
-		void RecordCommandBuffers() override;
-		void InitializeScene() override;
-		void Render() override;
+
+		void Render( AssetManager& assetManager ) override;
 		void ResizeWindow() override;
 	protected:
+		void RecordCommandBuffers( AssetManager& assetManager ) override;
 		void UpdateUI() override;
 		void InitializePipeline() override;
 		void InitializeDescriptors() override;

@@ -1,32 +1,36 @@
 #pragma once
 #include "Object.h"
 #include "ThreadPool.h"
+#include <shared_mutex>
+
 class TextureManager;
 
+typedef std::unordered_map<std::string, std::unique_ptr<Object>> ObjectMap;
 
 class AssetManager
 {
-	typedef std::unordered_map<const char*, std::unique_ptr<Object>> ObjectMap;
 public:
 	AssetManager() = default;
-	AssetManager( const std::weak_ptr<vk::GraphicsContextInfo>& contextInfo );
 	~AssetManager() = default;
 
-	[[nodiscard]] const TextureManager& GetTextureManager() const;
+	[[nodiscard]] const ObjectMap& GetObjects() const;
 
 	//Modifiers
+	void Init( vk::Device* devicePtr, TextureManager* textureManagerPtr, size_t workerThreadCount );
 	void Destroy();
 	void LoadObject( const ObjectCreateInfo& objectCI );
 	void DrawObjects( const vk::DrawInfo& drawInfo ) const;
-	void Update( float dt ) const;
+	void Update( float dt );
 	//returns whether or not a command was recorded.
 	bool SyncIO( uint32_t currentFrame, VkSemaphore textureUploadSemaphore );
+protected:
+	void InitTestScene();
 private:
-	std::mutex m_objectMutex;
+	mutable std::shared_mutex m_objectMutex;
 	vk::Device* c_devicePtr = nullptr;
 	ObjectMap m_objects;
-	TextureManager m_textureManager;
 	ThreadPool m_threadWorkers; //this needs to be destroyed first.
+	TextureManager* m_textureManagerPtr = nullptr;
 
 	//TODO: make buffer pool for geometry.
 };

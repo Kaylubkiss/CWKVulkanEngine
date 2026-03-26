@@ -2,18 +2,18 @@
 	* filename: VkPipelineManager.cpp
 	* author: Caleb Kissinger
 */
-#include "vkPipelineManager.h"
+#include "headers/vkPipelineManager.h"
 #include <sys/stat.h>
 
 //PipelineManager
 namespace vk 
 {
 
-	void PipelineManager::Init(std::shared_ptr<GraphicsContextInfo>& contextInfo)
+	void PipelineManager::Init( const GraphicsContextInfo& contextInfo )
 	{
-		assert(contextInfo->devicePtr);
+		assert(contextInfo.devicePtr != nullptr);
 
-		contextLogicalDevice = contextInfo->devicePtr->GetDevice();
+		contextLogicalDevice = contextInfo.devicePtr->GetDevice();
 	}
 
 	void PipelineManager::Destroy()

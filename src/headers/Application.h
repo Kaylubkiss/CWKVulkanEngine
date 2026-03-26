@@ -2,8 +2,8 @@
 #include "Timer.h"
 #include "Camera.h"
 #include "Physics.h"
-#include "vkContextBase.h"
-#include "vkInstance.h"
+#include "../vk/headers/vkContextBase.h"
+#include "../vk/headers/vkInstance.h"
 
 class Application
 {
@@ -28,6 +28,8 @@ private:
 	Timer mTime;
 	PhysicsSystem m_physics;
 	std::unique_ptr<vk::ContextBase> m_vulkanGraphicsContext;
+	AssetManager m_assetManager;
+	TextureManager m_textureManager;
 
 	bool exitApplication = false;
 };

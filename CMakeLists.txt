@@ -72,7 +72,7 @@ src/GLTFModel.cpp
 src/OBJModel.cpp
 )
 
-set(VULKAN_SRC_DIR src/vk-sources)
+set(VULKAN_SRC_DIR src/vk)
 
 set(VULKAN_ENGINE_SRC 
 ${VULKAN_SRC_DIR}/vkUtility.cpp
@@ -91,7 +91,7 @@ ${VULKAN_SRC_DIR}/vkDescriptorBuffer.cpp
 ${VULKAN_SRC_DIR}/vkShaderModule.cpp
 )
 
-set(VULKAN_SCENES_DIR src/vk-scenes)
+set(VULKAN_SCENES_DIR src/vk/scenes)
 
 set(VULKAN_ENGINE_SCENES_SOURCE
 		${VULKAN_SCENES_DIR}/vkDeferredShadingContext.cpp
@@ -129,11 +129,10 @@ ${HEADER_SRC_DIR}/SpirvHelper.h
 ${HEADER_SRC_DIR}/UserInterface.h
 ${HEADER_SRC_DIR}/GLTFModel.h
 ${HEADER_SRC_DIR}/OBJModel.h
-${HEADER_SRC_DIR}/IModel.h
-${HEADER_SRC_DIR}/Mesh.h
+${HEADER_SRC_DIR}/Model.h
 )
 				 
-set(VULKAN_HEADER_DIR src/vk-headers)
+set(VULKAN_HEADER_DIR src/vk/headers)
 
 set(VULKAN_ENGINE_HEADERS 
 ${VULKAN_HEADER_DIR}/vkUtility.h
@@ -150,7 +149,6 @@ ${VULKAN_HEADER_DIR}/vkPipelineManager.h
 ${VULKAN_HEADER_DIR}/vkFramebuffer.h
 ${VULKAN_HEADER_DIR}/vkCubemap.h
 ${VULKAN_HEADER_DIR}/vkInstance.h
-${VULKAN_HEADER_DIR}/vkModel.h
 ${VULKAN_HEADER_DIR}/vkDescriptorBuffer.h
 ${VULKAN_HEADER_DIR}/vkShaderModule.h
 )
@@ -180,7 +178,7 @@ target_precompile_headers(${PROJECT_NAME} PUBLIC ${HEADER_SRC_DIR}/pch.h)
 
 target_include_directories(${PROJECT_NAME} PRIVATE
 src/headers
-src/vk-headers
+src/vk/headers
 extern/stb
 extern/tinyobjloader
 extern/imgui

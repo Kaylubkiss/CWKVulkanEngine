@@ -2,7 +2,7 @@
 
 namespace vk
 {
-    void DeferredContext::RecordCommandBuffers()
+    void DeferredContext::RecordCommandBuffers( AssetManager& assetManager )
 	{
 		VkCommandBuffer cmdBuffer = commandBuffers[currentFrame];
 		VkCommandBufferBeginInfo cmdBufferBeginInfo = vk::init::CommandBufferBeginInfo();
@@ -64,7 +64,7 @@ namespace vk
 			vkCmdEndRenderPass(cmdBuffer);
 		}*/
 
-    	auto& textureManager = m_assetManager->GetTextureManager();
+    	auto& textureManager = *m_textureManagerPtr;
     	auto& textureSamplerDescriptor = textureManager.GetTextureSamplerDescriptor();
 		//MRT rendering.
 		{
@@ -126,7 +126,7 @@ namespace vk
 			drawInfo.pipelineLayout = pipelineLayouts[dePipeline::MRT];
 			drawInfo.textureBindingSize = textureSamplerDescriptor.GetLayoutSize();
 
-			m_assetManager->DrawObjects(drawInfo);
+			assetManager.DrawObjects(drawInfo);
 
 			vkCmdEndRenderPass(cmdBuffer);
 		}

@@ -6,7 +6,7 @@
 namespace vk
 {
 
-	DeferredContext::DeferredContext()
+	DeferredContext::DeferredContext( TextureManager* textureManagerPtr ) : ContextBase(textureManagerPtr)
 	{
 		std::mutex testMutex;
 		test_cube.Create(&this->device, "pooop", testMutex);
@@ -90,16 +90,14 @@ namespace vk
 		descriptorBufferCI.layoutBindingCount = static_cast<uint32_t>(setLayoutBindings.size());
 		descriptorBufferCI.imageDescriptorData.resize(OBJECT_COUNT);
 
-		m_info->descriptorBufferCreateInfoPtr = &descriptorBufferCI;
+		m_info.descriptorBufferCreateInfoPtr = &descriptorBufferCI;
 
-		//TODO: not happy that I have to initialize a protected member here...
-		//but... I have to further test my implementations and fix the async issue.
-		m_assetManager = std::make_unique<AssetManager>(m_info);
 
-		DeferredContext::InitializePipeline();
 		DeferredContext::FillOutGraphicsContextInfo();
 
+		m_textureManagerPtr->Init(&m_info);
 
+		DeferredContext::InitializePipeline();
 	}
 
 	DeferredContext::~DeferredContext()
@@ -139,73 +137,8 @@ namespace vk
 		}
 	}
 
-	void DeferredContext::InitializeScene()
+	void DeferredContext::InitializeUniforms()
 	{
-		ObjectCreateInfo objectCI = {};
-		
-		//object 1 - freddy
-		objectCI.objName = "freddy.obj";
-		objectCI.textureFileName = "art/extern-textures/myface.JPG";
-		objectCI.modelTransform = glm::translate(glm::mat4(1.f), sceneSettings.freddyPosition) * 
-			glm::scale(glm::mat4(1.f), glm::vec3(3.f));
-		objectCI.devicePtr = &this->device;
-
-		m_assetManager->LoadObject(objectCI);
-
-		//object 2 - cube
-		objectCI = {};
-
-		PhysicsComponent physicsComponent;
-		physicsComponent.bodyType = BodyType::DYNAMIC;
-		physicsComponent.colliderType = PhysicsComponent::ColliderType::CUBE;
-		
-		objectCI.objName = "cube.obj";
-		//NOTE: cube.obj doesn't have UVs.
-		objectCI.textureFileName = "art/extern-textures/myface.JPG";
-		objectCI.physicsComponent = physicsComponent;
-		objectCI.hasPhysicsComponent = true;
-		objectCI.modelTransform = glm::translate(glm::mat4(1.f), glm::vec3(sceneSettings.cubePosition));
-		objectCI.devicePtr = &this->device;
-
-		m_assetManager->LoadObject(objectCI);
-
-		//object 3 - base
-		objectCI = {};
-		
-		physicsComponent.bodyType = reactphysics3d::BodyType::STATIC;
-
-		objectCI.objName = "base.obj";
-		objectCI.textureFileName = "art/extern-textures/wood-floor.png";
-		objectCI.physicsComponent = physicsComponent;
-		objectCI.modelTransform = glm::translate(glm::mat4(1.f), glm::vec3(0, -5.f, 0)) *
-			glm::scale(glm::mat4(1.f), glm::vec3(30.f));
-		objectCI.hasPhysicsComponent = true;
-		objectCI.devicePtr = &this->device;
-
-		m_assetManager->LoadObject(objectCI);
-
-		objectCI = {};
-
-		objectCI.modelTransform = glm::translate(glm::mat4(1.f), glm::vec3(-3.5, -1.5f, 0));
-		objectCI.objName = "AnimatedCube/glTF/AnimatedCube.gltf";
-		objectCI.devicePtr = &this->device;
-
-		m_assetManager->LoadObject(objectCI);
-
-		objectCI = {};
-		objectCI.modelTransform = glm::translate(glm::mat4(1.f), glm::vec3(0.f, 1.f, 0));
-		objectCI.objName = "SciFiHelmet/glTF/SciFiHelmet.gltf";
-		objectCI.devicePtr = &this->device;
-
-		m_assetManager->LoadObject(objectCI);
-
-		objectCI = {};
-		objectCI.modelTransform = glm::translate(glm::mat4(1.f), glm::vec3(0.5f, -0.5f, 8)) *
-			glm::scale(glm::mat4(1.f), glm::vec3(3));
-		objectCI.objName = "DiffuseTransmissionTeacup/glTF/DiffuseTransmissionTeacup.gltf";
-		objectCI.devicePtr = &device;
-
-		m_assetManager->LoadObject(objectCI);
 
 		//initializing light positions
 		uniformDataLightPass.lights[0].pos = { -7, 12, 3 };
@@ -228,10 +161,7 @@ namespace vk
 			sceneSettings.freddyPosition, glm::vec3(0, 1, 0));
 		uniformDataDeferredShadow.viewMatrices[1] = perspective * glm::lookAt(uniformDataLightPass.lights[1].pos,
 			sceneSettings.cubePosition, glm::vec3(0, 1, 0));
-	}
 
-	void DeferredContext::InitializeUniforms()
-	{
 		for (size_t i = 0; i < uniformBuffers.size(); ++i)
 		{
 
@@ -263,7 +193,7 @@ namespace vk
 
 	void DeferredContext::InitializePipelineLayouts()
 	{
-		auto& textureManager = m_assetManager->GetTextureManager();
+		auto& textureManager = *m_textureManagerPtr;
 
 		//MRT PASS LAYOUT
 		{
@@ -453,13 +383,13 @@ namespace vk
 		InitializeSwapChainDescriptor();
 	}
 
-	void DeferredContext::Render() 
+	void DeferredContext::Render( AssetManager& assetManager )
 	{
 		if (PrepareFrame())
 		{ 
 			UpdateScreenUniforms();
 			UpdateLights();
-			RecordCommandBuffers();
+			RecordCommandBuffers(assetManager);
 			SubmitFrame();
 		}
 	}

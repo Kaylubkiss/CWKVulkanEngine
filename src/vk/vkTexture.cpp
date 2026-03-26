@@ -1,5 +1,5 @@
-#include "vkTexture.h"
-#include "vkUtility.h"
+#include "headers/vkTexture.h"
+#include "headers/vkUtility.h"
 
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
@@ -81,6 +81,8 @@ namespace vk
 
 		uint32_t mipLevels = 1;
 
+		VkFence submissionFence = vk::init::CreateFence(devicePtr->GetDevice(), false);
+
 		vk::Buffer stagingBuffer = vk::Buffer(devicePtr,
 			VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
@@ -114,7 +116,6 @@ namespace vk
 			barrier.srcAccessMask = 0;
 			barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
 
-
 			vkCmdPipelineBarrier(transferCmd, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
 				VK_PIPELINE_STAGE_TRANSFER_BIT,
 				0, 0,
@@ -131,10 +132,11 @@ namespace vk
 			{
 				std::lock_guard<std::mutex> lock(transferMutex);
 				VK_CHECK_RESULT(vkQueueSubmit(devicePtr->GetQueue(DeviceQueue::TRANSFER).handle, 1, &submitInfo,
-					VK_NULL_HANDLE));
+					submissionFence));
 			}
 
-			VK_CHECK_RESULT(vkQueueWaitIdle(devicePtr->GetQueue(DeviceQueue::TRANSFER).handle));
+			VK_CHECK_RESULT(vkWaitForFences(devicePtr->GetDevice(), 1, &submissionFence, VK_TRUE, UINT64_MAX));
+			VK_CHECK_RESULT(vkResetFences(devicePtr->GetDevice(), 1, &submissionFence));
 		}
 
 		//copy buffer into image.
@@ -172,10 +174,11 @@ namespace vk
 			{
 				std::lock_guard<std::mutex> lock(transferMutex);
 				VK_CHECK_RESULT(vkQueueSubmit(devicePtr->GetQueue(DeviceQueue::TRANSFER).handle,
-					1, &submitInfo, VK_NULL_HANDLE));
+					1, &submitInfo, submissionFence));
 			}
 
-			VK_CHECK_RESULT(vkQueueWaitIdle(devicePtr->GetQueue(DeviceQueue::TRANSFER).handle));
+			VK_CHECK_RESULT(vkWaitForFences(devicePtr->GetDevice(), 1, &submissionFence, VK_TRUE, UINT64_MAX));
+			VK_CHECK_RESULT(vkResetFences(devicePtr->GetDevice(), 1, &submissionFence));
 		}
 
 		//release transfer queue to graphics queue
@@ -216,14 +219,16 @@ namespace vk
 			{
 				std::lock_guard<std::mutex> lock(transferMutex);
 				VK_CHECK_RESULT(vkQueueSubmit(devicePtr->GetQueue(DeviceQueue::TRANSFER).handle, 1, &submitInfo,
-					VK_NULL_HANDLE));
+					submissionFence));
 			}
 
-			VK_CHECK_RESULT(vkQueueWaitIdle(devicePtr->GetQueue(DeviceQueue::TRANSFER).handle));
+			VK_CHECK_RESULT(vkWaitForFences(devicePtr->GetDevice(), 1, &submissionFence, VK_TRUE, UINT64_MAX));
+			VK_CHECK_RESULT(vkResetFences(devicePtr->GetDevice(), 1, &submissionFence));
 		}
 
 		vkFreeCommandBuffers(devicePtr->GetDevice(), transferCmdPool, 1, &transferCmd);
 		vkDestroyCommandPool(devicePtr->GetDevice(), transferCmdPool, nullptr);
+		vkDestroyFence(devicePtr->GetDevice(), submissionFence, nullptr);
 
 		stagingBuffer.Destroy();
 		stbi_image_free(pixels);

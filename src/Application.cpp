@@ -1,6 +1,6 @@
 #include "CameraController.h"
 #include "fastgltf/math.hpp"
-#include "vk-scenes/vkDeferredShadingContext.h"
+#include "vk/scenes/vkDeferredShadingContext.h"
 
 PhysicsSystem& Application::GetPhysics() 
 {
@@ -38,12 +38,16 @@ void Application::init()
 		printf("SDL could not initialize! SDL_Error: %s\n", SDL_GetError());
 	}
 
-	m_vulkanGraphicsContext = std::make_unique<vk::DeferredContext>();
+	m_vulkanGraphicsContext = std::make_unique<vk::DeferredContext>(&m_textureManager);
 
-	if (exitApplication == false)
+	if (exitApplication == true)
 	{
-		m_vulkanGraphicsContext->InitializeScene(); //TODO: deserialize a scene
+		return;
 	}
+
+	vk::GraphicsContextInfo& contextInfo = m_vulkanGraphicsContext->GetGraphicsContextInfo();
+
+	m_assetManager.Init(contextInfo.devicePtr, &m_textureManager, 2);
 }
 
 
@@ -124,9 +128,9 @@ void Application::loop()
 				break;
 			}
 
-			m_vulkanGraphicsContext->UpdateSceneObjects(physicsTime);
+			m_assetManager.Update(physicsTime);
 
-			m_vulkanGraphicsContext->Render();
+			m_vulkanGraphicsContext->Render(m_assetManager);
 		}
 
 		//when we're done with the loop, we should make sure the logical device is flushed.
@@ -138,6 +142,9 @@ void Application::loop()
 void Application::exit()
 {
 	SDL_Quit();
+
+	m_assetManager.Destroy();
+	m_textureManager.Destroy();
 }
 
 

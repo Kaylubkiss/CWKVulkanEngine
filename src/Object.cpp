@@ -11,7 +11,7 @@ Object::Object( const ObjectCreateInfo& objectCI, TextureManager& textureManager
 {
     assert(objectCI.devicePtr != nullptr);
     
-    std::filesystem::path filePath(std::string(objectCI.objName));
+    std::filesystem::path filePath(objectCI.objName);
 
     if (filePath.extension() == ".gltf")
     {
@@ -23,14 +23,14 @@ Object::Object( const ObjectCreateInfo& objectCI, TextureManager& textureManager
             throw std::runtime_error("Object() Failed!");
         }
 
-        if (strcmp(objectCI.textureFileName, "") > 0)
+        if (strcmp(objectCI.textureFileName.c_str(), "") > 0)
         {
             std::cout << "\033[33m[WARNING] .gltf will not use specified texture name in ObjectCreateInfo\033[0m\n";
         }
 
         m_model = std::make_unique<GLTFModel>(objectCI.devicePtr, filePath);
 
-        std::vector<std::string> gltf_fileNames = dynamic_cast<GLTFModel*>(m_model.get())->GetTextureFileNames();
+        std::vector<std::string> gltf_fileNames = m_model->GetTextureNames();
 
         for (auto& fileName : gltf_fileNames)
         {
@@ -51,7 +51,7 @@ Object::Object( const ObjectCreateInfo& objectCI, TextureManager& textureManager
 
         m_model = std::make_unique<OBJModel>(objectCI.devicePtr, filePath);
 
-        if (strcmp(objectCI.textureFileName, "") > 0)
+        if (strcmp(objectCI.textureFileName.c_str(), "") > 0)
         {
             m_model->LoadTextures(textureManager, {objectCI.textureFileName});
         }
@@ -138,8 +138,6 @@ void Object::Update(const float& interpFactor)
 
         m_model->UpdateModelTransform(nModel);
     }
-
-
 }
 
 void Object::Draw( const vk::DrawInfo& drawInfo ) const
