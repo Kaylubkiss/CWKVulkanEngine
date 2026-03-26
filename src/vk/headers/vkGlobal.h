@@ -1,8 +1,7 @@
 #pragma once
 
-#include "vkUtility.h"
-#include "vkInit.h"
 #include "vkBuffer.h"
+#include "vkInit.h"
 #include "vkDevice.h"
 #include "vkDescriptorBuffer.h"
 
@@ -17,9 +16,6 @@ class UserInterface;
 
 namespace vk
 {
-	class Buffer;
-	class Device;
-
 	//created in response to the need of texture manager. It needs a lot of graphics context state, but the calls to 
 	//function methods of the context to get this information seemed inconvenient.
 	//in turn, I've had to create this data structure which contains all the information that

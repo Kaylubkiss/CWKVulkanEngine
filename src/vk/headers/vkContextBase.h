@@ -3,6 +3,7 @@
 #include "vkWindow.h"
 #include "vkInstance.h"
 #include "AssetManager.h"
+#include "Camera.h"
 #include "vkSwapChain.h"
 #include "vkFramebuffer.h"
 #include "vkPipelineManager.h"

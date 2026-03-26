@@ -1,5 +1,7 @@
 #pragma once
 
+#include "vkTexture.h"
+
 struct UserInterfaceInitInfo
 {
 	VkInstance contextInstance = VK_NULL_HANDLE;

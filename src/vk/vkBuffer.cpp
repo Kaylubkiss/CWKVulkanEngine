@@ -1,6 +1,4 @@
 #include "headers/vkBuffer.h"
-#include <cassert>
-#include <memory>
 
 namespace vk 
 {

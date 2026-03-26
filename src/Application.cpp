@@ -1,5 +1,4 @@
 #include "CameraController.h"
-#include "fastgltf/math.hpp"
 #include "vk/scenes/vkDeferredShadingContext.h"
 
 PhysicsSystem& Application::GetPhysics() 

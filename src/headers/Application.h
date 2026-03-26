@@ -1,9 +1,8 @@
 #pragma once
 #include "Timer.h"
-#include "Camera.h"
 #include "Physics.h"
-#include "../vk/headers/vkContextBase.h"
-#include "../vk/headers/vkInstance.h"
+#include "vkContextBase.h"
+#include "TextureManager.h"
 
 class Application
 {

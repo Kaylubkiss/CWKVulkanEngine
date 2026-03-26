@@ -1,5 +1,5 @@
 #pragma once
-#include "../vk/headers/vkTexture.h"
+#include "vkTexture.h"
 
 struct TextureInfo
 {
