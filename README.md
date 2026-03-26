@@ -33,15 +33,15 @@ In the near future, I will move over to ECS which offers greater performance pot
 
 ## Hot Reloading
 
-![Hot Reloading Video](https://github.com/user-attachments/assets/79b6e14c-a74a-4d81-863c-fd1512a32f3a)
+![Hot Reloading Video](docs/hot_reload_01.gif)
 
 ## Async Asset Loading
 
-![Async Loading Video](https://github.com/user-attachments/assets/05ba26bc-be73-464a-8d99-8bc12c5227af)
+![Async Loading Video](docs/async_loading_01.gif)
 
 ## Physically-Based Rendering w/ Textures
 
-<img width="752" height="566" alt="Image" src="https://github.com/user-attachments/assets/547e6d3c-1b4e-4a53-8a9b-39ec4165b5c3" />
+<img width="752" height="566" alt="Image" src="docs/pbr-texture.png" />
 
 <em><b>Supported Materials</b>: BaseColor, MetallicRoughness, AmbientOcclusion, Occlusion-Roughness-Metallic (ORMT) </em>
 
