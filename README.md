@@ -6,7 +6,7 @@
 Hi, welcome to my Github page! As of September 25th, 2025, I've made this repository public for all to see my progress! There'll be lots of updates in the coming weeks, months, maybe even years!
 
 <div>
-  <img width="479" height="363" alt="basic shadow maping" src="https://github.com/user-attachments/assets/e817a626-740a-49e9-a7aa-8942fc1c1205" />
+  <img width="479" height="363" alt="basic shadow maping" src="docs/shadowmap.png" />
   <p><em>A shadow mapping implementation written under my codebase</em></p>
 </div>
 

@@ -1,5 +1,6 @@
 #include "CameraController.h"
 #include "vk/scenes/vkDeferredShadingContext.h"
+#include "DescriptorManager.h" //TODO: temporary include for linking symbols
 
 PhysicsSystem& Application::GetPhysics() 
 {

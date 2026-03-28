@@ -130,6 +130,7 @@ ${HEADER_SRC_DIR}/UserInterface.h
 ${HEADER_SRC_DIR}/GLTFModel.h
 ${HEADER_SRC_DIR}/OBJModel.h
 ${HEADER_SRC_DIR}/Model.h
+${HEADER_SRC_DIR}/DescriptorManager.h
 )
 				 
 set(VULKAN_HEADER_DIR src/vk/headers)
