@@ -39,7 +39,8 @@ namespace vk
 		void Destroy();
 		void Create( const vk::DescriptorBufferCreateInfo& createInfo );
 
-		void WriteDescriptors( vk::Device* devicePtr, uint32_t layoutIndex, uint32_t setIndex, size_t writeSize, const imageBuffers2D& imageDescriptors )
+		void WriteDescriptors( vk::Device* devicePtr, uint32_t layoutIndex, uint32_t setIndex, size_t writeSize,
+			const imageBuffers2D& imageDescriptors )
 		{
 			//TODO: might need to map the memory first before accessing
 			char* descriptorPtr = static_cast<char*>(m_buffer.GetMappedMemory());
@@ -59,13 +60,15 @@ namespace vk
 
 					g_vkGetDescriptorEXT(devicePtr->GetDevice(), &imageDescriptorGetInfo,
 						writeSize,
-						descriptorPtr + m_setOffsets[setIndex] + frame * m_setLayoutSize + m_bindingOffsets[binding]);
+						descriptorPtr + frame * layoutIndex * m_setLayoutSize +
+						m_bindingOffsets[binding]);
 				}
 			}
 
 			//TODO: might need to unmap the memory before leaving.
 		}
-		void WriteDescriptors( vk::Device* devicePtr, uint32_t layoutIndex, uint32_t setIndex, size_t writeSize, const resourceBufferPtrs2D& resourceBuffers )
+		void WriteDescriptors( vk::Device* devicePtr, uint32_t layoutIndex, uint32_t setIndex, size_t writeSize,
+			const resourceBufferPtrs2D& resourceBuffers )
 		{
 			//TODO: might need to map the memory first before accessing
 			char* descriptorPtr = static_cast<char*>(m_buffer.GetMappedMemory());
@@ -89,7 +92,8 @@ namespace vk
 
 					g_vkGetDescriptorEXT(devicePtr->GetDevice(), &bufferDescriptorInfo,
 						writeSize,
-						descriptorPtr + m_setOffsets[setIndex] + frame * m_setLayoutSize + m_bindingOffsets[binding]);
+						descriptorPtr + frame * (layoutIndex * m_setLayoutSize) +
+						m_bindingOffsets[binding]);
 				}
 			}
 		}
@@ -106,8 +110,6 @@ namespace vk
 
 		//at least 1 binding (binding 0)
 		std::vector<VkDeviceSize> m_bindingOffsets = { 0ull };
-		//at least one set in the descriptor (set 0)
-		std::vector<VkDeviceSize> m_setOffsets = { 0ull };
 
 		VkDescriptorSetLayout m_setLayout = VK_NULL_HANDLE;
 		VkDeviceSize m_setLayoutSize = 0ull;

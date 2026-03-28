@@ -5,7 +5,8 @@
 enum class DescriptorCategory
 {
     eStatic,
-    ePerPass,
+    ePerPassUBO,
+    ePerPassImages,
     eMaterial
 };
 
