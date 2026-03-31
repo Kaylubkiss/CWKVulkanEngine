@@ -1,4 +1,6 @@
 #pragma once
+#include "vkUtility.h"
+#include <variant>
 
 extern PFN_vkGetDescriptorSetLayoutBindingOffsetEXT g_vkGetDescriptorSetLayoutBindingOffsetEXT;
 extern PFN_vkGetDescriptorSetLayoutSizeEXT g_vkGetDescriptorSetLayoutSizeEXT;
@@ -10,8 +12,18 @@ namespace vk
 {
 	//row = frame
 	//col = binding
-	typedef std::vector<std::vector<const vk::Buffer*>> resourceBufferPtrs2D;
+	typedef std::vector<std::vector<vk::Buffer*>> resourceBufferPtrs2D;
 	typedef std::vector<std::vector<VkDescriptorImageInfo>> imageBuffers2D;
+
+	struct WriteResource
+	{
+		vk::Buffer* pResourceData = nullptr;
+		VkDescriptorImageInfo* pImageData = nullptr;
+		[[nodiscard]] bool IsValid() const
+		{
+			return (pResourceData == nullptr && pImageData) || (pImageData == nullptr && pResourceData);
+		}
+	};
 
     struct DescriptorBufferCreateInfo
 	{
@@ -32,70 +44,69 @@ namespace vk
 		~DescriptorBuffer() = default;
 
 		[[nodiscard]] const vk::Buffer& GetBuffer() const;
+		[[nodiscard]] size_t GetBufferSize() const;
 		[[nodiscard]] const std::vector<VkDeviceSize>& GetBindingOffsets() const;
 		[[nodiscard]] VkDeviceSize GetLayoutSize() const;
 		[[nodiscard]] VkDescriptorSetLayout GetLayout() const;
 
 		void Destroy();
 		void Create( const vk::DescriptorBufferCreateInfo& createInfo );
-
-		void WriteDescriptors( vk::Device* devicePtr, uint32_t layoutIndex, size_t writeSize,
-			const imageBuffers2D& imageDescriptors )
+		void Allocate( vk::Device* devicePtr, VkBufferUsageFlags bufferUsage, VkMemoryPropertyFlags bufferMemoryProps,
+			size_t layoutCount, const std::vector<VkDescriptorSetLayoutBinding>& bindings)
 		{
-			//TODO: might need to map the memory first before accessing
-			char* descriptorPtr = static_cast<char*>(m_buffer.GetMappedMemory());
+			m_devicePtr = devicePtr;
 
-			for (size_t frame = 0; frame < imageDescriptors.size(); ++frame)
-			{
-				size_t imageBindingCount = imageDescriptors[frame].size();
+			VkDescriptorSetLayoutCreateInfo setLayoutCreateInfo = vk::init::DescriptorSetLayoutCreateInfo();
+			setLayoutCreateInfo.pBindings = bindings.data();
+			setLayoutCreateInfo.bindingCount = static_cast<uint32_t>(bindings.size());
+			setLayoutCreateInfo.flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_DESCRIPTOR_BUFFER_BIT_EXT;
 
-				assert(imageBindingCount <= m_bindingOffsets.size());
+			VK_CHECK_RESULT(vkCreateDescriptorSetLayout(m_devicePtr->GetDevice(), &setLayoutCreateInfo,
+				nullptr, &this->m_setLayout));
 
-				for (size_t binding = 0; binding < imageBindingCount; ++binding)
-				{
-					VkDescriptorGetInfoEXT imageDescriptorGetInfo = {};
-					imageDescriptorGetInfo = { VK_STRUCTURE_TYPE_DESCRIPTOR_GET_INFO_EXT };
-					imageDescriptorGetInfo.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-					imageDescriptorGetInfo.data.pCombinedImageSampler = &imageDescriptors[frame][binding];
+			GetDescriptorLayoutSize(m_devicePtr, m_setLayout, &m_setLayoutSize);
 
-					g_vkGetDescriptorEXT(devicePtr->GetDevice(), &imageDescriptorGetInfo,
-						writeSize,
-						descriptorPtr + frame * layoutIndex * m_setLayoutSize +
-						m_bindingOffsets[binding]);
-				}
-			}
+			m_bindingOffsets.resize(setLayoutCreateInfo.bindingCount);
 
-			//TODO: might need to unmap the memory before leaving.
+			GetDescriptorLayoutBindingOffsets(m_devicePtr, m_setLayout, m_bindingOffsets.data(),
+				setLayoutCreateInfo.bindingCount);
+
+			m_bufferSize = layoutCount * m_setLayoutSize;
+			m_buffer = vk::Buffer(m_devicePtr, bufferUsage, bufferMemoryProps, m_bufferSize);
 		}
-		void WriteDescriptors( vk::Device* devicePtr, uint32_t layoutIndex, size_t writeSize,
-			const resourceBufferPtrs2D& resourceBuffers )
+
+		void WriteDescriptor( vk::Device* devicePtr, const WriteResource& writeData, uint32_t layoutIndex,
+			uint32_t binding, size_t writeSize )
 		{
+			assert(writeData.IsValid());
+
 			//TODO: might need to map the memory first before accessing
 			char* descriptorPtr = static_cast<char*>(m_buffer.GetMappedMemory());
 
-			for (size_t frame = 0; frame < resourceBuffers.size(); ++frame)
+			VkDescriptorGetInfoEXT descriptorGetInfo = {VK_STRUCTURE_TYPE_DESCRIPTOR_GET_INFO_EXT};
+
+			if (writeData.pImageData)
 			{
-				size_t imageBindingCount = resourceBuffers[frame].size();
-
-				assert(imageBindingCount <= m_bindingOffsets.size());
-
-				for (size_t binding = 0; binding < imageBindingCount; ++binding)
-				{
-					VkDescriptorAddressInfoEXT addrInfo = { VK_STRUCTURE_TYPE_DESCRIPTOR_ADDRESS_INFO_EXT };
-					addrInfo.address = resourceBuffers[frame][binding]->GetDeviceAddress();
-					addrInfo.range = resourceBuffers[frame][binding]->GetSize();
-					addrInfo.format = VK_FORMAT_UNDEFINED;
-
-					VkDescriptorGetInfoEXT bufferDescriptorInfo = { VK_STRUCTURE_TYPE_DESCRIPTOR_GET_INFO_EXT };
-					bufferDescriptorInfo.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-					bufferDescriptorInfo.data.pUniformBuffer = &addrInfo;
-
-					g_vkGetDescriptorEXT(devicePtr->GetDevice(), &bufferDescriptorInfo,
-						writeSize,
-						descriptorPtr + frame * (layoutIndex * m_setLayoutSize) +
-						m_bindingOffsets[binding]);
-				}
+				descriptorGetInfo.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+				descriptorGetInfo.data.pCombinedImageSampler = writeData.pImageData;
 			}
+			else
+			{
+
+				descriptorGetInfo.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+
+				VkDescriptorAddressInfoEXT addrInfo = { VK_STRUCTURE_TYPE_DESCRIPTOR_ADDRESS_INFO_EXT };
+				addrInfo.address = writeData.pResourceData->GetDeviceAddress();
+				addrInfo.range = writeData.pResourceData->GetSize();
+				addrInfo.format = VK_FORMAT_UNDEFINED;
+
+				descriptorGetInfo.data.pUniformBuffer = &addrInfo;
+			}
+
+			g_vkGetDescriptorEXT(devicePtr->GetDevice(), &descriptorGetInfo,
+				writeSize,
+				descriptorPtr + layoutIndex * m_setLayoutSize +
+				m_bindingOffsets[binding]);
 		}
 	private:
 		void FillResourceDescriptorBuffers( const vk::DescriptorBufferCreateInfo& createInfo );
@@ -107,6 +118,7 @@ namespace vk
 		//per-frame resources need to be independently updated according to which frame is active.
 		//1st index of "buffers" is the minimum ever used by a descriptor buffer.
 		vk::Buffer m_buffer;
+		size_t m_bufferSize = 0ull;
 
 		//at least 1 binding (binding 0)
 		std::vector<VkDeviceSize> m_bindingOffsets = { 0ull };

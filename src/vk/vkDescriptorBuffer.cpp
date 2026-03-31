@@ -8,6 +8,11 @@ namespace vk
         return m_buffer;
     }
 
+    size_t DescriptorBuffer::GetBufferSize() const
+    {
+        return m_bufferSize;
+    }
+
     const std::vector<VkDeviceSize>& DescriptorBuffer::GetBindingOffsets() const
     {
         return m_bindingOffsets;

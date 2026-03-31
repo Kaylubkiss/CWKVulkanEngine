@@ -92,7 +92,6 @@ namespace vk
 
 		m_info.descriptorBufferCreateInfoPtr = &descriptorBufferCI;
 
-
 		DeferredContext::FillOutGraphicsContextInfo();
 
 		m_textureManagerPtr->Init(&m_info);
