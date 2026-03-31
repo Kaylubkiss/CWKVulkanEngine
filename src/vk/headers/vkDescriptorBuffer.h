@@ -39,7 +39,7 @@ namespace vk
 		void Destroy();
 		void Create( const vk::DescriptorBufferCreateInfo& createInfo );
 
-		void WriteDescriptors( vk::Device* devicePtr, uint32_t layoutIndex, uint32_t setIndex, size_t writeSize,
+		void WriteDescriptors( vk::Device* devicePtr, uint32_t layoutIndex, size_t writeSize,
 			const imageBuffers2D& imageDescriptors )
 		{
 			//TODO: might need to map the memory first before accessing
@@ -67,7 +67,7 @@ namespace vk
 
 			//TODO: might need to unmap the memory before leaving.
 		}
-		void WriteDescriptors( vk::Device* devicePtr, uint32_t layoutIndex, uint32_t setIndex, size_t writeSize,
+		void WriteDescriptors( vk::Device* devicePtr, uint32_t layoutIndex, size_t writeSize,
 			const resourceBufferPtrs2D& resourceBuffers )
 		{
 			//TODO: might need to map the memory first before accessing

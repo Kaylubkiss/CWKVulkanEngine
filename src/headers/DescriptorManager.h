@@ -4,10 +4,10 @@
 
 enum class DescriptorCategory
 {
-    eStatic,
-    ePerPassUBO,
-    ePerPassImages,
-    eMaterial
+    eGlobal, //ubo
+    eCompositionImage,
+    eMaterial,
+    eObject, //model transforms, animation state. Unused for now.
 };
 
 class DescriptorManager
@@ -35,7 +35,7 @@ public:
     {
         auto& descriptor = m_descriptorBuffers[category].descriptor;
 
-        descriptor.WriteDescriptors(m_devicePtr, layoutIndex, setIndex, m_properties.combinedImageSamplerDescriptorSize,
+        descriptor.WriteDescriptors(m_devicePtr, layoutIndex, m_properties.combinedImageSamplerDescriptorSize,
             imageDescriptors);
     }
 
@@ -43,7 +43,7 @@ public:
     {
         auto& descriptor = m_descriptorBuffers[category].descriptor;
 
-        descriptor.WriteDescriptors(m_devicePtr, layoutIndex, setIndex, m_properties.uniformBufferDescriptorSize,
+        descriptor.WriteDescriptors(m_devicePtr, layoutIndex, m_properties.uniformBufferDescriptorSize,
             resourceDescriptors);
     }
 private:
