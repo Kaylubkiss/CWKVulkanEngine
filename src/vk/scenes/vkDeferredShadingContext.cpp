@@ -6,8 +6,11 @@
 namespace vk
 {
 
-	DeferredContext::DeferredContext( TextureManager* textureManagerPtr ) : ContextBase(textureManagerPtr)
+	DeferredContext::DeferredContext( TextureManager* textureManagerPtr, DescriptorManager* descriptorManagerPtr ) : ContextBase(textureManagerPtr)
 	{
+		assert(descriptorManagerPtr != nullptr);
+		m_descriptorManagerPtr = descriptorManagerPtr;
+
 		std::mutex testMutex;
 		test_cube.Create(&this->device, "pooop", testMutex);
 
@@ -57,8 +60,9 @@ namespace vk
 		InitializeUniforms();
 		InitializeFramebuffers();
 
-		DeferredContext::InitializeDescriptors();
+		DeferredContext::InitializeDescriptors(*m_descriptorManagerPtr);
 
+		//texture material samplers
 		std::array<VkDescriptorSetLayoutBinding, 3> setLayoutBindings = {};
 
 		//albedo
@@ -91,8 +95,6 @@ namespace vk
 		descriptorBufferCI.imageDescriptorData.resize(OBJECT_COUNT);
 
 		m_info.descriptorBufferCreateInfoPtr = &descriptorBufferCI;
-
-		DeferredContext::FillOutGraphicsContextInfo();
 
 		m_textureManagerPtr->Init(&m_info);
 
@@ -163,7 +165,6 @@ namespace vk
 
 		for (size_t i = 0; i < uniformBuffers.size(); ++i)
 		{
-
 			//////////////////////////////////
 			//#1 - deferred MRT
 			uniformBuffers[i].mrt = device.CreateBuffer(sizeof(uniformDataMRT),
@@ -208,7 +209,7 @@ namespace vk
 				std::array<VkDescriptorSetLayout, 2> mrt_layouts =
 				{
 					//set 0: per-frame scene transform, set 1: per-model image sampler(s)
-					uniformBindingDescriptors[dePipeline::MRT].GetLayout(), textureSamplerDescriptor.GetLayout(),
+					m_descriptorManagerPtr->GetLayout(DescriptorCategory::eUBO), textureSamplerDescriptor.GetLayout(),
 				};
 
 				VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = vk::init::PipelineLayoutCreateInfo();
@@ -229,7 +230,7 @@ namespace vk
 				//order of layouts need to be in order of they appear in shader(s)
 				std::array<VkDescriptorSetLayout, 2> composition_layouts = {
 					//set 0: image samplers, set 1: light ubo
-					compositionImageBindingDescriptor.GetLayout(), uniformBindingDescriptors[dePipeline::COMPOSITION].GetLayout()
+					compositionImageBindingDescriptor.GetLayout(), m_descriptorManagerPtr->GetLayout(DescriptorCategory::eUBO)
 				};
 
 				VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = vk::init::PipelineLayoutCreateInfo();
@@ -248,7 +249,7 @@ namespace vk
 			{
 				//set 0: shadow UBO - per frame
 				std::array<VkDescriptorSetLayout, 1> shadow_layouts = {
-					uniformBindingDescriptors[dePipeline::SHADOW].GetLayout()
+					m_descriptorManagerPtr->GetLayout(DescriptorCategory::eUBO)
 				};
 				VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = vk::init::PipelineLayoutCreateInfo();
 				pipelineLayoutCreateInfo.pSetLayouts = shadow_layouts.data();
@@ -273,7 +274,7 @@ namespace vk
 				std::array<VkDescriptorSetLayout, 2> layouts =
 				{
 					//set 0: uniforms, set 1: samplers
-					uniformBindingDescriptors[dePipeline::MRT].GetLayout(), skyboxSamplerBindingDescriptor.GetLayout()
+					m_descriptorManagerPtr->GetLayout(DescriptorCategory::eUBO), skyboxSamplerBindingDescriptor.GetLayout()
 				};
 
 				VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = vk::init::PipelineLayoutCreateInfo();

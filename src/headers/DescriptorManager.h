@@ -4,7 +4,7 @@
 
 enum class DescriptorCategory
 {
-    eGlobal, //set 0: ubo
+    eUBO, //set 0: ubo
     eCompositionImage, //set 1
     eMaterial, //set 2
     eObject, //set 3: model transforms, animation state. Unused for now.
@@ -24,7 +24,7 @@ public:
         m_properties = m_devicePtr->GetDescriptorBufferProperties();
     }
 
-    void AllocateDescriptorBuffer(DescriptorCategory category, size_t layoutCount, const std::vector<VkDescriptorSetLayoutBinding>& bindings)
+    void AllocateDescriptorBuffer(DescriptorCategory category, size_t slots, size_t layoutCount, const std::vector<VkDescriptorSetLayoutBinding>& bindings)
     {
         if (m_descriptorBuffers.contains(category))
         {
@@ -37,7 +37,7 @@ public:
         VkMemoryPropertyFlags memoryProperties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
             VK_MEMORY_PROPERTY_HOST_COHERENT_BIT; //TODO: TEMPORARY. Not all the buffers should use these flags.
 
-        if (category == DescriptorCategory::eGlobal || category == DescriptorCategory::eObject)
+        if (category == DescriptorCategory::eUBO || category == DescriptorCategory::eObject)
         {
             bufferUsageFlags = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT |
                 VK_BUFFER_USAGE_RESOURCE_DESCRIPTOR_BUFFER_BIT_EXT |
@@ -60,11 +60,11 @@ public:
         }
 
         m_descriptorBuffers[category].descriptor.Allocate(m_devicePtr, bufferUsageFlags, memoryProperties,
-            layoutCount, bindings);
+            gMaxFramesInFlight, layoutCount, bindings);
 
         m_descriptorBuffers[category].freeList.resize(layoutCount);
 
-        for (size_t i = 0; i < layoutCount; ++i)
+        for (size_t i = 0; i < slots; ++i)
         {
             m_descriptorBuffers[category].freeList.push_back(i);
         }
@@ -84,12 +84,12 @@ public:
                 writeResource.pImageData = &imageDescriptors[frame][binding];
 
                 descriptor.WriteDescriptor(m_devicePtr, writeResource,
-                    frame * layoutIndex, binding, m_properties.combinedImageSamplerDescriptorSize);
+                   layoutIndex, frame, binding, m_properties.combinedImageSamplerDescriptorSize);
             }
         }
     }
 
-    void WriteDescriptor(DescriptorCategory category, uint32_t layoutIndex, vk::resourceBufferPtrs2D& resourceDescriptors)
+    void WriteDescriptors(DescriptorCategory category, uint32_t layoutIndex, vk::resourceBufferPtrs2D& resourceDescriptors)
     {
         auto& descriptor = m_descriptorBuffers[category].descriptor;
 
@@ -102,13 +102,18 @@ public:
                 writeResource.pResourceData = resourceDescriptors[frame][binding];
 
                 descriptor.WriteDescriptor(m_devicePtr, writeResource,
-                    frame * layoutIndex, binding, m_properties.combinedImageSamplerDescriptorSize);
+                    layoutIndex, frame, binding, m_properties.uniformBufferDescriptorSize);
             }
         }
     }
 
     uint32_t GetLayoutIndex(DescriptorCategory category)
     {
+        if (m_descriptorBuffers.contains(category) == false)
+        {
+            return -1;
+        }
+
         if (m_descriptorBuffers[category].freeList.empty())
         {
             std::cerr << "no more space in the free list for descriptor category\n";
@@ -120,7 +125,41 @@ public:
 
         return index;
     }
+
+    VkDeviceSize GetLayoutSize(DescriptorCategory category)
+    {
+        if (m_descriptorBuffers.contains(category))
+        {
+            return m_descriptorBuffers[category].descriptor.GetLayoutSize();
+        }
+
+        return -1;
+    }
+
+    VkDescriptorSetLayout GetLayout(DescriptorCategory category)
+    {
+        if (m_descriptorBuffers.contains(category))
+        {
+            return m_descriptorBuffers[category].descriptor.GetLayout();
+        }
+
+        return VK_NULL_HANDLE;
+    }
+
+    VkDeviceAddress GetDescriptorAddress(DescriptorCategory category)
+    {
+        if (m_descriptorBuffers.contains(category)) {
+            return m_descriptorBuffers[category].descriptor.GetBuffer().GetDeviceAddress();
+        }
+
+        std::cerr << "DescriptorManager::GetDescriptorAddress(), device address is invalid for requested category\n";
+
+        return -1;
+    }
+
+
 private:
+    std::mutex m_mutex;
 
     struct DescriptorBufferData
     {

@@ -1,6 +1,4 @@
 #pragma once
-#include "vkUtility.h"
-#include <variant>
 
 extern PFN_vkGetDescriptorSetLayoutBindingOffsetEXT g_vkGetDescriptorSetLayoutBindingOffsetEXT;
 extern PFN_vkGetDescriptorSetLayoutSizeEXT g_vkGetDescriptorSetLayoutSizeEXT;
@@ -52,7 +50,7 @@ namespace vk
 		void Destroy();
 		void Create( const vk::DescriptorBufferCreateInfo& createInfo );
 		void Allocate( vk::Device* devicePtr, VkBufferUsageFlags bufferUsage, VkMemoryPropertyFlags bufferMemoryProps,
-			size_t layoutCount, const std::vector<VkDescriptorSetLayoutBinding>& bindings)
+			size_t numFrames, size_t layoutCount, const std::vector<VkDescriptorSetLayoutBinding>& bindings)
 		{
 			m_devicePtr = devicePtr;
 
@@ -71,11 +69,14 @@ namespace vk
 			GetDescriptorLayoutBindingOffsets(m_devicePtr, m_setLayout, m_bindingOffsets.data(),
 				setLayoutCreateInfo.bindingCount);
 
+			m_numCols = numFrames;
 			m_bufferSize = layoutCount * m_setLayoutSize;
 			m_buffer = vk::Buffer(m_devicePtr, bufferUsage, bufferMemoryProps, m_bufferSize);
+
+			m_buffer.Map(); //TODO: remove once integrating descriptor manager. Not all resources should be mapped.
 		}
 
-		void WriteDescriptor( vk::Device* devicePtr, const WriteResource& writeData, uint32_t layoutIndex,
+		void WriteDescriptor( vk::Device* devicePtr, const WriteResource& writeData, uint32_t layoutIndex, uint32_t frame,
 			uint32_t binding, size_t writeSize )
 		{
 			assert(writeData.IsValid());
@@ -105,7 +106,7 @@ namespace vk
 
 			g_vkGetDescriptorEXT(devicePtr->GetDevice(), &descriptorGetInfo,
 				writeSize,
-				descriptorPtr + layoutIndex * m_setLayoutSize +
+				descriptorPtr + (layoutIndex * m_numCols + frame) * m_setLayoutSize +
 				m_bindingOffsets[binding]);
 		}
 	private:
@@ -119,12 +120,14 @@ namespace vk
 		//1st index of "buffers" is the minimum ever used by a descriptor buffer.
 		vk::Buffer m_buffer;
 		size_t m_bufferSize = 0ull;
+		size_t m_numCols = 0; // [descriptor][frame]
 
 		//at least 1 binding (binding 0)
 		std::vector<VkDeviceSize> m_bindingOffsets = { 0ull };
 
 		VkDescriptorSetLayout m_setLayout = VK_NULL_HANDLE;
 		VkDeviceSize m_setLayoutSize = 0ull;
+
 
 		vk::Device* m_devicePtr = nullptr;
 	};

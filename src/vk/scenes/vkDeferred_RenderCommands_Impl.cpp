@@ -64,6 +64,9 @@ namespace vk
 			vkCmdEndRenderPass(cmdBuffer);
 		}*/
 
+    	VkDeviceSize uboLayoutSize = m_descriptorManagerPtr->GetLayoutSize(DescriptorCategory::eUBO);
+    	VkDeviceAddress uboDescriptorAddress = m_descriptorManagerPtr->GetDescriptorAddress(DescriptorCategory::eUBO);
+
     	auto& textureManager = *m_textureManagerPtr;
     	auto& textureSamplerDescriptor = textureManager.GetTextureSamplerDescriptor();
 		//MRT rendering.
@@ -99,7 +102,7 @@ namespace vk
 			std::array<VkDescriptorBufferBindingInfoEXT, 2> descriptor_buffer_binding_info = {};
 			descriptor_buffer_binding_info[0].sType = VK_STRUCTURE_TYPE_DESCRIPTOR_BUFFER_BINDING_INFO_EXT;
 			descriptor_buffer_binding_info[0].address =
-				mrtUniformDescriptor.GetBuffer().GetDeviceAddress();
+				uboDescriptorAddress;
 			descriptor_buffer_binding_info[0].usage = VK_BUFFER_USAGE_RESOURCE_DESCRIPTOR_BUFFER_BIT_EXT;
 
 			// Binding 1 = Image
@@ -113,7 +116,7 @@ namespace vk
 				descriptor_buffer_binding_info.data());
 
 			uint32_t buffer_index_ubo = 0;
-			VkDeviceSize buffer_offset = 0;
+			VkDeviceSize buffer_offset =  (gMaxFramesInFlight * mrtUBOLayoutIndex + currentFrame) * uboLayoutSize;
 
 			//global transform
 			g_vkCmdSetDescriptorBufferOffsetsEXT(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
@@ -171,7 +174,7 @@ namespace vk
 			//Binding 1 = uniform light data
 			descriptor_buffer_binding_info[1].sType = VK_STRUCTURE_TYPE_DESCRIPTOR_BUFFER_BINDING_INFO_EXT;
 			descriptor_buffer_binding_info[1].address =
-				uniformBindingDescriptors[dePipeline::COMPOSITION].GetBuffer().GetDeviceAddress();
+				uboDescriptorAddress;
 			descriptor_buffer_binding_info[1].usage = VK_BUFFER_USAGE_RESOURCE_DESCRIPTOR_BUFFER_BIT_EXT;
 
 			g_vkCmdBindDescriptorBuffersEXT(cmdBuffer, static_cast<uint32_t>(descriptor_buffer_binding_info.size()),
@@ -187,7 +190,7 @@ namespace vk
 				pipelineLayouts[dePipeline::COMPOSITION], 0, 1, &buffer_index_images, &buffer_offset);
 
 			//uniform set 1;
-			buffer_offset = currentFrame * uniformBindingDescriptors[dePipeline::COMPOSITION].GetLayoutSize();
+			buffer_offset = (gMaxFramesInFlight * lightUBOLayoutIndex + currentFrame) * uboLayoutSize;
 
 			g_vkCmdSetDescriptorBufferOffsetsEXT(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
 				pipelineLayouts[dePipeline::COMPOSITION], 1, 1, &buffer_index_ubo, &buffer_offset);
@@ -227,7 +230,7 @@ namespace vk
 			// Binding/Set 0 = uniform data (same as MRTs)
 			descriptor_buffer_binding_info[0].sType = VK_STRUCTURE_TYPE_DESCRIPTOR_BUFFER_BINDING_INFO_EXT;
 			descriptor_buffer_binding_info[0].address =
-				uniformBindingDescriptors[dePipeline::MRT].GetBuffer().GetDeviceAddress();
+					uboDescriptorAddress;
 			descriptor_buffer_binding_info[0].usage = VK_BUFFER_USAGE_RESOURCE_DESCRIPTOR_BUFFER_BIT_EXT;
 
 			//Binding/Set 1 = cube sampler data
@@ -243,7 +246,7 @@ namespace vk
 			uint32_t buffer_index_ubo = 0;
 			uint32_t buffer_index_sampler = 1;
 
-			VkDeviceSize buffer_offset = currentFrame * uniformBindingDescriptors[dePipeline::MRT].GetLayoutSize();
+			VkDeviceSize buffer_offset = (gMaxFramesInFlight * mrtUBOLayoutIndex + currentFrame) * uboLayoutSize;
 
 			//global transform
 			g_vkCmdSetDescriptorBufferOffsetsEXT(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,

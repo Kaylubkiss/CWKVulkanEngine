@@ -1,6 +1,7 @@
 #pragma once
 
 #include "vkBuffer.h"
+#include "vkUtility.h"
 #include "vkInit.h"
 #include "vkDevice.h"
 #include "vkDescriptorBuffer.h"

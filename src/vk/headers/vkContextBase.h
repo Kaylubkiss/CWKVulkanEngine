@@ -9,6 +9,9 @@
 #include "vkPipelineManager.h"
 #include "UserInterface.h"
 
+
+class DescriptorManager;
+
 namespace vk
 {
 	class ContextBase
@@ -34,7 +37,7 @@ namespace vk
 		virtual void UpdateUI() {};
 		virtual void ResizeWindow();
 		virtual void InitializePipeline() {};
-		virtual void InitializeDescriptors() {};
+		virtual void InitializeDescriptors( DescriptorManager& descriptorManager ) {};
 		virtual void FillOutGraphicsContextInfo();
 	private:
 		void CreateSynchronizationPrimitives();

@@ -3,6 +3,7 @@
 #include "Physics.h"
 #include "vkContextBase.h"
 #include "TextureManager.h"
+#include "DescriptorManager.h"
 
 class Application
 {
@@ -29,6 +30,7 @@ private:
 	std::unique_ptr<vk::ContextBase> m_vulkanGraphicsContext;
 	AssetManager m_assetManager;
 	TextureManager m_textureManager;
+	DescriptorManager m_descriptorManager;
 
 	bool exitApplication = false;
 };

@@ -1,6 +1,5 @@
 #include "CameraController.h"
 #include "vk/scenes/vkDeferredShadingContext.h"
-#include "DescriptorManager.h" //TODO: temporary include for linking symbols
 
 PhysicsSystem& Application::GetPhysics() 
 {
@@ -38,7 +37,7 @@ void Application::init()
 		printf("SDL could not initialize! SDL_Error: %s\n", SDL_GetError());
 	}
 
-	m_vulkanGraphicsContext = std::make_unique<vk::DeferredContext>(&m_textureManager);
+	m_vulkanGraphicsContext = std::make_unique<vk::DeferredContext>(&m_textureManager, &m_descriptorManager);
 
 	if (exitApplication == true)
 	{
