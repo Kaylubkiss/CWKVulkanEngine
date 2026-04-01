@@ -32,6 +32,7 @@ namespace vk
 		void InitializeUniforms();
 
 		void InitializeUBODescriptors( DescriptorManager& descriptorManager );
+		void InitializeCompositionImageDescriptors( DescriptorManager& descriptorManager );
 		void InitializeCompositionSamplerDescriptor();
 		void InitializeCompositionUniformDescriptor();
 		void InitializeSwapChainDescriptor();

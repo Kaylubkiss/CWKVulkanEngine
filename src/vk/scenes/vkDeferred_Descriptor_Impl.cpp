@@ -17,10 +17,12 @@ namespace vk
         	//..not in that order.{
         	InitializeUBODescriptors(descriptorManager);
 
+        	InitializeCompositionImageDescriptors(descriptorManager);
+
 			//MRT uniform descriptors
 			//InitializeMRTDescriptor();
 
-			InitializeCompositionSamplerDescriptor();
+			//InitializeCompositionSamplerDescriptor();
 
         	//InitializeCompositionUniformDescriptor();
 
@@ -87,6 +89,48 @@ namespace vk
 		    }
 	    }
     }
+
+	void DeferredContext::InitializeCompositionImageDescriptors( DescriptorManager& descriptorManager )
+    {
+    	size_t imageCount = RT_COUNT + 1;
+    	size_t layoutCount = gMaxFramesInFlight * imageCount;
+
+    	std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings(imageCount);
+
+    	for (uint32_t i = 0; i < setLayoutBindings.size(); ++i)
+    	{
+    		setLayoutBindings[i].binding = i;
+    		setLayoutBindings[i].descriptorCount = 1;
+    		setLayoutBindings[i].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    		setLayoutBindings[i].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+    	}
+
+		descriptorManager.AllocateDescriptorBuffer(DescriptorCategory::eCompositionImage,
+			imageCount, layoutCount, setLayoutBindings);
+
+    	vk::imageBuffers2D imageDescriptorData;
+    	imageDescriptorData.resize(gMaxFramesInFlight);
+
+    	for (size_t frame = 0; frame < imageDescriptorData.size(); ++frame)
+    	{
+    		auto& imageInfos = imageDescriptorData[frame];
+    		imageInfos.resize(RT_COUNT + 1);
+
+    		for (size_t binding = 0; binding < imageDescriptorData[frame].size()-1; ++binding)
+    		{
+    			imageInfos[binding].imageLayout = framebuffers.deMRT[frame].attachments[binding].layout;
+    			imageInfos[binding].imageView = framebuffers.deMRT[frame].attachments[binding].imageView;
+    			imageInfos[binding].sampler = framebuffers.deMRT[frame].sampler;
+    		}
+
+    		imageInfos[RT_COUNT].imageLayout = framebuffers.deShadow[frame].attachments[0].layout;
+    		imageInfos[RT_COUNT].imageView = framebuffers.deShadow[frame].attachments[0].imageView;
+    		imageInfos[RT_COUNT].sampler = framebuffers.deShadow[frame].sampler;
+    	}
+
+    	descriptorManager.WriteDescriptors(DescriptorCategory::eCompositionImage, 0, imageDescriptorData);
+    }
+
 
 	void DeferredContext::InitializeCompositionSamplerDescriptor()
     {

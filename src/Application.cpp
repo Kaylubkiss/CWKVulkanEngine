@@ -144,6 +144,7 @@ void Application::exit()
 
 	m_assetManager.Destroy();
 	m_textureManager.Destroy();
+	m_descriptorManager.Destroy();
 }
 
 

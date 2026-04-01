@@ -230,7 +230,7 @@ namespace vk
 				//order of layouts need to be in order of they appear in shader(s)
 				std::array<VkDescriptorSetLayout, 2> composition_layouts = {
 					//set 0: image samplers, set 1: light ubo
-					compositionImageBindingDescriptor.GetLayout(), m_descriptorManagerPtr->GetLayout(DescriptorCategory::eUBO)
+					m_descriptorManagerPtr->GetLayout(DescriptorCategory::eCompositionImage), m_descriptorManagerPtr->GetLayout(DescriptorCategory::eUBO)
 				};
 
 				VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = vk::init::PipelineLayoutCreateInfo();

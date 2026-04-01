@@ -24,7 +24,17 @@ public:
         m_properties = m_devicePtr->GetDescriptorBufferProperties();
     }
 
-    void AllocateDescriptorBuffer(DescriptorCategory category, size_t slots, size_t layoutCount, const std::vector<VkDescriptorSetLayoutBinding>& bindings)
+    void Destroy()
+    {
+        for (auto& [type, bufferData] : m_descriptorBuffers)
+        {
+            bufferData.descriptor.Destroy();
+        }
+
+    }
+
+    void AllocateDescriptorBuffer(DescriptorCategory category, size_t slots, size_t layoutCount,
+        const std::vector<VkDescriptorSetLayoutBinding>& bindings)
     {
         if (m_descriptorBuffers.contains(category))
         {
@@ -71,7 +81,8 @@ public:
     }
 
     // [frame][binding]
-    void WriteDescriptors(DescriptorCategory category, uint32_t layoutIndex, vk::imageBuffers2D& imageDescriptors)
+    void WriteDescriptors(DescriptorCategory category, uint32_t layoutIndex,
+        vk::imageBuffers2D& imageDescriptors)
     {
         auto& descriptor = m_descriptorBuffers[category].descriptor;
 
@@ -89,7 +100,8 @@ public:
         }
     }
 
-    void WriteDescriptors(DescriptorCategory category, uint32_t layoutIndex, vk::resourceBufferPtrs2D& resourceDescriptors)
+    void WriteDescriptors(DescriptorCategory category, uint32_t layoutIndex,
+        vk::resourceBufferPtrs2D& resourceDescriptors)
     {
         auto& descriptor = m_descriptorBuffers[category].descriptor;
 
