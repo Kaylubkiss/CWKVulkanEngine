@@ -38,7 +38,8 @@ public:
     {
         if (m_descriptorBuffers.contains(category))
         {
-            return;
+            m_descriptorBuffers[category].descriptor.Destroy();
+            m_descriptorBuffers[category].freeList.clear();
         }
 
         //create the layout for the descriptor buffer.

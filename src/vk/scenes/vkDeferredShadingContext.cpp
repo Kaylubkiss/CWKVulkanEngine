@@ -376,10 +376,9 @@ namespace vk
 		InitializeFramebuffers();
 
 		//need to recreate these as their image layouts turn stale
-		compositionImageBindingDescriptor.Destroy();
 		swapChainSamplerBindingDescriptor.Destroy();
 
-		InitializeCompositionSamplerDescriptor();
+		InitializeCompositionImageDescriptors(*m_descriptorManagerPtr);
 		InitializeSwapChainDescriptor();
 	}
 
