@@ -184,7 +184,8 @@ namespace vk
 			uint32_t buffer_index_ubo = 1;
 
 			//image sampler set 0;
-			VkDeviceSize buffer_offset = currentFrame * m_descriptorManagerPtr->GetLayoutSize(DescriptorCategory::eCompositionImage);
+			VkDeviceSize buffer_offset = (gMaxFramesInFlight * compositionImageIndex + currentFrame) *
+				m_descriptorManagerPtr->GetLayoutSize(DescriptorCategory::eCompositionImage);
 
 			g_vkCmdSetDescriptorBufferOffsetsEXT(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
 				pipelineLayouts[dePipeline::COMPOSITION], 0, 1, &buffer_index_images, &buffer_offset);
@@ -296,7 +297,7 @@ namespace vk
 			std::array<VkDescriptorBufferBindingInfoEXT, 1> descriptor_buffer_binding_info = {};
 			descriptor_buffer_binding_info[0].sType = VK_STRUCTURE_TYPE_DESCRIPTOR_BUFFER_BINDING_INFO_EXT;
 			descriptor_buffer_binding_info[0].address =
-				swapChainSamplerBindingDescriptor.GetBuffer().GetDeviceAddress();
+				m_descriptorManagerPtr->GetDescriptorAddress(DescriptorCategory::eCompositionImage);
 			descriptor_buffer_binding_info[0].usage = VK_BUFFER_USAGE_SAMPLER_DESCRIPTOR_BUFFER_BIT_EXT |
 				VK_BUFFER_USAGE_RESOURCE_DESCRIPTOR_BUFFER_BIT_EXT;
 
@@ -305,7 +306,8 @@ namespace vk
 
 			uint32_t buffer_index_image = 0;
 
-			VkDeviceSize buffer_offset = currentFrame * swapChainSamplerBindingDescriptor.GetLayoutSize();
+			VkDeviceSize buffer_offset =  (gMaxFramesInFlight * swapChainImageIndex + currentFrame) *
+				m_descriptorManagerPtr->GetLayoutSize(DescriptorCategory::eCompositionImage);
 
 			g_vkCmdSetDescriptorBufferOffsetsEXT(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
 				pipelineLayouts[dePipeline::SWAPCHAIN], 0, 1, &buffer_index_image, &buffer_offset);

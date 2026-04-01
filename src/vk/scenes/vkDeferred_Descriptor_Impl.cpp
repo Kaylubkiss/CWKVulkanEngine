@@ -4,7 +4,7 @@ namespace vk
 {
 
 
-    void DeferredContext::InitializeDescriptors( DescriptorManager& descriptorManager  )
+    void DeferredContext::InitializeDescriptors( DescriptorManager& descriptorManager )
     {
         {
 
@@ -19,21 +19,11 @@ namespace vk
 
         	InitializeCompositionImageDescriptors(descriptorManager);
 
-			//MRT uniform descriptors
-			//InitializeMRTDescriptor();
-
-			//InitializeCompositionSamplerDescriptor();
-
-        	//InitializeCompositionUniformDescriptor();
-
-			//Shadow map uniform descriptor
-			// InitializeShadowMapDescriptor();
-
 			//Skybox sampler descriptor
 			InitializeSkyBoxDescriptor();
 
 			//Swapchain sampler descriptor --> this needs the skybox descriptors!
-			InitializeSwapChainDescriptor();
+			//InitializeSwapChainDescriptor();
 		}
     }
 
@@ -92,8 +82,9 @@ namespace vk
 
 	void DeferredContext::InitializeCompositionImageDescriptors( DescriptorManager& descriptorManager )
     {
-    	size_t imageCount = RT_COUNT + 1;
-    	size_t layoutCount = gMaxFramesInFlight * imageCount;
+    	size_t imageCount = RT_COUNT + 1 + 1;
+    	size_t bufferCount = gMaxFramesInFlight * imageCount;
+    	size_t numLayouts = 2;
 
     	std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings(imageCount);
 
@@ -106,29 +97,52 @@ namespace vk
     	}
 
 		descriptorManager.AllocateDescriptorBuffer(DescriptorCategory::eCompositionImage,
-			imageCount, layoutCount, setLayoutBindings);
+			numLayouts, bufferCount, setLayoutBindings);
+
+    	compositionImageIndex = m_descriptorManagerPtr->GetLayoutIndex(DescriptorCategory::eCompositionImage);
 
     	vk::imageBuffers2D imageDescriptorData;
     	imageDescriptorData.resize(gMaxFramesInFlight);
 
     	for (size_t frame = 0; frame < imageDescriptorData.size(); ++frame)
     	{
-    		auto& imageInfos = imageDescriptorData[frame];
-    		imageInfos.resize(RT_COUNT + 1);
+    		imageDescriptorData[frame].resize(RT_COUNT + 1);
 
-    		for (size_t binding = 0; binding < imageDescriptorData[frame].size()-1; ++binding)
+    		for (size_t binding = 0; binding < RT_COUNT; ++binding)
     		{
-    			imageInfos[binding].imageLayout = framebuffers.deMRT[frame].attachments[binding].layout;
-    			imageInfos[binding].imageView = framebuffers.deMRT[frame].attachments[binding].imageView;
-    			imageInfos[binding].sampler = framebuffers.deMRT[frame].sampler;
+    			imageDescriptorData[frame][binding].imageLayout = framebuffers.deMRT[frame].attachments[binding].layout;
+    			imageDescriptorData[frame][binding].imageView = framebuffers.deMRT[frame].attachments[binding].imageView;
+    			imageDescriptorData[frame][binding].sampler = framebuffers.deMRT[frame].sampler;
     		}
 
-    		imageInfos[RT_COUNT].imageLayout = framebuffers.deShadow[frame].attachments[0].layout;
-    		imageInfos[RT_COUNT].imageView = framebuffers.deShadow[frame].attachments[0].imageView;
-    		imageInfos[RT_COUNT].sampler = framebuffers.deShadow[frame].sampler;
+    		imageDescriptorData[frame][RT_COUNT].imageLayout = framebuffers.deShadow[frame].attachments[0].layout;
+    		imageDescriptorData[frame][RT_COUNT].imageView = framebuffers.deShadow[frame].attachments[0].imageView;
+    		imageDescriptorData[frame][RT_COUNT].sampler = framebuffers.deShadow[frame].sampler;
     	}
 
-    	descriptorManager.WriteDescriptors(DescriptorCategory::eCompositionImage, 0, imageDescriptorData);
+    	descriptorManager.WriteDescriptors(DescriptorCategory::eCompositionImage, compositionImageIndex, imageDescriptorData);
+
+    	swapChainImageIndex = m_descriptorManagerPtr->GetLayoutIndex(DescriptorCategory::eCompositionImage);
+
+    	imageDescriptorData.clear();
+    	imageDescriptorData.resize(gMaxFramesInFlight);
+
+    	for (size_t frame = 0; frame < imageDescriptorData.size(); ++frame)
+    	{
+    		VkDescriptorImageInfo swapchain_image_info = {};
+    		//image view and sampler should be identical across framebuffers
+    		swapchain_image_info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    		swapchain_image_info.imageView = framebuffers.deSky[frame].attachments[0].imageView;
+    		swapchain_image_info.sampler = framebuffers.deSky[frame].sampler;
+
+    		imageDescriptorData[frame].push_back(swapchain_image_info);
+    	}
+
+    	descriptorManager.WriteDescriptors(DescriptorCategory::eCompositionImage, swapChainImageIndex, imageDescriptorData);
+
+
+
+
     }
 
 

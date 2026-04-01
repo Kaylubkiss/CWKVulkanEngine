@@ -106,7 +106,7 @@ namespace vk
 
 			g_vkGetDescriptorEXT(devicePtr->GetDevice(), &descriptorGetInfo,
 				writeSize,
-				descriptorPtr + (layoutIndex * m_numCols + frame) * m_setLayoutSize +
+				descriptorPtr + (m_numCols * layoutIndex + frame) * m_setLayoutSize +
 				m_bindingOffsets[binding]);
 		}
 	private:

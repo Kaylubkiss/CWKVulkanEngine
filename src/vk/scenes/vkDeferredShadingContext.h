@@ -100,6 +100,9 @@ namespace vk
 		uint32_t shadowUBOLayoutIndex = 0;
 		uint32_t lightUBOLayoutIndex = 0;
 
+		uint32_t compositionImageIndex = 0;
+		uint32_t swapChainImageIndex = 0;
+
 		std::array<UniformBuffers, gMaxFramesInFlight> uniformBuffers;
 
 		std::array<DescriptorBuffer, dePipeline::PIPELINE_COUNT> uniformBindingDescriptors;

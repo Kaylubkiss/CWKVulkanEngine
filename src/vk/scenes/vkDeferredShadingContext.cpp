@@ -292,7 +292,7 @@ namespace vk
 			{
 				std::array<VkDescriptorSetLayout, 1> layouts = {
 					//set 0: scene sampler
-					swapChainSamplerBindingDescriptor.GetLayout()
+					m_descriptorManagerPtr->GetLayout(DescriptorCategory::eCompositionImage)
 				};
 
 				VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = vk::init::PipelineLayoutCreateInfo();
