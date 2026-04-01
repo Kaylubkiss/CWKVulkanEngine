@@ -33,9 +33,6 @@ namespace vk
 
 		void InitializeUBODescriptors( DescriptorManager& descriptorManager );
 		void InitializeCompositionImageDescriptors( DescriptorManager& descriptorManager );
-		void InitializeCompositionSamplerDescriptor();
-		void InitializeCompositionUniformDescriptor();
-		void InitializeSwapChainDescriptor();
 		void InitializeMRTDescriptor();
 		void InitializeShadowMapDescriptor();
 		void InitializeSkyBoxDescriptor();
@@ -108,8 +105,6 @@ namespace vk
 		std::array<DescriptorBuffer, dePipeline::PIPELINE_COUNT> uniformBindingDescriptors;
 
 		DescriptorBuffer skyboxSamplerBindingDescriptor;
-		DescriptorBuffer compositionImageBindingDescriptor;
-		DescriptorBuffer swapChainSamplerBindingDescriptor;
 
 		//NOTE: this will all be done offscreen because we have a main renderpass from the swapchain we'll
 		//read the results of this from

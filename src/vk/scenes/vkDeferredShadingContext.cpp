@@ -125,9 +125,7 @@ namespace vk
 			uniformDescriptor.Destroy();
 		}
 
-		compositionImageBindingDescriptor.Destroy();
 		skyboxSamplerBindingDescriptor.Destroy();
-		swapChainSamplerBindingDescriptor.Destroy();
 
 		for (size_t frame = 0; frame < gMaxFramesInFlight; ++frame)
 		{
@@ -375,11 +373,7 @@ namespace vk
 
 		InitializeFramebuffers();
 
-		//need to recreate these as their image layouts turn stale
-		swapChainSamplerBindingDescriptor.Destroy();
-
 		InitializeCompositionImageDescriptors(*m_descriptorManagerPtr);
-		InitializeSwapChainDescriptor();
 	}
 
 	void DeferredContext::Render( AssetManager& assetManager )
