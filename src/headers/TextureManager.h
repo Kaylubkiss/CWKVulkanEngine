@@ -12,7 +12,7 @@ struct PendingTextureInfo
 	std::shared_ptr<vk::Texture> texture_to_process;
 	//the index into bufferOffsets of the texture layout
 	uint32_t bindingIndex = 0;
-	uint32_t totalBindingCount = 0;
+	size_t totalBindingCount = 0;
 	//layoutIndex = the base layout index to start from, offset by bindingOffset for other textures in a layout.
 	uint32_t layoutIndex = 0;
 

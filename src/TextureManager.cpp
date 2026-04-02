@@ -181,7 +181,8 @@ bool TextureManager::UploadTextureDataToGPU( uint32_t currentFrame, const VkSema
 	vk::imageBuffers2D imageDescriptors;
 	imageDescriptors.resize(1);
 
-	for (size_t i = 0; i < texturesToProcess.size(); )
+	size_t i = 0;
+	while (i < texturesToProcess.size())
 	{
 		imageDescriptors[0].resize(texturesToProcess[i].totalBindingCount);
 
@@ -189,7 +190,7 @@ bool TextureManager::UploadTextureDataToGPU( uint32_t currentFrame, const VkSema
 
 		for (size_t binding = 0; binding < texturesToProcess[i].totalBindingCount; ++binding)
 		{
-			imageDescriptors[0][binding] = texturesToProcess[binding].texture_to_process->GetDescriptor();
+			imageDescriptors[0][binding] = texturesToProcess[i + binding].texture_to_process->GetDescriptor();
 		}
 
 		m_descriptorManagerPtr->WriteDescriptors(DescriptorCategory::eMaterial, layoutIndex, imageDescriptors);

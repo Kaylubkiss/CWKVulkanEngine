@@ -93,7 +93,6 @@ namespace vk
 			}
 			else
 			{
-
 				descriptorGetInfo.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 
 				VkDescriptorAddressInfoEXT addrInfo = { VK_STRUCTURE_TYPE_DESCRIPTOR_ADDRESS_INFO_EXT };
@@ -103,6 +102,7 @@ namespace vk
 
 				descriptorGetInfo.data.pUniformBuffer = &addrInfo;
 			}
+
 
 			g_vkGetDescriptorEXT(devicePtr->GetDevice(), &descriptorGetInfo,
 				writeSize,

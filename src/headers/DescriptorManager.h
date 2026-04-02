@@ -92,7 +92,6 @@ public:
     void WriteDescriptors(DescriptorCategory category, uint32_t layoutIndex,
         vk::imageBuffers2D& imageDescriptors)
     {
-        std::lock_guard lock(m_mutex);
 
         auto& descriptor = m_descriptorBuffers[category].descriptor;
 
@@ -104,8 +103,11 @@ public:
             {
                 writeResource.pImageData = &imageDescriptors[frame][binding];
 
-                descriptor.WriteDescriptor(m_devicePtr, writeResource,
-                   layoutIndex, frame, binding, m_properties.combinedImageSamplerDescriptorSize);
+                {
+                    std::lock_guard lock(m_mutex);
+                    descriptor.WriteDescriptor(m_devicePtr, writeResource,
+                       layoutIndex, frame, binding, m_properties.combinedImageSamplerDescriptorSize);
+                }
             }
         }
     }
@@ -113,8 +115,6 @@ public:
     void WriteDescriptors(DescriptorCategory category, uint32_t layoutIndex,
         vk::resourceBufferPtrs2D& resourceDescriptors)
     {
-        std::lock_guard lock(m_mutex);
-
         auto& descriptor = m_descriptorBuffers[category].descriptor;
 
         vk::WriteResource writeResource;
@@ -125,8 +125,11 @@ public:
             {
                 writeResource.pResourceData = resourceDescriptors[frame][binding];
 
-                descriptor.WriteDescriptor(m_devicePtr, writeResource,
-                    layoutIndex, frame, binding, m_properties.uniformBufferDescriptorSize);
+                {
+                    std::lock_guard lock(m_mutex);
+                    descriptor.WriteDescriptor(m_devicePtr, writeResource,
+                        layoutIndex, frame, binding, m_properties.uniformBufferDescriptorSize);
+                }
             }
         }
     }
