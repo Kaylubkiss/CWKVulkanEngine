@@ -68,7 +68,6 @@ namespace vk
     	VkDeviceAddress uboDescriptorAddress = m_descriptorManagerPtr->GetDescriptorAddress(DescriptorCategory::eUBO);
 
     	auto& textureManager = *m_textureManagerPtr;
-    	auto& textureSamplerDescriptor = textureManager.GetTextureSamplerDescriptor();
 		//MRT rendering.
 		{
 			clearValues[0].color = { 0,0,0,0 };
@@ -108,7 +107,7 @@ namespace vk
 			// Binding 1 = Image
 			descriptor_buffer_binding_info[1].sType = VK_STRUCTURE_TYPE_DESCRIPTOR_BUFFER_BINDING_INFO_EXT;
 			descriptor_buffer_binding_info[1].address =
-				textureSamplerDescriptor.GetBuffer().GetDeviceAddress();
+				m_descriptorManagerPtr->GetDescriptorAddress(DescriptorCategory::eMaterial);
 			descriptor_buffer_binding_info[1].usage = VK_BUFFER_USAGE_SAMPLER_DESCRIPTOR_BUFFER_BIT_EXT |
 				VK_BUFFER_USAGE_RESOURCE_DESCRIPTOR_BUFFER_BIT_EXT;
 
@@ -127,7 +126,7 @@ namespace vk
 			drawInfo.imageBufferIndex = 1;
 			drawInfo.firstSet = 1;
 			drawInfo.pipelineLayout = pipelineLayouts[dePipeline::MRT];
-			drawInfo.textureBindingSize = textureSamplerDescriptor.GetLayoutSize();
+			drawInfo.textureBindingSize = m_descriptorManagerPtr->GetLayoutSize(DescriptorCategory::eMaterial);
 
 			assetManager.DrawObjects(drawInfo);
 

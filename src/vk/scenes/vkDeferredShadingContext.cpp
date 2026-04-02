@@ -62,7 +62,7 @@ namespace vk
 
 		DeferredContext::InitializeDescriptors(*m_descriptorManagerPtr);
 
-		//texture material samplers
+		/*//texture material samplers
 		std::array<VkDescriptorSetLayoutBinding, 3> setLayoutBindings = {};
 
 		//albedo
@@ -93,10 +93,7 @@ namespace vk
 		descriptorBufferCI.pLayoutBindings = setLayoutBindings.data();
 		descriptorBufferCI.layoutBindingCount = static_cast<uint32_t>(setLayoutBindings.size());
 		descriptorBufferCI.imageDescriptorData.resize(OBJECT_COUNT);
-
-		m_info.descriptorBufferCreateInfoPtr = &descriptorBufferCI;
-
-		m_textureManagerPtr->Init(&m_info);
+		*/
 
 		DeferredContext::InitializePipeline();
 	}
@@ -191,14 +188,10 @@ namespace vk
 
 	void DeferredContext::InitializePipelineLayouts()
 	{
-		auto& textureManager = *m_textureManagerPtr;
-
 		//MRT PASS LAYOUT
 		{
 			if (pipelineLayouts[dePipeline::MRT] == VK_NULL_HANDLE)
 			{
-				auto& textureSamplerDescriptor = textureManager.GetTextureSamplerDescriptor();
-
 				std::vector<VkPushConstantRange> pushConstantRanges =
 				{
 					vk::init::PushConstantRange(0, sizeof(glm::mat4), VK_SHADER_STAGE_VERTEX_BIT)
@@ -207,7 +200,8 @@ namespace vk
 				std::array<VkDescriptorSetLayout, 2> mrt_layouts =
 				{
 					//set 0: per-frame scene transform, set 1: per-model image sampler(s)
-					m_descriptorManagerPtr->GetLayout(DescriptorCategory::eUBO), textureSamplerDescriptor.GetLayout(),
+					m_descriptorManagerPtr->GetLayout(DescriptorCategory::eUBO),
+					m_descriptorManagerPtr->GetLayout(DescriptorCategory::eMaterial),
 				};
 
 				VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = vk::init::PipelineLayoutCreateInfo();
@@ -228,7 +222,8 @@ namespace vk
 				//order of layouts need to be in order of they appear in shader(s)
 				std::array<VkDescriptorSetLayout, 2> composition_layouts = {
 					//set 0: image samplers, set 1: light ubo
-					m_descriptorManagerPtr->GetLayout(DescriptorCategory::eCompositionImage), m_descriptorManagerPtr->GetLayout(DescriptorCategory::eUBO)
+					m_descriptorManagerPtr->GetLayout(DescriptorCategory::eCompositionImage),
+					m_descriptorManagerPtr->GetLayout(DescriptorCategory::eUBO)
 				};
 
 				VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = vk::init::PipelineLayoutCreateInfo();
@@ -252,6 +247,7 @@ namespace vk
 				VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = vk::init::PipelineLayoutCreateInfo();
 				pipelineLayoutCreateInfo.pSetLayouts = shadow_layouts.data();
 				pipelineLayoutCreateInfo.setLayoutCount = static_cast<uint32_t>(shadow_layouts.size());
+
 				//per-model transform
 				std::vector<VkPushConstantRange> pushConstantRanges = {
 					vk::init::PushConstantRange(0, sizeof(glm::mat4), VK_SHADER_STAGE_VERTEX_BIT)
@@ -338,7 +334,8 @@ namespace vk
 		uniformDataLightPass.lights[0].viewMatrix = uniformDataDeferredShadow.viewMatrices[0];
 		uniformDataLightPass.lights[1].viewMatrix = uniformDataDeferredShadow.viewMatrices[1];
 
-		memcpy(uniformBuffers[currentFrame].composition.GetMappedMemory(), (void*)(&uniformDataLightPass),
+		memcpy(uniformBuffers[currentFrame].composition.GetMappedMemory(),
+			(void*)(&uniformDataLightPass),
 			sizeof(uniformDataLightPass));
 	}
 

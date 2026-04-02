@@ -26,6 +26,8 @@ public:
 
     void Destroy()
     {
+        std::lock_guard lock(m_mutex);
+
         for (auto& [type, bufferData] : m_descriptorBuffers)
         {
             bufferData.descriptor.Destroy();
@@ -33,9 +35,11 @@ public:
 
     }
 
-    void AllocateDescriptorBuffer(DescriptorCategory category, size_t slots, size_t layoutCount,
+    void AllocateDescriptorBuffer(DescriptorCategory category, size_t numFrames, size_t layoutCount,
         const std::vector<VkDescriptorSetLayoutBinding>& bindings)
     {
+        std::lock_guard lock(m_mutex);
+
         if (m_descriptorBuffers.contains(category))
         {
             m_descriptorBuffers[category].descriptor.Destroy();
@@ -56,7 +60,8 @@ public:
         }
         else if (category == DescriptorCategory::eMaterial)
         {
-            bufferUsageFlags = VK_BUFFER_USAGE_SAMPLER_DESCRIPTOR_BUFFER_BIT_EXT |
+            bufferUsageFlags = VK_BUFFER_USAGE_RESOURCE_DESCRIPTOR_BUFFER_BIT_EXT |
+                VK_BUFFER_USAGE_SAMPLER_DESCRIPTOR_BUFFER_BIT_EXT |
                 VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
         }
         else if (category == DescriptorCategory::eCompositionImage) //TODO: might get away with the same usage as eMaterial.
@@ -70,12 +75,14 @@ public:
             throw std::runtime_error("DescriptorManager::AllocateDescriptorBuffer() Failed\n");
         }
 
-        m_descriptorBuffers[category].descriptor.Allocate(m_devicePtr, bufferUsageFlags, memoryProperties,
-            gMaxFramesInFlight, layoutCount, bindings);
+        m_descriptorBuffers[category].descriptor.Allocate(
+            m_devicePtr, bufferUsageFlags, memoryProperties,
+            numFrames, layoutCount, bindings
+            );
 
         m_descriptorBuffers[category].freeList.resize(layoutCount);
 
-        for (size_t i = 0; i < slots; ++i)
+        for (size_t i = 0; i < layoutCount; ++i)
         {
             m_descriptorBuffers[category].freeList.push_back(i);
         }
@@ -85,6 +92,8 @@ public:
     void WriteDescriptors(DescriptorCategory category, uint32_t layoutIndex,
         vk::imageBuffers2D& imageDescriptors)
     {
+        std::lock_guard lock(m_mutex);
+
         auto& descriptor = m_descriptorBuffers[category].descriptor;
 
         vk::WriteResource writeResource;
@@ -104,6 +113,8 @@ public:
     void WriteDescriptors(DescriptorCategory category, uint32_t layoutIndex,
         vk::resourceBufferPtrs2D& resourceDescriptors)
     {
+        std::lock_guard lock(m_mutex);
+
         auto& descriptor = m_descriptorBuffers[category].descriptor;
 
         vk::WriteResource writeResource;
@@ -122,6 +133,8 @@ public:
 
     uint32_t GetLayoutIndex(DescriptorCategory category)
     {
+        std::lock_guard lock(m_mutex);
+
         if (m_descriptorBuffers.contains(category) == false)
         {
             return -1;
@@ -141,6 +154,8 @@ public:
 
     VkDeviceSize GetLayoutSize(DescriptorCategory category)
     {
+        std::lock_guard lock(m_mutex);
+
         if (m_descriptorBuffers.contains(category))
         {
             return m_descriptorBuffers[category].descriptor.GetLayoutSize();
@@ -151,6 +166,8 @@ public:
 
     VkDescriptorSetLayout GetLayout(DescriptorCategory category)
     {
+        std::lock_guard lock(m_mutex);
+
         if (m_descriptorBuffers.contains(category))
         {
             return m_descriptorBuffers[category].descriptor.GetLayout();
@@ -161,6 +178,8 @@ public:
 
     VkDeviceAddress GetDescriptorAddress(DescriptorCategory category)
     {
+        std::lock_guard lock(m_mutex);
+
         if (m_descriptorBuffers.contains(category)) {
             return m_descriptorBuffers[category].descriptor.GetBuffer().GetDeviceAddress();
         }

@@ -8,7 +8,6 @@ namespace vk
         {
 
         	descriptorManager.Init(&device);
-
         	//there are three ubos in this demo.
         	//1 - scene transforms: eye, projection
         	//2 - shadow projection
@@ -17,6 +16,8 @@ namespace vk
         	InitializeUBODescriptors(descriptorManager);
 
         	InitializeCompositionImageDescriptors(descriptorManager);
+
+        	InitializeMaterialDescriptors(descriptorManager);
 
 			//Skybox sampler descriptor
 			InitializeSkyBoxDescriptor();
@@ -28,7 +29,6 @@ namespace vk
 	{
 	    {
 		    size_t ubo_count = 3;
-	    	size_t layoutCount = ubo_count * gMaxFramesInFlight;
 
 	    	std::vector<VkDescriptorSetLayoutBinding> bindings(1);
 	    	bindings[0].binding = 0;
@@ -36,7 +36,7 @@ namespace vk
 	    	bindings[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 	    	bindings[0].stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_GEOMETRY_BIT;
 
-	    	descriptorManager.AllocateDescriptorBuffer(DescriptorCategory::eUBO, ubo_count, layoutCount, bindings);
+	    	descriptorManager.AllocateDescriptorBuffer(DescriptorCategory::eUBO, gMaxFramesInFlight, ubo_count, bindings);
 
 	    	mrtUBOLayoutIndex = descriptorManager.GetLayoutIndex(DescriptorCategory::eUBO);
 		    {
@@ -82,8 +82,6 @@ namespace vk
 	void DeferredContext::InitializeCompositionImageDescriptors( DescriptorManager& descriptorManager )
     {
     	size_t imageCount = RT_COUNT + 1 + 1;
-    	size_t bufferCount = gMaxFramesInFlight * imageCount;
-    	size_t numLayouts = 2;
 
     	std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings(imageCount);
 
@@ -96,7 +94,7 @@ namespace vk
     	}
 
 		descriptorManager.AllocateDescriptorBuffer(DescriptorCategory::eCompositionImage,
-			numLayouts, bufferCount, setLayoutBindings);
+			gMaxFramesInFlight, imageCount, setLayoutBindings);
 
     	compositionImageIndex = m_descriptorManagerPtr->GetLayoutIndex(DescriptorCategory::eCompositionImage);
 
@@ -140,57 +138,32 @@ namespace vk
     	descriptorManager.WriteDescriptors(DescriptorCategory::eCompositionImage, swapChainImageIndex, imageDescriptorData);
     }
 
-	void DeferredContext::InitializeMRTDescriptor()
-	{
-    	std::array<VkDescriptorSetLayoutBinding, 1> setLayoutBindings = {};
-    	//per-frame scene transform (ubo)
-    	setLayoutBindings.front() = {};
-    	setLayoutBindings.front().binding = 0;
-    	setLayoutBindings.front().descriptorCount = 1;
-    	setLayoutBindings.front().descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    	setLayoutBindings.front().stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+	void DeferredContext::InitializeMaterialDescriptors( DescriptorManager& descriptorManager )
+    {
+    	//texture material samplers
+    	std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings(3);
 
-    	DescriptorBufferCreateInfo descriptorBufferCI = {};
-    	descriptorBufferCI.devicePtr = &device;
-    	descriptorBufferCI.bufferUsageFlags = VK_BUFFER_USAGE_RESOURCE_DESCRIPTOR_BUFFER_BIT_EXT |
-			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT |
-			VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
-    	descriptorBufferCI.memoryProperties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-			VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
-    	descriptorBufferCI.pLayoutBindings = setLayoutBindings.data();
-    	descriptorBufferCI.layoutBindingCount = static_cast<uint32_t>(setLayoutBindings.size());
-    	descriptorBufferCI.resourceDescriptorData.resize(gMaxFramesInFlight);
-    	for (size_t frame = 0; frame < gMaxFramesInFlight; ++frame)
-    	{
-    		descriptorBufferCI.resourceDescriptorData[frame].push_back(&uniformBuffers[frame].mrt);
-    	}
+    	//albedo
+    	setLayoutBindings[0].binding = 0;
+    	setLayoutBindings[0].descriptorCount = 1;
+    	setLayoutBindings[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    	setLayoutBindings[0].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 
-    	uniformBindingDescriptors[dePipeline::MRT].Create(descriptorBufferCI);
-    }
+    	//metallic roughness
+    	setLayoutBindings[1].binding = 1;
+    	setLayoutBindings[1].descriptorCount = 1;
+    	setLayoutBindings[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    	setLayoutBindings[1].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 
-	void DeferredContext::InitializeShadowMapDescriptor()
-	{
-    	std::array<VkDescriptorSetLayoutBinding, 1> setLayoutBindings = {};
-    	setLayoutBindings.front().descriptorCount = 1;
-    	setLayoutBindings.front().descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    	setLayoutBindings.front().stageFlags = VK_SHADER_STAGE_GEOMETRY_BIT;
+    	//ambient occlusion
+    	setLayoutBindings[2].binding = 2;
+    	setLayoutBindings[2].descriptorCount = 1;
+    	setLayoutBindings[2].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    	setLayoutBindings[2].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 
-    	DescriptorBufferCreateInfo descriptorBufferCI = {};
-    	descriptorBufferCI.devicePtr = &device;
-    	descriptorBufferCI.bufferUsageFlags = VK_BUFFER_USAGE_RESOURCE_DESCRIPTOR_BUFFER_BIT_EXT |
-			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT |
-			VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
-    	descriptorBufferCI.memoryProperties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-			VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
-    	descriptorBufferCI.pLayoutBindings = setLayoutBindings.data();
-    	descriptorBufferCI.layoutBindingCount = static_cast<uint32_t>(setLayoutBindings.size());
-    	descriptorBufferCI.resourceDescriptorData.resize(gMaxFramesInFlight);
-    	for (size_t frame = 0; frame < gMaxFramesInFlight; ++frame)
-    	{
-    		descriptorBufferCI.resourceDescriptorData[frame].push_back(&uniformBuffers[frame].shadow);
-    	}
+		descriptorManager.AllocateDescriptorBuffer(DescriptorCategory::eMaterial, 1,
+			OBJECT_COUNT, setLayoutBindings);
 
-    	uniformBindingDescriptors[dePipeline::SHADOW].Create(descriptorBufferCI);
     }
 
 	void DeferredContext::InitializeSkyBoxDescriptor()

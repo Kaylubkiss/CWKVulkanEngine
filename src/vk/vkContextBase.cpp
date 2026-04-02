@@ -148,11 +148,6 @@ namespace vk
 	{
 		//TODO: a little janky way to initialize as more of mInfo is filled with derived classes.
 		m_info.devicePtr = &this->device;
-
-		if (m_settings.UIDisplay)
-		{
-			m_info.contextUIPtr = &UIOverlay;
-		}
 	}
 
 	//getter(s)

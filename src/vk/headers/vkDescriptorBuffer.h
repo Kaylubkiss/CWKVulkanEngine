@@ -70,14 +70,14 @@ namespace vk
 				setLayoutCreateInfo.bindingCount);
 
 			m_numCols = numFrames;
-			m_bufferSize = layoutCount * m_setLayoutSize;
+			m_bufferSize = numFrames * layoutCount * m_setLayoutSize;
 			m_buffer = vk::Buffer(m_devicePtr, bufferUsage, bufferMemoryProps, m_bufferSize);
 
 			m_buffer.Map(); //TODO: remove once integrating descriptor manager. Not all resources should be mapped.
 		}
 
-		void WriteDescriptor( vk::Device* devicePtr, const WriteResource& writeData, uint32_t layoutIndex, uint32_t frame,
-			uint32_t binding, size_t writeSize )
+		void WriteDescriptor( vk::Device* devicePtr, const WriteResource& writeData, uint32_t layoutIndex,
+			uint32_t frame, uint32_t binding, size_t writeSize )
 		{
 			assert(writeData.IsValid());
 

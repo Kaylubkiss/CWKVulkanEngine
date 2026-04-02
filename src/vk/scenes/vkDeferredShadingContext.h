@@ -33,8 +33,7 @@ namespace vk
 
 		void InitializeUBODescriptors( DescriptorManager& descriptorManager );
 		void InitializeCompositionImageDescriptors( DescriptorManager& descriptorManager );
-		void InitializeMRTDescriptor();
-		void InitializeShadowMapDescriptor();
+		void InitializeMaterialDescriptors( DescriptorManager& descriptorManager );
 		void InitializeSkyBoxDescriptor();
 
 		void InitializePipelineLayouts();

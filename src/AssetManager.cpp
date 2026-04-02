@@ -119,26 +119,14 @@ void AssetManager::InitTestScene()
 
 	LoadObject(objectCI);
 
-
 	objectCI = {};
-	objectCI.modelTransform = glm::translate(glm::mat4(1.f), glm::vec3(10.f, 1.f, 0));
-	objectCI.objName = "SciFiHelmet/glTF/SciFiHelmet.gltf";
+	objectCI.modelTransform = glm::translate(glm::mat4(1.f), glm::vec3(0.5f, -0.5f, 8)) *
+		glm::scale(glm::mat4(1.f), glm::vec3(3));
+	objectCI.objName = "DiffuseTransmissionTeacup/glTF/DiffuseTransmissionTeacup.gltf";
 	objectCI.devicePtr = c_devicePtr;
 	objectCI.textureManagerPtr = m_textureManagerPtr;
 
 	LoadObject(objectCI);
-
-	for (size_t i = 0; i < 300; ++i)
-	{
-		objectCI = {};
-		objectCI.modelTransform = glm::translate(glm::mat4(1.f), glm::vec3(0.5f, -0.5f, 8)) *
-			glm::scale(glm::mat4(1.f), glm::vec3(3));
-		objectCI.objName = "DiffuseTransmissionTeacup/glTF/DiffuseTransmissionTeacup.gltf";
-		objectCI.devicePtr = c_devicePtr;
-		objectCI.textureManagerPtr = m_textureManagerPtr;
-
-		LoadObject(objectCI);
-	}
 }
 
 void AssetManager::Update( float dt )
