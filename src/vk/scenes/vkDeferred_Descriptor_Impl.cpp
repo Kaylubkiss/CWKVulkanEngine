@@ -1,5 +1,4 @@
 #include "vkDeferredShadingContext.h"
-
 namespace vk
 {
 
@@ -45,7 +44,8 @@ namespace vk
 		    	resourceBufferPtrs.resize(gMaxFramesInFlight);
 		    	for (size_t frame = 0; frame < resourceBufferPtrs.size(); ++frame)
 		    	{
-		    		resourceBufferPtrs[frame].push_back(&uniformBuffers[frame].mrt);
+		    		vk::Buffer* handle = &uniformBuffers[frame].mrt;
+		    		resourceBufferPtrs[frame].push_back(handle);
 		    	}
 
 		    	descriptorManager.WriteDescriptors(DescriptorCategory::eUBO, mrtUBOLayoutIndex, resourceBufferPtrs);
@@ -57,7 +57,9 @@ namespace vk
 		    	resourceBufferPtrs.resize(gMaxFramesInFlight);
 		    	for (size_t frame = 0; frame < resourceBufferPtrs.size(); ++frame)
 		    	{
-		    		resourceBufferPtrs[frame].push_back(&uniformBuffers[frame].shadow);
+		    		vk::Buffer* handle = &uniformBuffers[frame].shadow;
+
+		    		resourceBufferPtrs[frame].push_back(handle);
 		    	}
 
 		    	descriptorManager.WriteDescriptors(DescriptorCategory::eUBO, shadowUBOLayoutIndex, resourceBufferPtrs);
@@ -136,10 +138,6 @@ namespace vk
     	}
 
     	descriptorManager.WriteDescriptors(DescriptorCategory::eCompositionImage, swapChainImageIndex, imageDescriptorData);
-
-
-
-
     }
 
 	void DeferredContext::InitializeMRTDescriptor()
