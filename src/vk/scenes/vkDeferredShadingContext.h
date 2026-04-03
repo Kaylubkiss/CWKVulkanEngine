@@ -34,7 +34,7 @@ namespace vk
 		void InitializeUBODescriptors( DescriptorManager& descriptorManager );
 		void InitializeCompositionImageDescriptors( DescriptorManager& descriptorManager );
 		void InitializeMaterialDescriptors( DescriptorManager& descriptorManager );
-		void InitializeSkyBoxDescriptor();
+		void InitializeSkyBoxDescriptor( DescriptorManager& descriptorManager );
 
 		void InitializePipelineLayouts();
 		void UpdateScreenUniforms();
@@ -98,6 +98,8 @@ namespace vk
 
 		uint32_t compositionImageIndex = 0;
 		uint32_t swapChainImageIndex = 0;
+
+		uint32_t skyboxImageIndex = 0;
 
 		std::array<UniformBuffers, gMaxFramesInFlight> uniformBuffers;
 

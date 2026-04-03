@@ -23,9 +23,9 @@ Object::Object( const ObjectCreateInfo& objectCI, TextureManager& textureManager
             throw std::runtime_error("Object() Failed!");
         }
 
-        if (strcmp(objectCI.textureFileName.c_str(), "") > 0)
+        if (objectCI.textureFileNames.empty() == false)
         {
-            std::cout << "\033[33m[WARNING] .gltf will not use specified texture name in ObjectCreateInfo\033[0m\n";
+            std::cout << "\033[33m [WARNING] .gltf will not use specified texture name in ObjectCreateInfo \033[0m\n";
         }
 
         m_model = std::make_unique<GLTFModel>(objectCI.devicePtr, filePath);
@@ -51,9 +51,9 @@ Object::Object( const ObjectCreateInfo& objectCI, TextureManager& textureManager
 
         m_model = std::make_unique<OBJModel>(objectCI.devicePtr, filePath);
 
-        if (strcmp(objectCI.textureFileName.c_str(), "") > 0)
+        if (objectCI.textureFileNames.empty() == false)
         {
-            m_model->LoadTextures(textureManager, {objectCI.textureFileName});
+            m_model->LoadTextures(textureManager, objectCI.textureFileNames);
         }
     }
     else

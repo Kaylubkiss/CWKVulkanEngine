@@ -20,7 +20,7 @@ namespace vk
         	InitializeMaterialDescriptors(descriptorManager);
 
 			//Skybox sampler descriptor
-			InitializeSkyBoxDescriptor();
+			//InitializeSkyBoxDescriptor();
 		}
     }
 
@@ -164,9 +164,10 @@ namespace vk
 		descriptorManager.AllocateDescriptorBuffer(DescriptorCategory::eMaterial, 1,
 			OBJECT_COUNT, setLayoutBindings);
 
+    	//texture manager will fill the descriptor buffers.
     }
 
-	void DeferredContext::InitializeSkyBoxDescriptor()
+	void DeferredContext::InitializeSkyBoxDescriptor( DescriptorManager& descriptorManager )
 	{
     	std::array<VkDescriptorSetLayoutBinding, 1> setLayoutBindings = {};
     	setLayoutBindings.front().descriptorCount = 1;

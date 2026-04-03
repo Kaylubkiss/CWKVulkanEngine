@@ -60,7 +60,7 @@ void AssetManager::InitTestScene()
 
 	//object 1 - freddy
 	objectCI.objName = "freddy.obj";
-	objectCI.textureFileName = "art/extern-textures/myface.JPG";
+	objectCI.textureFileNames = { "art/extern-textures/myface.JPG" } ;
 	objectCI.modelTransform = glm::translate(glm::mat4(1.f), freddyPosition) *
 		glm::scale(glm::mat4(1.f), glm::vec3(3.f));
 	objectCI.devicePtr = c_devicePtr;
@@ -77,7 +77,7 @@ void AssetManager::InitTestScene()
 
 	objectCI.objName = "cube.obj";
 	//NOTE: cube.obj doesn't have UVs.
-	objectCI.textureFileName = "art/extern-textures/myface.JPG";
+	objectCI.textureFileNames = { "art/extern-textures/myface.JPG" } ;
 	objectCI.physicsComponent = physicsComponent;
 	objectCI.hasPhysicsComponent = true;
 	objectCI.modelTransform = glm::translate(glm::mat4(1.f), glm::vec3(cubePosition));
@@ -92,7 +92,7 @@ void AssetManager::InitTestScene()
 	physicsComponent.bodyType = reactphysics3d::BodyType::STATIC;
 
 	objectCI.objName = "base.obj";
-	objectCI.textureFileName = "art/extern-textures/wood-floor.png";
+	objectCI.textureFileNames = { "art/extern-textures/wood-floor.png" } ;
 	objectCI.physicsComponent = physicsComponent;
 	objectCI.modelTransform = glm::translate(glm::mat4(1.f), glm::vec3(0, -5.f, 0)) *
 		glm::scale(glm::mat4(1.f), glm::vec3(30.f));
@@ -125,6 +125,23 @@ void AssetManager::InitTestScene()
 	objectCI.objName = "DiffuseTransmissionTeacup/glTF/DiffuseTransmissionTeacup.gltf";
 	objectCI.devicePtr = c_devicePtr;
 	objectCI.textureManagerPtr = m_textureManagerPtr;
+
+	LoadObject(objectCI);
+
+	objectCI = {};
+
+	objectCI.objName = "IceRiverSkybox";
+	objectCI.devicePtr = c_devicePtr;
+	objectCI.textureManagerPtr = m_textureManagerPtr;
+	objectCI.textureFileNames =
+	{
+		"IceRiver/posx.jpg", //right (+X)
+		"IceRiver/negx.jpg", //left (-X)
+		"IceRiver/posy.jpg", //up (+Y)
+		"IceRiver/negy.jpg", //down (-Y)
+		"IceRiver/posz.jpg", //forward (+Z)
+		"IceRiver/negz.jpg",
+	};
 
 	LoadObject(objectCI);
 }

@@ -10,7 +10,7 @@ struct ObjectCreateInfo
 	glm::mat4 modelTransform = glm::mat4(1.0f);
 	PhysicsComponent physicsComponent;
 	std::string objName;
-	std::string textureFileName;
+	std::vector<std::string> textureFileNames;
 	vk::Device* devicePtr = nullptr;
 	TextureManager* textureManagerPtr = nullptr;
 	bool hasPhysicsComponent = false;

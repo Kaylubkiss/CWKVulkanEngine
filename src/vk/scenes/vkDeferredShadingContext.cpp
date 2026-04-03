@@ -62,38 +62,16 @@ namespace vk
 
 		DeferredContext::InitializeDescriptors(*m_descriptorManagerPtr);
 
-		/*//texture material samplers
-		std::array<VkDescriptorSetLayoutBinding, 3> setLayoutBindings = {};
+		std::vector<std::string> skyboxTextures = {
+			"IceRiver/posx.jpg", //right (+X)
+			"IceRiver/negx.jpg", //left (-X)
+			"IceRiver/posy.jpg", //up (+Y)
+			"IceRiver/negy.jpg", //down (-Y)
+			"IceRiver/posz.jpg", //forward (+Z)
+			"IceRiver/negz.jpg",
+		};
 
-		//albedo
-		setLayoutBindings[0].binding = 0;
-		setLayoutBindings[0].descriptorCount = 1;
-		setLayoutBindings[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		setLayoutBindings[0].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-
-		//metallic roughness
-		setLayoutBindings[1].binding = 1;
-		setLayoutBindings[1].descriptorCount = 1;
-		setLayoutBindings[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		setLayoutBindings[1].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-
-		//ambient occlusion
-		setLayoutBindings[2].binding = 2;
-		setLayoutBindings[2].descriptorCount = 1;
-		setLayoutBindings[2].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		setLayoutBindings[2].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-
-		DescriptorBufferCreateInfo descriptorBufferCI = {};
-		descriptorBufferCI.devicePtr = &device;
-		descriptorBufferCI.bufferUsageFlags = VK_BUFFER_USAGE_RESOURCE_DESCRIPTOR_BUFFER_BIT_EXT |
-				VK_BUFFER_USAGE_SAMPLER_DESCRIPTOR_BUFFER_BIT_EXT |
-				VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
-		descriptorBufferCI.memoryProperties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-			VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
-		descriptorBufferCI.pLayoutBindings = setLayoutBindings.data();
-		descriptorBufferCI.layoutBindingCount = static_cast<uint32_t>(setLayoutBindings.size());
-		descriptorBufferCI.imageDescriptorData.resize(OBJECT_COUNT);
-		*/
+		skyboxImageIndex = textureManagerPtr->AddTextures(skyboxTextures); //TODO: allow vk::Texture to accept an array of filenames.
 
 		DeferredContext::InitializePipeline();
 	}
