@@ -15,33 +15,27 @@ namespace vk
         ~Cubemap() override = default;
 
         //just one particular environment map for now
-        void Create( const vk::Device* devicePtr, const std::string& fileName, std::mutex& transferMutex ) override
+        void Create( const vk::Device* devicePtr, const std::vector<std::string>& fileNames, std::mutex& transferMutex ) override
         {
             (void)(transferMutex);
-            (void)(fileName);
 
             constexpr int image_count = 6;
+
+            assert(fileNames.size() == image_count);
+
             //texture sizes should be square and/or the same in a cubemap
             int image_width, image_height, channels;
 
             std::array<stbi_uc*, image_count> texture_data = {};
-            std::array<std::string, image_count> file_names = {
-                "IceRiver/posx.jpg", //right (+X)
-                "IceRiver/negx.jpg", //left (-X)
-                "IceRiver/posy.jpg", //up (+Y)
-                "IceRiver/negy.jpg", //down (-Y)
-                "IceRiver/posz.jpg", //forward (+Z)
-                "IceRiver/negz.jpg", //back (-Z)
-            };
 
             for (size_t i = 0; i < image_count; ++i)
             {
-                texture_data[i] = stbi_load((CUBEMAP_DIR + file_names[i]).c_str(),
+                texture_data[i] = stbi_load((CUBEMAP_DIR + fileNames[i]).c_str(),
                     &image_width, &image_height, &channels, STBI_rgb_alpha);
 
                 if (texture_data[i] == nullptr)
                 {
-                    std::cerr << "failed to load Cubemap image  " + file_names[i] << "\n";
+                    std::cerr << "failed to load Cubemap image  " + fileNames[i] << "\n";
                     throw std::runtime_error("Cubemap::CreateImage() failed!\n");
                 }
             }
@@ -49,6 +43,8 @@ namespace vk
             const VkDeviceSize image_size = image_width * image_height *
                 4 * image_count;
             const VkDeviceSize layer_size = image_size / static_cast<VkDeviceSize>(image_count);
+
+            VkFence submissionFence = vk::init::CreateFence(devicePtr->GetDevice(), false);
 
             vk::Buffer stagingBuffer = vk::Buffer(devicePtr, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, image_size);
@@ -136,11 +132,14 @@ namespace vk
                     submitInfo.commandBufferCount = 1;
                     submitInfo.pCommandBuffers = &transferCmd;
 
-                    //std::lock_guard<std::mutex> lock(transferMutex);
-                    VK_CHECK_RESULT(vkQueueSubmit(devicePtr->GetQueue(DeviceQueue::TRANSFER).handle, 1, &submitInfo,
-                        VK_NULL_HANDLE));
+                    {
+                        std::lock_guard lock(transferMutex);
+                        VK_CHECK_RESULT(vkQueueSubmit(devicePtr->GetQueue(DeviceQueue::TRANSFER).handle, 1, &submitInfo,
+                            submissionFence));
+                    }
 
-                    VK_CHECK_RESULT(vkQueueWaitIdle(devicePtr->GetQueue(DeviceQueue::TRANSFER).handle));
+                    VK_CHECK_RESULT(vkWaitForFences(devicePtr->GetDevice(), 1, &submissionFence, VK_TRUE, UINT64_MAX));
+                    VK_CHECK_RESULT(vkResetFences(devicePtr->GetDevice(), 1, &submissionFence));
                 }
             }
 
@@ -178,11 +177,14 @@ namespace vk
                     submitInfo.commandBufferCount = 1;
                     submitInfo.pCommandBuffers = &transferCmd;
 
-                    // std::lock_guard<std::mutex> lock(transferMutex);
-                    VK_CHECK_RESULT(vkQueueSubmit(devicePtr->GetQueue(DeviceQueue::TRANSFER).handle,
-                        1, &submitInfo, VK_NULL_HANDLE));
+                    {
+                        std::lock_guard lock(transferMutex);
+                        VK_CHECK_RESULT(vkQueueSubmit(devicePtr->GetQueue(DeviceQueue::TRANSFER).handle,
+                            1, &submitInfo, submissionFence));
+                    }
 
-                    VK_CHECK_RESULT(vkQueueWaitIdle(devicePtr->GetQueue(DeviceQueue::TRANSFER).handle));
+                    VK_CHECK_RESULT(vkWaitForFences(devicePtr->GetDevice(), 1, &submissionFence, VK_TRUE, UINT64_MAX));
+                    VK_CHECK_RESULT(vkResetFences(devicePtr->GetDevice(), 1, &submissionFence));
                 }
             }
 
@@ -217,11 +219,14 @@ namespace vk
                 submitInfo.commandBufferCount = 1;
                 submitInfo.pCommandBuffers = &transferCmd;
 
-                //std::lock_guard<std::mutex> lock(transferMutex);
-                VK_CHECK_RESULT(vkQueueSubmit(devicePtr->GetQueue(DeviceQueue::TRANSFER).handle, 1, &submitInfo,
-                    VK_NULL_HANDLE));
+                {
+                    std::lock_guard lock(transferMutex);
+                    VK_CHECK_RESULT(vkQueueSubmit(devicePtr->GetQueue(DeviceQueue::TRANSFER).handle, 1, &submitInfo,
+                        submissionFence));
+                }
 
-                VK_CHECK_RESULT(vkQueueWaitIdle(devicePtr->GetQueue(DeviceQueue::TRANSFER).handle));
+                VK_CHECK_RESULT(vkWaitForFences(devicePtr->GetDevice(), 1, &submissionFence, VK_TRUE, UINT64_MAX));
+                VK_CHECK_RESULT(vkResetFences(devicePtr->GetDevice(), 1, &submissionFence));
             }
 
             VkSamplerCreateInfo createInfo = {};
@@ -249,6 +254,7 @@ namespace vk
 
             VkImageViewCreateInfo imageViewCI = vk::init::ImageViewCreateInfo();
             imageViewCI.viewType = VK_IMAGE_VIEW_TYPE_CUBE;
+            imageViewCI.image = m_image;
             imageViewCI.format = imageCI.format;
             imageViewCI.components = vk::init::ComponentMappingSwizzleIdentity();
             imageViewCI.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
@@ -256,13 +262,14 @@ namespace vk
             imageViewCI.subresourceRange.levelCount = VK_REMAINING_MIP_LEVELS;
             imageViewCI.subresourceRange.baseArrayLayer = 0;
             imageViewCI.subresourceRange.layerCount = VK_REMAINING_ARRAY_LAYERS;
-            imageViewCI.image = m_image;
 
             VK_CHECK_RESULT(vkCreateImageView(devicePtr->GetDevice(), &imageViewCI, nullptr, &m_imageView));
 
             //deallocate resources
             vkFreeCommandBuffers(devicePtr->GetDevice(), transferCmdPool, 1, &transferCmd);
             vkDestroyCommandPool(devicePtr->GetDevice(), transferCmdPool, nullptr);
+
+            vkDestroyFence(devicePtr->GetDevice(), submissionFence, nullptr);
 
             for (size_t i = 0; i < image_count; ++i)
             {

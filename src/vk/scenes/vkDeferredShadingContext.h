@@ -34,7 +34,6 @@ namespace vk
 		void InitializeUBODescriptors( DescriptorManager& descriptorManager );
 		void InitializeCompositionImageDescriptors( DescriptorManager& descriptorManager );
 		void InitializeMaterialDescriptors( DescriptorManager& descriptorManager );
-		void InitializeSkyBoxDescriptor( DescriptorManager& descriptorManager );
 
 		void InitializePipelineLayouts();
 		void UpdateScreenUniforms();
@@ -104,8 +103,6 @@ namespace vk
 		std::array<UniformBuffers, gMaxFramesInFlight> uniformBuffers;
 
 		std::array<DescriptorBuffer, dePipeline::PIPELINE_COUNT> uniformBindingDescriptors;
-
-		DescriptorBuffer skyboxSamplerBindingDescriptor;
 
 		//NOTE: this will all be done offscreen because we have a main renderpass from the swapchain we'll
 		//read the results of this from

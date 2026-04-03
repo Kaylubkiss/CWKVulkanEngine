@@ -166,28 +166,4 @@ namespace vk
 
     	//texture manager will fill the descriptor buffers.
     }
-
-	void DeferredContext::InitializeSkyBoxDescriptor( DescriptorManager& descriptorManager )
-	{
-    	std::array<VkDescriptorSetLayoutBinding, 1> setLayoutBindings = {};
-    	setLayoutBindings.front().descriptorCount = 1;
-    	setLayoutBindings.front().descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    	setLayoutBindings.front().stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-
-    	DescriptorBufferCreateInfo descriptorBufferCI = {};
-    	descriptorBufferCI.devicePtr = &device;
-    	descriptorBufferCI.pLayoutBindings = setLayoutBindings.data();
-    	descriptorBufferCI.layoutBindingCount = static_cast<uint32_t>(setLayoutBindings.size());
-    	descriptorBufferCI.bufferUsageFlags = VK_BUFFER_USAGE_RESOURCE_DESCRIPTOR_BUFFER_BIT_EXT |
-		VK_BUFFER_USAGE_SAMPLER_DESCRIPTOR_BUFFER_BIT_EXT |
-		VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
-    	descriptorBufferCI.memoryProperties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-			VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
-
-    	VkDescriptorImageInfo skyboxTextureInfo = test_cube.GetDescriptor();
-
-    	descriptorBufferCI.imageDescriptorData.push_back({skyboxTextureInfo});
-
-    	skyboxSamplerBindingDescriptor.Create(descriptorBufferCI);
-    }
 }

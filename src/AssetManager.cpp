@@ -127,23 +127,6 @@ void AssetManager::InitTestScene()
 	objectCI.textureManagerPtr = m_textureManagerPtr;
 
 	LoadObject(objectCI);
-
-	objectCI = {};
-
-	objectCI.objName = "IceRiverSkybox";
-	objectCI.devicePtr = c_devicePtr;
-	objectCI.textureManagerPtr = m_textureManagerPtr;
-	objectCI.textureFileNames =
-	{
-		"IceRiver/posx.jpg", //right (+X)
-		"IceRiver/negx.jpg", //left (-X)
-		"IceRiver/posy.jpg", //up (+Y)
-		"IceRiver/negy.jpg", //down (-Y)
-		"IceRiver/posz.jpg", //forward (+Z)
-		"IceRiver/negz.jpg",
-	};
-
-	LoadObject(objectCI);
 }
 
 void AssetManager::Update( float dt )

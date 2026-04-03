@@ -59,11 +59,12 @@ namespace vk
 		return nTextureSampler;
 	}
 
-	void Texture::Create( const vk::Device* devicePtr, const std::string& filePath, std::mutex& transferMutex )
+	void Texture::Create( const vk::Device* devicePtr, const std::vector<std::string>& fileNames, std::mutex& transferMutex )
 	{
 
 		assert(devicePtr);
 		//Might want to make command pool a member variable.
+		const std::string& filePath = fileNames.front();
 
 		int textureWidth, textureHeight, textureChannels;
 		stbi_uc* pixels = filePath.empty() ? nullptr : stbi_load(filePath.c_str(),
@@ -195,6 +196,7 @@ namespace vk
 			releaseBarrier.subresourceRange.levelCount = VK_REMAINING_MIP_LEVELS;
 			releaseBarrier.subresourceRange.baseArrayLayer = 0;
 			releaseBarrier.subresourceRange.layerCount = VK_REMAINING_ARRAY_LAYERS;
+			releaseBarrier.srcAccessMask = 0;
 			releaseBarrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
 
 			VkCommandBufferBeginInfo beginInfo = {};
@@ -228,6 +230,7 @@ namespace vk
 
 		vkFreeCommandBuffers(devicePtr->GetDevice(), transferCmdPool, 1, &transferCmd);
 		vkDestroyCommandPool(devicePtr->GetDevice(), transferCmdPool, nullptr);
+
 		vkDestroyFence(devicePtr->GetDevice(), submissionFence, nullptr);
 
 		stagingBuffer.Destroy();

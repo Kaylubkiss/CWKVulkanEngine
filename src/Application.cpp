@@ -46,7 +46,6 @@ void Application::init()
 
 	vk::GraphicsContextInfo& contextInfo = m_vulkanGraphicsContext->GetGraphicsContextInfo();
 
-	m_textureManager.Init(contextInfo.devicePtr, &m_descriptorManager);
 	m_assetManager.Init(contextInfo.devicePtr, &m_textureManager, 2);
 }
 

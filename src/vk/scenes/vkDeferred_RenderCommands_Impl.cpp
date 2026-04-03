@@ -236,7 +236,7 @@ namespace vk
 			//Binding/Set 1 = cube sampler data
 			descriptor_buffer_binding_info[1].sType = VK_STRUCTURE_TYPE_DESCRIPTOR_BUFFER_BINDING_INFO_EXT;
 			descriptor_buffer_binding_info[1].address =
-				skyboxSamplerBindingDescriptor.GetBuffer().GetDeviceAddress();
+				m_descriptorManagerPtr->GetDescriptorAddress(DescriptorCategory::eMaterial);
 			descriptor_buffer_binding_info[1].usage = VK_BUFFER_USAGE_SAMPLER_DESCRIPTOR_BUFFER_BIT_EXT |
 				VK_BUFFER_USAGE_RESOURCE_DESCRIPTOR_BUFFER_BIT_EXT;
 
@@ -252,7 +252,8 @@ namespace vk
 			g_vkCmdSetDescriptorBufferOffsetsEXT(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
 				pipelineLayouts[dePipeline::SKY], 0, 1, &buffer_index_ubo, &buffer_offset);
 
-			buffer_offset = 0;
+			buffer_offset = skyboxImageIndex *
+				m_descriptorManagerPtr->GetLayoutSize(DescriptorCategory::eMaterial);
 
 			//scene sampler
 			g_vkCmdSetDescriptorBufferOffsetsEXT(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,

@@ -11,7 +11,7 @@ namespace vk
 		Texture& operator=( const Texture& other ) = delete;
 		Texture( const Texture& other ) = delete;
 
-		virtual void Create( const vk::Device* devicePtr, const std::string& fileName, std::mutex& transferMutex );
+		virtual void Create( const vk::Device* devicePtr, const std::vector<std::string>& fileNames, std::mutex& transferMutex );
 
 		[[nodiscard]] VkDescriptorImageInfo GetDescriptor() const;
 		[[nodiscard]] VkImage GetImage() const;

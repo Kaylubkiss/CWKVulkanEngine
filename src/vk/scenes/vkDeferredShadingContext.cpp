@@ -6,56 +6,11 @@
 namespace vk
 {
 
-	DeferredContext::DeferredContext( TextureManager* textureManagerPtr, DescriptorManager* descriptorManagerPtr ) : ContextBase(textureManagerPtr)
+	DeferredContext::DeferredContext( TextureManager* textureManagerPtr, DescriptorManager* descriptorManagerPtr ) :
+		ContextBase(textureManagerPtr)
 	{
-		assert(descriptorManagerPtr != nullptr);
-		m_descriptorManagerPtr = descriptorManagerPtr;
 
-		std::mutex testMutex;
-		test_cube.Create(&this->device, "pooop", testMutex);
-
-		vk::Device* devicePtr = &this->device;
-
-		VkCommandBufferBeginInfo cmdBufferBeginInfo = vk::init::CommandBufferBeginInfo();
-		cmdBufferBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-
-		VkImageMemoryBarrier acquireBarrier = {};
-		acquireBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-		acquireBarrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-		acquireBarrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-		acquireBarrier.srcQueueFamilyIndex = devicePtr->GetQueue(vk::DeviceQueue::TRANSFER).family;
-		acquireBarrier.dstQueueFamilyIndex = devicePtr->GetQueue(vk::DeviceQueue::GRAPHICS).family;
-		acquireBarrier.image = test_cube.GetImage();
-		acquireBarrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-		acquireBarrier.subresourceRange.baseMipLevel = 0;
-		acquireBarrier.subresourceRange.levelCount = VK_REMAINING_MIP_LEVELS;
-		acquireBarrier.subresourceRange.baseArrayLayer = 0;
-		acquireBarrier.subresourceRange.layerCount = VK_REMAINING_ARRAY_LAYERS;
-
-		acquireBarrier.srcAccessMask = 0;
-		acquireBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-
-		VK_CHECK_RESULT(vkBeginCommandBuffer(commandBuffers[currentFrame], &cmdBufferBeginInfo));
-
-		vkCmdPipelineBarrier(
-			commandBuffers[currentFrame],
-			VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
-			VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
-			0, 0, nullptr,
-			0, nullptr,
-			1, &acquireBarrier
-		);
-
-		VK_CHECK_RESULT(vkEndCommandBuffer(commandBuffers[currentFrame]));
-
-		VkSubmitInfo submitInfo = {};
-		submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-		submitInfo.commandBufferCount = 1;
-		submitInfo.pCommandBuffers = &commandBuffers[currentFrame];
-
-		VK_CHECK_RESULT(vkQueueSubmit(devicePtr->GetQueue(vk::DeviceQueue::GRAPHICS).handle, 1, &submitInfo, VK_NULL_HANDLE));
-
-		VK_CHECK_RESULT(vkQueueWaitIdle(devicePtr->GetQueue(vk::DeviceQueue::GRAPHICS).handle));
+		m_descriptorManagerPtr = descriptorManagerPtr;;
 
 		InitializeUniforms();
 		InitializeFramebuffers();
@@ -71,7 +26,9 @@ namespace vk
 			"IceRiver/negz.jpg",
 		};
 
-		skyboxImageIndex = textureManagerPtr->AddTextures(skyboxTextures); //TODO: allow vk::Texture to accept an array of filenames.
+		m_textureManagerPtr->Init(&device, descriptorManagerPtr);
+
+		skyboxImageIndex = m_textureManagerPtr->AddTextures(skyboxTextures, true); //TODO: allow vk::Texture to accept an array of filenames.
 
 		DeferredContext::InitializePipeline();
 	}
@@ -99,8 +56,6 @@ namespace vk
 		{
 			uniformDescriptor.Destroy();
 		}
-
-		skyboxSamplerBindingDescriptor.Destroy();
 
 		for (size_t frame = 0; frame < gMaxFramesInFlight; ++frame)
 		{
@@ -246,7 +201,8 @@ namespace vk
 				std::array<VkDescriptorSetLayout, 2> layouts =
 				{
 					//set 0: uniforms, set 1: samplers
-					m_descriptorManagerPtr->GetLayout(DescriptorCategory::eUBO), skyboxSamplerBindingDescriptor.GetLayout()
+					m_descriptorManagerPtr->GetLayout(DescriptorCategory::eUBO),
+					m_descriptorManagerPtr->GetLayout(DescriptorCategory::eMaterial)
 				};
 
 				VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = vk::init::PipelineLayoutCreateInfo();
