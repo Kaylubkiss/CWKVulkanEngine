@@ -16,181 +16,27 @@ public:
     DescriptorManager() = default;
     ~DescriptorManager() = default;
 
-    void Init( vk::Device* devicePtr )
-    {
-        assert(devicePtr != nullptr);
+    void Init( vk::Device* devicePtr );
 
-        m_devicePtr = devicePtr;
-        m_properties = m_devicePtr->GetDescriptorBufferProperties();
-    }
-
-    void Destroy()
-    {
-        std::lock_guard lock(m_mutex);
-
-        for (auto& [type, bufferData] : m_descriptorBuffers)
-        {
-            bufferData.descriptor.Destroy();
-        }
-
-    }
+    void Destroy();
 
     void AllocateDescriptorBuffer(DescriptorCategory category, size_t numFrames, size_t layoutCount,
-        const std::vector<VkDescriptorSetLayoutBinding>& bindings)
-    {
-        std::lock_guard lock(m_mutex);
-
-        if (m_descriptorBuffers.contains(category))
-        {
-            m_descriptorBuffers[category].descriptor.Destroy();
-            m_descriptorBuffers[category].freeList.clear();
-        }
-
-        //create the layout for the descriptor buffer.
-        //allocate the buffer for the descriptor buffer.
-        VkBufferUsageFlags bufferUsageFlags;
-        VkMemoryPropertyFlags memoryProperties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-            VK_MEMORY_PROPERTY_HOST_COHERENT_BIT; //TODO: TEMPORARY. Not all the buffers should use these flags.
-
-        if (category == DescriptorCategory::eUBO || category == DescriptorCategory::eObject)
-        {
-            bufferUsageFlags = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT |
-                VK_BUFFER_USAGE_RESOURCE_DESCRIPTOR_BUFFER_BIT_EXT |
-                VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
-        }
-        else if (category == DescriptorCategory::eMaterial)
-        {
-            bufferUsageFlags = VK_BUFFER_USAGE_RESOURCE_DESCRIPTOR_BUFFER_BIT_EXT |
-                VK_BUFFER_USAGE_SAMPLER_DESCRIPTOR_BUFFER_BIT_EXT |
-                VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
-        }
-        else if (category == DescriptorCategory::eCompositionImage) //TODO: might get away with the same usage as eMaterial.
-        {
-            bufferUsageFlags = VK_BUFFER_USAGE_RESOURCE_DESCRIPTOR_BUFFER_BIT_EXT |
-                VK_BUFFER_USAGE_SAMPLER_DESCRIPTOR_BUFFER_BIT_EXT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
-        }
-        else
-        {
-            std::cerr << "Unknown descriptor category specified\n";
-            throw std::runtime_error("DescriptorManager::AllocateDescriptorBuffer() Failed\n");
-        }
-
-        m_descriptorBuffers[category].descriptor.Allocate(
-            m_devicePtr, bufferUsageFlags, memoryProperties,
-            numFrames, layoutCount, bindings
-            );
-
-        m_descriptorBuffers[category].freeList.resize(layoutCount);
-
-        for (size_t i = 0; i < layoutCount; ++i)
-        {
-            m_descriptorBuffers[category].freeList.push_back(i);
-        }
-    }
+        const std::vector<VkDescriptorSetLayoutBinding>& bindings);
 
     // [frame][binding]
     void WriteDescriptors(DescriptorCategory category, uint32_t layoutIndex,
-        vk::imageBuffers2D& imageDescriptors)
-    {
-
-        auto& descriptor = m_descriptorBuffers[category].descriptor;
-
-        vk::WriteResource writeResource;
-
-        for (int frame = 0; frame < imageDescriptors.size(); ++frame)
-        {
-            for (int binding = 0; binding < imageDescriptors[frame].size(); ++binding)
-            {
-                writeResource.pImageData = &imageDescriptors[frame][binding];
-
-                {
-                    std::lock_guard lock(m_mutex);
-                    descriptor.WriteDescriptor(m_devicePtr, writeResource,
-                       layoutIndex, frame, binding, m_properties.combinedImageSamplerDescriptorSize);
-                }
-            }
-        }
-    }
+        vk::imageBuffers2D& imageDescriptors);
 
     void WriteDescriptors(DescriptorCategory category, uint32_t layoutIndex,
-        vk::resourceBufferPtrs2D& resourceDescriptors)
-    {
-        auto& descriptor = m_descriptorBuffers[category].descriptor;
+        vk::resourceBufferPtrs2D& resourceDescriptors);
 
-        vk::WriteResource writeResource;
+    uint32_t GetLayoutIndex(DescriptorCategory category);
 
-        for (int frame = 0; frame < resourceDescriptors.size(); ++frame)
-        {
-            for (int binding = 0; binding < resourceDescriptors[frame].size(); ++binding)
-            {
-                writeResource.pResourceData = resourceDescriptors[frame][binding];
+    VkDeviceSize GetLayoutSize(DescriptorCategory category);
 
-                {
-                    std::lock_guard lock(m_mutex);
-                    descriptor.WriteDescriptor(m_devicePtr, writeResource,
-                        layoutIndex, frame, binding, m_properties.uniformBufferDescriptorSize);
-                }
-            }
-        }
-    }
+    VkDescriptorSetLayout GetLayout(DescriptorCategory category);
 
-    uint32_t GetLayoutIndex(DescriptorCategory category)
-    {
-        std::lock_guard lock(m_mutex);
-
-        if (m_descriptorBuffers.contains(category) == false)
-        {
-            return -1;
-        }
-
-        if (m_descriptorBuffers[category].freeList.empty())
-        {
-            std::cerr << "no more space in the free list for descriptor category\n";
-            throw std::runtime_error("DescriptorBuffer::GetLayoutIndex() failed");
-        }
-
-        uint32_t index = m_descriptorBuffers[category].freeList.back();
-        m_descriptorBuffers[category].freeList.pop_back();
-
-        return index;
-    }
-
-    VkDeviceSize GetLayoutSize(DescriptorCategory category)
-    {
-        std::lock_guard lock(m_mutex);
-
-        if (m_descriptorBuffers.contains(category))
-        {
-            return m_descriptorBuffers[category].descriptor.GetLayoutSize();
-        }
-
-        return -1;
-    }
-
-    VkDescriptorSetLayout GetLayout(DescriptorCategory category)
-    {
-        std::lock_guard lock(m_mutex);
-
-        if (m_descriptorBuffers.contains(category))
-        {
-            return m_descriptorBuffers[category].descriptor.GetLayout();
-        }
-
-        return VK_NULL_HANDLE;
-    }
-
-    VkDeviceAddress GetDescriptorAddress(DescriptorCategory category)
-    {
-        std::lock_guard lock(m_mutex);
-
-        if (m_descriptorBuffers.contains(category)) {
-            return m_descriptorBuffers[category].descriptor.GetBuffer().GetDeviceAddress();
-        }
-
-        std::cerr << "DescriptorManager::GetDescriptorAddress(), device address is invalid for requested category\n";
-
-        return -1;
-    }
+    VkDeviceAddress GetDescriptorAddress(DescriptorCategory category);
 
 
 private:

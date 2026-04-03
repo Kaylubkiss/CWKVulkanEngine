@@ -70,6 +70,7 @@ src/CameraController.cpp
 src/UserInterface.cpp
 src/GLTFModel.cpp
 src/OBJModel.cpp
+src/DescriptorManager.cpp
 )
 
 set(VULKAN_SRC_DIR src/vk)

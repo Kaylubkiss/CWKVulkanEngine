@@ -75,7 +75,7 @@ namespace vk
 		std::array<VkSemaphore, gMaxFramesInFlight> textureUploadSemaphores; //for I/O synchronization
 		std::array<VkFence, gMaxFramesInFlight> inFlightFences;
 
-		/*VkPipelineLayout m_graphicsPipelineLayout = VK_NULL_HANDLE;*/ //TODO
+		/*VkPipelineLayout m_graphicsPipelineLayout = VK_NULL_HANDLE; //TODO*/
 
 		TextureManager* m_textureManagerPtr = nullptr;
 

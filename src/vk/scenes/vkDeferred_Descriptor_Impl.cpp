@@ -6,76 +6,71 @@ namespace vk
     void DeferredContext::InitializeDescriptors( DescriptorManager& descriptorManager )
     {
         {
-
         	descriptorManager.Init(&device);
-        	//there are three ubos in this demo.
-        	//1 - scene transforms: eye, projection
-        	//2 - shadow projection
-        	//3 - lighting struct
-        	//..not in that order.{
+
         	InitializeUBODescriptors(descriptorManager);
 
         	InitializeCompositionImageDescriptors(descriptorManager);
 
         	InitializeMaterialDescriptors(descriptorManager);
-
-			//Skybox sampler descriptor
-			//InitializeSkyBoxDescriptor();
 		}
     }
 
 
 	void DeferredContext::InitializeUBODescriptors( DescriptorManager& descriptorManager )
 	{
+    	//there are three ubos in this demo.
+    	//1 - scene transforms: eye, projection
+    	//2 - shadow projection
+    	//3 - lighting struct
+    	//..not in that order.
+	    size_t ubo_count = 3;
+
+	    std::vector<VkDescriptorSetLayoutBinding> bindings(1);
+	    bindings[0].binding = 0;
+	    bindings[0].descriptorCount = 1;
+	    bindings[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+	    bindings[0].stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_GEOMETRY_BIT;
+
+	    descriptorManager.AllocateDescriptorBuffer(DescriptorCategory::eUBO, gMaxFramesInFlight, ubo_count, bindings);
+
+	    mrtUBOLayoutIndex = descriptorManager.GetLayoutIndex(DescriptorCategory::eUBO);
 	    {
-		    size_t ubo_count = 3;
-
-	    	std::vector<VkDescriptorSetLayoutBinding> bindings(1);
-	    	bindings[0].binding = 0;
-	    	bindings[0].descriptorCount = 1;
-	    	bindings[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-	    	bindings[0].stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_GEOMETRY_BIT;
-
-	    	descriptorManager.AllocateDescriptorBuffer(DescriptorCategory::eUBO, gMaxFramesInFlight, ubo_count, bindings);
-
-	    	mrtUBOLayoutIndex = descriptorManager.GetLayoutIndex(DescriptorCategory::eUBO);
+		    vk::resourceBufferPtrs2D resourceBufferPtrs;
+		    resourceBufferPtrs.resize(gMaxFramesInFlight);
+		    for (size_t frame = 0; frame < resourceBufferPtrs.size(); ++frame)
 		    {
-		    	vk::resourceBufferPtrs2D resourceBufferPtrs;
-		    	resourceBufferPtrs.resize(gMaxFramesInFlight);
-		    	for (size_t frame = 0; frame < resourceBufferPtrs.size(); ++frame)
-		    	{
-		    		vk::Buffer* handle = &uniformBuffers[frame].mrt;
-		    		resourceBufferPtrs[frame].push_back(handle);
-		    	}
-
-		    	descriptorManager.WriteDescriptors(DescriptorCategory::eUBO, mrtUBOLayoutIndex, resourceBufferPtrs);
+			    vk::Buffer* handle = &uniformBuffers[frame].mrt;
+			    resourceBufferPtrs[frame].push_back(handle);
 		    }
 
-	    	shadowUBOLayoutIndex = descriptorManager.GetLayoutIndex(DescriptorCategory::eUBO);
+		    descriptorManager.WriteDescriptors(DescriptorCategory::eUBO, mrtUBOLayoutIndex, resourceBufferPtrs);
+	    }
+
+	    shadowUBOLayoutIndex = descriptorManager.GetLayoutIndex(DescriptorCategory::eUBO);
+	    {
+		    vk::resourceBufferPtrs2D resourceBufferPtrs;
+		    resourceBufferPtrs.resize(gMaxFramesInFlight);
+		    for (size_t frame = 0; frame < resourceBufferPtrs.size(); ++frame)
 		    {
-		    	vk::resourceBufferPtrs2D resourceBufferPtrs;
-		    	resourceBufferPtrs.resize(gMaxFramesInFlight);
-		    	for (size_t frame = 0; frame < resourceBufferPtrs.size(); ++frame)
-		    	{
-		    		vk::Buffer* handle = &uniformBuffers[frame].shadow;
+			    vk::Buffer* handle = &uniformBuffers[frame].shadow;
 
-		    		resourceBufferPtrs[frame].push_back(handle);
-		    	}
-
-		    	descriptorManager.WriteDescriptors(DescriptorCategory::eUBO, shadowUBOLayoutIndex, resourceBufferPtrs);
+			    resourceBufferPtrs[frame].push_back(handle);
 		    }
 
-	    	lightUBOLayoutIndex = descriptorManager.GetLayoutIndex(DescriptorCategory::eUBO);
-		    {
-		    	vk::resourceBufferPtrs2D resourceBufferPtrs;
-		    	resourceBufferPtrs.resize(gMaxFramesInFlight);
-		    	for (size_t frame = 0; frame < resourceBufferPtrs.size(); ++frame)
-		    	{
-		    		resourceBufferPtrs[frame].push_back(&uniformBuffers[frame].composition);
-		    	}
+		    descriptorManager.WriteDescriptors(DescriptorCategory::eUBO, shadowUBOLayoutIndex, resourceBufferPtrs);
+	    }
 
-		    	descriptorManager.WriteDescriptors(DescriptorCategory::eUBO, lightUBOLayoutIndex, resourceBufferPtrs);
+	    lightUBOLayoutIndex = descriptorManager.GetLayoutIndex(DescriptorCategory::eUBO);
+	    {
+		    vk::resourceBufferPtrs2D resourceBufferPtrs;
+		    resourceBufferPtrs.resize(gMaxFramesInFlight);
+		    for (size_t frame = 0; frame < resourceBufferPtrs.size(); ++frame)
+		    {
+			    resourceBufferPtrs[frame].push_back(&uniformBuffers[frame].composition);
 		    }
+
+		    descriptorManager.WriteDescriptors(DescriptorCategory::eUBO, lightUBOLayoutIndex, resourceBufferPtrs);
 	    }
     }
 
