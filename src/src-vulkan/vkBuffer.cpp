@@ -1,4 +1,4 @@
-#include "headers/vkBuffer.h"
+#include "vkBuffer.h"
 
 namespace vk 
 {

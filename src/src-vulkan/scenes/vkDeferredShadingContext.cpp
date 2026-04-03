@@ -10,7 +10,7 @@ namespace vk
 		ContextBase(textureManagerPtr)
 	{
 
-		m_descriptorManagerPtr = descriptorManagerPtr;;
+		m_descriptorManagerPtr = descriptorManagerPtr;
 
 		InitializeUniforms();
 		InitializeFramebuffers();
@@ -28,7 +28,7 @@ namespace vk
 
 		m_textureManagerPtr->Init(&device, descriptorManagerPtr);
 
-		skyboxImageIndex = m_textureManagerPtr->AddTextures(skyboxTextures, true); //TODO: allow vk::Texture to accept an array of filenames.
+		skyboxImageIndex = m_textureManagerPtr->AddTextures(skyboxTextures, true);
 
 		DeferredContext::InitializePipeline();
 	}
@@ -42,15 +42,7 @@ namespace vk
 			uniformBuffers[i].shadow.Destroy();
 		}
 
-		//because the layouts are initialized in one function, we can
-		//assume the check here
-		if (pipelineLayouts[0] != VK_NULL_HANDLE)
-		{
-			for (auto& pl : pipelineLayouts)
-			{
-				vkDestroyPipelineLayout(device.GetDevice(), pl, nullptr);
-			}
-		}
+		vkDestroyPipelineLayout(device.GetDevice(), m_graphicsPipelineLayout, nullptr);
 
 		for (auto& uniformDescriptor : uniformBindingDescriptors)
 		{
@@ -121,116 +113,28 @@ namespace vk
 
 	void DeferredContext::InitializePipelineLayouts()
 	{
-		//MRT PASS LAYOUT
+
+		std::vector<VkPushConstantRange> pushConstantRanges =
 		{
-			if (pipelineLayouts[dePipeline::MRT] == VK_NULL_HANDLE)
-			{
-				std::vector<VkPushConstantRange> pushConstantRanges =
-				{
-					vk::init::PushConstantRange(0, sizeof(glm::mat4), VK_SHADER_STAGE_VERTEX_BIT)
-				};
+			vk::init::PushConstantRange(0, sizeof(glm::mat4), VK_SHADER_STAGE_VERTEX_BIT)
+		};
 
-				std::array<VkDescriptorSetLayout, 2> mrt_layouts =
-				{
-					//set 0: per-frame scene transform, set 1: per-model image sampler(s)
-					m_descriptorManagerPtr->GetLayout(DescriptorCategory::eUBO),
-					m_descriptorManagerPtr->GetLayout(DescriptorCategory::eMaterial),
-				};
-
-				VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = vk::init::PipelineLayoutCreateInfo();
-				pipelineLayoutCreateInfo.pSetLayouts = mrt_layouts.data();
-				pipelineLayoutCreateInfo.setLayoutCount = static_cast<uint32_t>(mrt_layouts.size());
-				pipelineLayoutCreateInfo.pushConstantRangeCount = static_cast<uint32_t>(pushConstantRanges.size());
-				pipelineLayoutCreateInfo.pPushConstantRanges = pushConstantRanges.data();
-
-				VK_CHECK_RESULT(vkCreatePipelineLayout(device.GetDevice(), &pipelineLayoutCreateInfo,
-					nullptr, &pipelineLayouts[dePipeline::MRT]));
-			}
-		}
-
-		//COMPOSITION PASS LAYOUT
+		std::vector<VkDescriptorSetLayout> pipelineLayout =
 		{
-			if (pipelineLayouts[dePipeline::COMPOSITION] == VK_NULL_HANDLE)
-			{
-				//order of layouts need to be in order of they appear in shader(s)
-				std::array<VkDescriptorSetLayout, 2> composition_layouts = {
-					//set 0: image samplers, set 1: light ubo
-					m_descriptorManagerPtr->GetLayout(DescriptorCategory::eCompositionImage),
-					m_descriptorManagerPtr->GetLayout(DescriptorCategory::eUBO)
-				};
-
-				VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = vk::init::PipelineLayoutCreateInfo();
-				pipelineLayoutCreateInfo.pSetLayouts = composition_layouts.data();
-				pipelineLayoutCreateInfo.setLayoutCount = static_cast<uint32_t>(composition_layouts.size());
-
-				VK_CHECK_RESULT(vkCreatePipelineLayout(device.GetDevice(), &pipelineLayoutCreateInfo,
-					nullptr, &pipelineLayouts[dePipeline::COMPOSITION]));
-			}
-		}
+			m_descriptorManagerPtr->GetLayout(DescriptorCategory::eUBO),
+			m_descriptorManagerPtr->GetLayout(DescriptorCategory::eCompositionImage),
+			m_descriptorManagerPtr->GetLayout(DescriptorCategory::eMaterial)
+		};
 
 
-		//SHADOW MAP LAYOUT
-		{
-			if (pipelineLayouts[dePipeline::SHADOW] == VK_NULL_HANDLE)
-			{
-				//set 0: shadow UBO - per frame
-				std::array<VkDescriptorSetLayout, 1> shadow_layouts = {
-					m_descriptorManagerPtr->GetLayout(DescriptorCategory::eUBO)
-				};
-				VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = vk::init::PipelineLayoutCreateInfo();
-				pipelineLayoutCreateInfo.pSetLayouts = shadow_layouts.data();
-				pipelineLayoutCreateInfo.setLayoutCount = static_cast<uint32_t>(shadow_layouts.size());
+		VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = vk::init::PipelineLayoutCreateInfo();
+		pipelineLayoutCreateInfo.setLayoutCount = static_cast<uint32_t>(pipelineLayout.size());
+		pipelineLayoutCreateInfo.pSetLayouts = pipelineLayout.data();
+		pipelineLayoutCreateInfo.pPushConstantRanges = pushConstantRanges.data();
+		pipelineLayoutCreateInfo.pushConstantRangeCount = static_cast<uint32_t>(pushConstantRanges.size());
 
-				//per-model transform
-				std::vector<VkPushConstantRange> pushConstantRanges = {
-					vk::init::PushConstantRange(0, sizeof(glm::mat4), VK_SHADER_STAGE_VERTEX_BIT)
-				};
-				pipelineLayoutCreateInfo.pPushConstantRanges = pushConstantRanges.data();
-				pipelineLayoutCreateInfo.pushConstantRangeCount = static_cast<uint32_t>(pushConstantRanges.size());
-
-				VK_CHECK_RESULT(vkCreatePipelineLayout(device.GetDevice(), &pipelineLayoutCreateInfo,
-					nullptr, &pipelineLayouts[dePipeline::SHADOW]));
-			}
-		}
-
-
-		//SKYBOX LAYOUT
-		{
-			if (pipelineLayouts[dePipeline::SKY] == VK_NULL_HANDLE)
-			{
-				std::array<VkDescriptorSetLayout, 2> layouts =
-				{
-					//set 0: uniforms, set 1: samplers
-					m_descriptorManagerPtr->GetLayout(DescriptorCategory::eUBO),
-					m_descriptorManagerPtr->GetLayout(DescriptorCategory::eMaterial)
-				};
-
-				VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = vk::init::PipelineLayoutCreateInfo();
-				pipelineLayoutCreateInfo.setLayoutCount = static_cast<uint32_t>(layouts.size());
-				pipelineLayoutCreateInfo.pSetLayouts = layouts.data();
-
-				VK_CHECK_RESULT(vkCreatePipelineLayout(device.GetDevice(), &pipelineLayoutCreateInfo,
-					nullptr, &pipelineLayouts[dePipeline::SKY]));
-			}
-		}
-
-		//SWAPCHAIN QUAD LAYOUT
-		{
-			if (pipelineLayouts[dePipeline::SWAPCHAIN] == VK_NULL_HANDLE)
-			{
-				std::array<VkDescriptorSetLayout, 1> layouts = {
-					//set 0: scene sampler
-					m_descriptorManagerPtr->GetLayout(DescriptorCategory::eCompositionImage)
-				};
-
-				VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = vk::init::PipelineLayoutCreateInfo();
-				pipelineLayoutCreateInfo.setLayoutCount = static_cast<uint32_t>(layouts.size());
-				pipelineLayoutCreateInfo.pSetLayouts = layouts.data();
-
-				VK_CHECK_RESULT(vkCreatePipelineLayout(device.GetDevice(), &pipelineLayoutCreateInfo,
-					nullptr, &pipelineLayouts[dePipeline::SWAPCHAIN]));
-			}
-		}
+		VK_CHECK_RESULT(vkCreatePipelineLayout(device.GetDevice(), &pipelineLayoutCreateInfo,
+					nullptr, &m_graphicsPipelineLayout));
 	}
 
 	void DeferredContext::UpdateScreenUniforms()

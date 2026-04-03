@@ -114,7 +114,8 @@ namespace vk
 			std::array<Framebuffer, gMaxFramesInFlight> deSky;
 		} framebuffers;
 
-		std::array<VkPipelineLayout, PIPELINE_COUNT> pipelineLayouts = {};
+
+		VkPipelineLayout m_graphicsPipelineLayout = nullptr;
 
 		float depthBiasConstant = 1.25f;
 		float depthBiasSlope    = 1.75f;

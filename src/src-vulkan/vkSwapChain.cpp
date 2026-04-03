@@ -1,6 +1,6 @@
-#include "headers/vkSwapChain.h"
-#include "headers/vkUtility.h"
-#include "headers/vkInit.h"
+#include "vkSwapChain.h"
+#include "vkUtility.h"
+#include "vkInit.h"
 #include <stdexcept>
 
 namespace vk 

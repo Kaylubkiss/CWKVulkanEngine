@@ -2,7 +2,7 @@
 	* filename: VkPipelineManager.cpp
 	* author: Caleb Kissinger
 */
-#include "headers/vkPipelineManager.h"
+#include "vkPipelineManager.h"
 #include <sys/stat.h>
 
 //PipelineManager

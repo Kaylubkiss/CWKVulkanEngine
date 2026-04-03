@@ -1,7 +1,7 @@
 
 
-#include "headers/vkDevice.h"
-#include "headers/vkInit.h"
+#include "vkDevice.h"
+#include "vkInit.h"
 #include <stdexcept>
 #include <cassert>
 

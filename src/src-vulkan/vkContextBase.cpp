@@ -1,6 +1,6 @@
-#include "headers/vkContextBase.h"
-#include "headers/vkUtility.h"
-#include "headers/vkInit.h"
+#include "vkContextBase.h"
+#include "vkUtility.h"
+#include "vkInit.h"
 
 namespace vk
 {	

@@ -1,4 +1,4 @@
-#include "headers/vkGlobal.h"
+#include "vkGlobal.h"
 
 
 namespace vk 

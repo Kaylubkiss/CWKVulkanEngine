@@ -1,34 +1,34 @@
 #version 450
 #extension GL_KHR_vulkan_glsl : enable
 
-layout(location = 0) in vec2 inUV;
-
-layout(location = 0) out vec4 fragColor;
-
-layout(set = 0, binding = 0) uniform sampler2D samplerPosition;
-layout(set = 0, binding = 1) uniform sampler2D samplerNormal;
-layout(set = 0, binding = 2) uniform sampler2D samplerAlbedo;
-layout(set = 0, binding = 3) uniform sampler2D samplerMetallicRoughness;
-layout(set = 0, binding = 4) uniform sampler2D samplerAmbientOcclusion;
-layout(set = 0, binding = 5) uniform sampler2DArray samplerShadowMap;
 
 #define LIGHT_COUNT 2
 #define AMBIENT_FACTOR .5
 #define M_PI 4.0 * atan(1.0)
 
-struct Light 
+layout(location = 0) in vec2 inUV;
+
+layout(location = 0) out vec4 fragColor;
+
+struct Light
 {
 	vec3 position; /* position of light */
 	vec3 albedo; /* base color of light */
 	mat4 viewMatrix; /* projects a point to the light's POV */
 };
 
-layout(set = 1, binding = 0) uniform UBO
+layout(set = 0, binding = 0) uniform UBO
 {
 	Light lights[LIGHT_COUNT];
 	vec3 viewPosition; /* position of the camera (for view direction calculation) */
 } ubo;
 
+layout(set = 1, binding = 0) uniform sampler2D samplerPosition;
+layout(set = 1, binding = 1) uniform sampler2D samplerNormal;
+layout(set = 1, binding = 2) uniform sampler2D samplerAlbedo;
+layout(set = 1, binding = 3) uniform sampler2D samplerMetallicRoughness;
+layout(set = 1, binding = 4) uniform sampler2D samplerAmbientOcclusion;
+layout(set = 1, binding = 5) uniform sampler2DArray samplerShadowMap;
 
 
 float ShadowSampling(vec4 fragPos, float NdotL, int i)

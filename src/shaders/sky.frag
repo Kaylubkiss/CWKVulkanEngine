@@ -1,7 +1,7 @@
 #version 450
 #extension GL_KHR_vulkan_glsl : enable
 
-layout(set = 1, binding = 0) uniform samplerCube samplerSkybox;
+layout(set = 2, binding = 0) uniform samplerCube samplerSkybox;
 
 layout( location = 0 ) in vec3 inUVW;
 

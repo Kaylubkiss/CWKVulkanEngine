@@ -103,7 +103,6 @@ namespace vk
 				descriptorGetInfo.data.pUniformBuffer = &addrInfo;
 			}
 
-
 			g_vkGetDescriptorEXT(devicePtr->GetDevice(), &descriptorGetInfo,
 				writeSize,
 				descriptorPtr + (m_numCols * layoutIndex + frame) * m_setLayoutSize +
