@@ -73,7 +73,7 @@ src/OBJModel.cpp
 src/DescriptorManager.cpp
 )
 
-set(VULKAN_SRC_DIR src/src-vulkan)
+set(VULKAN_SRC_DIR src-vulkan)
 
 set(VULKAN_ENGINE_SRC 
 ${VULKAN_SRC_DIR}/vkUtility.cpp
@@ -92,7 +92,7 @@ ${VULKAN_SRC_DIR}/vkDescriptorBuffer.cpp
 ${VULKAN_SRC_DIR}/vkShaderModule.cpp
 )
 
-set(VULKAN_SCENES_DIR src/src-vulkan/scenes)
+set(VULKAN_SCENES_DIR src-vulkan/scenes)
 
 set(VULKAN_ENGINE_SCENES_SOURCE
 		${VULKAN_SCENES_DIR}/vkDeferredShadingContext.cpp
@@ -134,7 +134,7 @@ ${HEADER_SRC_DIR}/Model.h
 ${HEADER_SRC_DIR}/DescriptorManager.h
 )
 				 
-set(VULKAN_HEADER_DIR src/src-vulkan/headers)
+set(VULKAN_HEADER_DIR src-vulkan/headers)
 
 set(VULKAN_ENGINE_HEADERS 
 ${VULKAN_HEADER_DIR}/vkUtility.h
@@ -180,8 +180,8 @@ target_precompile_headers(${PROJECT_NAME} PUBLIC ${HEADER_SRC_DIR}/pch.h)
 
 target_include_directories(${PROJECT_NAME} PRIVATE
 src/headers
-src/src-vulkan/headers
-src/src-vulkan/scenes
+src-vulkan/headers
+src-vulkan/scenes
 extern/stb
 extern/tinyobjloader
 extern/imgui

@@ -1,5 +1,5 @@
 #include "CameraController.h"
-#include "src-vulkan/scenes/vkDeferredShadingContext.h"
+#include "vkDeferredShadingContext.h"
 
 PhysicsSystem& Application::GetPhysics() 
 {
