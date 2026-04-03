@@ -14,7 +14,7 @@ namespace vk
 		VkApplicationInfo appInfo = {};
 		appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
 		appInfo.apiVersion = VK_API_VERSION_1_4;
-		appInfo.pApplicationName = "Caleb Vulkan Engine";
+		appInfo.pApplicationName = "Caleb's Vulkan Engine";
 		appInfo.engineVersion = 1;
 		appInfo.pNext = nullptr;
 
@@ -28,6 +28,9 @@ namespace vk
 
 		createInfo.enabledExtensionCount = static_cast<uint32_t>(extensions.size());
 		createInfo.ppEnabledExtensionNames = extensions.data();
+
+		VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo = vk::util::DebugMessengerCreateInfo();
+		createInfo.pNext = (VkDebugUtilsMessengerCreateInfoEXT*)(&debugCreateInfo);
 
 		if (!vk::util::CheckInstanceExtensionSupport(extensions.data(),
 			static_cast<int>(extensions.size())))
@@ -43,9 +46,6 @@ namespace vk
 
 		createInfo.enabledLayerCount = static_cast<uint32_t>(layers.size());
 		createInfo.ppEnabledLayerNames = layers.data();
-
-		VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo = vk::util::DebugMessengerCreateInfo();
-		createInfo.pNext = (VkDebugUtilsMessengerCreateInfoEXT*)(&debugCreateInfo);
 
 		VK_CHECK_RESULT(vkCreateInstance(&createInfo, nullptr, &m_handle));
 

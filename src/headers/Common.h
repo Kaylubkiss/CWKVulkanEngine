@@ -24,6 +24,7 @@
 #include <map>
 #include <mutex>
 #include <thread>
+#include <optional>
 #include <string>
 #include <iostream>
 #include <stdexcept>
@@ -36,10 +37,8 @@
 #include <filesystem>
 
 #include "Vertex.h"
-#include "Mesh.h"
 
 #include "vkGlobal.h"
-#include "TextureManager.h"
 #include "ApplicationGlobal.h"
 
 

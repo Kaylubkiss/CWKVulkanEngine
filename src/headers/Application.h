@@ -1,9 +1,9 @@
 #pragma once
 #include "Timer.h"
-#include "Camera.h"
 #include "Physics.h"
 #include "vkContextBase.h"
-#include "vkInstance.h"
+#include "TextureManager.h"
+#include "DescriptorManager.h"
 
 class Application
 {
@@ -28,6 +28,9 @@ private:
 	Timer mTime;
 	PhysicsSystem m_physics;
 	std::unique_ptr<vk::ContextBase> m_vulkanGraphicsContext;
+	AssetManager m_assetManager;
+	TextureManager m_textureManager;
+	DescriptorManager m_descriptorManager;
 
 	bool exitApplication = false;
 };

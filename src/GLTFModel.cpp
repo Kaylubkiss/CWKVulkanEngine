@@ -15,18 +15,18 @@ GLTFModel::GLTFModel( vk::Device* device, const std::filesystem::path& filePath 
 
 	fastgltf::GltfFileStream data(filePath);
 
-	fastgltf::Expected<fastgltf::Asset> asset(fastgltf::Error::None);
+	fastgltf::Expected<fastgltf::Asset> expected_asset(fastgltf::Error::None);
+	fastgltf::Asset asset;
 	fastgltf::Parser parser;
 
-	asset = parser.loadGltf(data, filePath.parent_path(), gltfOptions);
+	expected_asset = parser.loadGltf(data, filePath.parent_path(), gltfOptions);
 
-	if (asset.error() != fastgltf::Error::None)
-	{
+	if (expected_asset.error() != fastgltf::Error::None) {
 		std::cerr << "Couldn't load in specified data\n";
 		throw std::runtime_error("LoadObject() failed");
 	}
 
-	m_asset = std::move(asset.get());
+	asset = std::move(expected_asset.get());
 
 	std::cout << "successfully loaded " << filePath.string() << std::endl;
 
@@ -35,15 +35,58 @@ GLTFModel::GLTFModel( vk::Device* device, const std::filesystem::path& filePath 
 	//downcast otherwise.
 	std::vector<uint32_t> indices_32;
 
-	for (auto& mesh : m_asset.meshes)
+	LoadMeshes(asset, vertices, indices_32);
+
+	auto& scene = asset.scenes[0];
+	for (auto nodeIndex : scene.nodeIndices)
 	{
-		LoadMesh(mesh, vertices, indices_32);
+		AddSceneNodeIndex(nodeIndex);
 	}
 
-	std::vector<std::string> fileNames(m_asset.images.size());
-	for (auto& image : m_asset.images)
+	for (auto& image : asset.images)
 	{
-		fileNames.push_back(LoadImage(device, image));
+		std::string texture_name = LoadImage(image);
+		if (texture_name.empty() == false)
+		{
+			AddTextureName(texture_name);
+		}
+	}
+
+	for (auto& node : asset.nodes)
+	{
+		Node newNode = {};
+
+		newNode.meshIndex = node.meshIndex;
+
+		for (auto& child : node.children)
+		{
+			newNode.childrenIndices.push_back(child);
+		}
+
+		if (std::holds_alternative<fastgltf::math::fmat4x4>(node.transform) == true)
+		{
+			memcpy(&newNode.transform[0], std::get<fastgltf::math::fmat4x4>(node.transform).data(),
+				sizeof(newNode.transform));
+		}
+		else //TODO: extract the TRS components here
+		{
+			//std::cerr << "mesh nodes only accept fmat4x4 for now!\n";
+
+			fastgltf::TRS trs = std::get<fastgltf::TRS>(node.transform);
+
+
+			fastgltf::math::fmat4x4 transform = fastgltf::math::fmat4x4(1.0);
+			transform = fastgltf::math::scale(transform, trs.scale);
+			transform = fastgltf::math::rotate(transform, trs.rotation);
+			transform = fastgltf::math::translate(transform, trs.translation);
+
+			memcpy(&newNode.transform[0], transform.data(),
+				sizeof(newNode.transform));
+
+			//throw std::runtime_error("GLTFModel::doLoad() Failed!\n");
+		}
+
+		AddNode(newNode);
 	}
 
 	size_t vertexBufferSize = vertices.size() * sizeof(vertices[0]);
@@ -63,266 +106,265 @@ GLTFModel::GLTFModel( vk::Device* device, const std::filesystem::path& filePath 
 		indicesData = indices_16.data();
 	}
 
-	m_vertexBuffer = device->CreateBuffer(
+	auto& vertexBuffer = GetVertexBuffer();
+	auto& indexBuffer = GetIndexBuffer();
+
+	vertexBuffer = device->CreateBuffer(
 		vertexBufferSize,
 		VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
 		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
 		vertices.data());
 
-	m_indexBuffer = device->CreateBuffer(
+	indexBuffer = device->CreateBuffer(
 		indexBufferSize,
 		VK_BUFFER_USAGE_INDEX_BUFFER_BIT ,
 		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
 		indicesData);
 }
 
-std::vector<std::string> GLTFModel::GetTextureFileNames() const
-{
-	std::vector<std::string> fileNames;
-	for (auto& image : m_asset.images)
-	{
-		std::visit(fastgltf::visitor
-		{
-			[](auto& arg) {},
-			[&](const fastgltf::sources::URI& filePath) {
-				assert(filePath.fileByteOffset == 0);
-				fileNames.emplace_back(filePath.uri.path());
-			},
-		}, image.data);
-	}
-
-	return fileNames;
-}
-
-void GLTFModel::UpdateModelTransform( const glm::mat4& newModelMatrix )
-{
-	m_modelMatrix = newModelMatrix;
-}
-
 void GLTFModel::Draw( const vk::DrawInfo& drawInfo )
 {
-	const size_t sceneIndex = m_asset.defaultScene.value_or(0);
-
 	constexpr VkDeviceSize offsets[1] = { 0 };
 
-	VkBuffer vertexBuffer = m_vertexBuffer.GetHandle();
-	VkBuffer indexBuffer  = m_indexBuffer.GetHandle();
+	auto& vertexBuffer = GetVertexBuffer();
+	auto& indexBuffer  = GetIndexBuffer();
+	VkBuffer vertexBufferHandle = vertexBuffer.GetHandle();
 
-	vkCmdBindVertexBuffers(drawInfo.cmdBuffer, 0, 1, &vertexBuffer, offsets);
+	vkCmdBindVertexBuffers(drawInfo.cmdBuffer, 0, 1, &vertexBufferHandle, offsets);
 
 	//TODO: assuming unsigned short for now, will have to change the way primitives perceive this.
-	vkCmdBindIndexBuffer(drawInfo.cmdBuffer, indexBuffer, 0, m_indexBufferType);
+	vkCmdBindIndexBuffer(drawInfo.cmdBuffer, indexBuffer.GetHandle(), 0, m_indexBufferType);
 
-	if (!m_asset.scenes.empty())
+	auto& nodeIndices = GetSceneNodeIndices();
+	auto& nodes = GetNodes();
+	auto& meshes = GetMeshes();
+	auto& modelTransform = GetModelTransform();
+
+	std::function<void(size_t, glm::mat4)> func = [&](size_t nodeIndex, glm::mat4 parentTransform)
 	{
-		//TODO: inefficient copy
-		//Ideally, this codebase will use one math library as its basis.
-		fastgltf::math::fmat4x4 modelMatrix;
-		memcpy(modelMatrix.data(), &m_modelMatrix, sizeof(m_modelMatrix));
-
-		fastgltf::iterateSceneNodes(m_asset, sceneIndex, fastgltf::math::fmat4x4(),
-			[&](fastgltf::Node& node, fastgltf::math::fmat4x4 matrix)
+		assert(nodeIndex < nodes.size());
+		const Node& node = nodes[nodeIndex];
+		if (node.meshIndex.has_value())
 		{
-			if (node.meshIndex.has_value())
+			glm::mat4 curr_transform = parentTransform * node.transform;
+
+			//do rendering here.
+
+			auto mesh = meshes[node.meshIndex.value()];
+
+			if (drawInfo.pipelineLayout != VK_NULL_HANDLE)
 			{
-				matrix = modelMatrix * matrix;
-
-				auto mesh = m_meshes[node.meshIndex.value()];
-
-				if (drawInfo.pipelineLayout != VK_NULL_HANDLE)
-				{
-					vkCmdPushConstants(drawInfo.cmdBuffer, drawInfo.pipelineLayout,
-						VK_SHADER_STAGE_VERTEX_BIT, 0,
-						sizeof(matrix), matrix.data());
-				}
-
-				DrawMeshPrimitives(drawInfo, mesh->m_primitives);
+				vkCmdPushConstants(drawInfo.cmdBuffer, drawInfo.pipelineLayout,
+					VK_SHADER_STAGE_VERTEX_BIT, 0,
+					sizeof(curr_transform), &curr_transform[0]);
 			}
-		});
+
+			DrawMeshPrimitives(drawInfo, mesh->m_primitives);
+
+			for (auto& childIndex : node.childrenIndices)
+			{
+				func(childIndex, curr_transform);
+			}
+		}
+	};
+
+	for (auto& sceneNode : nodeIndices)
+	{
+		func(sceneNode, modelTransform);
 	}
 }
 
 void GLTFModel::LoadTextures( TextureManager& textureManager, const std::vector<std::string>& textureNames )
 {
-	for (size_t i = 0; i < m_asset.meshes.size(); ++i)
+	if (textureNames.empty())
 	{
-		fastgltf::Mesh& mesh = m_asset.meshes[i];
+		return;
+	}
 
-		for (size_t j = 0; j < mesh.primitives.size(); ++j)
+	auto& meshes = GetMeshes();
+
+	for (size_t i = 0; i < meshes.size(); ++i)
+	{
+		for (size_t j = 0; j < meshes[i]->m_primitives.size(); ++j)
 		{
-			fastgltf::Primitive& gltf_primitive = mesh.primitives[j];
+			Primitive& primitive = meshes[i]->m_primitives[j];
 
-			Primitive& vkc_primitive = m_meshes[i]->m_primitives[j];
+			std::vector<std::string> primitive_textureNames;
 
-			if (gltf_primitive.materialIndex.has_value())
+			if (primitive.baseColorMaterialIndex.has_value())
 			{
-				fastgltf::Material& p_material = m_asset.materials[gltf_primitive.materialIndex.value()];
-				fastgltf::PBRData& p_pbr = p_material.pbrData;
+				auto baseColorIndex = primitive.baseColorMaterialIndex.value();
 
-				uint32_t binding = 0;
-
-				if (p_pbr.baseColorTexture.has_value())
-				{
-					size_t baseColorIndex = p_pbr.baseColorTexture.value().textureIndex;
-
-					textureManager.AddTexture(textureNames[baseColorIndex], binding, vkc_primitive.textureSetLayoutIndex);
-
-					++binding;
-				}
-
-				//I want to enforce that every texture layout must begin with a colored texture.
-				//I want well-formed gltf files/assets.
-
-				if (p_pbr.metallicRoughnessTexture.has_value())
-				{
-
-					assert(vkc_primitive.textureSetLayoutIndex > 0);
-
-					size_t metallicRoughIndex = p_pbr.metallicRoughnessTexture.value().textureIndex;
-
-					textureManager.AddTexture(textureNames[metallicRoughIndex], binding, vkc_primitive.textureSetLayoutIndex);
-
-					++binding;
-				}
-
-				if (p_material.occlusionTexture.has_value())
-				{
-					assert(vkc_primitive.textureSetLayoutIndex > 0);
-
-					size_t occlusionTextureIndex = p_material.occlusionTexture.value().textureIndex;
-
-					textureManager.AddTexture(textureNames[occlusionTextureIndex], binding, vkc_primitive.textureSetLayoutIndex);
-
-					++binding;
-				}
+				primitive_textureNames.push_back(textureNames[baseColorIndex]);
+				//grab all the texture names specific to this primitive and then request the texture manager to make a
+				//layout with the bindings starting from index 0 -> n, where n is the number of textures.
 			}
+
+			if (primitive.metallicRoughnessIndex.has_value())
+			{
+				auto mrIndex = primitive.metallicRoughnessIndex.value();
+
+				primitive_textureNames.push_back(textureNames[mrIndex]);
+			}
+
+			if (primitive.ambientOcclusionIndex.has_value())
+			{
+				auto aoIndex = primitive.ambientOcclusionIndex.value();
+
+				primitive_textureNames.push_back(textureNames[aoIndex]);
+			}
+
+			primitive.textureSetLayoutIndex = textureManager.AddTextures(primitive_textureNames);
 		}
 	}
 
 }
 
-void GLTFModel::LoadMesh( fastgltf::Mesh& mesh, std::vector<Vertex>& vertexBuffer,
+void GLTFModel::LoadMeshes( fastgltf::Asset& asset, std::vector<Vertex>& vertexBuffer,
 	std::vector<uint32_t>& indexBuffer )
 {
 	std::shared_ptr<Mesh> newMesh = std::make_shared<Mesh>();
 
-	newMesh->m_name = mesh.name;
-
-	for (auto& primitive : mesh.primitives)
+	for (size_t i = 0; i < asset.meshes.size(); ++i)
 	{
-		Primitive newPrim   = {};
-		newPrim.firstIndex  = static_cast<uint32_t>(indexBuffer.size());
-		newPrim.firstVertex = static_cast<uint32_t>(vertexBuffer.size());
-		newPrim.indexCount  = 0;
-		newPrim.vertexCount = 0;
+		fastgltf::Mesh& mesh = asset.meshes[i];
 
-		//vertex
+		newMesh->m_name = mesh.name;
+
+		for (auto& primitive : mesh.primitives)
 		{
-			//positions
-			auto positionAttrib = primitive.findAttribute("POSITION");
-			if (positionAttrib != primitive.attributes.end())
+			Primitive newPrim   = {};
+			newPrim.firstIndex  = static_cast<uint32_t>(indexBuffer.size());
+			newPrim.firstVertex = static_cast<uint32_t>(vertexBuffer.size());
+			newPrim.indexCount  = 0;
+			newPrim.vertexCount = 0;
+			fastgltf::Material& p_material = asset.materials[primitive.materialIndex.value()];
+			fastgltf::PBRData& p_pbr = p_material.pbrData;
+
+			if (p_pbr.baseColorTexture.has_value())
 			{
-				fastgltf::Accessor& posAccessor = m_asset.accessors[positionAttrib->accessorIndex];
-
-				newPrim.vertexCount = static_cast<uint32_t>(m_asset.accessors[positionAttrib->accessorIndex].count);
-
-				vertexBuffer.resize(newPrim.vertexCount + newPrim.firstVertex);
-
-				//this is possible with Options::LoadExternalBuffers
-				fastgltf::iterateAccessorWithIndex<fastgltf::math::fvec3>(m_asset, posAccessor,
-					[&](fastgltf::math::fvec3 pos, size_t idx)
-					{
-						vertexBuffer[newPrim.firstVertex + idx].pos = glm::make_vec3(pos.data());
-						vertexBuffer[newPrim.firstVertex + idx].nrm = glm::vec3(0);
-						vertexBuffer[newPrim.firstVertex + idx].uv  = glm::vec2(0);
-					});
-			}
-			else
-			{
-				throw std::runtime_error("Primitive should have position attributes\n");
+				newPrim.baseColorMaterialIndex = p_pbr.baseColorTexture.value().textureIndex;
 			}
 
-			auto normAttrib = primitive.findAttribute("NORMAL");
-			if (normAttrib != primitive.attributes.end())
+			if (p_pbr.metallicRoughnessTexture.has_value())
 			{
-				fastgltf::Accessor& normalAccessor = m_asset.accessors[normAttrib->accessorIndex];
-				fastgltf::iterateAccessorWithIndex<fastgltf::math::fvec3>(m_asset, normalAccessor,
-					[&](fastgltf::math::fvec3 norm, size_t idx)
-					{
-						vertexBuffer[newPrim.firstVertex + idx].nrm = glm::make_vec3(norm.data());
-					});
-
+				newPrim.metallicRoughnessIndex = p_pbr.metallicRoughnessTexture.value().textureIndex;
 			}
 
-			auto texCoordAttrib = primitive.findAttribute("TEXCOORD_" + std::to_string(0));
-			if (texCoordAttrib != primitive.attributes.end())
+			if (p_material.occlusionTexture.has_value())
 			{
-				fastgltf::Accessor& texCoordAccessor = m_asset.accessors[texCoordAttrib->accessorIndex];
-				fastgltf::iterateAccessorWithIndex<fastgltf::math::fvec2>(m_asset, texCoordAccessor,
-					[&](fastgltf::math::fvec2 uv, size_t idx)
-					{
-						vertexBuffer[newPrim.firstVertex + idx].uv = glm::make_vec2(uv.data());
-					});
+				newPrim.ambientOcclusionIndex = p_material.occlusionTexture.value().textureIndex;
 			}
 
-		}
-		//end of vertex
-
-		//indices
-		{
-			fastgltf::Accessor& accessor = m_asset.accessors[primitive.indicesAccessor.value()];
-			if (accessor.bufferViewIndex.has_value() == false)
+			//vertex
 			{
-				throw std::runtime_error("gltf asset should have an index buffer\n");
-			}
-
-			newPrim.indexCount = static_cast<uint32_t>(accessor.count);
-
-			if ((accessor.componentType == fastgltf::ComponentType::UnsignedByte) ||
-				(accessor.componentType == fastgltf::ComponentType::UnsignedShort))
-			{
-				std::vector<uint16_t> buf(newPrim.indexCount);
-				fastgltf::copyFromAccessor<uint16_t>(m_asset, accessor, buf.data());
-
-				for (auto& index : buf)
+				//positions
+				auto positionAttrib = primitive.findAttribute("POSITION");
+				if (positionAttrib != primitive.attributes.end())
 				{
-					indexBuffer.push_back(newPrim.firstVertex + index);
+					fastgltf::Accessor& posAccessor = asset.accessors[positionAttrib->accessorIndex];
+
+					newPrim.vertexCount = static_cast<uint32_t>(asset.accessors[positionAttrib->accessorIndex].count);
+
+					vertexBuffer.resize(newPrim.vertexCount + newPrim.firstVertex);
+
+					//this is possible with Options::LoadExternalBuffers
+					fastgltf::iterateAccessorWithIndex<fastgltf::math::fvec3>(asset, posAccessor,
+						[&](fastgltf::math::fvec3 pos, size_t idx)
+						{
+							vertexBuffer[newPrim.firstVertex + idx].pos = glm::make_vec3(pos.data());
+							vertexBuffer[newPrim.firstVertex + idx].nrm = glm::vec3(0);
+							vertexBuffer[newPrim.firstVertex + idx].uv  = glm::vec2(0);
+						});
 				}
-			}
-			else //unsigned int
-			{
-				std::vector<uint32_t> buf(newPrim.indexCount);
-				fastgltf::copyFromAccessor<uint32_t>(m_asset, accessor, buf.data());
-
-				m_indexBufferType = VK_INDEX_TYPE_UINT32;
-
-				for (auto& index : buf)
+				else
 				{
-					indexBuffer.push_back(newPrim.firstVertex + index);
+					throw std::runtime_error("Primitive should have position attributes\n");
 				}
+
+				auto normAttrib = primitive.findAttribute("NORMAL");
+				if (normAttrib != primitive.attributes.end())
+				{
+					fastgltf::Accessor& normalAccessor = asset.accessors[normAttrib->accessorIndex];
+					fastgltf::iterateAccessorWithIndex<fastgltf::math::fvec3>(asset, normalAccessor,
+						[&](fastgltf::math::fvec3 norm, size_t idx)
+						{
+							vertexBuffer[newPrim.firstVertex + idx].nrm = glm::make_vec3(norm.data());
+						});
+
+				}
+
+				auto texCoordAttrib = primitive.findAttribute("TEXCOORD_" + std::to_string(0));
+				if (texCoordAttrib != primitive.attributes.end())
+				{
+					fastgltf::Accessor& texCoordAccessor = asset.accessors[texCoordAttrib->accessorIndex];
+					fastgltf::iterateAccessorWithIndex<fastgltf::math::fvec2>(asset, texCoordAccessor,
+						[&](fastgltf::math::fvec2 uv, size_t idx)
+						{
+							vertexBuffer[newPrim.firstVertex + idx].uv = glm::make_vec2(uv.data());
+						});
+				}
+
 			}
+			//end of vertex
 
+			//indices
+			{
+				fastgltf::Accessor& accessor = asset.accessors[primitive.indicesAccessor.value()];
+				if (accessor.bufferViewIndex.has_value() == false)
+				{
+					throw std::runtime_error("gltf asset should have an index buffer\n");
+				}
+
+				newPrim.indexCount = static_cast<uint32_t>(accessor.count);
+
+				if ((accessor.componentType == fastgltf::ComponentType::UnsignedByte) ||
+					(accessor.componentType == fastgltf::ComponentType::UnsignedShort))
+				{
+					std::vector<uint16_t> buf(newPrim.indexCount);
+					fastgltf::copyFromAccessor<uint16_t>(asset, accessor, buf.data());
+
+					for (auto& index : buf)
+					{
+						indexBuffer.push_back(newPrim.firstVertex + index);
+					}
+				}
+				else //unsigned int
+				{
+					std::vector<uint32_t> buf(newPrim.indexCount);
+					fastgltf::copyFromAccessor<uint32_t>(asset, accessor, buf.data());
+
+					m_indexBufferType = VK_INDEX_TYPE_UINT32;
+
+					for (auto& index : buf)
+					{
+						indexBuffer.push_back(newPrim.firstVertex + index);
+					}
+				}
+
+			}
+			//end of indices
+
+			newMesh->m_primitives.push_back(newPrim);
 		}
-		//end of indices
 
-		newMesh->m_primitives.push_back(newPrim);
+		AddMesh(newMesh);
 	}
-
-	m_meshes.push_back(newMesh);
 }
 
-std::string GLTFModel::LoadImage( vk::Device* devicePtr, fastgltf::Image& image )
+std::string GLTFModel::LoadImage(const fastgltf::Image& image )
 {
+	std::string fileName;
+
 	std::visit(fastgltf::visitor
 	{
 		[](auto& arg) {},
 		[&](const fastgltf::sources::URI& filePath) {
 			assert(filePath.fileByteOffset == 0);
-
-			return filePath.uri.string();
+			fileName = filePath.uri.string();
 		},
 	}, image.data);
 
-	return "";
+	return fileName;
 }
 

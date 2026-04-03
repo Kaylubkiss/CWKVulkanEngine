@@ -2,7 +2,7 @@
 
 namespace vk
 {
-    void DeferredContext::RecordCommandBuffers()
+    void DeferredContext::RecordCommandBuffers( AssetManager& assetManager )
 	{
 		VkCommandBuffer cmdBuffer = commandBuffers[currentFrame];
 		VkCommandBufferBeginInfo cmdBufferBeginInfo = vk::init::CommandBufferBeginInfo();
@@ -11,6 +11,32 @@ namespace vk
 		VkClearValue clearValues[RT_COUNT + 1]; //position, normal, albedo, metallic roughness, depth;
 
 		VK_CHECK_RESULT(vkBeginCommandBuffer(cmdBuffer, &cmdBufferBeginInfo));
+
+    	std::vector<VkDescriptorBufferBindingInfoEXT> descriptorBufferBindingInfos =
+    	{
+    		{
+				.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_BUFFER_BINDING_INFO_EXT,
+    			.address = m_descriptorManagerPtr->GetDescriptorAddress(DescriptorCategory::eUBO),
+    			.usage = VK_BUFFER_USAGE_RESOURCE_DESCRIPTOR_BUFFER_BIT_EXT
+			},
+    		{
+    			.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_BUFFER_BINDING_INFO_EXT,
+    			.address = m_descriptorManagerPtr->GetDescriptorAddress(DescriptorCategory::eCompositionImage),
+    			.usage = VK_BUFFER_USAGE_SAMPLER_DESCRIPTOR_BUFFER_BIT_EXT |
+					VK_BUFFER_USAGE_RESOURCE_DESCRIPTOR_BUFFER_BIT_EXT
+    		},
+    		{
+    			.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_BUFFER_BINDING_INFO_EXT,
+    			.address = m_descriptorManagerPtr->GetDescriptorAddress(DescriptorCategory::eMaterial),
+    			.usage = VK_BUFFER_USAGE_SAMPLER_DESCRIPTOR_BUFFER_BIT_EXT |
+    				VK_BUFFER_USAGE_RESOURCE_DESCRIPTOR_BUFFER_BIT_EXT
+    		}
+    	};
+
+    	const uint32_t uboDescriptorIndex = 0, compositionImageDescriptorIndex = 1, materialDescriptorIndex = 2;
+
+    	g_vkCmdBindDescriptorBuffersEXT(cmdBuffer, static_cast<uint32_t>(descriptorBufferBindingInfos.size()),
+				descriptorBufferBindingInfos.data());
 
 		/*//Shadow depth writes
 		{
@@ -64,8 +90,8 @@ namespace vk
 			vkCmdEndRenderPass(cmdBuffer);
 		}*/
 
-    	auto& textureManager = m_assetManager->GetTextureManager();
-    	auto& textureSamplerDescriptor = textureManager.GetTextureSamplerDescriptor();
+    	VkDeviceSize uboLayoutSize = m_descriptorManagerPtr->GetLayoutSize(DescriptorCategory::eUBO);
+
 		//MRT rendering.
 		{
 			clearValues[0].color = { 0,0,0,0 };
@@ -93,40 +119,21 @@ namespace vk
 			VkRect2D sceneScissor = m_window.Scissor();
 			vkCmdSetScissor(cmdBuffer, 0, 1, &sceneScissor);
 
-			// Binding 0 = uniform buffer
-			auto& mrtUniformDescriptor = uniformBindingDescriptors[dePipeline::MRT];
 
-			std::array<VkDescriptorBufferBindingInfoEXT, 2> descriptor_buffer_binding_info = {};
-			descriptor_buffer_binding_info[0].sType = VK_STRUCTURE_TYPE_DESCRIPTOR_BUFFER_BINDING_INFO_EXT;
-			descriptor_buffer_binding_info[0].address =
-				mrtUniformDescriptor.GetBuffer().GetDeviceAddress();
-			descriptor_buffer_binding_info[0].usage = VK_BUFFER_USAGE_RESOURCE_DESCRIPTOR_BUFFER_BIT_EXT;
-
-			// Binding 1 = Image
-			descriptor_buffer_binding_info[1].sType = VK_STRUCTURE_TYPE_DESCRIPTOR_BUFFER_BINDING_INFO_EXT;
-			descriptor_buffer_binding_info[1].address =
-				textureSamplerDescriptor.GetBuffer().GetDeviceAddress();
-			descriptor_buffer_binding_info[1].usage = VK_BUFFER_USAGE_SAMPLER_DESCRIPTOR_BUFFER_BIT_EXT |
-				VK_BUFFER_USAGE_RESOURCE_DESCRIPTOR_BUFFER_BIT_EXT;
-
-			g_vkCmdBindDescriptorBuffersEXT(cmdBuffer, static_cast<uint32_t>(descriptor_buffer_binding_info.size()),
-				descriptor_buffer_binding_info.data());
-
-			uint32_t buffer_index_ubo = 0;
-			VkDeviceSize buffer_offset = 0;
+			VkDeviceSize buffer_offset =  (gMaxFramesInFlight * mrtUBOLayoutIndex + currentFrame) * uboLayoutSize;
 
 			//global transform
 			g_vkCmdSetDescriptorBufferOffsetsEXT(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-				pipelineLayouts[dePipeline::MRT], 0, 1, &buffer_index_ubo, &buffer_offset);
+				m_graphicsPipelineLayout, uboDescriptorIndex, 1, &uboDescriptorIndex, &buffer_offset);
 
 			vk::DrawInfo drawInfo = {};
 			drawInfo.cmdBuffer = cmdBuffer;
-			drawInfo.imageBufferIndex = 1;
-			drawInfo.firstSet = 1;
-			drawInfo.pipelineLayout = pipelineLayouts[dePipeline::MRT];
-			drawInfo.textureBindingSize = textureSamplerDescriptor.GetLayoutSize();
+			drawInfo.imageBufferIndex = materialDescriptorIndex;
+			drawInfo.firstSet = materialDescriptorIndex;
+			drawInfo.pipelineLayout = m_graphicsPipelineLayout;
+			drawInfo.textureBindingSize = m_descriptorManagerPtr->GetLayoutSize(DescriptorCategory::eMaterial);
 
-			m_assetManager->DrawObjects(drawInfo);
+			assetManager.DrawObjects(drawInfo);
 
 			vkCmdEndRenderPass(cmdBuffer);
 		}
@@ -159,38 +166,18 @@ namespace vk
 			VkRect2D sceneScissor = m_window.Scissor();
 			vkCmdSetScissor(cmdBuffer, 0, 1, &sceneScissor);
 
-			// Binding 0 = image samplers
-			std::array<VkDescriptorBufferBindingInfoEXT, 2> descriptor_buffer_binding_info = {};
-
-			descriptor_buffer_binding_info[0].sType = VK_STRUCTURE_TYPE_DESCRIPTOR_BUFFER_BINDING_INFO_EXT;
-			descriptor_buffer_binding_info[0].address =
-				compositionImageBindingDescriptor.GetBuffer().GetDeviceAddress();
-			descriptor_buffer_binding_info[0].usage = VK_BUFFER_USAGE_SAMPLER_DESCRIPTOR_BUFFER_BIT_EXT |
-				VK_BUFFER_USAGE_RESOURCE_DESCRIPTOR_BUFFER_BIT_EXT;
-
-			//Binding 1 = uniform light data
-			descriptor_buffer_binding_info[1].sType = VK_STRUCTURE_TYPE_DESCRIPTOR_BUFFER_BINDING_INFO_EXT;
-			descriptor_buffer_binding_info[1].address =
-				uniformBindingDescriptors[dePipeline::COMPOSITION].GetBuffer().GetDeviceAddress();
-			descriptor_buffer_binding_info[1].usage = VK_BUFFER_USAGE_RESOURCE_DESCRIPTOR_BUFFER_BIT_EXT;
-
-			g_vkCmdBindDescriptorBuffersEXT(cmdBuffer, static_cast<uint32_t>(descriptor_buffer_binding_info.size()),
-				descriptor_buffer_binding_info.data());
-
-			uint32_t buffer_index_images = 0;
-			uint32_t buffer_index_ubo = 1;
-
-			//image sampler set 0;
-			VkDeviceSize buffer_offset = currentFrame * compositionImageBindingDescriptor.GetLayoutSize();
+			//composition image samplers;
+			VkDeviceSize buffer_offset = (gMaxFramesInFlight * compositionImageIndex + currentFrame) *
+				m_descriptorManagerPtr->GetLayoutSize(DescriptorCategory::eCompositionImage);
 
 			g_vkCmdSetDescriptorBufferOffsetsEXT(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-				pipelineLayouts[dePipeline::COMPOSITION], 0, 1, &buffer_index_images, &buffer_offset);
+				m_graphicsPipelineLayout, compositionImageDescriptorIndex, 1, &compositionImageDescriptorIndex, &buffer_offset);
 
-			//uniform set 1;
-			buffer_offset = currentFrame * uniformBindingDescriptors[dePipeline::COMPOSITION].GetLayoutSize();
+			//ubo (lights)
+			buffer_offset = (gMaxFramesInFlight * lightUBOLayoutIndex + currentFrame) * uboLayoutSize;
 
 			g_vkCmdSetDescriptorBufferOffsetsEXT(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-				pipelineLayouts[dePipeline::COMPOSITION], 1, 1, &buffer_index_ubo, &buffer_offset);
+				m_graphicsPipelineLayout, uboDescriptorIndex, 1, &uboDescriptorIndex, &buffer_offset);
 
 			vkCmdDraw(cmdBuffer, 3, 1, 0, 0);
 
@@ -223,37 +210,18 @@ namespace vk
 			VkRect2D sceneScissor = m_window.Scissor();
 			vkCmdSetScissor(cmdBuffer, 0, 1, &sceneScissor);
 
-			std::array<VkDescriptorBufferBindingInfoEXT, 2> descriptor_buffer_binding_info = {};
-			// Binding/Set 0 = uniform data (same as MRTs)
-			descriptor_buffer_binding_info[0].sType = VK_STRUCTURE_TYPE_DESCRIPTOR_BUFFER_BINDING_INFO_EXT;
-			descriptor_buffer_binding_info[0].address =
-				uniformBindingDescriptors[dePipeline::MRT].GetBuffer().GetDeviceAddress();
-			descriptor_buffer_binding_info[0].usage = VK_BUFFER_USAGE_RESOURCE_DESCRIPTOR_BUFFER_BIT_EXT;
 
-			//Binding/Set 1 = cube sampler data
-			descriptor_buffer_binding_info[1].sType = VK_STRUCTURE_TYPE_DESCRIPTOR_BUFFER_BINDING_INFO_EXT;
-			descriptor_buffer_binding_info[1].address =
-				skyboxSamplerBindingDescriptor.GetBuffer().GetDeviceAddress();
-			descriptor_buffer_binding_info[1].usage = VK_BUFFER_USAGE_SAMPLER_DESCRIPTOR_BUFFER_BIT_EXT |
-				VK_BUFFER_USAGE_RESOURCE_DESCRIPTOR_BUFFER_BIT_EXT;
-
-			g_vkCmdBindDescriptorBuffersEXT(cmdBuffer, static_cast<uint32_t>(descriptor_buffer_binding_info.size()),
-				descriptor_buffer_binding_info.data());
-
-			uint32_t buffer_index_ubo = 0;
-			uint32_t buffer_index_sampler = 1;
-
-			VkDeviceSize buffer_offset = currentFrame * uniformBindingDescriptors[dePipeline::MRT].GetLayoutSize();
+			VkDeviceSize buffer_offset = (gMaxFramesInFlight * mrtUBOLayoutIndex + currentFrame) * uboLayoutSize;
 
 			//global transform
 			g_vkCmdSetDescriptorBufferOffsetsEXT(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-				pipelineLayouts[dePipeline::SKY], 0, 1, &buffer_index_ubo, &buffer_offset);
+				m_graphicsPipelineLayout, uboDescriptorIndex, 1, &uboDescriptorIndex, &buffer_offset);
 
-			buffer_offset = 0;
+			buffer_offset = skyboxImageIndex * m_descriptorManagerPtr->GetLayoutSize(DescriptorCategory::eMaterial);
 
 			//scene sampler
 			g_vkCmdSetDescriptorBufferOffsetsEXT(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-				pipelineLayouts[dePipeline::SKY],1, 1, &buffer_index_sampler, &buffer_offset);
+				m_graphicsPipelineLayout,materialDescriptorIndex, 1, &materialDescriptorIndex, &buffer_offset);
 
 			vkCmdDraw(cmdBuffer, 3, 1, 0, 0);
 
@@ -289,23 +257,11 @@ namespace vk
 			VkRect2D sceneScissor = m_window.Scissor();
 			vkCmdSetScissor(cmdBuffer, 0, 1, &sceneScissor);
 
-			// Binding 0 = image samplers
-			std::array<VkDescriptorBufferBindingInfoEXT, 1> descriptor_buffer_binding_info = {};
-			descriptor_buffer_binding_info[0].sType = VK_STRUCTURE_TYPE_DESCRIPTOR_BUFFER_BINDING_INFO_EXT;
-			descriptor_buffer_binding_info[0].address =
-				swapChainSamplerBindingDescriptor.GetBuffer().GetDeviceAddress();
-			descriptor_buffer_binding_info[0].usage = VK_BUFFER_USAGE_SAMPLER_DESCRIPTOR_BUFFER_BIT_EXT |
-				VK_BUFFER_USAGE_RESOURCE_DESCRIPTOR_BUFFER_BIT_EXT;
-
-			g_vkCmdBindDescriptorBuffersEXT(cmdBuffer, static_cast<uint32_t>(descriptor_buffer_binding_info.size()),
-				descriptor_buffer_binding_info.data());
-
-			uint32_t buffer_index_image = 0;
-
-			VkDeviceSize buffer_offset = currentFrame * swapChainSamplerBindingDescriptor.GetLayoutSize();
+			VkDeviceSize buffer_offset =  (gMaxFramesInFlight * swapChainImageIndex + currentFrame) *
+				m_descriptorManagerPtr->GetLayoutSize(DescriptorCategory::eCompositionImage);
 
 			g_vkCmdSetDescriptorBufferOffsetsEXT(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-				pipelineLayouts[dePipeline::SWAPCHAIN], 0, 1, &buffer_index_image, &buffer_offset);
+				m_graphicsPipelineLayout, compositionImageDescriptorIndex, 1, &compositionImageDescriptorIndex, &buffer_offset);
 
 			vkCmdDraw(cmdBuffer, 3, 1, 0, 0);
 

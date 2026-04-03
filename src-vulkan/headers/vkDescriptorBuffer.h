@@ -10,8 +10,18 @@ namespace vk
 {
 	//row = frame
 	//col = binding
-	typedef std::vector<std::vector<const vk::Buffer*>> resourceBufferPtrs2D;
+	typedef std::vector<std::vector<vk::Buffer*>> resourceBufferPtrs2D;
 	typedef std::vector<std::vector<VkDescriptorImageInfo>> imageBuffers2D;
+
+	struct WriteResource
+	{
+		vk::Buffer* pResourceData = nullptr;
+		VkDescriptorImageInfo* pImageData = nullptr;
+		[[nodiscard]] bool IsValid() const
+		{
+			return (pResourceData == nullptr && pImageData) || (pImageData == nullptr && pResourceData);
+		}
+	};
 
     struct DescriptorBufferCreateInfo
 	{
@@ -32,15 +42,17 @@ namespace vk
 		~DescriptorBuffer() = default;
 
 		[[nodiscard]] const vk::Buffer& GetBuffer() const;
+		[[nodiscard]] size_t GetBufferSize() const;
 		[[nodiscard]] const std::vector<VkDeviceSize>& GetBindingOffsets() const;
 		[[nodiscard]] VkDeviceSize GetLayoutSize() const;
 		[[nodiscard]] VkDescriptorSetLayout GetLayout() const;
 
 		void Destroy();
-		void Create( const vk::DescriptorBufferCreateInfo& createInfo );
+		void Allocate( vk::Device* devicePtr, VkBufferUsageFlags bufferUsage, VkMemoryPropertyFlags bufferMemoryProps,
+			size_t numFrames, size_t layoutCount, const std::vector<VkDescriptorSetLayoutBinding>& bindings);
+		void WriteDescriptor( vk::Device* devicePtr, const WriteResource& writeData, uint32_t layoutIndex,
+			uint32_t frame, uint32_t binding, size_t writeSize ) const;
 	private:
-		void FillResourceDescriptorBuffers( const vk::DescriptorBufferCreateInfo& createInfo );
-		void FillImageDescriptorBuffers( const vk::DescriptorBufferCreateInfo& createInfo );
 		static void GetDescriptorLayoutSize( const vk::Device* device, VkDescriptorSetLayout layout, VkDeviceSize* size );
 		static void GetDescriptorLayoutBindingOffsets( const vk::Device* device, VkDescriptorSetLayout layout,
 		VkDeviceSize offsets[], uint32_t binding_count );
@@ -48,12 +60,15 @@ namespace vk
 		//per-frame resources need to be independently updated according to which frame is active.
 		//1st index of "buffers" is the minimum ever used by a descriptor buffer.
 		vk::Buffer m_buffer;
+		size_t m_bufferSize = 0ull;
+		size_t m_numCols = 0; // [descriptor][frame]
 
 		//at least 1 binding (binding 0)
 		std::vector<VkDeviceSize> m_bindingOffsets = { 0ull };
 
 		VkDescriptorSetLayout m_setLayout = VK_NULL_HANDLE;
 		VkDeviceSize m_setLayoutSize = 0ull;
+
 
 		vk::Device* m_devicePtr = nullptr;
 	};

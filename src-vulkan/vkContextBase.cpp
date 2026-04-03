@@ -6,9 +6,11 @@ namespace vk
 {	
 
 	//constructor
-	ContextBase::ContextBase()
+	ContextBase::ContextBase( TextureManager* textureManagerPtr )
 	{
-		assert(_Application != NULL);
+		assert(textureManagerPtr != nullptr);
+
+		m_textureManagerPtr = textureManagerPtr;
 
 		m_window.Init(640, 480);
 
@@ -17,7 +19,6 @@ namespace vk
 		m_instance.Create(instanceExtensions, instanceLayers);
 
 		m_window.CreateSurface(m_instance.GetHandle());
-
 
 		device.AddExtension(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
 		device.AddExtension(VK_EXT_DESCRIPTOR_BUFFER_EXTENSION_NAME);
@@ -55,8 +56,6 @@ namespace vk
 			this->UIOverlay = UserInterface(userInterfaceCI);
 		}
 
-		m_info = std::make_shared<vk::GraphicsContextInfo>();
-
 		ContextBase::FillOutGraphicsContextInfo();
 
 		this->mCamera = Camera({ 0.f, 0.f, 10.f }, { 0.f, 0.f, -1.f }, { 0,1,0 });
@@ -84,11 +83,6 @@ namespace vk
 				vkDestroySemaphore(this->device.GetDevice(), textureUploadSemaphores[i], nullptr);
 
 				vkDestroyFence(device.GetDevice(), inFlightFences[i], nullptr);
-			}
-
-			if (m_assetManager != nullptr)
-			{
-				m_assetManager->Destroy();
 			}
 
 			//must destroy the device before instance
@@ -144,11 +138,6 @@ namespace vk
 		CreateSynchronizationPrimitives();
 	}
 
-	void ContextBase::UpdateSceneObjects(float dt) const
-	{
-		m_assetManager->Update(dt);
-	}
-
 	void ContextBase::ToggleUIActive(bool enable)
 	{
 		m_settings.UIToggled = enable;
@@ -158,12 +147,7 @@ namespace vk
 	void ContextBase::FillOutGraphicsContextInfo() 
 	{
 		//TODO: a little janky way to initialize as more of mInfo is filled with derived classes.
-		m_info->devicePtr = &this->device;
-
-		if (m_settings.UIDisplay)
-		{
-			m_info->contextUIPtr = &UIOverlay;
-		}
+		m_info.devicePtr = &this->device;
 	}
 
 	//getter(s)
@@ -178,7 +162,7 @@ namespace vk
 		return m_window;
 	}
 
-	std::weak_ptr<GraphicsContextInfo> ContextBase::GetGraphicsContextInfo() const
+	GraphicsContextInfo& ContextBase::GetGraphicsContextInfo()
 	{
 		return m_info;
 	}
@@ -270,7 +254,7 @@ namespace vk
 
 	}
 
-	void ContextBase::SubmitFrame() 
+	void ContextBase::SubmitFrame()
 	{
 		VkSubmitInfo submitInfo = {};
 		submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -278,7 +262,7 @@ namespace vk
 		std::vector<VkPipelineStageFlags> pipelineWaitStages = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
 		std::vector<VkSemaphore> waitSemaphores = { presentCompleteSemaphores[currentFrame] };
 
-		bool textureSubmitted = m_assetManager->SyncIO(currentFrame, textureUploadSemaphores[currentFrame]);
+		bool textureSubmitted = m_textureManagerPtr->UploadTextureDataToGPU(currentFrame, textureUploadSemaphores[currentFrame]);
 		if (textureSubmitted == true)
 		{
 			pipelineWaitStages.push_back(VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);

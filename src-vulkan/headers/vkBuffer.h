@@ -9,17 +9,20 @@ namespace vk
 	public:
 		//assume that build info is shared among all buffers.
 		Buffer() = default;
+
 		Buffer( const vk::Device* devicePtr, VkBufferUsageFlags usage, VkMemoryPropertyFlags flags, 
 			size_t size, void* data = nullptr );
+
 		~Buffer() = default;
+
 		//the actual destructor method, helps with default assignment operator not causing errors.
 		void Destroy();
 		
-		uint64_t GetDeviceAddress() const;		
-		void* GetMappedMemory() const;
-		VkDescriptorBufferInfo GetDescriptor() const;
-		VkBuffer GetHandle() const;
-		VkDeviceSize GetSize() const;
+		[[nodiscard]] uint64_t GetDeviceAddress() const;
+		[[nodiscard]] void* GetMappedMemory() const;
+		[[nodiscard]] VkDescriptorBufferInfo GetDescriptor() const;
+		[[nodiscard]] VkBuffer GetHandle() const;
+		[[nodiscard]] VkDeviceSize GetSize() const;
 
 		void Map();
 		void Flush();

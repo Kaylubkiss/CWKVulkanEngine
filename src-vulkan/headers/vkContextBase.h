@@ -3,42 +3,45 @@
 #include "vkWindow.h"
 #include "vkInstance.h"
 #include "AssetManager.h"
+#include "Camera.h"
 #include "vkSwapChain.h"
 #include "vkFramebuffer.h"
 #include "vkPipelineManager.h"
 #include "UserInterface.h"
+
+
+class DescriptorManager;
 
 namespace vk
 {
 	class ContextBase
 	{
 	public:
-		ContextBase(); /* expect this to be derived from */
+		ContextBase( TextureManager* textureManagerPtr ); /* expect this to be derived from */
 		virtual ~ContextBase();
 
 		//getters(s)
-		[[nodiscard]] std::weak_ptr<GraphicsContextInfo> GetGraphicsContextInfo() const;
+		[[nodiscard]] GraphicsContextInfo& GetGraphicsContextInfo();
 		Camera& GetCamera();
 		vk::Window& GetWindow();
 
-		virtual void Render() {};
-		virtual void RecordCommandBuffers() {};
-		virtual void InitializeScene() {};
+		virtual void Render( AssetManager& assetManager ) {};
 
 		//operations
 		void WaitForDevice() const;
-		void SubmitFrame();
-		virtual void ResizeWindow();
-		void UpdateSceneObjects(float dt) const;
 		void ToggleUIActive(bool enable);
 	protected:
 		bool PrepareFrame();
+		void SubmitFrame();
+		virtual void RecordCommandBuffers( AssetManager& assetManager ) {};
 		virtual void UpdateUI() {};
+		virtual void ResizeWindow();
 		virtual void InitializePipeline() {};
-		virtual void InitializeDescriptors() {};
+		virtual void InitializeDescriptors( DescriptorManager& descriptorManager ) {};
 		virtual void FillOutGraphicsContextInfo();
 	private:
 		void CreateSynchronizationPrimitives();
+
 	protected:
 		struct AppSettings //TODO: make this into a bitmask
 		{
@@ -55,7 +58,7 @@ namespace vk
 		UserInterface UIOverlay;
 
 		//this is for textureManager and potentially any other discrete systems.
-		std::shared_ptr<GraphicsContextInfo> m_info;
+		GraphicsContextInfo m_info;
 
 		vk::Instance m_instance;
 		vk::Window m_window;
@@ -72,6 +75,10 @@ namespace vk
 		std::array<VkSemaphore, gMaxFramesInFlight> textureUploadSemaphores; //for I/O synchronization
 		std::array<VkFence, gMaxFramesInFlight> inFlightFences;
 
-		std::shared_ptr<AssetManager> m_assetManager;
+		/*VkPipelineLayout m_graphicsPipelineLayout = VK_NULL_HANDLE; //TODO*/
+
+		TextureManager* m_textureManagerPtr = nullptr;
+
+
 	};
 }	

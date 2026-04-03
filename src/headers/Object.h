@@ -1,6 +1,6 @@
 #pragma once
 
-#include "IModel.h"
+#include "Model.h"
 
 class TextureManager;
 
@@ -9,9 +9,10 @@ struct ObjectCreateInfo
 	//must fill out objName, even if there is no extension.
 	glm::mat4 modelTransform = glm::mat4(1.0f);
 	PhysicsComponent physicsComponent;
-	const char* objName = "";
-	const char* textureFileName = "";
+	std::string objName;
+	std::vector<std::string> textureFileNames;
 	vk::Device* devicePtr = nullptr;
+	TextureManager* textureManagerPtr = nullptr;
 	bool hasPhysicsComponent = false;
 };
 
@@ -29,7 +30,7 @@ public:
 	void InitPhysics();
 	void Draw( const vk::DrawInfo& drawInfo ) const;
 private:
-	std::unique_ptr<IModel> m_model;
+	std::unique_ptr<Model> m_model;
 	PhysicsComponent m_physicsComponent;
 };
 

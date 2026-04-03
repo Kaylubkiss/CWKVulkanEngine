@@ -38,7 +38,7 @@ namespace vk
 
 		std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages = {};
 
-		VkGraphicsPipelineCreateInfo pipelineCI = vk::init::PipelineCreateInfo(pipelineLayouts[dePipeline::COMPOSITION],
+		VkGraphicsPipelineCreateInfo pipelineCI = vk::init::PipelineCreateInfo(m_graphicsPipelineLayout,
 			framebuffers.deComposition[0].renderPass, VK_PIPELINE_CREATE_DESCRIPTOR_BUFFER_BIT_EXT);
 		pipelineCI.pInputAssemblyState = &inputAssemblyStateCI;
 		pipelineCI.pRasterizationState = &rasterizationStateCI;
@@ -106,7 +106,7 @@ namespace vk
 
 					VkGraphicsPipelineCreateInfo pipelineCI =
 						vk::init::PipelineCreateInfo(
-							pipelineLayouts[dePipeline::COMPOSITION], framebuffers.deComposition[0].renderPass,
+							m_graphicsPipelineLayout, framebuffers.deComposition[0].renderPass,
 							VK_PIPELINE_CREATE_DESCRIPTOR_BUFFER_BIT_EXT);
 
 					pipelineCI.pInputAssemblyState = &inputAssemblyStateCI;
@@ -150,7 +150,6 @@ namespace vk
 
 			rasterizationStateCI.cullMode = VK_CULL_MODE_BACK_BIT;
 
-			pipelineCI.layout = pipelineLayouts[dePipeline::MRT];
 			pipelineCI.renderPass = framebuffers.deMRT[0].renderPass;
 
 			//there are 5 color outputs in this stage.
@@ -233,7 +232,7 @@ namespace vk
 					std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages;
 
 					VkGraphicsPipelineCreateInfo pipelineCI =
-						vk::init::PipelineCreateInfo(pipelineLayouts[dePipeline::MRT], framebuffers.deMRT[0].renderPass,
+						vk::init::PipelineCreateInfo(m_graphicsPipelineLayout, framebuffers.deMRT[0].renderPass,
 							VK_PIPELINE_CREATE_DESCRIPTOR_BUFFER_BIT_EXT);
 
 					pipelineCI.pInputAssemblyState = &inputAssemblyStateCI;
@@ -279,7 +278,6 @@ namespace vk
 			//using a full-screen quad method.
 			pipelineCI.pVertexInputState = &emptyVertexInputStateCI;
 			pipelineCI.renderPass = framebuffers.deSky[0].renderPass;
-			pipelineCI.layout = pipelineLayouts[dePipeline::SKY];
 
 			VkPipelineDepthStencilStateCreateInfo emptyDepthStencilStateCI =
 				vk::init::PipelineDepthStencilStateCreateInfo(VK_TRUE,
@@ -315,7 +313,6 @@ namespace vk
 
 			pipelineCI.pVertexInputState = &emptyVertexInputStateCI;
 			pipelineCI.renderPass = swapChain.renderPass;
-			pipelineCI.layout = pipelineLayouts[dePipeline::SWAPCHAIN];
 
 			VkPipelineDepthStencilStateCreateInfo emptyDepthStencilStateCI =
 				vk::init::PipelineDepthStencilStateCreateInfo(VK_FALSE,
@@ -359,7 +356,6 @@ namespace vk
 			dynamicStateCI = vk::init::PipelineDynamicStateCreateInfo(dynamicStates);
 
 			pipelineCI.renderPass = framebuffers.deShadow[0].renderPass;
-			pipelineCI.layout = pipelineLayouts[dePipeline::SHADOW];
 
 			//shadow pass only consumes the position of vertices
 			VkVertexInputBindingDescription vertexBindingDescription = vk::init::VertexInputBindingDescription();

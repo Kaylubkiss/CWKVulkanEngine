@@ -130,8 +130,8 @@ void OBJModel::ComputeVertices( std::vector<Vertex>& vertexBuffer, std::vector<u
 
 OBJModel::OBJModel( vk::Device* device, const std::filesystem::path& filePath )
 {
-    std::vector<Vertex> vertexBuffer;
-    std::vector<uint16_t> indexBuffer;
+    std::vector<Vertex> vertices;
+    std::vector<uint16_t> indices;
 
     tinyobj::attrib_t attrib;
     std::vector<tinyobj::shape_t> shapes;
@@ -174,36 +174,40 @@ OBJModel::OBJModel( vk::Device* device, const std::filesystem::path& filePath )
 
             if (uniqueVertices.contains(vert) == false)
             {
-                uniqueVertices[vert] = static_cast<uint32_t>(vertexBuffer.size());
-                vertexBuffer.push_back(vert);
+                uniqueVertices[vert] = static_cast<uint32_t>(vertices.size());
+                vertices.push_back(vert);
             }
 
-            indexBuffer.push_back(uniqueVertices[vert]);
+            indices.push_back(uniqueVertices[vert]);
         }
     }
 
-    ComputeVertices(vertexBuffer, indexBuffer);
+    ComputeVertices(vertices, indices);
 
-    ComputeVertexNormals(vertexBuffer, indexBuffer);
+    ComputeVertexNormals(vertices, indices);
 
-    size_t sizeOfVertexBuffer = (sizeof(vertexBuffer[0]) * vertexBuffer.size());
-    m_vertexBuffer = 
+    size_t sizeOfVertexBuffer = (sizeof(vertices[0]) * vertices.size());
+    size_t sizeOfIndexBuffer = (sizeof(indices[0]) * indices.size());
+
+    auto& vertexBuffer = GetVertexBuffer();
+    auto& indexBuffer = GetIndexBuffer();
+
+    vertexBuffer =
         vk::Buffer(device, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, 
-        sizeOfVertexBuffer, vertexBuffer.data());
+        sizeOfVertexBuffer, vertices.data());
 
-    size_t sizeOfIndexBuffer = (sizeof(indexBuffer[0]) * indexBuffer.size());
-    m_indexBuffer = 
+    indexBuffer =
         vk::Buffer(device, VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, 
-        sizeOfIndexBuffer, indexBuffer.data());
+        sizeOfIndexBuffer, indices.data());
 
     Primitive primitive;
-    primitive.indexCount = static_cast<uint32_t>(indexBuffer.size());
-    primitive.vertexCount = static_cast<uint32_t>(vertexBuffer.size());
+    primitive.indexCount = static_cast<uint32_t>(indices.size());
+    primitive.vertexCount = static_cast<uint32_t>(vertices.size());
     primitive.textureSetLayoutIndex = 0;
     
     std::vector<Primitive> primitive_vector = { primitive };
 
-    m_meshes.push_back(std::make_shared<Mesh>(filePath.string(), primitive_vector));
+    AddMesh(std::make_shared<Mesh>(filePath.string(), primitive_vector));
 
     std::cout << std::endl;
     std::cout << "Model loaded... " + filePath.string() << std::endl;
@@ -211,17 +215,12 @@ OBJModel::OBJModel( vk::Device* device, const std::filesystem::path& filePath )
 
 glm::vec3 OBJModel::GetMinPoint() const
 {
-    return {m_modelTransform * glm::vec4(m_minLocalPoint, 1)};
+    return {GetModelTransform() * glm::vec4(m_minLocalPoint, 1)};
 }
 
 glm::vec3 OBJModel::GetMaxPoint() const
 {
-    return {m_modelTransform * glm::vec4(m_maxLocalPoint, 1)};
-}
-
-void OBJModel::UpdateModelTransform(const glm::mat4& newModelMatrix) 
-{
-    m_modelTransform = newModelMatrix;
+    return {GetModelTransform() * glm::vec4(m_maxLocalPoint, 1)};
 }
 
 void OBJModel::Draw( const vk::DrawInfo& drawInfo )
@@ -229,13 +228,16 @@ void OBJModel::Draw( const vk::DrawInfo& drawInfo )
     if (drawInfo.pipelineLayout != VK_NULL_HANDLE)
     {
         vkCmdPushConstants(drawInfo.cmdBuffer, drawInfo.pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT,
-            0, sizeof(glm::mat4), (void*)(&m_modelTransform));
+            0, sizeof(glm::mat4), (void*)&GetModelTransform());
     }
 
     VkDeviceSize offsets[1] = { 0 };
 
-    VkBuffer vertexBufferHandle = m_vertexBuffer.GetHandle();
-    VkBuffer indexBufferHandle = m_indexBuffer.GetHandle();
+    auto& vertexBuffer = GetVertexBuffer();
+    auto& indexBuffer = GetIndexBuffer();
+
+    VkBuffer vertexBufferHandle = vertexBuffer.GetHandle();
+    VkBuffer indexBufferHandle = indexBuffer.GetHandle();
 
     vkCmdBindVertexBuffers(drawInfo.cmdBuffer, 0, 1, &vertexBufferHandle, offsets);
     vkCmdBindIndexBuffer(drawInfo.cmdBuffer, indexBufferHandle, 0, VK_INDEX_TYPE_UINT16);
@@ -244,7 +246,10 @@ void OBJModel::Draw( const vk::DrawInfo& drawInfo )
     //meaning: m_meshes.size() == 1, primitives.size() == 1
     //this written out so that the difference between obj model and gltf get smaller overtime.
     //ideally, Draw() would just be a generic function under IModel.
-    for (auto& mesh : m_meshes)
+
+    auto& meshes = GetMeshes();
+
+    for (auto& mesh : meshes)
     {
         DrawMeshPrimitives(drawInfo, mesh->m_primitives);
     }
@@ -255,7 +260,7 @@ void OBJModel::LoadTextures( TextureManager& textureManager, const std::vector<s
     //OBJ is assumed to only contain one primitive.
     //Materials are not support with this implementation,
     //this code-base will treat .obj as a primitive format for only geometry and texture data.
-    Mesh& mesh = *m_meshes.back().get();
+    Mesh& mesh = *GetMeshes().back();
     Primitive& primitive = mesh.m_primitives.back();
-    textureManager.BindTextureToModelPrimitive(textureNames.front(), 0, primitive.textureSetLayoutIndex);
+    primitive.textureSetLayoutIndex = textureManager.AddTextures( textureNames );
 }

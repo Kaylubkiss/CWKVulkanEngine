@@ -5,37 +5,35 @@
 namespace vk 
 {
 	#define LIGHT_COUNT 2
-	#define OBJECT_COUNT (10 + 1) //max 10 objects in the scene, +1 for blank texture
+	#define OBJECT_COUNT (10000 + 1) //max 10 objects in the scene, +1 for blank texture
 
 	//This scene is statically 4.2 KB!!!
 	class DeferredContext : public ContextBase 
 	{
 	public:
-		DeferredContext();
+		DeferredContext( TextureManager* textureManagerPtr, DescriptorManager* descriptorManagerPtr );
 		~DeferredContext() override;
-		void RecordCommandBuffers() override;
-		void InitializeScene() override;
-		void Render() override;
+
+		void Render( AssetManager& assetManager ) override;
 		void ResizeWindow() override;
 	protected:
+		void RecordCommandBuffers( AssetManager& assetManager ) override;
 		void UpdateUI() override;
 		void InitializePipeline() override;
-		void InitializeDescriptors() override;
+		void InitializeDescriptors( DescriptorManager& descriptorManager  ) override;
 	private:
 		void InitializeFramebuffers();
 		void InitializeDeferredFramebuffer();
 		void InitializeDeferredShadowFramebuffer();
 		void InitializeDeferredCompositionFramebuffer();
+
 		void InitializeDeferredSkyboxFramebuffer();
 
 		void InitializeUniforms();
 
-		void InitializeCompositionSamplerDescriptor();
-		void InitializeCompositionUniformDescriptor();
-		void InitializeSwapChainDescriptor();
-		void InitializeMRTDescriptor();
-		void InitializeShadowMapDescriptor();
-		void InitializeSkyBoxDescriptor();
+		void InitializeUBODescriptors( DescriptorManager& descriptorManager );
+		void InitializeCompositionImageDescriptors( DescriptorManager& descriptorManager );
+		void InitializeMaterialDescriptors( DescriptorManager& descriptorManager );
 
 		void InitializePipelineLayouts();
 		void UpdateScreenUniforms();
@@ -92,13 +90,19 @@ namespace vk
 			vk::Buffer composition;
 		};
 
+		//for descriptorManager
+		uint32_t mrtUBOLayoutIndex = 0;
+		uint32_t shadowUBOLayoutIndex = 0;
+		uint32_t lightUBOLayoutIndex = 0;
+
+		uint32_t compositionImageIndex = 0;
+		uint32_t swapChainImageIndex = 0;
+
+		uint32_t skyboxImageIndex = 0;
+
 		std::array<UniformBuffers, gMaxFramesInFlight> uniformBuffers;
 
 		std::array<DescriptorBuffer, dePipeline::PIPELINE_COUNT> uniformBindingDescriptors;
-
-		DescriptorBuffer skyboxSamplerBindingDescriptor;
-		DescriptorBuffer compositionImageBindingDescriptor;
-		DescriptorBuffer swapChainSamplerBindingDescriptor;
 
 		//NOTE: this will all be done offscreen because we have a main renderpass from the swapchain we'll
 		//read the results of this from
@@ -110,7 +114,8 @@ namespace vk
 			std::array<Framebuffer, gMaxFramesInFlight> deSky;
 		} framebuffers;
 
-		std::array<VkPipelineLayout, PIPELINE_COUNT> pipelineLayouts = {};
+
+		VkPipelineLayout m_graphicsPipelineLayout = nullptr;
 
 		float depthBiasConstant = 1.25f;
 		float depthBiasSlope    = 1.75f;
@@ -126,6 +131,8 @@ namespace vk
 		} sceneSettings{};
 
 		Cubemap test_cube;
+
+		DescriptorManager* m_descriptorManagerPtr = nullptr;
 	};
 
 }

@@ -34,7 +34,7 @@ namespace vk
 	class PipelineManager
 	{
 	public:
-		void Init(std::shared_ptr<GraphicsContextInfo>& contextInfo);
+		void Init( const GraphicsContextInfo& contextInfo );
 
 		/*
 			*@brief Destroys the pipeline handle and all the vulkan objects (shaders, descriptory layout) created under it.

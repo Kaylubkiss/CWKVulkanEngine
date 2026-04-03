@@ -59,11 +59,12 @@ namespace vk
 		return nTextureSampler;
 	}
 
-	void Texture::Create( const vk::Device* devicePtr, const std::string& filePath, std::mutex& transferMutex )
+	void Texture::Create( const vk::Device* devicePtr, const std::vector<std::string>& fileNames, std::mutex& transferMutex )
 	{
 
 		assert(devicePtr);
 		//Might want to make command pool a member variable.
+		const std::string& filePath = fileNames.front();
 
 		int textureWidth, textureHeight, textureChannels;
 		stbi_uc* pixels = filePath.empty() ? nullptr : stbi_load(filePath.c_str(),
@@ -80,6 +81,8 @@ namespace vk
 			static_cast<uint64_t>(textureHeight) * num_channels;
 
 		uint32_t mipLevels = 1;
+
+		VkFence submissionFence = vk::init::CreateFence(devicePtr->GetDevice(), false);
 
 		vk::Buffer stagingBuffer = vk::Buffer(devicePtr,
 			VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
@@ -114,7 +117,6 @@ namespace vk
 			barrier.srcAccessMask = 0;
 			barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
 
-
 			vkCmdPipelineBarrier(transferCmd, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
 				VK_PIPELINE_STAGE_TRANSFER_BIT,
 				0, 0,
@@ -131,10 +133,11 @@ namespace vk
 			{
 				std::lock_guard<std::mutex> lock(transferMutex);
 				VK_CHECK_RESULT(vkQueueSubmit(devicePtr->GetQueue(DeviceQueue::TRANSFER).handle, 1, &submitInfo,
-					VK_NULL_HANDLE));
+					submissionFence));
 			}
 
-			VK_CHECK_RESULT(vkQueueWaitIdle(devicePtr->GetQueue(DeviceQueue::TRANSFER).handle));
+			VK_CHECK_RESULT(vkWaitForFences(devicePtr->GetDevice(), 1, &submissionFence, VK_TRUE, UINT64_MAX));
+			VK_CHECK_RESULT(vkResetFences(devicePtr->GetDevice(), 1, &submissionFence));
 		}
 
 		//copy buffer into image.
@@ -172,10 +175,11 @@ namespace vk
 			{
 				std::lock_guard<std::mutex> lock(transferMutex);
 				VK_CHECK_RESULT(vkQueueSubmit(devicePtr->GetQueue(DeviceQueue::TRANSFER).handle,
-					1, &submitInfo, VK_NULL_HANDLE));
+					1, &submitInfo, submissionFence));
 			}
 
-			VK_CHECK_RESULT(vkQueueWaitIdle(devicePtr->GetQueue(DeviceQueue::TRANSFER).handle));
+			VK_CHECK_RESULT(vkWaitForFences(devicePtr->GetDevice(), 1, &submissionFence, VK_TRUE, UINT64_MAX));
+			VK_CHECK_RESULT(vkResetFences(devicePtr->GetDevice(), 1, &submissionFence));
 		}
 
 		//release transfer queue to graphics queue
@@ -192,6 +196,7 @@ namespace vk
 			releaseBarrier.subresourceRange.levelCount = VK_REMAINING_MIP_LEVELS;
 			releaseBarrier.subresourceRange.baseArrayLayer = 0;
 			releaseBarrier.subresourceRange.layerCount = VK_REMAINING_ARRAY_LAYERS;
+			releaseBarrier.srcAccessMask = 0;
 			releaseBarrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
 
 			VkCommandBufferBeginInfo beginInfo = {};
@@ -216,14 +221,17 @@ namespace vk
 			{
 				std::lock_guard<std::mutex> lock(transferMutex);
 				VK_CHECK_RESULT(vkQueueSubmit(devicePtr->GetQueue(DeviceQueue::TRANSFER).handle, 1, &submitInfo,
-					VK_NULL_HANDLE));
+					submissionFence));
 			}
 
-			VK_CHECK_RESULT(vkQueueWaitIdle(devicePtr->GetQueue(DeviceQueue::TRANSFER).handle));
+			VK_CHECK_RESULT(vkWaitForFences(devicePtr->GetDevice(), 1, &submissionFence, VK_TRUE, UINT64_MAX));
+			VK_CHECK_RESULT(vkResetFences(devicePtr->GetDevice(), 1, &submissionFence));
 		}
 
 		vkFreeCommandBuffers(devicePtr->GetDevice(), transferCmdPool, 1, &transferCmd);
 		vkDestroyCommandPool(devicePtr->GetDevice(), transferCmdPool, nullptr);
+
+		vkDestroyFence(devicePtr->GetDevice(), submissionFence, nullptr);
 
 		stagingBuffer.Destroy();
 		stbi_image_free(pixels);
