@@ -41,131 +41,65 @@ namespace vk
         }
     }
 
-    void DescriptorBuffer::Create( const vk::DescriptorBufferCreateInfo& createInfo )
-    {
-        assert( createInfo.devicePtr != nullptr );
+    void DescriptorBuffer::Allocate( vk::Device* devicePtr, VkBufferUsageFlags bufferUsage, VkMemoryPropertyFlags bufferMemoryProps,
+			size_t numFrames, size_t layoutCount, const std::vector<VkDescriptorSetLayoutBinding>& bindings)
+		{
+			m_devicePtr = devicePtr;
 
-        auto sharedDevicePtr = createInfo.devicePtr;
+			VkDescriptorSetLayoutCreateInfo setLayoutCreateInfo = vk::init::DescriptorSetLayoutCreateInfo();
+			setLayoutCreateInfo.pBindings = bindings.data();
+			setLayoutCreateInfo.bindingCount = static_cast<uint32_t>(bindings.size());
+			setLayoutCreateInfo.flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_DESCRIPTOR_BUFFER_BIT_EXT;
 
-        VkDescriptorSetLayoutCreateInfo setLayoutCreateInfo = vk::init::DescriptorSetLayoutCreateInfo();
-        setLayoutCreateInfo.pBindings = createInfo.pLayoutBindings;
-        setLayoutCreateInfo.bindingCount = createInfo.layoutBindingCount;
-        setLayoutCreateInfo.flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_DESCRIPTOR_BUFFER_BIT_EXT;
+			VK_CHECK_RESULT(vkCreateDescriptorSetLayout(m_devicePtr->GetDevice(), &setLayoutCreateInfo,
+				nullptr, &this->m_setLayout));
 
-        VK_CHECK_RESULT(vkCreateDescriptorSetLayout(sharedDevicePtr->GetDevice(), &setLayoutCreateInfo,
-            nullptr, &this->m_setLayout));
+			GetDescriptorLayoutSize(m_devicePtr, m_setLayout, &m_setLayoutSize);
 
-        m_devicePtr = createInfo.devicePtr;
+			m_bindingOffsets.resize(setLayoutCreateInfo.bindingCount);
 
-        GetDescriptorLayoutSize(sharedDevicePtr, m_setLayout, &m_setLayoutSize);
+			GetDescriptorLayoutBindingOffsets(m_devicePtr, m_setLayout, m_bindingOffsets.data(),
+				setLayoutCreateInfo.bindingCount);
 
-        m_bindingOffsets.resize(createInfo.layoutBindingCount);
+			m_numCols = numFrames;
+			m_bufferSize = numFrames * layoutCount * m_setLayoutSize;
+			m_buffer = vk::Buffer(m_devicePtr, bufferUsage, bufferMemoryProps, m_bufferSize);
 
-        GetDescriptorLayoutBindingOffsets(sharedDevicePtr, m_setLayout,
-            m_bindingOffsets.data(), static_cast<uint32_t>(m_bindingOffsets.size()));
+			m_buffer.Map(); //TODO: remove once integrating descriptor manager. Not all resources should be mapped.
+		}
 
-        if ((createInfo.bufferUsageFlags & VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT))
-        {
-            FillResourceDescriptorBuffers(createInfo);
-        }
-        else if ((createInfo.bufferUsageFlags & VK_BUFFER_USAGE_SAMPLER_DESCRIPTOR_BUFFER_BIT_EXT))
-        {
-            FillImageDescriptorBuffers(createInfo);
-        }
-        else
-        {
-            std::cerr << "unsupported descriptor buffer type specified\n";
-            throw std::runtime_error("DescriptorBuffer::Create() Failed!\n");
-        }
-    }
+	void DescriptorBuffer::WriteDescriptor( vk::Device* devicePtr, const WriteResource& writeData, uint32_t layoutIndex,
+		uint32_t frame, uint32_t binding, size_t writeSize ) const
+	{
+		assert(writeData.IsValid());
 
-    void DescriptorBuffer::FillResourceDescriptorBuffers( const vk::DescriptorBufferCreateInfo& createInfo )
-    {
-        const auto& dataBuffer = createInfo.resourceDescriptorData;
+		//TODO: might need to map the memory first before accessing
+		char* descriptorPtr = static_cast<char*>(m_buffer.GetMappedMemory());
 
-        if (dataBuffer.empty())
-        {
-            std::cerr << "allocated a resource buffer, but no data was provided.\n";
-            return;
-        }
+		VkDescriptorGetInfoEXT descriptorGetInfo = {VK_STRUCTURE_TYPE_DESCRIPTOR_GET_INFO_EXT};
 
-        size_t frameCount = dataBuffer.size();
+		if (writeData.pImageData)
+		{
+			descriptorGetInfo.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+			descriptorGetInfo.data.pCombinedImageSampler = writeData.pImageData;
+		}
+		else
+		{
+			descriptorGetInfo.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 
-        auto sharedDevicePtr = m_devicePtr;
+			VkDescriptorAddressInfoEXT addrInfo = { VK_STRUCTURE_TYPE_DESCRIPTOR_ADDRESS_INFO_EXT };
+			addrInfo.address = writeData.pResourceData->GetDeviceAddress();
+			addrInfo.range = writeData.pResourceData->GetSize();
+			addrInfo.format = VK_FORMAT_UNDEFINED;
 
-        m_buffer = vk::Buffer(sharedDevicePtr, createInfo.bufferUsageFlags,
-              createInfo.memoryProperties, frameCount * m_setLayoutSize);
-        m_buffer.Map();
+			descriptorGetInfo.data.pUniformBuffer = &addrInfo;
+		}
 
-        char* descriptor_ptr = static_cast<char*>(m_buffer.GetMappedMemory());
-        for (size_t frame = 0; frame < frameCount; ++frame)
-        {
-            assert(m_bindingOffsets.size() >= dataBuffer[frame].size());
-
-            for (size_t binding = 0; binding < dataBuffer[frame].size(); ++binding)
-            {
-                VkDescriptorAddressInfoEXT addrInfo = { VK_STRUCTURE_TYPE_DESCRIPTOR_ADDRESS_INFO_EXT };
-                addrInfo.address = dataBuffer[frame][binding]->GetDeviceAddress();
-                addrInfo.range = dataBuffer[frame][binding]->GetSize();
-                addrInfo.format = VK_FORMAT_UNDEFINED;
-
-                VkDescriptorGetInfoEXT bufferDescriptorInfo = { VK_STRUCTURE_TYPE_DESCRIPTOR_GET_INFO_EXT };
-                bufferDescriptorInfo.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-                bufferDescriptorInfo.data.pUniformBuffer = &addrInfo;
-
-                g_vkGetDescriptorEXT(sharedDevicePtr->GetDevice(), &bufferDescriptorInfo,
-                    sharedDevicePtr->GetDescriptorBufferProperties().uniformBufferDescriptorSize,
-                    descriptor_ptr + frame * m_setLayoutSize + m_bindingOffsets[binding]);
-            }
-        }
-
-        if ((createInfo.memoryProperties & VK_MEMORY_PROPERTY_HOST_COHERENT_BIT) == 0)
-        {
-            m_buffer.UnMap();
-        }
-    }
-
-    void DescriptorBuffer::FillImageDescriptorBuffers( const vk::DescriptorBufferCreateInfo& createInfo )
-    {
-        const auto& imageDescriptors = createInfo.imageDescriptorData;
-
-        if (imageDescriptors.empty())
-        {
-            std::cerr << "allocated a image descriptor buffer, but no data was provided.\n";
-            return;
-        }
-
-        size_t frameCount = createInfo.imageDescriptorData.size();
-
-        auto sharedDevicePtr = m_devicePtr;
-
-        m_buffer = vk::Buffer(sharedDevicePtr, createInfo.bufferUsageFlags,
-                createInfo.memoryProperties, frameCount * m_setLayoutSize);
-        m_buffer.Map();
-
-        char* descriptor_ptr = static_cast<char*>(m_buffer.GetMappedMemory());
-        for (size_t frame = 0; frame < frameCount; ++frame)
-        {
-            assert(m_bindingOffsets.size() >= imageDescriptors[frame].size());
-
-            for (size_t binding = 0; binding < imageDescriptors[frame].size(); ++binding)
-            {
-                VkDescriptorGetInfoEXT imageDescriptorGetInfo = {};
-                imageDescriptorGetInfo = { VK_STRUCTURE_TYPE_DESCRIPTOR_GET_INFO_EXT };
-                imageDescriptorGetInfo.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-                imageDescriptorGetInfo.data.pCombinedImageSampler = &imageDescriptors[frame][binding];
-
-                g_vkGetDescriptorEXT(sharedDevicePtr->GetDevice(), &imageDescriptorGetInfo,
-                    sharedDevicePtr->GetDescriptorBufferProperties().combinedImageSamplerDescriptorSize,
-                    descriptor_ptr + frame * m_setLayoutSize + m_bindingOffsets[binding]);
-            }
-        }
-
-        if ((createInfo.memoryProperties & VK_MEMORY_PROPERTY_HOST_COHERENT_BIT) == 0)
-        {
-            m_buffer.UnMap();
-        }
-    }
+		g_vkGetDescriptorEXT(devicePtr->GetDevice(), &descriptorGetInfo,
+			writeSize,
+			descriptorPtr + (m_numCols * layoutIndex + frame) * m_setLayoutSize +
+			m_bindingOffsets[binding]);
+	}
 
     void DescriptorBuffer::GetDescriptorLayoutSize( const vk::Device* device, VkDescriptorSetLayout layout, VkDeviceSize* size )
     {
