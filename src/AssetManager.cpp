@@ -131,6 +131,9 @@ void AssetManager::InitTestScene()
 
 void AssetManager::Update( float dt )
 {
+	//since the container itself is not being edited here, shared_lock should be fine.
+	//However, if there was code running on a separate CPU thread that updated the underlying object (why)
+	//then shared_lock would be a problem.
 	std::shared_lock lock(m_objectMutex);
 	for (auto& obj : m_objects)
 	{
