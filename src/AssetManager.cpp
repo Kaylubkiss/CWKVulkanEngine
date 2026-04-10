@@ -138,12 +138,6 @@ void AssetManager::Update( float dt )
 		curr_obj->Update(dt);
 	}
 }
-
-const ObjectMap& AssetManager::GetObjects() const
-{
-	return m_objects;
-}
-
 void AssetManager::DrawObjects( const vk::DrawInfo& drawInfo ) const
 {
 	std::shared_lock lock(m_objectMutex);

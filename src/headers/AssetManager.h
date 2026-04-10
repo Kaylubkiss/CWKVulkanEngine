@@ -13,8 +13,6 @@ public:
 	AssetManager() = default;
 	~AssetManager() = default;
 
-	[[nodiscard]] const ObjectMap& GetObjects() const;
-
 	//Modifiers
 	void Init( vk::Device* devicePtr, TextureManager* textureManagerPtr, size_t workerThreadCount );
 	void Destroy();
