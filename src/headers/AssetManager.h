@@ -24,7 +24,7 @@ public:
 protected:
 	void InitTestScene();
 private:
-	mutable std::shared_mutex m_objectMutex;
+	mutable std::shared_mutex m_objectMutex; //"mutable" to bypass const methods
 	vk::Device* c_devicePtr = nullptr;
 	ObjectMap m_objects;
 	ThreadPool m_threadWorkers; //this needs to be destroyed first.

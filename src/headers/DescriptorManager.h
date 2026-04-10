@@ -40,7 +40,7 @@ public:
 
 
 private:
-    std::mutex m_mutex;
+    std::shared_mutex m_mutex;
 
     struct DescriptorBufferData
     {
