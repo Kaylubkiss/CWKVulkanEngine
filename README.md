@@ -20,7 +20,7 @@ Overview
 =================
 <div>
   <img width="479" height="363" alt="basic shadow maping" src="docs/shadowmap.png" />
-  <p><em><b>A shadow mapping implementation written under my codebase</b></em></p>
+  <p><em>A shadow mapping implementation written under my codebase</em></p>
 </div>
 
 This (untitled) engine fundamentally uses a <b>layered</b> architecture. There is an application layer,
