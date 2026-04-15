@@ -1,8 +1,8 @@
 
-<h1 style="text-align: center;"> Multithreading In My (Untitled) Graphics Engine</h1>
-<h2 style="text-align: center;">written by Caleb Kissinger</h2>
+<h1 style="text-align: center;"> Multithreading In The (Untitled) Graphics Engine of Mine</h1>
+<h3 style="text-align: center;">written by Caleb Kissinger</h3>
 
-* **Note (as of 4/13/26):** details of the implementation may change over time as the engine is still under development.*
+***Note (as of 4/13/26):** details of the implementation may change over time as the engine is still under development.*
 
 ## Introduction
 Multithreading always feels like this daunting task that needs an incredible amount of skill to do.
