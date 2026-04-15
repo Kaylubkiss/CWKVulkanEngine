@@ -28,7 +28,6 @@ void ThreadPool::EnqueueTask(std::function<void()>& task)
 
 
 	condition_variable.notify_one();
-
 }
 
 void ThreadPool::ThreadLoop() 

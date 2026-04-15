@@ -1,6 +1,5 @@
 #pragma once
 #include "vkContextBase.h"
-#include "vkCubemap.h"
 
 namespace vk 
 {
@@ -102,8 +101,6 @@ namespace vk
 
 		std::array<UniformBuffers, gMaxFramesInFlight> uniformBuffers;
 
-		std::array<DescriptorBuffer, dePipeline::PIPELINE_COUNT> uniformBindingDescriptors;
-
 		//NOTE: this will all be done offscreen because we have a main renderpass from the swapchain we'll
 		//read the results of this from
 		struct
@@ -130,9 +127,8 @@ namespace vk
 			glm::vec3 freddyPosition = { 1.5f, 1.0, 3.f };
 		} sceneSettings{};
 
-		Cubemap test_cube;
-
 		DescriptorManager* m_descriptorManagerPtr = nullptr;
+
 	};
 
 }

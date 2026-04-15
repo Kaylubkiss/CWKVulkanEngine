@@ -153,7 +153,7 @@
 
     VkDescriptorSetLayout DescriptorManager::GetLayout(DescriptorCategory category)
     {
-        std::lock_guard lock(m_mutex);
+        std::shared_lock lock(m_mutex);
 
         if (m_descriptorBuffers.contains(category))
         {

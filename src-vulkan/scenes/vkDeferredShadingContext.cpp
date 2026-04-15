@@ -44,11 +44,6 @@ namespace vk
 
 		vkDestroyPipelineLayout(device.GetDevice(), m_graphicsPipelineLayout, nullptr);
 
-		for (auto& uniformDescriptor : uniformBindingDescriptors)
-		{
-			uniformDescriptor.Destroy();
-		}
-
 		for (size_t frame = 0; frame < gMaxFramesInFlight; ++frame)
 		{
 			framebuffers.deMRT[frame].Destroy();

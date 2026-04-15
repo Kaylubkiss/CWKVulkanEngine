@@ -1,18 +1,29 @@
 # Caleb's Custom Vulkan Graphics Engine
 
+
 [![Windows Build](https://github.com/Kaylubkiss/CWKVulkanEngine/actions/workflows/windows-build.yml/badge.svg?branch=dev)](https://github.com/Kaylubkiss/CWKVulkanEngine/actions/workflows/windows-build.yml)
 [![Linux Build](https://github.com/Kaylubkiss/CWKVulkanEngine/actions/workflows/linux-build.yml/badge.svg?branch=dev)](https://github.com/Kaylubkiss/CWKVulkanEngine/actions/workflows/linux-build.yml)
 
-Hi, welcome to my Github page! As of September 25th, 2025, I've made this repository public for all to see my progress! There'll be lots of updates in the coming weeks, months, maybe even years!
+Hi, welcome to my Github page! As of September 25th, 2025,
+I've made this repository public for all to see!
 
-<div>
-  <img width="479" height="363" alt="basic shadow maping" src="docs/shadowmap.png" />
-  <p><em>A shadow mapping implementation written under my codebase</em></p>
-</div>
+Expect frequent updates and tons of *fun* stuff for many years to come.
 
-# Overview
+Table of Contents
+=================
+* [Overview](#overview)
+* [Highlighted Features](#highlighted-features)
+* [Build Instructions](#build-instructions)
+* [Technical Details](#technical-details)
 
-This engine fundamentally uses a <b>layered</b> architecture. There is an application layer,
+Overview
+=================
+
+|         ![shadowmap.png](docs/shadowmap.png)         |
+|:----------------------------------------------------:|
+| A shadow map implementation written in the codebase. |
+
+This (untitled) engine fundamentally uses a <b>layered</b> architecture. There is an application layer,
 rendering layer, resource management layer, and scene layer to create clear separation of responsibility and modularity
 within the engine. 
 
@@ -20,16 +31,17 @@ This architecture was chosen to support the small-scale, educational intent of t
 
 In the near future, I will move over to ECS which offers greater performance potential and modularity.
 
-### Goals for this project
-
+Goals for this project
+=================
 * Learn Vulkan and GPU architecture
 * Implement algorithms and build scalable systems for graphics development
 * Strengthen my tooling mindset
 * Have fun and make some cool freakin demos to share
 
-<p>My dream has always been to become an elite toy maker whose creations delight users around the world.</p>
+My dream has always been to become an elite toy maker whose creations delight users around the world.
 
-# Highlighted Features
+Highlighted Features
+=================
 
 ## Hot Reloading
 
@@ -41,11 +53,13 @@ In the near future, I will move over to ECS which offers greater performance pot
 
 ## Physically-Based Rendering w/ Textures
 
-<img width="752" height="566" alt="Image" src="docs/pbr-texture.png" />
+|                                   ![pbr-texture.png](docs/pbr-texture.png)                                   |
+|:------------------------------------------------------------------------------------------------------------:|
+| **Supported Materials:** BaseColor, MetallicRoughness, AmbientOcclusion, Occlusion-Roughness-Metallic (ORMT) |
 
-<em><b>Supported Materials</b>: BaseColor, MetallicRoughness, AmbientOcclusion, Occlusion-Roughness-Metallic (ORMT) </em>
+Build Instructions
+=================
 
-# Build Instructions
 **General Requirements:**
 
 <ul>
@@ -117,4 +131,7 @@ An IDE is <em>highly</em> recommended for development:
   <li>Start Coding</li>
 </ol> 
 
-# 
+Technical Details
+=================
+
+1. [Multithreading](docs/writeups/multithreading/multithreading.md)

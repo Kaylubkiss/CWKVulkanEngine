@@ -1,7 +1,6 @@
 #pragma once
 
 //NOTE: entire implementation is WIP
-#include <stb_image.h> //THIS SHOULD NOT BE SPECIFIED HERE BUT THERE ARE SYMBOL ERRS
 #include "vkTexture.h"
 
 constexpr const char* CUBEMAP_DIR = "art/extern-textures/cubemaps/";
@@ -17,8 +16,6 @@ namespace vk
         //just one particular environment map for now
         void Create( const vk::Device* devicePtr, const std::vector<std::string>& fileNames, std::mutex& transferMutex ) override
         {
-            (void)(transferMutex);
-
             constexpr int image_count = 6;
 
             assert(fileNames.size() == image_count);

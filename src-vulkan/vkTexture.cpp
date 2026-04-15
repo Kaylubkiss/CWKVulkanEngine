@@ -196,8 +196,8 @@ namespace vk
 			releaseBarrier.subresourceRange.levelCount = VK_REMAINING_MIP_LEVELS;
 			releaseBarrier.subresourceRange.baseArrayLayer = 0;
 			releaseBarrier.subresourceRange.layerCount = VK_REMAINING_ARRAY_LAYERS;
-			releaseBarrier.srcAccessMask = 0;
-			releaseBarrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+			releaseBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT; //since we just wrote to the image.
+			releaseBarrier.dstAccessMask = 0;
 
 			VkCommandBufferBeginInfo beginInfo = {};
 			beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;

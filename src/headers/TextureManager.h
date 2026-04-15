@@ -40,7 +40,6 @@ private:
 	std::mutex m_textureMutex;
 	std::mutex m_transferMutex;
 	std::mutex m_pendingTexturesMutex;
-	std::mutex m_descriptorFreeListMutex;
 
 	VkCommandPool m_graphicsCommandPool = VK_NULL_HANDLE;
 
