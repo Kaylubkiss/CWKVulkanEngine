@@ -18,9 +18,10 @@ Table of Contents
 
 Overview
 =================
+
 <div>
-  <img width="479" height="363" alt="basic shadow maping" src="docs/shadowmap.png" />
-  <p><em>A shadow mapping implementation written under my codebase</em></p>
+  <img width="958" height="726" alt="basic shadow mapping" src="docs/shadowmap.png" />
+  <p style="text-align: center;"><em>A shadow mapping implementation written under my codebase</em></p>
 </div>
 
 This (untitled) engine fundamentally uses a <b>layered</b> architecture. There is an application layer,
@@ -53,7 +54,7 @@ Highlighted Features
 
 ## Physically-Based Rendering w/ Textures
 
-<img width="752" height="566" alt="Image" src="docs/pbr-texture.png" />
+<img width="958" height="660" alt="Image" src="docs/pbr-texture.png" />
 
 <em><b>Supported Materials</b>: BaseColor, MetallicRoughness, AmbientOcclusion, Occlusion-Roughness-Metallic (ORMT) </em>
 
