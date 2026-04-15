@@ -19,6 +19,8 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_vulkan.h>
 
+#include <stb_image.h>
+
 #include <vector>
 #include <array>
 #include <map>
@@ -36,10 +38,12 @@
 #include <algorithm>
 #include <filesystem>
 
+
 #include "Vertex.h"
 
 #include "vkGlobal.h"
 #include "ApplicationGlobal.h"
+
 
 
 

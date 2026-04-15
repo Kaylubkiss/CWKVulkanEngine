@@ -1,6 +1,5 @@
 #pragma once
 #include "vkContextBase.h"
-#include "vkCubemap.h"
 
 namespace vk 
 {
@@ -129,6 +128,7 @@ namespace vk
 		} sceneSettings{};
 
 		DescriptorManager* m_descriptorManagerPtr = nullptr;
+
 	};
 
 }

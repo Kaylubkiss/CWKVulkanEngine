@@ -132,6 +132,7 @@ ${HEADER_SRC_DIR}/GLTFModel.h
 ${HEADER_SRC_DIR}/OBJModel.h
 ${HEADER_SRC_DIR}/Model.h
 ${HEADER_SRC_DIR}/DescriptorManager.h
+${HEADER_SRC_DIR}/test.h
 )
 				 
 set(VULKAN_HEADER_DIR src-vulkan/headers)
@@ -153,6 +154,7 @@ ${VULKAN_HEADER_DIR}/vkCubemap.h
 ${VULKAN_HEADER_DIR}/vkInstance.h
 ${VULKAN_HEADER_DIR}/vkDescriptorBuffer.h
 ${VULKAN_HEADER_DIR}/vkShaderModule.h
+${VULKAN_HEADER_DIR}/vkPanoramicTexture.h
 )
 
 source_group("Header Files/VulkanHeaders" FILES ${VULKAN_ENGINE_HEADERS})	

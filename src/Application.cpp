@@ -1,5 +1,6 @@
 #include "CameraController.h"
 #include "vkDeferredShadingContext.h"
+#include "test.h"
 
 PhysicsSystem& Application::GetPhysics() 
 {
@@ -20,6 +21,8 @@ void Application::run()
 {
 	//initialize all resources.
 	Application::init();
+
+	//Application::test();
 	 
 	//render, update, render, update...
 	Application::loop();
@@ -31,7 +34,6 @@ void Application::run()
 
 void Application::init() 
 {
-
 	if (SDL_Init(SDL_INIT_VIDEO) < 0)
 	{
 		printf("SDL could not initialize! SDL_Error: %s\n", SDL_GetError());
@@ -47,6 +49,17 @@ void Application::init()
 	vk::GraphicsContextInfo& contextInfo = m_vulkanGraphicsContext->GetGraphicsContextInfo();
 
 	m_assetManager.Init(contextInfo.devicePtr, &m_textureManager, 2);
+}
+
+void Application::test()
+{
+	vk::GraphicsContextInfo& contextInfo = m_vulkanGraphicsContext->GetGraphicsContextInfo();
+
+	std::mutex mootMutex;
+	std::vector<std::string> fileNames = {"art/extern-textures/monochrome_studio.hdr"};
+	test::LoadPanoramicImage(contextInfo.devicePtr, fileNames,mootMutex);
+
+	RequestExit();
 }
 
 
