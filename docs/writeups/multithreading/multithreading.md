@@ -1,8 +1,8 @@
 
-# Multithreading In My (Untitled) Graphics Engine
-written by Caleb Kissinger
+<h1 style="text-align: center;"> Multithreading In My (Untitled) Graphics Engine</h1>
+<h2 style="text-align: center;">written by Caleb Kissinger</h2>
 
-***Note (as of 4/13/26):** details of the implementation may change over time as the engine is still under development.*
+* **Note (as of 4/13/26):** details of the implementation may change over time as the engine is still under development.*
 
 ## Introduction
 Multithreading always feels like this daunting task that needs an incredible amount of skill to do.
@@ -141,7 +141,7 @@ void ThreadPool::ThreadLoop()
 
 Now, the sharp student may ask: wouldn't ``queue_mutex`` lock all of the threads in perpetuity?
 
-Well, ``condition_variable`` takes in a ``unique_lock``, which contains methods to manually ``unlock()`` and ``lock()`` 
+``condition_variable`` takes in a ``unique_lock``, which contains methods to manually ``unlock()`` and ``lock()`` 
 a mutex on a given thread. When ``wait()`` is called, it will call ``unlock()`` and put the current 
 thread to sleep, waiting for another thread to signal it at the time the queue is no longer empty or ``terminate`` is no 
 longer false. Then, the condition variable will wake the thread, ``lock()`` the mutex or lock the thread until it can 
@@ -241,7 +241,6 @@ Note that this is in no way a perfect way to load in objects; what if we want an
 different texture, or model transformation? I've made the loading very simplistic so I could focus on other rendering systems. 
 Eventually, though, I'll want to handle other cases to make the engine more production ready.
 
-
 You may also notice that ``shared_lock`` object. This allows multiple threads to share a mutex lock. The mutex itself
 is of type ``shared_mutex`` to keep an atomic counter of how many threads are using it and is required in order to use
 a ``shared_locked``. 
@@ -289,9 +288,9 @@ Most GPU drivers won't be able to interpret this without crashing or behaving ba
 store the pixel data in a *staging buffer*, because transitioning the layout from ``UNDEFINED`` allows the driver to wipe any
 pre-existing memory.
 
-| *Aside*                                                                                                                                                                                    |
-|:-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| The other reason for using a *staging buffer* is that we must be able to store the pixel data in ``HOST_VISIBLE`` GPU memory, allowing us to write the pixel data to the GPU from the CPU. |  
+
+>The other reason for using a *staging buffer* is that we must be able to store the pixel data in 
+``HOST_VISIBLE`` GPU memory, allowing us to write the pixel data to the GPU from the CPU. 
 
 In Vulkan, we record image layout transitions with a ``VkImageMemoryBarrier``.
 
@@ -470,7 +469,7 @@ vkCmdPipelineBarrier(
 );
 ```
 
-**NOTE:** I *should* synchronize the transfer and acquisition with a **semaphore** - a GPU-GPU primitive. Because
+>**NOTE:** I *should* synchronize the transfer and acquisition with a **semaphore** - a GPU-GPU primitive. Because
 the release barrier is submitted on individual textures, I simply wait for the barrier submission to complete
 with a fence on the worker thread to ease the complexity. Later on, I will need to create a system to 
 batch a bunch of release barrier submissions which would processing multiple textures much faster for complex scenes.

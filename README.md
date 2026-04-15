@@ -117,4 +117,6 @@ An IDE is <em>highly</em> recommended for development:
   <li>Start Coding</li>
 </ol> 
 
-# 
+# Technical Details
+## 1. [Multithreading](docs/writeups/multithreading/multithreading.md)
+## 2. ...
