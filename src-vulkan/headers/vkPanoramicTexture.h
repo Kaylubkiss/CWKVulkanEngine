@@ -180,8 +180,6 @@ namespace vk
 
             c_device = devicePtr->GetDevice();
         }
-    private:
-        vk::Framebuffer m_framebuffer;
     };
 
 
