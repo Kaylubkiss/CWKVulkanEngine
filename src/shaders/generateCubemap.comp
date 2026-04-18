@@ -48,7 +48,7 @@ vec3 cubemapDirection(vec2 uv, uint face)
     }
 }
 
-vec2 directionToEquirectUV(vec3 dir)
+vec2 cartesianToEquirectUV(vec3 dir)
 {
     float phi = atan(dir.z, dir.x);
     float theta = asin(dir.y);
@@ -76,10 +76,11 @@ void main()
 
     vec3 dir = cubemapDirection(uv, face);
 
-    vec2 eqUV = directionToEquirectUV(dir);
+    vec2 eqUV = cartesianToEquirectUV(dir);
 
     vec3 color = texture(equirectangularMap, eqUV).rgb;
 
     imageStore(cubeMap, ivec3(pixel, face), vec4(color, 1.0));
+
 
 }
