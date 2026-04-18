@@ -1,5 +1,5 @@
 #include "vkContextBase.h"
-#include "vkUtility.h"
+#include "vkUtil.h"
 #include "vkInit.h"
 
 namespace vk

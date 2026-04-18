@@ -1,7 +1,7 @@
 #pragma once
 
 #include "shaderc/shaderc.hpp"
-#include "vkUtility.h"
+#include "vkUtil.h"
 
 namespace vk::spirv
 {
