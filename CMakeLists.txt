@@ -76,7 +76,7 @@ src/DescriptorManager.cpp
 set(VULKAN_SRC_DIR src-vulkan)
 
 set(VULKAN_ENGINE_SRC 
-${VULKAN_SRC_DIR}/vkUtility.cpp
+${VULKAN_SRC_DIR}/vkUtil.cpp
 ${VULKAN_SRC_DIR}/vkInit.cpp
 ${VULKAN_SRC_DIR}/vkGlobal.cpp
 ${VULKAN_SRC_DIR}/vkContextBase.cpp
@@ -138,7 +138,7 @@ ${HEADER_SRC_DIR}/test.h
 set(VULKAN_HEADER_DIR src-vulkan/headers)
 
 set(VULKAN_ENGINE_HEADERS 
-${VULKAN_HEADER_DIR}/vkUtility.h
+${VULKAN_HEADER_DIR}/vkUtil.h
 ${VULKAN_HEADER_DIR}/vkGlobal.h
 ${VULKAN_HEADER_DIR}/vkInit.h
 ${VULKAN_HEADER_DIR}/vkWindow.h
