@@ -19,6 +19,7 @@ namespace vk
 		static VkImageView CreateImageView( VkDevice l_device, const VkImage& textureImage, uint32_t mipLevels );
 		static VkSampler CreateSampler( VkPhysicalDevice p_device, VkDevice l_device, uint32_t mipLevels );
 	protected:
+		void RecordTransferOperations(const vk::Device* devicePtr, const vk::Buffer& stagingBuffer, std::mutex& submissionMutex);
 		//member variables
 		VkDevice c_device = VK_NULL_HANDLE;
 
@@ -26,6 +27,9 @@ namespace vk
 		VkDeviceMemory m_memory = VK_NULL_HANDLE;
 		VkImageView m_imageView = VK_NULL_HANDLE;
 		VkSampler m_sampler = VK_NULL_HANDLE; //different mip-levels might need different samplers
+
+		uint32_t m_width = 0;
+		uint32_t m_height = 0;
 
 		VkDescriptorImageInfo m_descriptor = {};
 

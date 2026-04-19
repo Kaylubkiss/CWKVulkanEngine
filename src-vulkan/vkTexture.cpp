@@ -59,46 +59,15 @@ namespace vk
 		return nTextureSampler;
 	}
 
-	void Texture::Create( const vk::Device* devicePtr, const std::vector<std::string>& fileNames, std::mutex& transferMutex )
+	void Texture::RecordTransferOperations(const vk::Device* devicePtr, const vk::Buffer& stagingBuffer, std::mutex& submissionMutex)
 	{
-
-		assert(devicePtr);
-		//Might want to make command pool a member variable.
-		const std::string& filePath = fileNames.front();
-
-		int textureWidth, textureHeight, textureChannels;
-		stbi_uc* pixels = filePath.empty() ? nullptr : stbi_load(filePath.c_str(),
-			&textureWidth, &textureHeight, &textureChannels, STBI_rgb_alpha);
-
-		if (pixels == nullptr)
-		{
-			std::cerr << "could not load in specified texture " + filePath << std::endl;
-			throw std::runtime_error("Texture() FAILED");
-		}
-
-		constexpr uint64_t num_channels = 4;
-		VkDeviceSize imageSize = static_cast<uint64_t>(textureWidth) *
-			static_cast<uint64_t>(textureHeight) * num_channels;
-
-		uint32_t mipLevels = 1;
-
-		VkFence submissionFence = vk::init::CreateFence(devicePtr->GetDevice(), false);
-
-		vk::Buffer stagingBuffer = vk::Buffer(devicePtr,
-			VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
-			static_cast<size_t>(imageSize), pixels);
-
-		m_image = vk::init::CreateImage(devicePtr->GetGPU(),
-			devicePtr->GetDevice(), textureWidth, textureHeight, mipLevels, VK_FORMAT_R8G8B8A8_UNORM,
-			VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_memory);
+		VkSubmitInfo submitInfo = {};
 
 		VkCommandPool transferCmdPool = vk::init::CommandPool(devicePtr->GetDevice(),
 			VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT, devicePtr->GetQueue(DeviceQueue::TRANSFER).family);
 
+		VkFence submissionFence = vk::init::CreateFence(devicePtr->GetDevice(), false);
 		VkCommandBuffer transferCmd = beginSingleTimeCommand(devicePtr->GetDevice(), transferCmdPool);
-		VkSubmitInfo submitInfo = {};
 
 		//transition image to dst-optimal layout so the staging buffer can be copied into it.
 		{
@@ -122,22 +91,6 @@ namespace vk
 				0, 0,
 				nullptr, 0, nullptr, 1,
 				&barrier); //asking the gpu to reconfigure the old image layout to the new layout.
-
-			VK_CHECK_RESULT(vkEndCommandBuffer(transferCmd));
-
-			submitInfo = {};
-			submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-			submitInfo.commandBufferCount = 1;
-			submitInfo.pCommandBuffers = &transferCmd;
-
-			{
-				std::lock_guard<std::mutex> lock(transferMutex);
-				VK_CHECK_RESULT(vkQueueSubmit(devicePtr->GetQueue(DeviceQueue::TRANSFER).handle, 1, &submitInfo,
-					submissionFence));
-			}
-
-			VK_CHECK_RESULT(vkWaitForFences(devicePtr->GetDevice(), 1, &submissionFence, VK_TRUE, UINT64_MAX));
-			VK_CHECK_RESULT(vkResetFences(devicePtr->GetDevice(), 1, &submissionFence));
 		}
 
 		//copy buffer into image.
@@ -151,8 +104,8 @@ namespace vk
 			region.imageOffset = { 0,0,0 };
 			region.imageExtent =
 			{
-				static_cast<uint32_t>(textureWidth),
-				static_cast<uint32_t>(textureHeight),
+				m_width,
+				m_height,
 				1
 			};
 
@@ -160,26 +113,8 @@ namespace vk
 			beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 			beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
 
-			VK_CHECK_RESULT(vkBeginCommandBuffer(transferCmd, &beginInfo));
-
 			vkCmdCopyBufferToImage(transferCmd, stagingBuffer.GetHandle(), m_image,
 				VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
-
-			VK_CHECK_RESULT(vkEndCommandBuffer(transferCmd));
-
-			submitInfo = {};
-			submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-			submitInfo.commandBufferCount = 1;
-			submitInfo.pCommandBuffers = &transferCmd;
-
-			{
-				std::lock_guard<std::mutex> lock(transferMutex);
-				VK_CHECK_RESULT(vkQueueSubmit(devicePtr->GetQueue(DeviceQueue::TRANSFER).handle,
-					1, &submitInfo, submissionFence));
-			}
-
-			VK_CHECK_RESULT(vkWaitForFences(devicePtr->GetDevice(), 1, &submissionFence, VK_TRUE, UINT64_MAX));
-			VK_CHECK_RESULT(vkResetFences(devicePtr->GetDevice(), 1, &submissionFence));
 		}
 
 		//release transfer queue to graphics queue
@@ -203,35 +138,73 @@ namespace vk
 			beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 			beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
 
-			VK_CHECK_RESULT(vkBeginCommandBuffer(transferCmd, &beginInfo));
-
 			vkCmdPipelineBarrier(transferCmd, VK_PIPELINE_STAGE_TRANSFER_BIT,
 				VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
 				0, 0,
 				nullptr, 0, nullptr, 1,
 				&releaseBarrier); //asking the gpu to reconfigure the old image layout to the new layout.
+		}
 
-			VK_CHECK_RESULT(vkEndCommandBuffer(transferCmd));
+		VK_CHECK_RESULT(vkEndCommandBuffer(transferCmd));
 
+		{
 			submitInfo = {};
 			submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 			submitInfo.commandBufferCount = 1;
 			submitInfo.pCommandBuffers = &transferCmd;
 
-			{
-				std::lock_guard<std::mutex> lock(transferMutex);
-				VK_CHECK_RESULT(vkQueueSubmit(devicePtr->GetQueue(DeviceQueue::TRANSFER).handle, 1, &submitInfo,
-					submissionFence));
-			}
-
-			VK_CHECK_RESULT(vkWaitForFences(devicePtr->GetDevice(), 1, &submissionFence, VK_TRUE, UINT64_MAX));
-			VK_CHECK_RESULT(vkResetFences(devicePtr->GetDevice(), 1, &submissionFence));
+			std::lock_guard<std::mutex> lock(submissionMutex);
+			VK_CHECK_RESULT(vkQueueSubmit(devicePtr->GetQueue(DeviceQueue::TRANSFER).handle, 1, &submitInfo,
+				submissionFence));
 		}
+
+		VK_CHECK_RESULT(vkWaitForFences(devicePtr->GetDevice(), 1, &submissionFence, VK_TRUE, UINT64_MAX));
+		VK_CHECK_RESULT(vkResetFences(devicePtr->GetDevice(), 1, &submissionFence));
+
+
+		vkDestroyFence(devicePtr->GetDevice(), submissionFence, nullptr);
 
 		vkFreeCommandBuffers(devicePtr->GetDevice(), transferCmdPool, 1, &transferCmd);
 		vkDestroyCommandPool(devicePtr->GetDevice(), transferCmdPool, nullptr);
+	}
 
-		vkDestroyFence(devicePtr->GetDevice(), submissionFence, nullptr);
+	void Texture::Create( const vk::Device* devicePtr, const std::vector<std::string>& fileNames, std::mutex& transferMutex )
+	{
+
+		assert(devicePtr);
+		//Might want to make command pool a member variable.
+		const std::string& filePath = fileNames.front();
+
+		int textureWidth, textureHeight, textureChannels;
+		stbi_uc* pixels = filePath.empty() ? nullptr : stbi_load(filePath.c_str(),
+			&textureWidth, &textureHeight, &textureChannels, STBI_rgb_alpha);
+
+		if (pixels == nullptr)
+		{
+			std::cerr << "could not load in specified texture " + filePath << std::endl;
+			throw std::runtime_error("Texture() FAILED");
+		}
+
+		m_width = static_cast<uint32_t>(textureWidth);
+		m_height = static_cast<uint32_t>(textureHeight);
+
+		constexpr uint64_t num_channels = 4;
+		VkDeviceSize imageSize = static_cast<uint64_t>(textureWidth) *
+			static_cast<uint64_t>(textureHeight) * num_channels;
+
+		uint32_t mipLevels = 1;
+
+		vk::Buffer stagingBuffer = vk::Buffer(devicePtr,
+			VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
+			static_cast<size_t>(imageSize), pixels);
+
+		m_image = vk::init::CreateImage(devicePtr->GetGPU(),
+			devicePtr->GetDevice(), textureWidth, textureHeight, mipLevels, VK_FORMAT_R8G8B8A8_UNORM,
+			VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_memory);
+
+		RecordTransferOperations(devicePtr, stagingBuffer, transferMutex);
 
 		stagingBuffer.Destroy();
 		stbi_image_free(pixels);
