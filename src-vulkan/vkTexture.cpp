@@ -7,19 +7,20 @@
 namespace vk
 {
 
-	VkImageView Texture::CreateImageView( VkDevice l_device, const VkImage& textureImage, uint32_t mipLevels )
+	VkImageView Texture::CreateImageView( VkDevice l_device, const VkImage& textureImage, VkImageViewType type )
 	{
 
 		VkImageViewCreateInfo viewInfo = {};
 		viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
 		viewInfo.image = textureImage;
-		viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+		viewInfo.viewType = type;
 		viewInfo.format = VK_FORMAT_R8G8B8A8_UNORM;
 		viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 		viewInfo.subresourceRange.baseMipLevel = 0;
-		viewInfo.subresourceRange.levelCount = mipLevels;
+		viewInfo.subresourceRange.levelCount = VK_REMAINING_MIP_LEVELS;
 		viewInfo.subresourceRange.baseArrayLayer = 0;
-		viewInfo.subresourceRange.layerCount = 1;
+		viewInfo.subresourceRange.layerCount = VK_REMAINING_ARRAY_LAYERS;
+		viewInfo.components = vk::init::ComponentMappingSwizzleIdentity();
 
 		VkImageView nTextImageView;
 		VK_CHECK_RESULT(vkCreateImageView(l_device, &viewInfo, nullptr, &nTextImageView));
@@ -27,7 +28,7 @@ namespace vk
 		return nTextImageView;
 	}
 
-	VkSampler Texture::CreateSampler( VkPhysicalDevice p_device, VkDevice l_device, uint32_t mipLevels )
+	VkSampler Texture::CreateSampler( VkPhysicalDevice p_device, VkDevice l_device )
 	{
 		VkSamplerCreateInfo createInfo = {};
 		createInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
@@ -50,7 +51,7 @@ namespace vk
 		createInfo.compareEnable = VK_FALSE;
 		createInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
 		createInfo.minLod = 0.f;
-		createInfo.maxLod = static_cast<float>(mipLevels);
+		createInfo.maxLod = static_cast<float>(1);
 		createInfo.mipLodBias = 0.f; //optional...
 
 		VkSampler nTextureSampler;
@@ -95,26 +96,26 @@ namespace vk
 
 		//copy buffer into image.
 		{
-			VkBufferImageCopy region = {};
-			region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-			region.imageSubresource.mipLevel = 0;
-			region.imageSubresource.baseArrayLayer = 0;
-			region.imageSubresource.layerCount = 1;
-
-			region.imageOffset = { 0,0,0 };
-			region.imageExtent =
+			std::vector<VkBufferImageCopy> regions(m_imageCount, {});
+			for (int i = 0; i < m_imageCount; ++i)
 			{
-				m_width,
-				m_height,
-				1
-			};
+				regions[i].imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+				regions[i].imageSubresource.mipLevel = 0;
+				regions[i].imageSubresource.baseArrayLayer = i;
+				regions[i].imageSubresource.layerCount = 1;
+				regions[i].bufferOffset = m_imageLayerSize * i;
+				regions[i].imageExtent =
+				{
+					m_width,
+					m_height,
+					1
+				};
+			}
 
-			VkCommandBufferBeginInfo beginInfo = {};
-			beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-			beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+			uint32_t regionCount = static_cast<uint32_t>(regions.size());
 
 			vkCmdCopyBufferToImage(transferCmd, stagingBuffer.GetHandle(), m_image,
-				VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
+				VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, regionCount, regions.data());
 		}
 
 		//release transfer queue to graphics queue
@@ -153,7 +154,7 @@ namespace vk
 			submitInfo.commandBufferCount = 1;
 			submitInfo.pCommandBuffers = &transferCmd;
 
-			std::lock_guard<std::mutex> lock(submissionMutex);
+			std::lock_guard lock(submissionMutex);
 			VK_CHECK_RESULT(vkQueueSubmit(devicePtr->GetQueue(DeviceQueue::TRANSFER).handle, 1, &submitInfo,
 				submissionFence));
 		}
@@ -172,6 +173,11 @@ namespace vk
 	{
 
 		assert(devicePtr);
+
+		m_imageCount = fileNames.size();
+
+		assert(m_imageCount == 1);
+
 		//Might want to make command pool a member variable.
 		const std::string& filePath = fileNames.front();
 
@@ -192,25 +198,31 @@ namespace vk
 		VkDeviceSize imageSize = static_cast<uint64_t>(textureWidth) *
 			static_cast<uint64_t>(textureHeight) * num_channels;
 
-		uint32_t mipLevels = 1;
-
 		vk::Buffer stagingBuffer = vk::Buffer(devicePtr,
 			VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
 			static_cast<size_t>(imageSize), pixels);
 
-		m_image = vk::init::CreateImage(devicePtr->GetGPU(),
-			devicePtr->GetDevice(), textureWidth, textureHeight, mipLevels, VK_FORMAT_R8G8B8A8_UNORM,
-			VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_memory);
+		VkImageCreateInfo textureImageCI = vk::init::ImageCreateInfo();
+		textureImageCI.imageType = VK_IMAGE_TYPE_2D;
+		textureImageCI.format = VK_FORMAT_R8G8B8A8_UNORM;
+		textureImageCI.extent = {m_width, m_height, 1};
+		textureImageCI.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+		textureImageCI.mipLevels = 1;
+		textureImageCI.arrayLayers = 1;
+		textureImageCI.samples = VK_SAMPLE_COUNT_1_BIT;
+		textureImageCI.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+		textureImageCI.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+
+		m_image = vk::init::CreateImage(devicePtr, textureImageCI, m_memory, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
 		RecordTransferOperations(devicePtr, stagingBuffer, transferMutex);
 
 		stagingBuffer.Destroy();
 		stbi_image_free(pixels);
 
-		m_imageView = vk::Texture::CreateImageView(devicePtr->GetDevice(), m_image, 1);
-		m_sampler   = vk::Texture::CreateSampler(devicePtr->GetGPU(), devicePtr->GetDevice(), 1);
+		m_imageView = vk::Texture::CreateImageView(devicePtr->GetDevice(), m_image, VK_IMAGE_VIEW_TYPE_2D);
+		m_sampler   = vk::Texture::CreateSampler(devicePtr->GetGPU(), devicePtr->GetDevice() );
 		m_descriptor.imageView = m_imageView;
 		m_descriptor.sampler = m_sampler;
 		m_descriptor.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;

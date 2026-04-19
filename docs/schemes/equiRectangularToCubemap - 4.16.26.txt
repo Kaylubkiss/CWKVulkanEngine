@@ -22,13 +22,19 @@ up -> vertical axis;
 
 2) ready the layout of the equirectangular for transfer, then copy the staging buffer (pixels)
 
-3) create a cubemap image and transition its layout to VK_IMAGE_LAYOUT_GENERAL and VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT. This will ready it for imageStore() operations in the compute shader. 
+3) create a cubemap image and transition its layout to VK_IMAGE_LAYOUT_GENERAL and VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT.
+This will ready it for imageStore() operations in the compute shader.
 
 4)  transition the layout to VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL for sampling in the compute shader.
 
 	(submit to transfer queue queue)
 
-3) release the equirectangular & cubemap image to the graphics queue (where compute bit is).
+5) release the equirectangular & cubemap image to the graphics queue (where compute bit is).
+
+6) because it's rare for any other kind of image conversion in this engine,
+i'll just add a bool in the pendingTextureInfo: isPanoramicImage.
+
+
 
 
 

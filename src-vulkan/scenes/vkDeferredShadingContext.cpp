@@ -28,7 +28,7 @@ namespace vk
 
 		m_textureManagerPtr->Init(&device, descriptorManagerPtr);
 
-		skyboxImageIndex = m_textureManagerPtr->AddTextures(skyboxTextures, true);
+		skyboxImageIndex = m_textureManagerPtr->AddTextures(skyboxTextures, TextureType::CUBEMAP);
 
 		DeferredContext::InitializePipeline();
 	}

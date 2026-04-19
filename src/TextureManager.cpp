@@ -113,7 +113,7 @@ bool TextureManager::AddCubeMapTexture( const std::vector<std::string>& fileName
 	return true;
 }
 
-uint32_t TextureManager::AddTextures( const std::vector<std::string>& fileNames, bool isCubemap )
+uint32_t TextureManager::AddTextures( const std::vector<std::string>& fileNames, TextureType type )
 {
 	if (fileNames.empty())
 	{
@@ -122,13 +122,22 @@ uint32_t TextureManager::AddTextures( const std::vector<std::string>& fileNames,
 
 	uint32_t layoutIndex = m_descriptorManagerPtr->GetLayoutIndex(DescriptorCategory::eMaterial);
 
-
 	std::vector<PendingTextureInfo> pendingInfos;
 
-	if (!isCubemap)
+	if (type == TextureType::CUBEMAP)
+	{
+		pendingInfos.resize(1);
+
+		pendingInfos.front().bindingIndex = 0;
+		pendingInfos.front().layoutIndex = layoutIndex;
+		pendingInfos.front().totalBindingCount = 1;
+		pendingInfos.front().needsGPUTransfer = AddCubeMapTexture(fileNames);
+		pendingInfos.front().texture_to_process = m_textures[fileNames[0]].handle;
+
+	}
+	else
 	{
 		pendingInfos.resize(fileNames.size());
-
 		for (size_t i = 0; i < fileNames.size(); ++i)
 		{
 			//because layoutIndex 0 is the null/default texture, we assume that because a texture
@@ -140,16 +149,6 @@ uint32_t TextureManager::AddTextures( const std::vector<std::string>& fileNames,
 			pendingInfos[i].needsGPUTransfer = AddTexture(fileNames[i]);
 			pendingInfos[i].texture_to_process = m_textures[fileNames[i]].handle;
 		}
-	}
-	else
-	{
-		pendingInfos.resize(1);
-
-		pendingInfos.front().bindingIndex = 0;
-		pendingInfos.front().layoutIndex = layoutIndex;
-		pendingInfos.front().totalBindingCount = 1;
-		pendingInfos.front().needsGPUTransfer = AddCubeMapTexture(fileNames);
-		pendingInfos.front().texture_to_process = m_textures[fileNames[0]].handle;
 	}
 
 	{

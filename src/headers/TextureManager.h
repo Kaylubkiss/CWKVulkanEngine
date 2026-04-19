@@ -1,6 +1,14 @@
 #pragma once
 #include "vkTexture.h"
 
+//NOTE: DOES NOT NEED TO BE A POWER OF TWO
+enum class TextureType : uint16_t
+{
+	NONE = 0x0,
+	CUBEMAP = 0x1,
+	PANORAMIC = 0x2,
+};
+
 struct TextureInfo
 {
 	std::shared_ptr<vk::Texture> handle;
@@ -10,13 +18,19 @@ struct TextureInfo
 struct PendingTextureInfo
 {
 	std::shared_ptr<vk::Texture> texture_to_process;
+
 	//the index into bufferOffsets of the texture layout
 	uint32_t bindingIndex = 0;
 	size_t totalBindingCount = 0;
+
 	//layoutIndex = the base layout index to start from, offset by bindingOffset for other textures in a layout.
 	uint32_t layoutIndex = 0;
 
+	TextureType type = TextureType::NONE;
+
 	bool needsGPUTransfer = false;
+
+	bool isPanoramicImage = false; //needs conversion after being acquired by the graphics queue
 };
 
 class TextureManager
@@ -32,7 +46,7 @@ public:
 
 	//returns whether or not a command was recorded.
 	bool UploadTextureDataToGPU( uint32_t currentFrame, VkSemaphore textureUploadSemaphore );
-	uint32_t AddTextures( const std::vector<std::string>& fileNames, bool isCubemap = false ); //returns the layout index of the texture
+	uint32_t AddTextures( const std::vector<std::string>& fileNames, TextureType type = TextureType::NONE ); //returns the layout index of the texture
 private:
 	bool AddTexture(const std::string& fileName);
 	bool AddCubeMapTexture( const std::vector<std::string>& fileNames );

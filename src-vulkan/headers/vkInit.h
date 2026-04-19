@@ -127,12 +127,8 @@ namespace vk
 		VkSubmitInfo SubmitInfo();
 
 		//special engine-specific resources
-		VkImage CreateImage
-		(
-			const VkPhysicalDevice& p_device, const VkDevice& l_device, uint32_t width, uint32_t height,
-			uint32_t mipLevels, VkFormat format, VkImageUsageFlags usage,
-			VkMemoryPropertyFlags flags, VkDeviceMemory& imageMemory
-		);
+		VkImage CreateImage ( const vk::Device* devicePtr, const VkImageCreateInfo& createInfo,
+			VkDeviceMemory& imageMemory, VkMemoryPropertyFlags memoryFlags );
 
 		VkComponentMapping ComponentMappingSwizzleIdentity();
 	}
