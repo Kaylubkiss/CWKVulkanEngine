@@ -96,9 +96,10 @@ namespace vk
 
 		//copy buffer into image.
 		{
-			std::vector<VkBufferImageCopy> regions(m_imageCount, {});
+			std::vector<VkBufferImageCopy> regions(m_imageCount);
 			for (int i = 0; i < m_imageCount; ++i)
 			{
+				regions[i] = {};
 				regions[i].imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 				regions[i].imageSubresource.mipLevel = 0;
 				regions[i].imageSubresource.baseArrayLayer = i;

@@ -29,8 +29,6 @@ struct PendingTextureInfo
 	TextureType type = TextureType::NONE;
 
 	bool needsGPUTransfer = false;
-
-	bool isPanoramicImage = false; //needs conversion after being acquired by the graphics queue
 };
 
 class TextureManager

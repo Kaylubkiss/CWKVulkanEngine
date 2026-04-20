@@ -133,7 +133,7 @@ uint32_t TextureManager::AddTextures( const std::vector<std::string>& fileNames,
 		pendingInfos.front().totalBindingCount = 1;
 		pendingInfos.front().needsGPUTransfer = AddCubeMapTexture(fileNames);
 		pendingInfos.front().texture_to_process = m_textures[fileNames[0]].handle;
-
+		pendingInfos.front().type = type;
 	}
 	else
 	{
