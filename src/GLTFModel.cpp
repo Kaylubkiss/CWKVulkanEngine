@@ -28,6 +28,12 @@ GLTFModel::GLTFModel( vk::Device* device, const std::filesystem::path& filePath 
 
 	asset = std::move(expected_asset.get());
 
+	if (fastgltf::validate(asset) != fastgltf::Error::None)
+	{
+		std::cerr << "object is an invalid gltf file!\n";
+		throw std::runtime_error("LoadObject() failed");
+	}
+
 	std::cout << "successfully loaded " << filePath.string() << std::endl;
 
 	std::vector<Vertex> vertices;
@@ -56,6 +62,7 @@ GLTFModel::GLTFModel( vk::Device* device, const std::filesystem::path& filePath 
 	{
 		Node newNode = {};
 
+		newNode.name = node.name;
 		newNode.meshIndex = node.meshIndex;
 
 		for (auto& child : node.children)
@@ -68,9 +75,8 @@ GLTFModel::GLTFModel( vk::Device* device, const std::filesystem::path& filePath 
 			memcpy(&newNode.transform[0], std::get<fastgltf::math::fmat4x4>(node.transform).data(),
 				sizeof(newNode.transform));
 		}
-		else //TODO: extract the TRS components here
+		else
 		{
-			//std::cerr << "mesh nodes only accept fmat4x4 for now!\n";
 
 			fastgltf::TRS trs = std::get<fastgltf::TRS>(node.transform);
 
@@ -82,8 +88,6 @@ GLTFModel::GLTFModel( vk::Device* device, const std::filesystem::path& filePath 
 
 			memcpy(&newNode.transform[0], transform.data(),
 				sizeof(newNode.transform));
-
-			//throw std::runtime_error("GLTFModel::doLoad() Failed!\n");
 		}
 
 		AddNode(newNode);
@@ -143,11 +147,13 @@ void GLTFModel::Draw( const vk::DrawInfo& drawInfo )
 	std::function<void(size_t, glm::mat4)> func = [&](size_t nodeIndex, glm::mat4 parentTransform)
 	{
 		assert(nodeIndex < nodes.size());
+
 		const Node& node = nodes[nodeIndex];
+
+		glm::mat4 curr_transform = parentTransform * node.transform;
+
 		if (node.meshIndex.has_value())
 		{
-			glm::mat4 curr_transform = parentTransform * node.transform;
-
 			//do rendering here.
 
 			auto mesh = meshes[node.meshIndex.value()];
@@ -160,11 +166,11 @@ void GLTFModel::Draw( const vk::DrawInfo& drawInfo )
 			}
 
 			DrawMeshPrimitives(drawInfo, mesh->m_primitives);
+		}
 
-			for (auto& childIndex : node.childrenIndices)
-			{
-				func(childIndex, curr_transform);
-			}
+		for (auto& childIndex : node.childrenIndices)
+		{
+			func(childIndex, curr_transform);
 		}
 	};
 
@@ -223,16 +229,25 @@ void GLTFModel::LoadTextures( TextureManager& textureManager, const std::vector<
 void GLTFModel::LoadMeshes( fastgltf::Asset& asset, std::vector<Vertex>& vertexBuffer,
 	std::vector<uint32_t>& indexBuffer )
 {
-	std::shared_ptr<Mesh> newMesh = std::make_shared<Mesh>();
 
 	for (size_t i = 0; i < asset.meshes.size(); ++i)
 	{
 		fastgltf::Mesh& mesh = asset.meshes[i];
 
+		std::shared_ptr<Mesh> newMesh = std::make_shared<Mesh>();
+
 		newMesh->m_name = mesh.name;
+
+
 
 		for (auto& primitive : mesh.primitives)
 		{
+			if (primitive.type != fastgltf::PrimitiveType::Triangles)
+			{
+				std::cerr << "primitive must be triangulated!\n";
+				throw std::runtime_error("GLTFModel::LoadMeshes() Failed!\n");
+			}
+
 			Primitive newPrim   = {};
 			newPrim.firstIndex  = static_cast<uint32_t>(indexBuffer.size());
 			newPrim.firstVertex = static_cast<uint32_t>(vertexBuffer.size());
@@ -264,7 +279,7 @@ void GLTFModel::LoadMeshes( fastgltf::Asset& asset, std::vector<Vertex>& vertexB
 				{
 					fastgltf::Accessor& posAccessor = asset.accessors[positionAttrib->accessorIndex];
 
-					newPrim.vertexCount = static_cast<uint32_t>(asset.accessors[positionAttrib->accessorIndex].count);
+					newPrim.vertexCount = static_cast<uint32_t>(posAccessor.count);
 
 					vertexBuffer.resize(newPrim.vertexCount + newPrim.firstVertex);
 
@@ -294,6 +309,8 @@ void GLTFModel::LoadMeshes( fastgltf::Asset& asset, std::vector<Vertex>& vertexB
 
 				}
 
+				//NOTE: might be multiple texcoord_
+				//texcoord_0 usually denotes the base color, however.
 				auto texCoordAttrib = primitive.findAttribute("TEXCOORD_" + std::to_string(0));
 				if (texCoordAttrib != primitive.attributes.end())
 				{
@@ -304,7 +321,6 @@ void GLTFModel::LoadMeshes( fastgltf::Asset& asset, std::vector<Vertex>& vertexB
 							vertexBuffer[newPrim.firstVertex + idx].uv = glm::make_vec2(uv.data());
 						});
 				}
-
 			}
 			//end of vertex
 
@@ -324,24 +340,28 @@ void GLTFModel::LoadMeshes( fastgltf::Asset& asset, std::vector<Vertex>& vertexB
 					std::vector<uint16_t> buf(newPrim.indexCount);
 					fastgltf::copyFromAccessor<uint16_t>(asset, accessor, buf.data());
 
+					m_indexBufferType = VK_INDEX_TYPE_UINT16;
+
 					for (auto& index : buf)
 					{
-						indexBuffer.push_back(newPrim.firstVertex + index);
+						indexBuffer.push_back(index);
 					}
 				}
-				else //unsigned int
+				else if (accessor.componentType == fastgltf::ComponentType::UnsignedInt)
 				{
 					std::vector<uint32_t> buf(newPrim.indexCount);
 					fastgltf::copyFromAccessor<uint32_t>(asset, accessor, buf.data());
 
-					m_indexBufferType = VK_INDEX_TYPE_UINT32;
-
 					for (auto& index : buf)
 					{
-						indexBuffer.push_back(newPrim.firstVertex + index);
+						indexBuffer.push_back(index);
 					}
 				}
-
+				else
+				{
+					std::cerr << "gltf asset is using unspecified component type for indices\n";
+					throw std::runtime_error("GLTFModel::LoadMeshes() Failed!\n");
+				}
 			}
 			//end of indices
 

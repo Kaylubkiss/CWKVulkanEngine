@@ -42,8 +42,6 @@ namespace vk
 
             RecordTransferOperations(devicePtr, stagingBuffer, transferMutex);
 
-            /*VkImage cubemapImage;
-
             VkImageCreateInfo imageCI = vk::init::ImageCreateInfo();
             imageCI.extent = { 2048, 2048, 1 };
             imageCI.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
@@ -54,7 +52,13 @@ namespace vk
             imageCI.samples = VK_SAMPLE_COUNT_1_BIT;
             imageCI.mipLevels = 1;
             imageCI.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-            imageCI.flags = VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;*/
+            imageCI.flags = VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
+
+
+            VkImage cubemapImage = vk::init::CreateImage(devicePtr, imageCI, m_memory,
+                VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+
+
 
 
 

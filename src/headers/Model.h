@@ -6,6 +6,7 @@ struct Node //notice: no pointing to parents. Might be something for later.
 	glm::mat4 transform;
 	std::optional<size_t> meshIndex;
 	std::vector<size_t> childrenIndices;
+	std::string name;
 };
 
 struct Primitive
@@ -107,7 +108,7 @@ public:
 					   &drawInfo.imageBufferIndex, &descriptorBufferOffset);
 
 			vkCmdDrawIndexed(drawInfo.cmdBuffer, primitive.indexCount, 1,
-				primitive.firstIndex, 0, 0); //indexing into 1 vertex buffer.
+				primitive.firstIndex, primitive.firstVertex, 0); //indexing into 1 vertex buffer.
 		}
 	}
 protected:

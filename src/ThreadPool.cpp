@@ -26,7 +26,6 @@ void ThreadPool::EnqueueTask(std::function<void()>& task)
 		tasks.push(std::move(task));
 	}
 
-
 	condition_variable.notify_one();
 }
 
