@@ -15,5 +15,5 @@ private:
 extern ApplicationManager appManager;
 
 #define _Application appManager.GetApplication()
-#define _GraphicsContext appManager.GetApplication()->GetVulkanContext()
+#define _GraphicsContext appManager.GetApplication()->GetVulkanRenderer()
 #define _Timer appManager.GetApplication()->GetTimer()

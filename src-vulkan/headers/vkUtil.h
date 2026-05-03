@@ -58,5 +58,10 @@ namespace vk
 		bool CheckInstanceLayerSupport( const char* layers[], int layersSize );
 
 		bool CheckInstanceExtensionSupport( const char* extensions[], int extension_count );
+
+		VkCommandBuffer beginSingleTimeCommand( const VkDevice l_device, const VkCommandPool cmdPool );
+
+		void endSingleTimeCommand( const VkDevice l_device, VkCommandBuffer commandBuffer,
+			const VkCommandPool cmdPool, const VkQueue gfxQueue );
 	}
 }

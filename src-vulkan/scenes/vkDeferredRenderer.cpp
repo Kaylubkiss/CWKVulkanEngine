@@ -1,4 +1,5 @@
-#include "vkDeferredShadingContext.h"
+#include "vkDeferredRenderer.h"
+#include "vkInit.h"
 //TODO: be able to specify the objects you want in the scene at compile time.
 //TODO: remove camel case -- looks ugly and a bit unreadable. There is some inconsistency here in this file with that. 
 
@@ -6,8 +7,8 @@
 namespace vk
 {
 
-	DeferredContext::DeferredContext( TextureManager* textureManagerPtr, DescriptorManager* descriptorManagerPtr ) :
-		ContextBase(textureManagerPtr)
+	DeferredRenderer::DeferredRenderer( TextureManager* textureManagerPtr, DescriptorManager* descriptorManagerPtr ) :
+		RendererBase(textureManagerPtr)
 	{
 
 		m_descriptorManagerPtr = descriptorManagerPtr;
@@ -15,7 +16,7 @@ namespace vk
 		InitializeUniforms();
 		InitializeFramebuffers();
 
-		DeferredContext::InitializeDescriptors(*m_descriptorManagerPtr);
+		DeferredRenderer::InitializeDescriptors(*m_descriptorManagerPtr);
 
 		std::vector<std::string> skyboxTextures = {
 			"IceRiver/posx.jpg", //right (+X)
@@ -30,10 +31,10 @@ namespace vk
 
 		skyboxImageIndex = m_textureManagerPtr->AddTextures(skyboxTextures, TextureType::CUBEMAP);
 
-		DeferredContext::InitializePipeline();
+		DeferredRenderer::InitializePipeline();
 	}
 
-	DeferredContext::~DeferredContext()
+	DeferredRenderer::~DeferredRenderer()
 	{
 		for (size_t i = 0; i < uniformBuffers.size(); ++i)
 		{
@@ -53,7 +54,7 @@ namespace vk
 		}
 	}
 
-	void DeferredContext::InitializeUniforms()
+	void DeferredRenderer::InitializeUniforms()
 	{
 
 		//initializing light positions
@@ -106,7 +107,7 @@ namespace vk
 		}
 	}
 
-	void DeferredContext::InitializePipelineLayouts()
+	void DeferredRenderer::InitializePipelineLayouts()
 	{
 
 		std::vector<VkPushConstantRange> pushConstantRanges =
@@ -132,7 +133,7 @@ namespace vk
 					nullptr, &m_graphicsPipelineLayout));
 	}
 
-	void DeferredContext::UpdateScreenUniforms()
+	void DeferredRenderer::UpdateScreenUniforms()
 	{
 		VkViewport windowViewport = m_window.Viewport();
 
@@ -160,7 +161,7 @@ namespace vk
 			sizeof(uniformDataDeferredShadow));
 	}
 
-	void DeferredContext::UpdateLights() 
+	void DeferredRenderer::UpdateLights()
 	{
 		//light(s)
 		uniformDataLightPass.eyePosition = mCamera.Position();
@@ -172,7 +173,7 @@ namespace vk
 			sizeof(uniformDataLightPass));
 	}
 
-	void DeferredContext::UpdateUI() 
+	void DeferredRenderer::UpdateUI()
 	{
 		static bool option = false;
 
@@ -197,16 +198,16 @@ namespace vk
 		}
 	}
 
-	void DeferredContext::ResizeWindow()
+	void DeferredRenderer::ResizeWindow()
 	{
-		ContextBase::ResizeWindow();
+		RendererBase::ResizeWindow();
 
 		InitializeFramebuffers();
 
 		InitializeCompositionImageDescriptors(*m_descriptorManagerPtr);
 	}
 
-	void DeferredContext::Render( AssetManager& assetManager )
+	void DeferredRenderer::Render( AssetManager& assetManager )
 	{
 		if (PrepareFrame())
 		{ 

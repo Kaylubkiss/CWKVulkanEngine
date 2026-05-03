@@ -1,9 +1,9 @@
-#include "vkDeferredShadingContext.h"
+#include "vkDeferredRenderer.h"
 namespace vk
 {
 
 
-    void DeferredContext::InitializeDescriptors( DescriptorManager& descriptorManager )
+    void DeferredRenderer::InitializeDescriptors( DescriptorManager& descriptorManager )
     {
         {
         	descriptorManager.Init(&device);
@@ -17,7 +17,7 @@ namespace vk
     }
 
 
-	void DeferredContext::InitializeUBODescriptors( DescriptorManager& descriptorManager )
+	void DeferredRenderer::InitializeUBODescriptors( DescriptorManager& descriptorManager )
 	{
     	//there are three ubos in this demo.
     	//1 - scene transforms: eye, projection
@@ -74,7 +74,7 @@ namespace vk
 	    }
     }
 
-	void DeferredContext::InitializeCompositionImageDescriptors( DescriptorManager& descriptorManager )
+	void DeferredRenderer::InitializeCompositionImageDescriptors( DescriptorManager& descriptorManager )
     {
     	size_t imageCount = RT_COUNT + 1 + 1;
 
@@ -133,7 +133,7 @@ namespace vk
     	descriptorManager.WriteDescriptors(DescriptorCategory::eCompositionImage, swapChainImageIndex, imageDescriptorData);
     }
 
-	void DeferredContext::InitializeMaterialDescriptors( DescriptorManager& descriptorManager )
+	void DeferredRenderer::InitializeMaterialDescriptors( DescriptorManager& descriptorManager )
     {
     	//texture material samplers
     	std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings(3);

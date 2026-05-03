@@ -1,5 +1,6 @@
 #include "vkTexture.h"
 #include "vkUtil.h"
+#include "vkInit.h"
 
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
@@ -68,7 +69,7 @@ namespace vk
 			VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT, devicePtr->GetQueue(DeviceQueue::TRANSFER).family);
 
 		VkFence submissionFence = vk::init::CreateFence(devicePtr->GetDevice(), false);
-		VkCommandBuffer transferCmd = beginSingleTimeCommand(devicePtr->GetDevice(), transferCmdPool);
+		VkCommandBuffer transferCmd = vk::util::beginSingleTimeCommand(devicePtr->GetDevice(), transferCmdPool);
 
 		//transition image to dst-optimal layout so the staging buffer can be copied into it.
 		{

@@ -19,8 +19,6 @@ public:
 	void LoadObject( const ObjectCreateInfo& objectCI );
 	void DrawObjects( const vk::DrawInfo& drawInfo ) const;
 	void Update( float dt );
-	//returns whether or not a command was recorded.
-	bool SyncIO( uint32_t currentFrame, VkSemaphore textureUploadSemaphore );
 protected:
 	void InitTestScene();
 private:

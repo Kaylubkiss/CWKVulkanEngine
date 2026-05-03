@@ -1,6 +1,6 @@
 #include "TextureManager.h"
-
 #include "vkCubemap.h"
+#include "vkInit.h"
 
 void TextureManager::Init( vk::Device* devicePtr, DescriptorManager* descriptorManagerPtr )
 {

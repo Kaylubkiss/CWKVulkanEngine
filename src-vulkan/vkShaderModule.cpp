@@ -1,4 +1,5 @@
 #include "vkShaderModule.h"
+#include "vkInit.h"
 #include <sys/stat.h>
 
 #define SHADER_PATH "shaders/"

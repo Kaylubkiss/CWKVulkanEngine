@@ -1,8 +1,9 @@
-#include "vkDeferredShadingContext.h"
+#include "vkDeferredRenderer.h"
+#include "vkInit.h"
 
 namespace vk
 {
-	void DeferredContext::InitializeFramebuffers()
+	void DeferredRenderer::InitializeFramebuffers()
 	{
 		InitializeDeferredFramebuffer();
 		InitializeDeferredShadowFramebuffer();
@@ -10,7 +11,7 @@ namespace vk
 		InitializeDeferredSkyboxFramebuffer();
 	}
 
-    void DeferredContext::InitializeDeferredFramebuffer()
+    void DeferredRenderer::InitializeDeferredFramebuffer()
 	{
 		VkViewport viewport = m_window.Viewport();
 
@@ -71,7 +72,7 @@ namespace vk
 		}
 	}
 
-	void DeferredContext::InitializeDeferredShadowFramebuffer()
+	void DeferredRenderer::InitializeDeferredShadowFramebuffer()
     {
     	VkViewport viewport = m_window.Viewport();
 
@@ -103,7 +104,7 @@ namespace vk
 		}
     }
 
-	void DeferredContext::InitializeDeferredCompositionFramebuffer()
+	void DeferredRenderer::InitializeDeferredCompositionFramebuffer()
 	{
 		VkViewport viewport = m_window.Viewport();
 
@@ -137,7 +138,7 @@ namespace vk
 		}
 	}
 
-	void DeferredContext::InitializeDeferredSkyboxFramebuffer()
+	void DeferredRenderer::InitializeDeferredSkyboxFramebuffer()
 	{
 		VkViewport viewport = m_window.Viewport();
 

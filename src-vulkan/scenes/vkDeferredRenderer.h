@@ -1,5 +1,5 @@
 #pragma once
-#include "vkContextBase.h"
+#include "vkRendererBase.h"
 
 namespace vk 
 {
@@ -7,11 +7,11 @@ namespace vk
 	#define OBJECT_COUNT (10000 + 1) //max 10 objects in the scene, +1 for blank texture
 
 	//This scene is statically 4.2 KB!!!
-	class DeferredContext : public ContextBase 
+	class DeferredRenderer : public RendererBase
 	{
 	public:
-		DeferredContext( TextureManager* textureManagerPtr, DescriptorManager* descriptorManagerPtr );
-		~DeferredContext() override;
+		DeferredRenderer( TextureManager* textureManagerPtr, DescriptorManager* descriptorManagerPtr );
+		~DeferredRenderer() override;
 
 		void Render( AssetManager& assetManager ) override;
 		void ResizeWindow() override;

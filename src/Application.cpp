@@ -1,5 +1,6 @@
-#include "CameraController.h"
-#include "vkDeferredShadingContext.h"
+#include "Input.h"
+#include "vkDeferredRenderer.h"
+
 #include "test.h"
 
 PhysicsSystem& Application::GetPhysics() 
@@ -12,7 +13,7 @@ Timer& Application::GetTimer()
 	return this->mTime;
 }
 
-vk::ContextBase* Application::GetVulkanContext() const
+vk::RendererBase* Application::GetVulkanRenderer() const
 {
 	return m_vulkanGraphicsContext.get();
 }
@@ -39,25 +40,25 @@ void Application::init()
 		printf("SDL could not initialize! SDL_Error: %s\n", SDL_GetError());
 	}
 
-	m_vulkanGraphicsContext = std::make_unique<vk::DeferredContext>(&m_textureManager, &m_descriptorManager);
+	m_vulkanGraphicsContext = std::make_unique<vk::DeferredRenderer>(&m_textureManager, &m_descriptorManager);
 
 	if (exitApplication == true)
 	{
 		return;
 	}
 
-	vk::GraphicsContextInfo& contextInfo = m_vulkanGraphicsContext->GetGraphicsContextInfo();
+	auto rendererInfo = m_vulkanGraphicsContext->GetInfo();
 
-	m_assetManager.Init(contextInfo.devicePtr, &m_textureManager, 2);
+	m_assetManager.Init(rendererInfo.devicePtr, &m_textureManager, 2);
 }
 
 void Application::test()
 {
-	vk::GraphicsContextInfo& contextInfo = m_vulkanGraphicsContext->GetGraphicsContextInfo();
+	auto rendererInfo = m_vulkanGraphicsContext->GetInfo();
 
 	std::mutex mootMutex;
 	std::vector<std::string> fileNames = {"art/extern-textures/monochrome_studio.hdr"};
-	test::LoadPanoramicImage(contextInfo.devicePtr, fileNames,mootMutex);
+	test::LoadPanoramicImage(rendererInfo.devicePtr, fileNames,mootMutex);
 
 	RequestExit();
 }
@@ -133,7 +134,7 @@ void Application::loop()
 
 			float physicsTime = m_physics.InterpFactor(static_cast<float>(realFrameTime));
 
-			Controller::MoveCamera(m_vulkanGraphicsContext->GetCamera(), static_cast<float>(realFrameTime));
+			Input::MoveCamera(m_vulkanGraphicsContext->GetCamera(), static_cast<float>(realFrameTime));
 
 			if (exitApplication)
 			{

@@ -4,7 +4,6 @@ namespace vk
 {
 	namespace init 
 	{
-
 		VkVertexInputBindingDescription VertexInputBindingDescription( uint32_t binding = 0 );
 
 		VkPipelineVertexInputStateCreateInfo PipelineVertexInputStateCreateInfo();

@@ -1,4 +1,4 @@
-#include "CameraController.h"
+#include "Input.h"
 #include <SDL2/SDL.h>
 
 enum keys {
@@ -18,7 +18,7 @@ inline void ChangeCameraPosition(Camera& camera, const float& dt)
 	camera.Update(dt);
 }
 
-void Controller::MoveCamera( Camera& camera, float dt )
+void Input::MoveCamera( Camera& camera, float dt )
 {
 	SDL_Event e;
 	while (SDL_PollEvent(&e))

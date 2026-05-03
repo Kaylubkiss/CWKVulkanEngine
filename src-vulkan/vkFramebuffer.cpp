@@ -1,4 +1,5 @@
 #include "vkFramebuffer.h"
+#include "vkInit.h"
 
 namespace vk 
 {

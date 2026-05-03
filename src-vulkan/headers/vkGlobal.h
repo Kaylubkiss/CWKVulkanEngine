@@ -1,10 +1,6 @@
 #pragma once
 
-#include "vkBuffer.h"
-#include "vkUtil.h"
-#include "vkInit.h"
 #include "vkDevice.h"
-#include "vkDescriptorBuffer.h"
 
 constexpr uint32_t gMaxFramesInFlight = 3;
 
@@ -12,8 +8,6 @@ inline VkDeviceSize AlignedSize(VkDeviceSize size, VkDeviceSize alignment)
 {
 	return (size + alignment - 1) & ~(alignment - 1);
 }
-
-class UserInterface;
 
 namespace vk
 {
@@ -39,10 +33,7 @@ namespace vk
 	};
 
 
-	VkCommandBuffer beginSingleTimeCommand( const VkDevice l_device, const VkCommandPool cmdPool );
 
-	void endSingleTimeCommand( const VkDevice l_device, VkCommandBuffer commandBuffer,
-		const VkCommandPool cmdPool, const VkQueue gfxQueue );
 }
 
 

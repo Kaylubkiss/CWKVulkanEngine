@@ -2,7 +2,7 @@
 
 class Camera;
 
-namespace Controller
+namespace Input
 {
 	void MoveCamera( Camera& camera, float dt );
 }

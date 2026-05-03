@@ -1,4 +1,4 @@
-#include "vkContextBase.h"
+#include "vkRendererBase.h"
 #include "vkUtil.h"
 #include "vkInit.h"
 
@@ -6,7 +6,7 @@ namespace vk
 {	
 
 	//constructor
-	ContextBase::ContextBase( TextureManager* textureManagerPtr )
+	RendererBase::RendererBase( TextureManager* textureManagerPtr )
 	{
 		assert(textureManagerPtr != nullptr);
 
@@ -56,7 +56,7 @@ namespace vk
 			this->UIOverlay = UserInterface(userInterfaceCI);
 		}
 
-		ContextBase::FillOutGraphicsContextInfo();
+		RendererBase::FillOutGraphicsContextInfo();
 
 		this->mCamera = Camera({ 0.f, 0.f, 10.f }, { 0.f, 0.f, -1.f }, { 0,1,0 });
 
@@ -64,7 +64,7 @@ namespace vk
 	}
 
 	//destructor
-	ContextBase::~ContextBase()
+	RendererBase::~RendererBase()
 	{
 		if (device.GetDevice() != VK_NULL_HANDLE)
 		{
@@ -93,7 +93,7 @@ namespace vk
 	}
 
 	//helper(s)
-	void ContextBase::CreateSynchronizationPrimitives() 
+	void RendererBase::CreateSynchronizationPrimitives()
 	{
 		for (int i = 0; i < gMaxFramesInFlight; ++i)
 		{
@@ -104,7 +104,7 @@ namespace vk
 		}
 	}
 
-	void ContextBase::ResizeWindow() 
+	void RendererBase::ResizeWindow()
 	{
 		VK_CHECK_RESULT(vkDeviceWaitIdle(device.GetDevice()));
 
@@ -138,13 +138,13 @@ namespace vk
 		CreateSynchronizationPrimitives();
 	}
 
-	void ContextBase::ToggleUIActive(bool enable)
+	void RendererBase::ToggleUIActive(bool enable)
 	{
 		m_settings.UIToggled = enable;
 	}
 
 	//initializers
-	void ContextBase::FillOutGraphicsContextInfo() 
+	void RendererBase::FillOutGraphicsContextInfo()
 	{
 		//TODO: a little janky way to initialize as more of mInfo is filled with derived classes.
 		m_info.devicePtr = &this->device;
@@ -152,22 +152,22 @@ namespace vk
 
 	//getter(s)
 
-	Camera& ContextBase::GetCamera()
+	Camera& RendererBase::GetCamera()
 	{
 		return this->mCamera;
 	}
 
-	vk::Window& ContextBase::GetWindow() 
+	vk::Window& RendererBase::GetWindow()
 	{
 		return m_window;
 	}
 
-	GraphicsContextInfo& ContextBase::GetGraphicsContextInfo()
+	GraphicsContextInfo& RendererBase::GetInfo()
 	{
 		return m_info;
 	}
 
-	void ContextBase::WaitForDevice() const
+	void RendererBase::WaitForDevice() const
 	{
 		if (device.GetDevice() != VK_NULL_HANDLE)
 		{
@@ -175,7 +175,7 @@ namespace vk
 		}
 	}
 
-	bool ContextBase::PrepareFrame() 
+	bool RendererBase::PrepareFrame()
 	{
 		if (m_window.IsPrepared() == false)
 		{
@@ -254,7 +254,7 @@ namespace vk
 
 	}
 
-	void ContextBase::SubmitFrame()
+	void RendererBase::SubmitFrame()
 	{
 		VkSubmitInfo submitInfo = {};
 		submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;

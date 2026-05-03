@@ -1,4 +1,5 @@
 #include "vkDescriptorBuffer.h"
+#include "vkInit.h"
 
 namespace vk
 {

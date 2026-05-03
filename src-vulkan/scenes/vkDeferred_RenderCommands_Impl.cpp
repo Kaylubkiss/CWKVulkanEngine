@@ -1,8 +1,9 @@
-#include "vkDeferredShadingContext.h"
+#include "vkDeferredRenderer.h"
+#include "vkInit.h"
 
 namespace vk
 {
-    void DeferredContext::RecordCommandBuffers( AssetManager& assetManager )
+    void DeferredRenderer::RecordCommandBuffers( AssetManager& assetManager )
 	{
 		VkCommandBuffer cmdBuffer = commandBuffers[currentFrame];
 		VkCommandBufferBeginInfo cmdBufferBeginInfo = vk::init::CommandBufferBeginInfo();

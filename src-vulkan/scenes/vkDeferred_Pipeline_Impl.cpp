@@ -1,9 +1,9 @@
-#include "vkDeferredShadingContext.h"
-
+#include "vkDeferredRenderer.h"
+#include "vkInit.h"
 
 namespace vk
 {
-    void DeferredContext::InitializePipeline()
+    void DeferredRenderer::InitializePipeline()
     {
         InitializePipelineLayouts();
 

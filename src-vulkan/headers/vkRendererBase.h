@@ -14,14 +14,14 @@ class DescriptorManager;
 
 namespace vk
 {
-	class ContextBase
+	class RendererBase
 	{
 	public:
-		ContextBase( TextureManager* textureManagerPtr ); /* expect this to be derived from */
-		virtual ~ContextBase();
+		RendererBase( TextureManager* textureManagerPtr ); /* expect this to be derived from */
+		virtual ~RendererBase();
 
 		//getters(s)
-		[[nodiscard]] GraphicsContextInfo& GetGraphicsContextInfo();
+		[[nodiscard]] GraphicsContextInfo& GetInfo();
 		Camera& GetCamera();
 		vk::Window& GetWindow();
 
@@ -43,7 +43,7 @@ namespace vk
 		void CreateSynchronizationPrimitives();
 
 	protected:
-		struct AppSettings //TODO: make this into a bitmask
+		struct Settings //TODO: make this into a bitmask
 		{
 			uint32_t maxFramesInFlight = 2;
 			bool minimized = false;
@@ -58,7 +58,7 @@ namespace vk
 		UserInterface UIOverlay;
 
 		//this is for textureManager and potentially any other discrete systems.
-		GraphicsContextInfo m_info;
+		GraphicsContextInfo m_info = {};
 
 		vk::Instance m_instance;
 		vk::Window m_window;
@@ -74,8 +74,6 @@ namespace vk
 		std::array<VkSemaphore, gMaxFramesInFlight> renderCompleteSemaphores;
 		std::array<VkSemaphore, gMaxFramesInFlight> textureUploadSemaphores; //for I/O synchronization
 		std::array<VkFence, gMaxFramesInFlight> inFlightFences;
-
-		/*VkPipelineLayout m_graphicsPipelineLayout = VK_NULL_HANDLE; //TODO*/
 
 		TextureManager* m_textureManagerPtr = nullptr;
 
