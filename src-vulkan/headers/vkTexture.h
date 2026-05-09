@@ -11,12 +11,12 @@ namespace vk
 		Texture& operator=( const Texture& other ) = delete;
 		Texture( const Texture& other ) = delete;
 
-		virtual void Create( const vk::Device* devicePtr, const std::vector<std::string>& fileNames, std::mutex& transferMutex );
+		virtual void Create( const vk::Device* devicePtr, const std::vector<vk::TextureCreateInfo>& createInfos, std::mutex& transferMutex );
 
 		[[nodiscard]] VkDescriptorImageInfo GetDescriptor() const;
 		[[nodiscard]] VkImage GetImage() const;
 
-		static VkImageView CreateImageView( VkDevice l_device, const VkImage& textureImage, VkImageViewType type );
+		static VkImageView CreateImageView( VkDevice l_device, const VkImage& textureImage, VkFormat format, VkImageViewType type );
 		static VkSampler CreateSampler( VkPhysicalDevice p_device, VkDevice l_device );
 	protected:
 		void RecordTransferAndReleaseOperations(const vk::Device* devicePtr, const vk::Buffer& stagingBuffer, std::mutex& submissionMutex);

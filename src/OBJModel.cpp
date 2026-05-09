@@ -262,5 +262,8 @@ void OBJModel::LoadTextures( TextureManager& textureManager, const std::vector<s
     //this code-base will treat .obj as a primitive format for only geometry and color texture data.
     Mesh& mesh = *GetMeshes().back();
     Primitive& primitive = mesh.m_primitives.back();
-    primitive.textureSetLayoutIndex = textureManager.AddTextures( textureNames );
+
+    vk::TextureCreateInfo textureCI = {textureNames.back(), VK_FORMAT_R8G8B8A8_SRGB };
+
+    primitive.textureSetLayoutIndex = textureManager.AddTextures( { textureCI } );
 }

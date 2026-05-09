@@ -30,8 +30,9 @@ namespace vk
 		m_textureManagerPtr->Init(&device, descriptorManagerPtr);
 
 		//skyboxImageIndex = m_textureManagerPtr->AddTextures(skyboxTextures, TextureType::CUBEMAP);
-		skyboxImageIndex = m_textureManagerPtr->AddTextures(
-			{ "art/extern-textures/monochrome_studio.hdr" } );
+		std::string skyboxName = "art/extern-textures/monochrome_studio.hdr";
+		vk::TextureCreateInfo texture_create_info = { skyboxName, VK_FORMAT_R32G32B32A32_SFLOAT };
+		skyboxImageIndex = m_textureManagerPtr->AddTextures({ texture_create_info } );
 
 		DeferredRenderer::InitializePipeline();
 	}

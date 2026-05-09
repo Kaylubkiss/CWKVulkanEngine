@@ -3,10 +3,10 @@
 
 namespace vk
 {
-    void PanoramicTexture::Create( const vk::Device* devicePtr, const std::vector<std::string>& fileNames, std::mutex& transferMutex )
+    void PanoramicTexture::Create( const vk::Device* devicePtr,  const std::vector<vk::TextureCreateInfo>& createInfos, std::mutex& transferMutex )
     {
         int width, height, nChannels;
-        float* pixels = stbi_loadf(fileNames[0].c_str(), &width, &height, &nChannels, 4);
+        float* pixels = stbi_loadf(createInfos[0].name.c_str(), &width, &height, &nChannels, 4);
 
         if (pixels == nullptr)
         {
@@ -18,7 +18,7 @@ namespace vk
 
         VkDeviceSize imageSize = static_cast<VkDeviceSize>(width) * static_cast<VkDeviceSize>(height) * 4 * sizeof(float);
 
-        m_imageCount = fileNames.size();
+        m_imageCount = createInfos.size();
         m_imageLayerSize = imageSize; //technically, this will be transformed into a cubemap, so the image layer size will be divided by 6.
 
         vk::Buffer stagingBuffer = vk::Buffer(devicePtr, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
@@ -29,7 +29,7 @@ namespace vk
         panoramicImageCI.extent = { m_width, m_height, 1 };
         panoramicImageCI.arrayLayers = 1;
         panoramicImageCI.mipLevels = 1;
-        panoramicImageCI.format = VK_FORMAT_R16G16B16A16_SFLOAT;
+        panoramicImageCI.format = createInfos[0].format;
         panoramicImageCI.samples = VK_SAMPLE_COUNT_1_BIT;
         panoramicImageCI.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
         panoramicImageCI.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;

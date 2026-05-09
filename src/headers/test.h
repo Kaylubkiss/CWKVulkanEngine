@@ -7,6 +7,7 @@ namespace test
     {
         vk::PanoramicTexture panoramicTexture;
 
-        panoramicTexture.Create(devicePtr, fileNames, loadMutex);
+        vk::TextureCreateInfo texture_create_info = { fileNames[0], VK_FORMAT_R16G16B16A16_SFLOAT };
+        panoramicTexture.Create(devicePtr, {texture_create_info }, loadMutex);
     }
 }

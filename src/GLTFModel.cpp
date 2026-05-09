@@ -195,13 +195,13 @@ void GLTFModel::LoadTextures( TextureManager& textureManager, const std::vector<
 		{
 			Primitive& primitive = meshes[i]->m_primitives[j];
 
-			std::vector<std::string> primitive_textureNames;
+			std::vector<vk::TextureCreateInfo> texture_create_infos;
 
 			if (primitive.baseColorMaterialIndex.has_value())
 			{
 				auto baseColorIndex = primitive.baseColorMaterialIndex.value();
 
-				primitive_textureNames.push_back(textureNames[baseColorIndex]);
+				texture_create_infos.emplace_back(textureNames[baseColorIndex], VK_FORMAT_R8G8B8A8_SRGB);
 				//grab all the texture names specific to this primitive and then request the texture manager to make a
 				//layout with the bindings starting from index 0 -> n, where n is the number of textures.
 			}
@@ -210,17 +210,17 @@ void GLTFModel::LoadTextures( TextureManager& textureManager, const std::vector<
 			{
 				auto mrIndex = primitive.metallicRoughnessIndex.value();
 
-				primitive_textureNames.push_back(textureNames[mrIndex]);
+				texture_create_infos.emplace_back(textureNames[mrIndex], VK_FORMAT_R8G8B8A8_UNORM);
 			}
 
 			if (primitive.ambientOcclusionIndex.has_value())
 			{
 				auto aoIndex = primitive.ambientOcclusionIndex.value();
 
-				primitive_textureNames.push_back(textureNames[aoIndex]);
+				texture_create_infos.emplace_back(textureNames[aoIndex], VK_FORMAT_R8G8B8A8_UNORM);
 			}
 
-			primitive.textureSetLayoutIndex = textureManager.AddTextures(primitive_textureNames);
+			primitive.textureSetLayoutIndex = textureManager.AddTextures(texture_create_infos);
 		}
 	}
 

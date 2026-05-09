@@ -4,27 +4,29 @@
 namespace vk
 {
     //just one particular environment map for now
-    void Cubemap::Create( const vk::Device* devicePtr, const std::vector<std::string>& fileNames, std::mutex& transferMutex )
+    void Cubemap::Create( const vk::Device* devicePtr, const std::vector<vk::TextureCreateInfo>& createInfos, std::mutex& transferMutex )
     {
         assert(devicePtr);
 
-        m_imageCount = fileNames.size();
+        m_imageCount = createInfos.size();
 
-        assert(fileNames.size() == 6);
+        assert(m_imageCount== 6);
 
         //texture sizes should be square and/or the same in a cubemap
         int image_width, image_height, channels;
 
         std::vector<stbi_uc*> texture_data(m_imageCount, nullptr);
 
+        VkFormat format = createInfos[0].format;
+
         for (size_t i = 0; i < m_imageCount; ++i)
         {
-            texture_data[i] = stbi_load((CUBEMAP_DIR + fileNames[i]).c_str(),
+            texture_data[i] = stbi_load((CUBEMAP_DIR + createInfos[i].name).c_str(),
                 &image_width, &image_height, &channels, STBI_rgb_alpha);
 
             if (texture_data[i] == nullptr)
             {
-                std::cerr << "failed to load Cubemap image  " + fileNames[i] << "\n";
+                std::cerr << "failed to load Cubemap image  " + createInfos[i].name << "\n";
                 throw std::runtime_error("Cubemap::CreateImage() failed!\n");
             }
         }
@@ -54,7 +56,7 @@ namespace vk
         VkImageCreateInfo imageCI = vk::init::ImageCreateInfo();
         imageCI.extent = { m_width, m_height, 1 };
         imageCI.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
-        imageCI.format = VK_FORMAT_R8G8B8A8_UNORM;
+        imageCI.format = format;
         imageCI.imageType = VK_IMAGE_TYPE_2D;
         imageCI.arrayLayers = static_cast<uint32_t>(m_imageCount);
         imageCI.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
@@ -74,7 +76,7 @@ namespace vk
         stagingBuffer.Destroy();
 
         c_device = devicePtr->GetDevice();
-        m_imageView = vk::Texture::CreateImageView(c_device, m_image, VK_IMAGE_VIEW_TYPE_CUBE);
+        m_imageView = vk::Texture::CreateImageView(c_device, m_image, createInfos[0].format, VK_IMAGE_VIEW_TYPE_CUBE);
         m_sampler = vk::Texture::CreateSampler(devicePtr->GetGPU(), c_device );
         m_descriptor.imageView = m_imageView;
         m_descriptor.sampler = m_sampler;
