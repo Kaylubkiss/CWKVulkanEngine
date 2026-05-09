@@ -1,5 +1,5 @@
 #version 450
-#extension GL_KHR_vulkan_glsl : enable
+
 
 layout(set = 0, binding = 0) uniform sceneUBO
 {
@@ -21,5 +21,4 @@ void main()
     mat4 invProj = inverse(camera.proj);
 
     outUVW = vec3(invView * invProj * vec4(curr_corner, 1));
-
 }

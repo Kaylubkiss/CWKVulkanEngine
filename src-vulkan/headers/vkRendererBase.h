@@ -17,7 +17,7 @@ namespace vk
 	class RendererBase
 	{
 	public:
-		RendererBase( TextureManager* textureManagerPtr ); /* expect this to be derived from */
+		RendererBase(); /* expect this to be derived from */
 		virtual ~RendererBase();
 
 		//getters(s)
@@ -76,7 +76,5 @@ namespace vk
 		std::array<VkFence, gMaxFramesInFlight> inFlightFences;
 
 		TextureManager* m_textureManagerPtr = nullptr;
-
-
 	};
 }	

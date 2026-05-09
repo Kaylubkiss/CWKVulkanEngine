@@ -15,7 +15,7 @@ namespace vk
 		viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
 		viewInfo.image = textureImage;
 		viewInfo.viewType = type;
-		viewInfo.format = VK_FORMAT_R8G8B8A8_UNORM;
+		viewInfo.format = VK_FORMAT_R8G8B8A8_SRGB;
 		viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 		viewInfo.subresourceRange.baseMipLevel = 0;
 		viewInfo.subresourceRange.levelCount = VK_REMAINING_MIP_LEVELS;
@@ -61,7 +61,7 @@ namespace vk
 		return nTextureSampler;
 	}
 
-	void Texture::RecordTransferOperations(const vk::Device* devicePtr, const vk::Buffer& stagingBuffer, std::mutex& submissionMutex)
+	void Texture::RecordTransferAndReleaseOperations(const vk::Device* devicePtr, const vk::Buffer& stagingBuffer, std::mutex& submissionMutex)
 	{
 		VkSubmitInfo submitInfo = {};
 
@@ -207,7 +207,7 @@ namespace vk
 
 		VkImageCreateInfo textureImageCI = vk::init::ImageCreateInfo();
 		textureImageCI.imageType = VK_IMAGE_TYPE_2D;
-		textureImageCI.format = VK_FORMAT_R8G8B8A8_UNORM;
+		textureImageCI.format = VK_FORMAT_R8G8B8A8_SRGB;
 		textureImageCI.extent = {m_width, m_height, 1};
 		textureImageCI.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 		textureImageCI.mipLevels = 1;
@@ -218,7 +218,7 @@ namespace vk
 
 		m_image = vk::init::CreateImage(devicePtr, textureImageCI, m_memory, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
-		RecordTransferOperations(devicePtr, stagingBuffer, transferMutex);
+		RecordTransferAndReleaseOperations(devicePtr, stagingBuffer, transferMutex);
 
 		stagingBuffer.Destroy();
 		stbi_image_free(pixels);

@@ -6,12 +6,8 @@ namespace vk
 {	
 
 	//constructor
-	RendererBase::RendererBase( TextureManager* textureManagerPtr )
+	RendererBase::RendererBase()
 	{
-		assert(textureManagerPtr != nullptr);
-
-		m_textureManagerPtr = textureManagerPtr;
-
 		m_window.Init(640, 480);
 
 		std::vector<const char*> instanceLayers = {"VK_LAYER_KHRONOS_validation"};
@@ -29,10 +25,7 @@ namespace vk
 		swapChain.Create(m_window);
 
 		//conforms to higher frame counts to prevent flickering.
-		if (swapChain.createInfo.minImageCount > m_settings.maxFramesInFlight)
-		{
-			m_settings.maxFramesInFlight = swapChain.createInfo.minImageCount;
-		}
+		m_settings.maxFramesInFlight = std::max(swapChain.createInfo.minImageCount, m_settings.maxFramesInFlight);
 
 		CreateSynchronizationPrimitives();
 
@@ -262,11 +255,14 @@ namespace vk
 		std::vector<VkPipelineStageFlags> pipelineWaitStages = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
 		std::vector<VkSemaphore> waitSemaphores = { presentCompleteSemaphores[currentFrame] };
 
-		bool textureSubmitted = m_textureManagerPtr->UploadTextureDataToGPU(currentFrame, textureUploadSemaphores[currentFrame]);
-		if (textureSubmitted == true)
+		if (m_textureManagerPtr)
 		{
-			pipelineWaitStages.push_back(VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
-			waitSemaphores.push_back(textureUploadSemaphores[currentFrame]);
+			bool textureSubmitted = m_textureManagerPtr->UploadTextureDataToGPU(currentFrame, textureUploadSemaphores[currentFrame]);
+			if (textureSubmitted == true)
+			{
+				pipelineWaitStages.push_back(VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
+				waitSemaphores.push_back(textureUploadSemaphores[currentFrame]);
+			}
 		}
 
 		submitInfo.waitSemaphoreCount = static_cast<uint32_t>(waitSemaphores.size());

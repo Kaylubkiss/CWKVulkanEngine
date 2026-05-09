@@ -93,7 +93,7 @@ ${VULKAN_SRC_DIR}/vkCubemap.cpp
 ${VULKAN_SRC_DIR}/vkPanoramicTexture.cpp
 )
 
-set(VULKAN_SCENES_DIR src-vulkan/scenes)
+set(VULKAN_SCENES_DIR src-vulkan/deferred-renderer)
 
 set(VULKAN_ENGINE_SCENES_SOURCE
 		${VULKAN_SCENES_DIR}/vkDeferredRenderer.cpp
@@ -184,7 +184,7 @@ target_precompile_headers(${PROJECT_NAME} PUBLIC ${HEADER_SRC_DIR}/pch.h)
 target_include_directories(${PROJECT_NAME} PRIVATE
 src/headers
 src-vulkan/headers
-src-vulkan/scenes
+		src-vulkan/deferred-renderer
 extern/stb
 extern/tinyobjloader
 extern/imgui

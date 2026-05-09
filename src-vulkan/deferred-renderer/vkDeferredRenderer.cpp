@@ -7,10 +7,10 @@
 namespace vk
 {
 
-	DeferredRenderer::DeferredRenderer( TextureManager* textureManagerPtr, DescriptorManager* descriptorManagerPtr ) :
-		RendererBase(textureManagerPtr)
+	DeferredRenderer::DeferredRenderer( TextureManager* textureManagerPtr, DescriptorManager* descriptorManagerPtr )
 	{
 
+		m_textureManagerPtr = textureManagerPtr;
 		m_descriptorManagerPtr = descriptorManagerPtr;
 
 		InitializeUniforms();
@@ -29,7 +29,9 @@ namespace vk
 
 		m_textureManagerPtr->Init(&device, descriptorManagerPtr);
 
-		skyboxImageIndex = m_textureManagerPtr->AddTextures(skyboxTextures, TextureType::CUBEMAP);
+		//skyboxImageIndex = m_textureManagerPtr->AddTextures(skyboxTextures, TextureType::CUBEMAP);
+		skyboxImageIndex = m_textureManagerPtr->AddTextures(
+			{ "art/extern-textures/monochrome_studio.hdr" } );
 
 		DeferredRenderer::InitializePipeline();
 	}

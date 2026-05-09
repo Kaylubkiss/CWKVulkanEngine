@@ -258,8 +258,8 @@ void OBJModel::Draw( const vk::DrawInfo& drawInfo )
 void OBJModel::LoadTextures( TextureManager& textureManager, const std::vector<std::string>& textureNames )
 {
     //OBJ is assumed to only contain one primitive.
-    //Materials are not support with this implementation,
-    //this code-base will treat .obj as a primitive format for only geometry and texture data.
+    //Materials are not supported with this implementation,
+    //this code-base will treat .obj as a primitive format for only geometry and color texture data.
     Mesh& mesh = *GetMeshes().back();
     Primitive& primitive = mesh.m_primitives.back();
     primitive.textureSetLayoutIndex = textureManager.AddTextures( textureNames );

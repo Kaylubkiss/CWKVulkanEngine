@@ -1,5 +1,21 @@
 (TODO: unfinished)
+//NEW
 
+
+1) consolidate cubemap, panoramic, and regular texture creation (DO THIS AFTER IMPLEMENTING THE PANORAMIC TEXTURE/DIFFUSE IBL)
+    -Why? In order to improve debugging (not creating duplicate code), and creating future texture assets faster.
+    -How? provide additional arguments to texture creation methods.
+        - +format, +determining type of texture based on image count within Texture::Create()
+
+2 ) [x] sampling equirectangular map through shader as a skybox
+
+3 ) [] finish diffuse implementation of IBL
+
+4 ) [] finish specular implementation of IBL
+
+
+
+//OLD - (marked on 5.8.26)
 1) first create an image out of the equirectangular map that can be sampled from in the compute shader
 
 then, manage the concepts of a compute shader:

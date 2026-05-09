@@ -65,7 +65,7 @@ namespace vk
 
         m_image = vk::init::CreateImage(devicePtr, imageCI, m_memory, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
-        RecordTransferOperations(devicePtr, stagingBuffer, transferMutex);
+        RecordTransferAndReleaseOperations(devicePtr, stagingBuffer, transferMutex);
 
         for (size_t i = 0; i < m_imageCount; ++i)
         {

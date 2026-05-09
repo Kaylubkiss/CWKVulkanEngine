@@ -38,26 +38,7 @@ namespace vk
         m_image = vk::init::CreateImage(devicePtr, panoramicImageCI, m_memory,
             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
-        RecordTransferOperations(devicePtr, stagingBuffer, transferMutex);
-
-        /*VkImageCreateInfo imageCI = vk::init::ImageCreateInfo();
-        imageCI.extent = { 2048, 2048, 1 };
-        imageCI.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
-        imageCI.format = VK_FORMAT_R8G8B8A8_UNORM;
-        imageCI.imageType = VK_IMAGE_TYPE_2D;
-        imageCI.arrayLayers = 6;
-        imageCI.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-        imageCI.samples = VK_SAMPLE_COUNT_1_BIT;
-        imageCI.mipLevels = 1;
-        imageCI.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-        imageCI.flags = VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
-
-
-        VkImage cubemapImage = vk::init::CreateImage(devicePtr, imageCI, m_memory,
-            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);*/
-
-
-
+        RecordTransferAndReleaseOperations(devicePtr, stagingBuffer, transferMutex);
 
 
         std::cout << "\033[32m" << "successfully loaded Panormaic Texture in PanoramicTexture::Create()... " << "\033[0m\n";

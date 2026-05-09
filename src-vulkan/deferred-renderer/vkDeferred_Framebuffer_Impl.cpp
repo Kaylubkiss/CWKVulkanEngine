@@ -121,7 +121,7 @@ namespace vk
 			attachmentCI.sampleCount = VK_SAMPLE_COUNT_1_BIT;
 			attachmentCI.width = compositionFramebuffer.width;
 			attachmentCI.height = compositionFramebuffer.height;
-			attachmentCI.format = VK_FORMAT_B8G8R8A8_UNORM;
+			attachmentCI.format = VK_FORMAT_R16G16B16A16_SFLOAT;
 			attachmentCI.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
 			attachmentCI.loadOP = VK_ATTACHMENT_LOAD_OP_CLEAR;
 			attachmentCI.storeOP = VK_ATTACHMENT_STORE_OP_STORE;
@@ -146,7 +146,7 @@ namespace vk
 
 		for (auto& skyFramebuffer : framebuffers.deSky)
 		{
-			skyFramebuffer.Destroy();
+			skyFramebuffer.Destroy(); //in case we resize the window.
 			skyFramebuffer.Init(&this->device);
 
 			skyFramebuffer.width = static_cast<uint32_t>(viewport.width);

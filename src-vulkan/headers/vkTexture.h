@@ -19,7 +19,7 @@ namespace vk
 		static VkImageView CreateImageView( VkDevice l_device, const VkImage& textureImage, VkImageViewType type );
 		static VkSampler CreateSampler( VkPhysicalDevice p_device, VkDevice l_device );
 	protected:
-		void RecordTransferOperations(const vk::Device* devicePtr, const vk::Buffer& stagingBuffer, std::mutex& submissionMutex);
+		void RecordTransferAndReleaseOperations(const vk::Device* devicePtr, const vk::Buffer& stagingBuffer, std::mutex& submissionMutex);
 	protected:
 		//member variables
 		VkDevice c_device = VK_NULL_HANDLE;
