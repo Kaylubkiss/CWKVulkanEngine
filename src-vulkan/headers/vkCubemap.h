@@ -14,7 +14,7 @@ namespace vk
         ~Cubemap() override = default;
 
         //just one particular environment map for now
-        void Create( const vk::Device* devicePtr,  const std::vector<vk::TextureCreateInfo>& createInfos, std::mutex& transferMutex ) override;
+        void Create( vk::Device* devicePtr,  const std::vector<vk::TextureCreateInfo>& createInfos, std::mutex& transferMutex ) override;
     };
 
 

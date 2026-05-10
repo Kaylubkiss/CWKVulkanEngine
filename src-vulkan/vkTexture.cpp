@@ -61,14 +61,14 @@ namespace vk
 		return nTextureSampler;
 	}
 
-	void Texture::RecordTransferAndReleaseOperations(const vk::Device* devicePtr, const vk::Buffer& stagingBuffer, std::mutex& submissionMutex)
+	void Texture::RecordTransferAndReleaseOperations( const vk::Device* devicePtr, const vk::Buffer& stagingBuffer, std::mutex& submissionMutex )
 	{
 		VkSubmitInfo submitInfo = {};
 
+		VkFence submissionFence = vk::init::CreateFence(devicePtr->GetDevice(), false);
+
 		VkCommandPool transferCmdPool = vk::init::CommandPool(devicePtr->GetDevice(),
 			VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT, devicePtr->GetQueue(DeviceQueue::TRANSFER).family);
-
-		VkFence submissionFence = vk::init::CreateFence(devicePtr->GetDevice(), false);
 		VkCommandBuffer transferCmd = vk::util::beginSingleTimeCommand(devicePtr->GetDevice(), transferCmdPool);
 
 		//transition image to dst-optimal layout so the staging buffer can be copied into it.
@@ -171,7 +171,7 @@ namespace vk
 		vkDestroyCommandPool(devicePtr->GetDevice(), transferCmdPool, nullptr);
 	}
 
-	void Texture::Create( const vk::Device* devicePtr, const std::vector<vk::TextureCreateInfo>& createInfos, std::mutex& transferMutex )
+	void Texture::Create( vk::Device* devicePtr, const std::vector<vk::TextureCreateInfo>& createInfos, std::mutex& transferMutex )
 	{
 
 		assert(devicePtr);

@@ -3,7 +3,7 @@
 
 namespace vk
 {
-    void PanoramicTexture::Create( const vk::Device* devicePtr,  const std::vector<vk::TextureCreateInfo>& createInfos, std::mutex& transferMutex )
+    void PanoramicTexture::Create( vk::Device* devicePtr,  const std::vector<vk::TextureCreateInfo>& createInfos, std::mutex& transferMutex )
     {
         int width, height, nChannels;
         float* pixels = stbi_loadf(createInfos[0].name.c_str(), &width, &height, &nChannels, 4);
@@ -38,13 +38,15 @@ namespace vk
         m_image = vk::init::CreateImage(devicePtr, panoramicImageCI, m_memory,
             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
-        RecordTransferAndReleaseOperations(devicePtr, stagingBuffer, transferMutex);
+        //RecordTransferAndReleaseOperations(devicePtr, stagingBuffer, transferMutex);
 
+        TransitionImageLayoutAndWriteToCubeMap( devicePtr, stagingBuffer, transferMutex );
 
         std::cout << "\033[32m" << "successfully loaded Panormaic Texture in PanoramicTexture::Create()... " << "\033[0m\n";
 
         stbi_image_free(pixels);
         stagingBuffer.Destroy();
+
 
         c_device = devicePtr->GetDevice();
     }

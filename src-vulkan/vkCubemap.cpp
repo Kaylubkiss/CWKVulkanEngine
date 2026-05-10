@@ -4,7 +4,7 @@
 namespace vk
 {
     //just one particular environment map for now
-    void Cubemap::Create( const vk::Device* devicePtr, const std::vector<vk::TextureCreateInfo>& createInfos, std::mutex& transferMutex )
+    void Cubemap::Create( vk::Device* devicePtr, const std::vector<vk::TextureCreateInfo>& createInfos, std::mutex& transferMutex )
     {
         assert(devicePtr);
 

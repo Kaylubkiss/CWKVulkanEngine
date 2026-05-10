@@ -1,0 +1,18 @@
+#version 450 core
+
+//TODO: after testing primitive color output -> layout(set = 2, binding = 0) uniform Sampler2D equirectangularMap;
+
+layout(local_size_x = 16, local_size_y = 16) in;
+
+layout(binding = 0, rgba32f) uniform writeonly imageCube cubeMapOutputImage;
+
+void main()
+{
+    int face = int(gl_GlobalInvocationID.z);
+
+    ivec2 pixelCoord = ivec2(gl_GlobalInvocationID.xy);
+
+    vec4 color = vec4(0, 1, 0, 1);
+
+    imageStore(cubeMapOutputImage, ivec3(pixelCoord, face), color);
+}

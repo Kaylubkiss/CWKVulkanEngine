@@ -22,6 +22,9 @@ namespace vk
             case VK_SHADER_STAGE_GEOMETRY_BIT:
                 mShaderKind = shaderc_geometry_shader;
                 break;
+            case VK_SHADER_STAGE_COMPUTE_BIT:
+                mShaderKind = shaderc_compute_shader;
+                break;
             default:
                 throw std::runtime_error("Unknown shader kind");
         }

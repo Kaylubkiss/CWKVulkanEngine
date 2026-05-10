@@ -113,6 +113,7 @@ namespace vk
 
 
 		VkPipelineLayout m_graphicsPipelineLayout = nullptr;
+		VkPipelineLayout m_computePipelineLayout = nullptr; // used for writing to cubemap images
 
 		float depthBiasConstant = 1.25f;
 		float depthBiasSlope    = 1.75f;
