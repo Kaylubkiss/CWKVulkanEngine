@@ -18,16 +18,7 @@ namespace vk
 
 		DeferredRenderer::InitializeDescriptors(*m_descriptorManagerPtr);
 
-		std::vector<std::string> skyboxTextures = {
-			"IceRiver/posx.jpg", //right (+X)
-			"IceRiver/negx.jpg", //left (-X)
-			"IceRiver/posy.jpg", //up (+Y)
-			"IceRiver/negy.jpg", //down (-Y)
-			"IceRiver/posz.jpg", //forward (+Z)
-			"IceRiver/negz.jpg",
-		};
-
-		m_textureManagerPtr->Init(&device, descriptorManagerPtr);
+		m_textureManagerPtr->Init(&device, m_descriptorManagerPtr);
 
 		//skyboxImageIndex = m_textureManagerPtr->AddTextures(skyboxTextures, TextureType::CUBEMAP);
 		std::string skyboxName = "art/extern-textures/monochrome_studio.hdr";

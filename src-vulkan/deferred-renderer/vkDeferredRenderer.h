@@ -115,7 +115,7 @@ namespace vk
 
 		VkPipelineLayout m_graphicsPipelineLayout = nullptr;
 
-		vk::PanoramicTexture m_test_panoramicImage;
+
 
 		float depthBiasConstant = 1.25f;
 		float depthBiasSlope    = 1.75f;
@@ -131,6 +131,8 @@ namespace vk
 		} sceneSettings{};
 
 		DescriptorManager* m_descriptorManagerPtr = nullptr;
+
+		vk::PanoramicTexture m_test_panoramicImage;
 
 	};
 
