@@ -67,7 +67,7 @@ namespace vk
 
             VkBufferUsageFlags bufferUsageFlags = VK_BUFFER_USAGE_RESOURCE_DESCRIPTOR_BUFFER_BIT_EXT |
                 VK_BUFFER_USAGE_SAMPLER_DESCRIPTOR_BUFFER_BIT_EXT |
-                VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT ;
+                VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
 
             //VK_BUFFER_USAGE_STORAGE_BUFFER_BIT
 
@@ -87,20 +87,19 @@ namespace vk
             m_computeDescriptorBuffer.Allocate(devicePtr, bufferUsageFlags, memoryProperties,
                 1, 1, layoutBindings);
 
+    		auto descriptorBufferProperties = devicePtr->GetDescriptorBufferProperties();
+
+    		vk::WriteResource writeResource = {};
+    		writeResource.pImageData = &m_cubemapInfo;
+
+    		m_computeDescriptorBuffer.WriteDescriptor(devicePtr, writeResource,
+				0, 0, 0, descriptorBufferProperties.storageImageDescriptorSize, true);
+
         }
 
         void WriteToCubeMapImage( vk::Device* devicePtr, VkCommandBuffer graphicsCmd, VkFence submissionFence, std::mutex& submissionMutex )
         {
             CreateCubeMapDescriptor( devicePtr );
-
-    		auto descriptorBufferProperties = devicePtr->GetDescriptorBufferProperties();
-
-            vk::WriteResource writeResource = {};
-
-            writeResource.pImageData = &m_cubemapInfo;
-
-            m_computeDescriptorBuffer.WriteDescriptor(devicePtr, writeResource,
-                0, 0, 0, descriptorBufferProperties.storageImageDescriptorSize);
 
         	//create compute pipeline
 			CreateComputePipeline( devicePtr );
@@ -111,12 +110,8 @@ namespace vk
 
 			VK_CHECK_RESULT(vkBeginCommandBuffer(graphicsCmd, &beginInfo));
 
-			//1 bind pipline
 			vkCmdBindPipeline(graphicsCmd, VK_PIPELINE_BIND_POINT_COMPUTE, m_computePipeline);
 
-			//2 bind descriptor buffer
-
-			//TODO (possibly): usage flag (from creation and this binding) may need to be changed -- unsure if i need to set storage buffer bit
             std::vector<VkDescriptorBufferBindingInfoEXT> descriptorBufferBindingInfos =
             {
 	            {
@@ -139,23 +134,6 @@ namespace vk
 
 			vkCmdDispatch(graphicsCmd, 512 / 16, 512 / 16, 6);
 
-			VK_CHECK_RESULT(vkEndCommandBuffer(graphicsCmd));
-
-			//submit to queue!!
-			{
-            	VkSubmitInfo submitInfo = {};
-            	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-            	submitInfo.commandBufferCount = 1;
-            	submitInfo.pCommandBuffers = &graphicsCmd;
-
-            	std::lock_guard lock(submissionMutex);
-            	VK_CHECK_RESULT(vkQueueSubmit(devicePtr->GetQueue(DeviceQueue::GRAPHICS).handle, 1, &submitInfo,
-					submissionFence));
-			}
-
-			VK_CHECK_RESULT(vkWaitForFences(devicePtr->GetDevice(), 1, &submissionFence, VK_TRUE, UINT64_MAX));
-			VK_CHECK_RESULT(vkResetFences(devicePtr->GetDevice(), 1, &submissionFence));
-
     		//transition the image layout to shader read_only.
             {
                 VkImageMemoryBarrier barrier = {};
@@ -173,16 +151,14 @@ namespace vk
                 barrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
                 barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
 
-            	VK_CHECK_RESULT(vkBeginCommandBuffer(graphicsCmd, &beginInfo));
-
                 vkCmdPipelineBarrier(graphicsCmd, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
                     VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
                     0, 0,
                     nullptr, 0, nullptr, 1,
                     &barrier); //asking the gpu to reconfigure the old image layout to the new layout.
-
-            	VK_CHECK_RESULT(vkEndCommandBuffer(graphicsCmd));
             }
+
+    		VK_CHECK_RESULT(vkEndCommandBuffer(graphicsCmd));
 
             //submit to queue!!
             {
@@ -198,6 +174,8 @@ namespace vk
 
             VK_CHECK_RESULT(vkWaitForFences(devicePtr->GetDevice(), 1, &submissionFence, VK_TRUE, UINT64_MAX));
             VK_CHECK_RESULT(vkResetFences(devicePtr->GetDevice(), 1, &submissionFence));
+
+    		m_cubemapInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
         }
 
         void CreateCubeMapImage( vk::Device* devicePtr, VkCommandBuffer graphicsCmd,
@@ -255,9 +233,11 @@ namespace vk
                     0, 0,
                     nullptr, 0, nullptr, 1,
                     &barrier); //asking the gpu to reconfigure the old image layout to the new layout.
+
+            	VK_CHECK_RESULT(vkEndCommandBuffer(graphicsCmd));
             }
 
-        	VK_CHECK_RESULT(vkEndCommandBuffer(graphicsCmd));
+
 
             //submit to queue!!
             {
@@ -376,8 +356,14 @@ namespace vk
         	vkDestroyCommandPool(devicePtr->GetDevice(), graphicsCmdPool, nullptr);
         }
 
-        void Create( vk::Device* devicePtr,  const std::vector<vk::TextureCreateInfo>& createInfos, std::mutex& transferMutex ) override;
+    	[[nodiscard]] VkDescriptorImageInfo GetImageDescriptor() const
+    	{
+    		return m_cubemapInfo;
+    	}
 
+    //segmented by which is defined in the head and not
+    public:
+        void Create( vk::Device* devicePtr,  const std::vector<vk::TextureCreateInfo>& createInfos, std::mutex& transferMutex ) override;
     private:
     	VkImage m_cubemapImage = VK_NULL_HANDLE;
     	VkDeviceMemory m_cubemapImageMemory = VK_NULL_HANDLE;

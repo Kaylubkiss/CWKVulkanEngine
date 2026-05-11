@@ -45,7 +45,7 @@ namespace vk
 		void Allocate( vk::Device* devicePtr, VkBufferUsageFlags bufferUsage, VkMemoryPropertyFlags bufferMemoryProps,
 			size_t numFrames, size_t layoutCount, const std::vector<VkDescriptorSetLayoutBinding>& bindings);
 		void WriteDescriptor( vk::Device* devicePtr, const WriteResource& writeData, uint32_t layoutIndex,
-			uint32_t frame, uint32_t binding, size_t writeSize ) const;
+			uint32_t frame, uint32_t binding, size_t writeSize, bool storageResource = false ) const;
 	private:
 		static void GetDescriptorLayoutSize( const vk::Device* device, VkDescriptorSetLayout layout, VkDeviceSize* size );
 		static void GetDescriptorLayoutBindingOffsets( const vk::Device* device, VkDescriptorSetLayout layout,

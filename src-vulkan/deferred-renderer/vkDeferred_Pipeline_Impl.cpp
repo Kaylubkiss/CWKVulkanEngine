@@ -264,7 +264,7 @@ namespace vk
 		//pipeline #3: skybox
 		{
 			vk::ShaderModuleInfo vertShaderInfo = vk::ShaderModuleInfo(device.GetDevice(), "sky.vert", VK_SHADER_STAGE_VERTEX_BIT);
-			vk::ShaderModuleInfo fragShaderInfo = vk::ShaderModuleInfo(device.GetDevice(), "sky-equirectangular.frag", VK_SHADER_STAGE_FRAGMENT_BIT);
+			vk::ShaderModuleInfo fragShaderInfo = vk::ShaderModuleInfo(device.GetDevice(), "sky.frag", VK_SHADER_STAGE_FRAGMENT_BIT);
 
 			pipelineManager.AddModule(dePipeline::SKY, vertShaderInfo);
 			pipelineManager.AddModule(dePipeline::SKY, fragShaderInfo);

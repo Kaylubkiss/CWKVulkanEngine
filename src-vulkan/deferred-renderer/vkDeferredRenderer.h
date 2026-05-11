@@ -1,5 +1,6 @@
 #pragma once
 #include "vkRendererBase.h"
+#include "vkPanoramicTexture.h"
 
 namespace vk 
 {
@@ -113,7 +114,8 @@ namespace vk
 
 
 		VkPipelineLayout m_graphicsPipelineLayout = nullptr;
-		VkPipelineLayout m_computePipelineLayout = nullptr; // used for writing to cubemap images
+
+		vk::PanoramicTexture m_test_panoramicImage;
 
 		float depthBiasConstant = 1.25f;
 		float depthBiasSlope    = 1.75f;

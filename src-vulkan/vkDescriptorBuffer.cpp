@@ -70,7 +70,7 @@ namespace vk
 		}
 
 	void DescriptorBuffer::WriteDescriptor( vk::Device* devicePtr, const WriteResource& writeData, uint32_t layoutIndex,
-		uint32_t frame, uint32_t binding, size_t writeSize ) const
+		uint32_t frame, uint32_t binding, size_t writeSize, bool storageResource ) const
 	{
 		assert(writeData.IsValid());
 
@@ -81,7 +81,15 @@ namespace vk
 
 		if (writeData.pImageData)
 		{
-			descriptorGetInfo.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+			if (storageResource)
+			{
+				descriptorGetInfo.type = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+			}
+			else
+			{
+				descriptorGetInfo.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+			}
+
 			descriptorGetInfo.data.pCombinedImageSampler = writeData.pImageData;
 		}
 		else

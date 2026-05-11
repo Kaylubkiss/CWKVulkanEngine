@@ -74,12 +74,22 @@
 
     // [frame][binding]
     void DescriptorManager::WriteDescriptors(DescriptorCategory category, uint32_t layoutIndex,
-        vk::imageBuffers2D& imageDescriptors)
+        vk::imageBuffers2D& imageDescriptors, bool storageResource)
     {
 
         auto& descriptor = m_descriptorBuffers[category].descriptor;
 
         vk::WriteResource writeResource;
+        size_t writeSize = 0;
+
+        if (storageResource)
+        {
+            writeSize = m_properties.storageImageDescriptorSize;
+        }
+        else
+        {
+            writeSize = m_properties.combinedImageSamplerDescriptorSize;
+        }
 
         for (int frame = 0; frame < imageDescriptors.size(); ++frame)
         {
@@ -90,7 +100,7 @@
                 {
                     std::lock_guard lock(m_mutex);
                     descriptor.WriteDescriptor(m_devicePtr, writeResource,
-                       layoutIndex, frame, binding, m_properties.combinedImageSamplerDescriptorSize);
+                       layoutIndex, frame, binding, writeSize);
                 }
             }
         }

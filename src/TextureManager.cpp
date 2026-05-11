@@ -227,8 +227,6 @@ bool TextureManager::UploadTextureDataToGPU( uint32_t currentFrame, const VkSema
 	VK_CHECK_RESULT(vkQueueSubmit(m_devicePtr->GetQueue(vk::DeviceQueue::GRAPHICS).handle,
 		1, &submitInfo, VK_NULL_HANDLE));
 
-	// NOTE: this is incomplete until the submission is synced on the GPU
-	/*FillDescriptorBuffer(texturesToProcess);*/
 	vk::imageBuffers2D imageDescriptors;
 	imageDescriptors.resize(1);
 
