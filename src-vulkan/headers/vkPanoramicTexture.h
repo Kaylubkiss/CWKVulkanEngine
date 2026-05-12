@@ -69,19 +69,24 @@ namespace vk
                 VK_BUFFER_USAGE_SAMPLER_DESCRIPTOR_BUFFER_BIT_EXT |
                 VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
 
-            //VK_BUFFER_USAGE_STORAGE_BUFFER_BIT
-
             VkMemoryPropertyFlags memoryProperties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
             VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
 
             std::vector<VkDescriptorSetLayoutBinding> layoutBindings =
             {
+
             	{
-                    .binding = 0,
-                    .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
-                    .descriptorCount = 1,
-                    .stageFlags = VK_SHADER_STAGE_COMPUTE_BIT,
-                }
+					.binding = 0,
+            		.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+            		.descriptorCount = 1,
+            		.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT
+            	},
+				{
+					.binding = 1,
+					.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
+					.descriptorCount = 1,
+					.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT,
+				}
             };
 
             m_computeDescriptorBuffer.Allocate(devicePtr, bufferUsageFlags, memoryProperties,
@@ -93,7 +98,12 @@ namespace vk
     		writeResource.pImageData = &m_cubemapInfo;
 
     		m_computeDescriptorBuffer.WriteDescriptor(devicePtr, writeResource,
-				0, 0, 0, descriptorBufferProperties.storageImageDescriptorSize, true);
+				0, 0, 1, descriptorBufferProperties.storageImageDescriptorSize, true);
+
+    		writeResource.pImageData = &m_descriptor;
+
+    		m_computeDescriptorBuffer.WriteDescriptor(devicePtr, writeResource,
+    			0,0,0, descriptorBufferProperties.combinedImageSamplerDescriptorSize);
 
         }
 
@@ -238,7 +248,6 @@ namespace vk
             }
 
 
-
             //submit to queue!!
             {
                 submitInfo = {};
@@ -324,6 +333,31 @@ namespace vk
 				vkCmdCopyBufferToImage(graphicsCmd, stagingBuffer.GetHandle(), m_image,
 					VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, regionCount, regions.data());
 			}
+
+    		//transition to read only by the time its accessed in the compute shader so that
+    		//the cubemap can actually retrieve the color info from the equirectangular map.
+    		{
+        		VkImageMemoryBarrier barrier = {};
+        		barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+        		barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+        		barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        		barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        		barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        		barrier.image = m_image;
+        		barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        		barrier.subresourceRange.baseMipLevel = 0;
+        		barrier.subresourceRange.levelCount = VK_REMAINING_MIP_LEVELS;
+        		barrier.subresourceRange.baseArrayLayer = 0;
+        		barrier.subresourceRange.layerCount = VK_REMAINING_ARRAY_LAYERS;
+        		barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+        		barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+
+        		vkCmdPipelineBarrier(graphicsCmd, VK_PIPELINE_STAGE_TRANSFER_BIT,
+					VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+					0, 0,
+					nullptr, 0, nullptr, 1,
+					&barrier); //asking the gpu to reconfigure the old image layout to the new layout.
+    		}
 
         	VK_CHECK_RESULT(vkEndCommandBuffer(graphicsCmd));
 

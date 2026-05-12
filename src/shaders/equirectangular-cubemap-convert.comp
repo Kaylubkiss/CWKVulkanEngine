@@ -2,15 +2,59 @@
 
 //TODO: after testing primitive color output -> layout(set = 2, binding = 0) uniform Sampler2D equirectangularMap;
 
-layout(local_size_x = 16, local_size_y = 16) in;
+layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
 
-layout(rgba32f, binding = 0) uniform writeonly imageCube cubeMapOutputImage;
+layout(set = 0, binding = 0) uniform sampler2D inputEquirectangularMap;
+layout(set = 0, binding = 1, rgba32f) uniform writeonly imageCube outputCubeMap;
+
+const float PI = 3.14159265358979323846;
+const float twoPI = 2.0 * PI;
+
+vec3 getForwardVector(int face)
+{
+    vec2 st = vec2(gl_GlobalInvocationID.xy) / vec2(imageSize(outputCubeMap));
+    vec2 uv = 2.0 * vec2(st.x, 1.0-st.y) - vec2(1.0); //range [-1,1] for the cubemap faces.
+
+    if (face == 0)
+    {
+        return vec3(1, uv.y, -uv.x); //plane x = 1
+    }
+    else if (face == 1)
+    {
+        return vec3(-1, uv.y, uv.x); //plan x = -1 (imagine a plane facing toward -x)
+    }
+    else if (face == 2)
+    {
+        return vec3(uv.x, 1, -uv.y);
+    }
+    else if (face == 3)
+    {
+        return vec3(uv.x, -1, uv.y);
+    }
+    else if (face == 4)
+    {
+        return vec3(uv.x, uv.y, 1);
+    }
+    else if (face == 5)
+    {
+        return vec3(-uv.x, uv.y, -1);
+    }
+
+    return vec3(0);
+}
 
 void main()
 {
+    vec2 size = imageSize(outputCubeMap);
+
     int face = int(gl_GlobalInvocationID.z);
 
     ivec3 pixelCoord = ivec3(gl_GlobalInvocationID.xyz);
+
+    if (pixelCoord.x >= size.x || pixelCoord.y >= size.y || pixelCoord.z >= 6)
+    {
+        return;
+    }
 
     vec4 color;
 
@@ -27,5 +71,19 @@ void main()
         color = vec4(0, 0, 1, 1);
     }
 
-    imageStore(cubeMapOutputImage, pixelCoord, color);
+    vec3 forwardVector = normalize(getForwardVector(face));
+
+    float phi = atan(forwardVector.z, forwardVector.x);
+    float theta = acos(forwardVector.y);
+
+    phi /= twoPI; //sends coordinates in range [-0.5, 0.5]
+    phi += 0.5;
+    theta /= PI;
+
+    color = texture(inputEquirectangularMap, vec2(phi, theta));
+
+    //need to somehow generate the cube positions...
+    //what if, based on the face that's active, you transfrom coordinates vec3(1,
+
+    imageStore(outputCubeMap, pixelCoord, color);
 }

@@ -38,7 +38,15 @@ namespace vk
         m_image = vk::init::CreateImage(devicePtr, panoramicImageCI, m_memory,
             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
-        //RecordTransferAndReleaseOperations(devicePtr, stagingBuffer, transferMutex);
+        m_descriptor.imageView = vk::Texture::CreateImageView(devicePtr->GetDevice(), m_image,
+            createInfos[0].format, VK_IMAGE_VIEW_TYPE_2D);
+
+        m_descriptor.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL; //this must be respected by the time its accessed in the compute shader
+
+        m_descriptor.sampler = vk::Texture::CreateSampler(devicePtr->GetGPU(), devicePtr->GetDevice());
+
+        m_imageView = m_descriptor.imageView;
+
 
         TransitionImageLayoutAndWriteToCubeMap( devicePtr, stagingBuffer, transferMutex );
 

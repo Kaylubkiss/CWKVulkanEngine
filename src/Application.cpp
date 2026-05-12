@@ -18,7 +18,7 @@ vk::RendererBase* Application::GetVulkanRenderer() const
 	return m_vulkanGraphicsContext.get();
 }
 
-void Application::run() 
+void Application::run()
 {
 	//initialize all resources.
 	Application::init();
