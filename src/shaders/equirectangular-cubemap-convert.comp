@@ -56,21 +56,6 @@ void main()
         return;
     }
 
-    vec4 color;
-
-    if (face <= 1)
-    {
-        color = vec4(1, 0, 0, 1);
-    }
-    else if (face <= 3)
-    {
-        color = vec4(0, 1, 0, 1);
-    }
-    else if (face <= 5)
-    {
-        color = vec4(0, 0, 1, 1);
-    }
-
     vec3 forwardVector = normalize(getForwardVector(face));
 
     float phi = atan(forwardVector.z, forwardVector.x);
@@ -80,7 +65,7 @@ void main()
     phi += 0.5;
     theta /= PI;
 
-    color = texture(inputEquirectangularMap, vec2(phi, theta));
+    vec4 color = texture(inputEquirectangularMap, vec2(phi, theta));
 
     //need to somehow generate the cube positions...
     //what if, based on the face that's active, you transfrom coordinates vec3(1,
