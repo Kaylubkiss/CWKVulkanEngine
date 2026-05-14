@@ -9,24 +9,44 @@ namespace vk
     class PanoramicTexture : public Texture //technically a type of cubemap, but inheriting cubemap would be useless.
     {
     public:
-    	~PanoramicTexture() override
+	    ~PanoramicTexture() override
     	{
     		if (c_device != VK_NULL_HANDLE)
     		{
     			vkDestroyImage(c_device, m_cubemapImage, nullptr);
     			vkFreeMemory(c_device, m_cubemapImageMemory, nullptr);
 
+    			vkDestroyImage(c_device, m_irradianceImage, nullptr);
+    			vkFreeMemory(c_device, m_irradianceImageMemory, nullptr);
+
     			vkDestroySampler(c_device, m_cubemapInfo.sampler, nullptr);
     			vkDestroyImageView(c_device, m_cubemapInfo.imageView, nullptr);
 
+    			vkDestroySampler(c_device, m_irradianceInfo.sampler, nullptr);
+    			vkDestroyImageView(c_device, m_irradianceInfo.imageView, nullptr);
+
     			vkDestroyPipeline(c_device, m_computePipeline, nullptr);
+    			vkDestroyPipeline(c_device, m_convolutionPipeline, nullptr);
+
     			vkDestroyPipelineLayout(c_device, m_computePipelineLayout, nullptr);
 
     			m_computeDescriptorBuffer.Destroy();
     		}
     	}
 
-		void CreateComputePipelineLayout( vk::Device* devicePtr )
+    	[[nodiscard]] VkDescriptorImageInfo GetCubeMapImageDescriptor() const
+	    {
+	    	return m_cubemapInfo;
+	    }
+
+    	[[nodiscard]] VkDescriptorImageInfo GetIrradianceImageDescriptor() const
+    	{
+			return m_irradianceInfo;
+	    }
+
+	    void Create( vk::Device* devicePtr,  const std::vector<vk::TextureCreateInfo>& createInfos, std::mutex& transferMutex ) override;
+    private:
+    	void CreateComputePipelineLayout( vk::Device* devicePtr )
     	{
 			VkPipelineLayoutCreateInfo pipelineLayoutCI = vk::init::PipelineLayoutCreateInfo();
 
@@ -40,8 +60,6 @@ namespace vk
 
     	void CreateComputePipeline( vk::Device* devicePtr )
     	{
-			CreateComputePipelineLayout( devicePtr );
-
 			VkComputePipelineCreateInfo computePipelineCI = {};
 			computePipelineCI.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
 			computePipelineCI.flags = VK_PIPELINE_CREATE_DESCRIPTOR_BUFFER_BIT_EXT;
@@ -62,7 +80,28 @@ namespace vk
 
     	}
 
-        void CreateCubeMapDescriptor( vk::Device* devicePtr )
+    	void CreateIrradianceComputePipeline( vk::Device* devicePtr )
+    	{
+    		VkComputePipelineCreateInfo computePipelineCI = {};
+    		computePipelineCI.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
+    		computePipelineCI.flags = VK_PIPELINE_CREATE_DESCRIPTOR_BUFFER_BIT_EXT;
+
+    		vk::ShaderModuleInfo shaderModuleInfo = vk::ShaderModuleInfo(devicePtr->GetDevice(),
+				"convolute-cubemap.comp", VK_SHADER_STAGE_COMPUTE_BIT);
+
+    		VkPipelineShaderStageCreateInfo shaderStageCI =
+				vk::init::PipelineShaderStageCreateInfo(shaderModuleInfo.mHandle, shaderModuleInfo.mFlags);
+
+    		computePipelineCI.stage = shaderStageCI;
+    		computePipelineCI.layout = m_computePipelineLayout;
+
+    		vkCreateComputePipelines(devicePtr->GetDevice(), VK_NULL_HANDLE, 1,
+				&computePipelineCI, nullptr, &m_convolutionPipeline);
+
+    		vkDestroyShaderModule(devicePtr->GetDevice(), shaderModuleInfo.mHandle, nullptr);
+    	}
+
+        void CreateComputeDescriptorBuffer( vk::Device* devicePtr )
         {
 
             VkBufferUsageFlags bufferUsageFlags = VK_BUFFER_USAGE_RESOURCE_DESCRIPTOR_BUFFER_BIT_EXT |
@@ -90,28 +129,26 @@ namespace vk
             };
 
             m_computeDescriptorBuffer.Allocate(devicePtr, bufferUsageFlags, memoryProperties,
-                1, 1, layoutBindings);
-
-    		auto descriptorBufferProperties = devicePtr->GetDescriptorBufferProperties();
-
-    		vk::WriteResource writeResource = {};
-    		writeResource.pImageData = &m_cubemapInfo;
-
-    		m_computeDescriptorBuffer.WriteDescriptor(devicePtr, writeResource,
-				0, 0, 1, descriptorBufferProperties.storageImageDescriptorSize, true);
-
-    		writeResource.pImageData = &m_descriptor;
-
-    		m_computeDescriptorBuffer.WriteDescriptor(devicePtr, writeResource,
-    			0,0,0, descriptorBufferProperties.combinedImageSamplerDescriptorSize);
+                1, 2, layoutBindings);
 
         }
 
         void WriteToCubeMapImage( vk::Device* devicePtr, VkCommandBuffer graphicsCmd, VkFence submissionFence, std::mutex& submissionMutex )
         {
-            CreateCubeMapDescriptor( devicePtr );
+    		//write to descriptor buffer
+    		vk::WriteResource writeResource = {};
+    		auto descriptorBufferProperties = devicePtr->GetDescriptorBufferProperties();
 
-        	//create compute pipeline
+		    writeResource.pImageData = &m_descriptor;
+		    m_computeDescriptorBuffer.WriteDescriptor(devicePtr, writeResource,
+		    	0,0,0, descriptorBufferProperties.combinedImageSamplerDescriptorSize);
+
+		    writeResource.pImageData = &m_cubemapInfo;
+		    m_computeDescriptorBuffer.WriteDescriptor(devicePtr, writeResource,
+		    	0, 0, 1, descriptorBufferProperties.storageImageDescriptorSize, true);
+
+
+		    //create compute pipeline
 			CreateComputePipeline( devicePtr );
 
 			VkCommandBufferBeginInfo beginInfo = {};
@@ -140,8 +177,6 @@ namespace vk
 			g_vkCmdSetDescriptorBufferOffsetsEXT(graphicsCmd, VK_PIPELINE_BIND_POINT_COMPUTE,
 				m_computePipelineLayout, 0, 1, &descriptorIndex, &bufferOffset);
 
-            //TODO: fix hardcoding on numerator (image width and height).
-
 			vkCmdDispatch(graphicsCmd, 512 / 16, 512 / 16, 6);
 
     		//transition the image layout to shader read_only.
@@ -159,10 +194,10 @@ namespace vk
                 barrier.subresourceRange.baseArrayLayer = 0;
                 barrier.subresourceRange.layerCount = VK_REMAINING_ARRAY_LAYERS;
                 barrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
-                barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+                barrier.dstAccessMask = 0;
 
                 vkCmdPipelineBarrier(graphicsCmd, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-                    VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+                    VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, //bottom of pipeline so that it's ready to be read during the next compute pass.
                     0, 0,
                     nullptr, 0, nullptr, 1,
                     &barrier); //asking the gpu to reconfigure the old image layout to the new layout.
@@ -263,7 +298,6 @@ namespace vk
             VK_CHECK_RESULT(vkWaitForFences(devicePtr->GetDevice(), 1, &submissionFence, VK_TRUE, UINT64_MAX));
             VK_CHECK_RESULT(vkResetFences(devicePtr->GetDevice(), 1, &submissionFence));
 
-
     		m_cubemapInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
 
     		m_cubemapInfo.imageView = vk::Texture::CreateImageView(devicePtr->GetDevice(),
@@ -271,140 +305,200 @@ namespace vk
 
     		m_cubemapInfo.sampler = vk::Texture::CreateSampler(devicePtr->GetGPU(), devicePtr->GetDevice());
 
+    		WriteToCubeMapImage(devicePtr, graphicsCmd, submissionFence, submissionMutex );
         }
 
-        void TransitionImageLayoutAndWriteToCubeMap( vk::Device* devicePtr, vk::Buffer& stagingBuffer, std::mutex& submissionMutex )
-        {
+    	void WriteToIrradianceImage( vk::Device* devicePtr, VkCommandBuffer graphicsCmd, VkFence submissionFence, std::mutex& submissionMutex )
+    	{
+    		//write to descriptor buffer
+    		vk::WriteResource writeResource = {};
+    		auto descriptorBufferProperties = devicePtr->GetDescriptorBufferProperties();
+
+    		writeResource.pImageData = &m_cubemapInfo;
+    		m_computeDescriptorBuffer.WriteDescriptor(devicePtr, writeResource,
+				1,0,0, descriptorBufferProperties.combinedImageSamplerDescriptorSize);
+
+    		writeResource.pImageData = &m_irradianceInfo;
+    		m_computeDescriptorBuffer.WriteDescriptor(devicePtr, writeResource,
+				1, 0, 1, descriptorBufferProperties.storageImageDescriptorSize, true);
+
+			CreateIrradianceComputePipeline( devicePtr );
+
+    		VkCommandBufferBeginInfo beginInfo = {};
+			beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+			beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+
+			VK_CHECK_RESULT(vkBeginCommandBuffer(graphicsCmd, &beginInfo));
+
+			vkCmdBindPipeline(graphicsCmd, VK_PIPELINE_BIND_POINT_COMPUTE, m_convolutionPipeline);
+
+            std::vector<VkDescriptorBufferBindingInfoEXT> descriptorBufferBindingInfos =
+            {
+	            {
+		            .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_BUFFER_BINDING_INFO_EXT,
+		            .address = m_computeDescriptorBuffer.GetBuffer().GetDeviceAddress(),
+		            .usage = VK_BUFFER_USAGE_RESOURCE_DESCRIPTOR_BUFFER_BIT_EXT | VK_BUFFER_USAGE_SAMPLER_DESCRIPTOR_BUFFER_BIT_EXT
+	            },
+            };
+
+			g_vkCmdBindDescriptorBuffersEXT(graphicsCmd, static_cast<uint32_t>(descriptorBufferBindingInfos.size()),
+				descriptorBufferBindingInfos.data());
+
+
+			VkDeviceSize bufferOffset = m_computeDescriptorBuffer.GetLayoutSize(); //since this is index 1.
+			uint32_t descriptorIndex = 0;
+
+			g_vkCmdSetDescriptorBufferOffsetsEXT(graphicsCmd, VK_PIPELINE_BIND_POINT_COMPUTE,
+				m_computePipelineLayout, 0, 1, &descriptorIndex, &bufferOffset);
+
+			vkCmdDispatch(graphicsCmd, 512 / 16, 512 / 16, 6);
+
+    		//transition the image layout to shader read_only.
+            {
+                VkImageMemoryBarrier barrier = {};
+                barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+                barrier.oldLayout = VK_IMAGE_LAYOUT_GENERAL;
+                barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+                barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+                barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+                barrier.image = m_irradianceImage;
+                barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+                barrier.subresourceRange.baseMipLevel = 0;
+                barrier.subresourceRange.levelCount = VK_REMAINING_MIP_LEVELS;
+                barrier.subresourceRange.baseArrayLayer = 0;
+                barrier.subresourceRange.layerCount = VK_REMAINING_ARRAY_LAYERS;
+                barrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
+                barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+
+                vkCmdPipelineBarrier(graphicsCmd, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+                    VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+                    0, 0,
+                    nullptr, 0, nullptr, 1,
+                    &barrier); //asking the gpu to reconfigure the old image layout to the new layout.
+            }
+
+    		VK_CHECK_RESULT(vkEndCommandBuffer(graphicsCmd));
+
+            //submit to queue!!
+            {
+                VkSubmitInfo submitInfo = {};
+                submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+                submitInfo.commandBufferCount = 1;
+                submitInfo.pCommandBuffers = &graphicsCmd;
+
+                std::lock_guard lock(submissionMutex);
+                VK_CHECK_RESULT(vkQueueSubmit(devicePtr->GetQueue(DeviceQueue::GRAPHICS).handle, 1, &submitInfo,
+                    submissionFence));
+            }
+
+            VK_CHECK_RESULT(vkWaitForFences(devicePtr->GetDevice(), 1, &submissionFence, VK_TRUE, UINT64_MAX));
+            VK_CHECK_RESULT(vkResetFences(devicePtr->GetDevice(), 1, &submissionFence));
+
+    		m_irradianceInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
+    	}
+
+    	void CreateIrradianceImage( vk::Device* devicePtr, VkCommandBuffer graphicsCmd,
+    		VkFence submissionFence, std::mutex& submissionMutex )
+    	{
+
+    		assert(m_cubemapImage != VK_NULL_HANDLE); //must be able to sample from the cubemap image during creation.
+
+			if (devicePtr == nullptr)
+            {
+                return;
+            }
 
         	VkSubmitInfo submitInfo = {};
 
-        	VkFence submissionFence = vk::init::CreateFence(devicePtr->GetDevice(), false);
+            VkImageCreateInfo imageCI = vk::init::ImageCreateInfo();
+            imageCI.format = VK_FORMAT_R32G32B32A32_SFLOAT; //for now, just assume this format --> biggest possible
+            imageCI.imageType = VK_IMAGE_TYPE_2D;
+            imageCI.arrayLayers = 6;
+            //NOTE: not sure yet how to divide up the resolution. the image I'm sampling is 2048x1024 pixels.
+            imageCI.extent.width = 512;
+            imageCI.extent.height = 512;
+            imageCI.extent.depth = 1;
+            imageCI.mipLevels = 1;
+            imageCI.samples = VK_SAMPLE_COUNT_1_BIT;
+            imageCI.usage = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT;
+            imageCI.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+            imageCI.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+        	imageCI.flags = VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
 
-            VkCommandPool graphicsCmdPool = vk::init::CommandPool(devicePtr->GetDevice(),
-			VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT, devicePtr->GetQueue(DeviceQueue::GRAPHICS).family);
+            m_irradianceImage = vk::init::CreateImage(devicePtr, imageCI, m_irradianceImageMemory, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
-        	VkCommandBuffer graphicsCmd = vk::util::beginSingleTimeCommand(devicePtr->GetDevice(), graphicsCmdPool);
+            //transition the image layout to general.
+            {
+                VkImageMemoryBarrier barrier = {};
+                barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+                barrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+                barrier.newLayout = VK_IMAGE_LAYOUT_GENERAL;
+                barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+                barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+                barrier.image = m_irradianceImage;
+                barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+                barrier.subresourceRange.baseMipLevel = 0;
+                barrier.subresourceRange.levelCount = VK_REMAINING_MIP_LEVELS;
+                barrier.subresourceRange.baseArrayLayer = 0;
+                barrier.subresourceRange.layerCount = VK_REMAINING_ARRAY_LAYERS;
+                barrier.srcAccessMask = 0;
+                barrier.dstAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
 
-			//transition image to dst-optimal layout so the staging buffer can be copied into it.
-			{
-				VkImageMemoryBarrier barrier = {};
-				barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-				barrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-				barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-				barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-				barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-				barrier.image = m_image;
-				barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-				barrier.subresourceRange.baseMipLevel = 0;
-				barrier.subresourceRange.levelCount = VK_REMAINING_MIP_LEVELS;
-				barrier.subresourceRange.baseArrayLayer = 0;
-				barrier.subresourceRange.layerCount = VK_REMAINING_ARRAY_LAYERS;
-				barrier.srcAccessMask = 0;
-				barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+            	VkCommandBufferBeginInfo beginInfo = {};
+            	beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+            	beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
 
-				vkCmdPipelineBarrier(graphicsCmd, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
-					VK_PIPELINE_STAGE_TRANSFER_BIT,
-					0, 0,
-					nullptr, 0, nullptr, 1,
-					&barrier); //asking the gpu to reconfigure the old image layout to the new layout.
-			}
+            	VK_CHECK_RESULT(vkBeginCommandBuffer(graphicsCmd, &beginInfo));
 
-			//copy buffer into image.
-			{
-				std::vector<VkBufferImageCopy> regions(m_imageCount);
-				for (int i = 0; i < m_imageCount; ++i)
-				{
-					regions[i] = {};
-					regions[i].imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-					regions[i].imageSubresource.mipLevel = 0;
-					regions[i].imageSubresource.baseArrayLayer = i;
-					regions[i].imageSubresource.layerCount = 1;
-					regions[i].bufferOffset = m_imageLayerSize * i;
-					regions[i].imageExtent =
-					{
-						m_width,
-						m_height,
-						1
-					};
-				}
+                vkCmdPipelineBarrier(graphicsCmd, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+                    VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+                    0, 0,
+                    nullptr, 0, nullptr, 1,
+                    &barrier); //asking the gpu to reconfigure the old image layout to the new layout.
 
-				uint32_t regionCount = static_cast<uint32_t>(regions.size());
+            	VK_CHECK_RESULT(vkEndCommandBuffer(graphicsCmd));
+            }
 
-				vkCmdCopyBufferToImage(graphicsCmd, stagingBuffer.GetHandle(), m_image,
-					VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, regionCount, regions.data());
-			}
+            //submit to queue!!
+            {
+                submitInfo = {};
+                submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+                submitInfo.commandBufferCount = 1;
+                submitInfo.pCommandBuffers = &graphicsCmd;
 
-    		//transition to read only by the time its accessed in the compute shader so that
-    		//the cubemap can actually retrieve the color info from the equirectangular map.
-    		{
-        		VkImageMemoryBarrier barrier = {};
-        		barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-        		barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-        		barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        		barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-        		barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-        		barrier.image = m_image;
-        		barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-        		barrier.subresourceRange.baseMipLevel = 0;
-        		barrier.subresourceRange.levelCount = VK_REMAINING_MIP_LEVELS;
-        		barrier.subresourceRange.baseArrayLayer = 0;
-        		barrier.subresourceRange.layerCount = VK_REMAINING_ARRAY_LAYERS;
-        		barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-        		barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+                std::lock_guard lock(submissionMutex);
+                VK_CHECK_RESULT(vkQueueSubmit(devicePtr->GetQueue(DeviceQueue::GRAPHICS).handle, 1, &submitInfo,
+                    submissionFence));
+            }
 
-        		vkCmdPipelineBarrier(graphicsCmd, VK_PIPELINE_STAGE_TRANSFER_BIT,
-					VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-					0, 0,
-					nullptr, 0, nullptr, 1,
-					&barrier); //asking the gpu to reconfigure the old image layout to the new layout.
-    		}
+            VK_CHECK_RESULT(vkWaitForFences(devicePtr->GetDevice(), 1, &submissionFence, VK_TRUE, UINT64_MAX));
+            VK_CHECK_RESULT(vkResetFences(devicePtr->GetDevice(), 1, &submissionFence));
 
-        	VK_CHECK_RESULT(vkEndCommandBuffer(graphicsCmd));
+    		m_irradianceInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
 
-	        {
-            	submitInfo = {};
-            	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-            	submitInfo.commandBufferCount = 1;
-            	submitInfo.pCommandBuffers = &graphicsCmd;
+    		m_irradianceInfo.imageView = vk::Texture::CreateImageView(devicePtr->GetDevice(),
+				m_irradianceImage, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_VIEW_TYPE_CUBE);
 
-            	std::lock_guard lock(submissionMutex);
-            	VK_CHECK_RESULT(vkQueueSubmit(devicePtr->GetQueue(DeviceQueue::GRAPHICS).handle, 1, &submitInfo,
-					submissionFence));
-	        }
+    		m_irradianceInfo.sampler = vk::Texture::CreateSampler(devicePtr->GetGPU(), devicePtr->GetDevice());
 
-        	VK_CHECK_RESULT(vkWaitForFences(devicePtr->GetDevice(), 1, &submissionFence, VK_TRUE, UINT64_MAX));
-        	VK_CHECK_RESULT(vkResetFences(devicePtr->GetDevice(), 1, &submissionFence));
-
-        	//creating and writing to the cubemap.
-
-			CreateCubeMapImage(devicePtr, graphicsCmd,
-				submissionFence, submissionMutex);
-
-			WriteToCubeMapImage(devicePtr, graphicsCmd, submissionFence, submissionMutex );
-
-			//free resource!!!
-
-        	vkDestroyFence(devicePtr->GetDevice(), submissionFence, nullptr);
-
-        	vkFreeCommandBuffers(devicePtr->GetDevice(), graphicsCmdPool, 1, &graphicsCmd);
-        	vkDestroyCommandPool(devicePtr->GetDevice(), graphicsCmdPool, nullptr);
-        }
-
-    	[[nodiscard]] VkDescriptorImageInfo GetImageDescriptor() const
-    	{
-    		return m_cubemapInfo;
+    		WriteToIrradianceImage( devicePtr, graphicsCmd, submissionFence, submissionMutex );
     	}
-
-    //segmented by which is defined in the head and not
-    public:
-        void Create( vk::Device* devicePtr,  const std::vector<vk::TextureCreateInfo>& createInfos, std::mutex& transferMutex ) override;
     private:
     	VkImage m_cubemapImage = VK_NULL_HANDLE;
     	VkDeviceMemory m_cubemapImageMemory = VK_NULL_HANDLE;
     	VkDescriptorImageInfo m_cubemapInfo = {};
 
+    	//NOTE: since convolution and cubemap creation have the exact same layout,
+    	//they will share m_computePipelineLayout and m_computeDescriptorBuffer.
+
     	VkPipelineLayout m_computePipelineLayout = VK_NULL_HANDLE;
     	VkPipeline m_computePipeline = VK_NULL_HANDLE;
+    	VkPipeline m_convolutionPipeline = VK_NULL_HANDLE;
+
+    	VkImage m_irradianceImage = VK_NULL_HANDLE;
+    	VkDeviceMemory m_irradianceImageMemory = VK_NULL_HANDLE;
+    	VkDescriptorImageInfo m_irradianceInfo = {};
 
     	vk::DescriptorBuffer m_computeDescriptorBuffer;
 

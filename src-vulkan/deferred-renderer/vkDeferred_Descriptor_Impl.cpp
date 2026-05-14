@@ -6,13 +6,21 @@ namespace vk
     void DeferredRenderer::InitializeDescriptors( DescriptorManager& descriptorManager )
     {
         {
-        	descriptorManager.Init(&device);
-
         	InitializeUBODescriptors(descriptorManager);
+
+        	InitializeMaterialDescriptors(descriptorManager);
+
+        	skyboxImageIndex = m_descriptorManagerPtr->GetLayoutIndex(DescriptorCategory::eMaterial);
+
+        	vk::imageBuffers2D panoramicImageBuffer;
+        	panoramicImageBuffer.resize(1);
+        	panoramicImageBuffer[0].push_back(m_test_panoramicImage.GetCubeMapImageDescriptor());
+
+        	m_descriptorManagerPtr->WriteDescriptors(DescriptorCategory::eMaterial,
+				skyboxImageIndex, panoramicImageBuffer);
 
         	InitializeCompositionImageDescriptors(descriptorManager);
 
-        	InitializeMaterialDescriptors(descriptorManager);
 		}
     }
 
@@ -76,7 +84,7 @@ namespace vk
 
 	void DeferredRenderer::InitializeCompositionImageDescriptors( DescriptorManager& descriptorManager )
     {
-    	size_t imageCount = RT_COUNT + 1 + 1;
+    	size_t imageCount = RT_COUNT + 1 + 1; //+shadow, +irradiance_map
 
     	std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings(imageCount);
 
@@ -98,7 +106,7 @@ namespace vk
 
     	for (size_t frame = 0; frame < imageDescriptorData.size(); ++frame)
     	{
-    		imageDescriptorData[frame].resize(RT_COUNT + 1);
+    		imageDescriptorData[frame].resize(imageCount);
 
     		for (size_t binding = 0; binding < RT_COUNT; ++binding)
     		{
@@ -110,7 +118,12 @@ namespace vk
     		imageDescriptorData[frame][RT_COUNT].imageLayout = framebuffers.deShadow[frame].attachments[0].layout;
     		imageDescriptorData[frame][RT_COUNT].imageView = framebuffers.deShadow[frame].attachments[0].imageView;
     		imageDescriptorData[frame][RT_COUNT].sampler = framebuffers.deShadow[frame].sampler;
-    	}
+
+    		VkDescriptorImageInfo irradianceMapDescriptor = m_test_panoramicImage.GetIrradianceImageDescriptor();
+		    imageDescriptorData[frame][RT_COUNT + 1].imageLayout = irradianceMapDescriptor.imageLayout;
+		    imageDescriptorData[frame][RT_COUNT + 1].imageView = irradianceMapDescriptor.imageView;
+    		imageDescriptorData[frame][RT_COUNT + 1].sampler = irradianceMapDescriptor.sampler;
+	    }
 
     	descriptorManager.WriteDescriptors(DescriptorCategory::eCompositionImage, compositionImageIndex, imageDescriptorData);
 

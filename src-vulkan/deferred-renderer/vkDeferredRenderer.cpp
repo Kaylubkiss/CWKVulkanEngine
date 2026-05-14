@@ -10,31 +10,22 @@ namespace vk
 	DeferredRenderer::DeferredRenderer( TextureManager* textureManagerPtr, DescriptorManager* descriptorManagerPtr )
 	{
 
-		m_textureManagerPtr = textureManagerPtr;
 		m_descriptorManagerPtr = descriptorManagerPtr;
+		m_textureManagerPtr = textureManagerPtr;
+
+		m_descriptorManagerPtr->Init(&device);
+		m_textureManagerPtr->Init(&device, m_descriptorManagerPtr);
 
 		InitializeUniforms();
 		InitializeFramebuffers();
 
-		DeferredRenderer::InitializeDescriptors(*m_descriptorManagerPtr);
-
-		m_textureManagerPtr->Init(&device, m_descriptorManagerPtr);
-
-		//skyboxImageIndex = m_textureManagerPtr->AddTextures(skyboxTextures, TextureType::CUBEMAP);
 		std::string skyboxName = "art/extern-textures/monochrome_studio.hdr";
 		vk::TextureCreateInfo texture_create_info = { skyboxName, VK_FORMAT_R32G32B32A32_SFLOAT };
-
-		skyboxImageIndex = m_descriptorManagerPtr->GetLayoutIndex(DescriptorCategory::eMaterial);
 
 		std::mutex dummyMutex;
 		m_test_panoramicImage.Create(&device, {texture_create_info}, dummyMutex);
 
-		vk::imageBuffers2D panoramicImageBuffer;
-		panoramicImageBuffer.resize(1);
-		panoramicImageBuffer[0].push_back(m_test_panoramicImage.GetImageDescriptor());
-
-		m_descriptorManagerPtr->WriteDescriptors(DescriptorCategory::eMaterial,
-			skyboxImageIndex, panoramicImageBuffer);
+		DeferredRenderer::InitializeDescriptors(*m_descriptorManagerPtr);
 
 		DeferredRenderer::InitializePipeline();
 	}

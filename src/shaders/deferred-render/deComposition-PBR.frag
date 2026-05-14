@@ -1,6 +1,4 @@
-#version 450
-#extension GL_KHR_vulkan_glsl : enable
-
+#version 450 core
 
 #define LIGHT_COUNT 2
 #define AMBIENT_FACTOR .5
@@ -29,6 +27,7 @@ layout(set = 1, binding = 2) uniform sampler2D samplerAlbedo;
 layout(set = 1, binding = 3) uniform sampler2D samplerMetallicRoughness;
 layout(set = 1, binding = 4) uniform sampler2D samplerAmbientOcclusion;
 layout(set = 1, binding = 5) uniform sampler2DArray samplerShadowMap;
+layout(set = 1, binding = 6) uniform samplerCube irradianceMap;
 
 
 float ShadowSampling(vec4 fragPos, float NdotL, int i)
@@ -63,8 +62,8 @@ vec3 Radiance(vec3 fragPos, vec3 lightPos, vec3 lightAlbedo)
 {
     //because it's a point light, we will just attenuate the intensity of the light's color.
 
-    float distance = length(fragPos - lightPos);
-    float attenuation = 1.0 / (distance * distance + 0.0001); //just in-case the distance is 0, add a small fraction.
+    float dist = length(lightPos - fragPos);
+    float attenuation = 1.0 / (dist * dist + 0.0001); //just in-case the distance is 0, add a small fraction.
 
     //NOTE: might want to use a quadratic version of attenuation for more control of the roll-off.
 
@@ -87,10 +86,10 @@ float GeometrySmith(float NdotV, float NdotL, float roughness)
            GeometrySchlickGGX(NdotL, roughness);
 }
 
-vec3 FresnelSchlick(float cosTheta, vec3 F0)
+vec3 FresnelSchlick(float cosTheta, vec3 F0, float roughness)
 {
     //clamp to avoid black spots
-    return (F0 + (1.0-F0) * pow(clamp(1.0-cosTheta, 0.0, 1.0), 5.0));
+    return F0 + (max(vec3(1.0-roughness), F0) - F0) * pow(clamp(1.0-cosTheta, 0.0, 1.0), 5.0);
 }
 
 
@@ -105,14 +104,35 @@ float DistributionGGX(float NdotH, float roughness)
     return (a2 / denom);
 }
 
-vec3 CookTorrenceReflectance(vec3 P, vec3 N, vec3 albedo, vec3 metallicRoughness)
+void main()
 {
-    vec3 V = normalize(ubo.viewPosition - P);
+	vec3 P = texture(samplerPosition, inUV).rgb;
 
-    float NdotV = max(dot(N, V), 0.0);
+	//linear filtering during the texture sampling process still distorts normals
+	vec3 N = normalize(texture(samplerNormal, inUV).rgb);
+	vec3 V = normalize(ubo.viewPosition - P);
+
+    vec3 albedo = texture(samplerAlbedo, inUV).rgb;
+
+    float ao = texture(samplerAmbientOcclusion, inUV).r;
+
+    //g = roughness, b = metalness
+    vec3 metallicRoughness = texture(samplerMetallicRoughness, inUV).rgb;
 
     float metalness = metallicRoughness.b;
     float roughness = metallicRoughness.g;
+
+    if (ao == 0.0)
+    {
+        ao = 1.0;
+    }
+
+    if (roughness == 0.0)
+    {
+        roughness = 1.0;
+    }
+
+    float NdotV = max(dot(N, V), 0.0);
 
     float baseReflectivity = 0.04f;
     vec3 F0 = mix(vec3(baseReflectivity), albedo, metalness);
@@ -129,8 +149,7 @@ vec3 CookTorrenceReflectance(vec3 P, vec3 N, vec3 albedo, vec3 metallicRoughness
         float NDF = DistributionGGX(NdotH, roughness);
         float G   = GeometrySmith(NdotV, NdotL, roughness);
 
-
-        vec3 F  = FresnelSchlick(max(dot(H, V), 0.0), F0);
+        vec3 F  = FresnelSchlick(max(dot(H, V), 0.0), F0, roughness);
 
         vec3 nom    =  NDF * F * G;
         float denom = 4.0 * NdotV * NdotL + .0001; //want to make sure division by 0 is impossible
@@ -143,43 +162,17 @@ vec3 CookTorrenceReflectance(vec3 P, vec3 N, vec3 albedo, vec3 metallicRoughness
         kD *= 1.0 - metalness; //because metals don't refract, we nullify the diffuse portion if it's 100% metal.
 
         float shadowFactor = ShadowSampling(vec4(P, 1), NdotL, i);
+        vec3 radiance = Radiance(P, ubo.lights[i].position, ubo.lights[i].albedo);
 
-        Lo += shadowFactor * ((kD * albedo / M_PI) + specular) * Radiance(P, ubo.lights[i].position, ubo.lights[i].albedo) * NdotL;
+        Lo += (kD * albedo / M_PI + specular) * radiance * NdotL;
     }
 
-    return Lo;
-}
+    vec3 kS = FresnelSchlick(NdotV, F0, roughness);
+    vec3 kD = 1.0 - kS;
+    kD *= 1.0 - metalness;
+    vec3 irradiance = texture(irradianceMap, N).rgb;
+    vec3 ambientColor = irradiance * albedo * ao; //diffuse IBL
 
-
-void main()
-{
-	vec3 position = texture(samplerPosition, inUV).rgb;
-
-	//linear filtering during the texture sampling process still distorts normals
-	vec3 normal = normalize(texture(samplerNormal, inUV).rgb);
-    vec3 albedo = texture(samplerAlbedo, inUV).rgb;
-
-    //albedo = vec3(1.f);
-
-    vec3 ambientOcclusion = texture(samplerAmbientOcclusion, inUV).rgb;
-
-    //g = roughness, b = metalness
-    vec3 metallicRoughness = texture(samplerMetallicRoughness, inUV).rgb;
-
-
-    vec3 ambientColor = AMBIENT_FACTOR * albedo;
-
-    if (ambientOcclusion.r != 0)
-    {
-        ambientColor *= ambientOcclusion.r;
-    }
-    else if (metallicRoughness.r != 0)
-    {
-        ambientColor *= metallicRoughness.r;
-    }
-
-    fragColor.rgb = ambientColor +
-    CookTorrenceReflectance(position, normal, albedo, metallicRoughness);
-
+    fragColor.rgb = ambientColor + Lo;
 	fragColor.a = 1.0;
 }
