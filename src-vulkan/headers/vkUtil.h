@@ -51,7 +51,7 @@ namespace vk
 
 		bool FormatIsFilterable( const VkPhysicalDevice p_device, VkFormat format, VkImageTiling tiling );
 
-		uint32_t CalculateMipLevels ( const uint32_t& imageWidth, const uint32_t& imageHeight );
+		uint32_t CalculateMipLevels ( uint32_t imageWidth, uint32_t imageHeight );
 
 		std::optional<std::string> ReadFile( const std::string& filename );
 

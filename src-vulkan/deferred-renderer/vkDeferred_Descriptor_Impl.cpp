@@ -14,7 +14,7 @@ namespace vk
 
         	vk::imageBuffers2D panoramicImageBuffer;
         	panoramicImageBuffer.resize(1);
-        	panoramicImageBuffer[0].push_back(m_test_panoramicImage.GetCubeMapImageDescriptor());
+        	panoramicImageBuffer[0].push_back(m_test_panoramicImage.GetEnvironmentMapImageDescriptor());
 
         	m_descriptorManagerPtr->WriteDescriptors(DescriptorCategory::eMaterial,
 				skyboxImageIndex, panoramicImageBuffer);

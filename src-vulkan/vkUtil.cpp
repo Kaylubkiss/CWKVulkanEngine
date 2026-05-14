@@ -294,10 +294,9 @@ namespace vk {
 		}
 
 
-		uint32_t CalculateMipLevels(const uint32_t& imageWidth, const uint32_t& imageHeight) 
+		uint32_t CalculateMipLevels( uint32_t imageWidth, uint32_t imageHeight )
 		{
 			return static_cast<uint32_t>(std::floor(std::log2(std::max(imageWidth, imageHeight))) + 1);
-
 		}
 
 		std::optional<std::string> ReadFile( const std::string& filename )

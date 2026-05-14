@@ -3,6 +3,7 @@
 #include "vkTexture.h"
 
 //WIP
+//Yes, I know there's a lot of copy-paste here. I'm working on it.
 
 namespace vk
 {
@@ -13,11 +14,14 @@ namespace vk
     	{
     		if (c_device != VK_NULL_HANDLE)
     		{
-    			vkDestroyImage(c_device, m_cubemapImage, nullptr);
-    			vkFreeMemory(c_device, m_cubemapImageMemory, nullptr);
+    			vkDestroyImage(c_device, m_environmentMapImage, nullptr);
+    			vkFreeMemory(c_device, m_environmentMapImageMemory, nullptr);
 
     			vkDestroyImage(c_device, m_irradianceImage, nullptr);
     			vkFreeMemory(c_device, m_irradianceImageMemory, nullptr);
+
+    			vkDestroyImage(c_device, m_prefilterImage, nullptr);
+    			vkFreeMemory(c_device, m_prefilterImageMemory, nullptr);
 
     			vkDestroySampler(c_device, m_cubemapInfo.sampler, nullptr);
     			vkDestroyImageView(c_device, m_cubemapInfo.imageView, nullptr);
@@ -34,7 +38,7 @@ namespace vk
     		}
     	}
 
-    	[[nodiscard]] VkDescriptorImageInfo GetCubeMapImageDescriptor() const
+    	[[nodiscard]] VkDescriptorImageInfo GetEnvironmentMapImageDescriptor() const
 	    {
 	    	return m_cubemapInfo;
 	    }
@@ -133,7 +137,7 @@ namespace vk
 
         }
 
-        void WriteToCubeMapImage( vk::Device* devicePtr, VkCommandBuffer graphicsCmd, VkFence submissionFence, std::mutex& submissionMutex )
+        void WriteToEnvironmentMapImage( vk::Device* devicePtr, VkCommandBuffer graphicsCmd, VkFence submissionFence, std::mutex& submissionMutex )
         {
     		//write to descriptor buffer
     		vk::WriteResource writeResource = {};
@@ -187,7 +191,7 @@ namespace vk
                 barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
                 barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
                 barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-                barrier.image = m_cubemapImage;
+                barrier.image = m_environmentMapImage;
                 barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
                 barrier.subresourceRange.baseMipLevel = 0;
                 barrier.subresourceRange.levelCount = VK_REMAINING_MIP_LEVELS;
@@ -223,7 +227,7 @@ namespace vk
     		m_cubemapInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
         }
 
-        void CreateCubeMapImage( vk::Device* devicePtr, VkCommandBuffer graphicsCmd,
+        void CreateEnvironmentMapImage( vk::Device* devicePtr, VkCommandBuffer graphicsCmd,
         	VkFence submissionFence, std::mutex& submissionMutex )
         {
             if (devicePtr == nullptr)
@@ -248,7 +252,7 @@ namespace vk
             imageCI.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
         	imageCI.flags = VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
 
-            m_cubemapImage = vk::init::CreateImage(devicePtr, imageCI, m_cubemapImageMemory, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+            m_environmentMapImage = vk::init::CreateImage(devicePtr, imageCI, m_environmentMapImageMemory, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
             //transition the image layout to general.
             {
@@ -258,7 +262,7 @@ namespace vk
                 barrier.newLayout = VK_IMAGE_LAYOUT_GENERAL;
                 barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
                 barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-                barrier.image = m_cubemapImage;
+                barrier.image = m_environmentMapImage;
                 barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
                 barrier.subresourceRange.baseMipLevel = 0;
                 barrier.subresourceRange.levelCount = VK_REMAINING_MIP_LEVELS;
@@ -301,11 +305,11 @@ namespace vk
     		m_cubemapInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
 
     		m_cubemapInfo.imageView = vk::Texture::CreateImageView(devicePtr->GetDevice(),
-				m_cubemapImage, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_VIEW_TYPE_CUBE);
+				m_environmentMapImage, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_VIEW_TYPE_CUBE);
 
     		m_cubemapInfo.sampler = vk::Texture::CreateSampler(devicePtr->GetGPU(), devicePtr->GetDevice());
 
-    		WriteToCubeMapImage(devicePtr, graphicsCmd, submissionFence, submissionMutex );
+    		WriteToEnvironmentMapImage(devicePtr, graphicsCmd, submissionFence, submissionMutex );
         }
 
     	void WriteToIrradianceImage( vk::Device* devicePtr, VkCommandBuffer graphicsCmd, VkFence submissionFence, std::mutex& submissionMutex )
@@ -314,6 +318,7 @@ namespace vk
     		vk::WriteResource writeResource = {};
     		auto descriptorBufferProperties = devicePtr->GetDescriptorBufferProperties();
 
+    		//NOTE: cubemapInfo.imageLayout changed between CreateCubeMap() -> WriteToIrradianceImage()
     		writeResource.pImageData = &m_cubemapInfo;
     		m_computeDescriptorBuffer.WriteDescriptor(devicePtr, writeResource,
 				1,0,0, descriptorBufferProperties.combinedImageSamplerDescriptorSize);
@@ -402,7 +407,7 @@ namespace vk
     		VkFence submissionFence, std::mutex& submissionMutex )
     	{
 
-    		assert(m_cubemapImage != VK_NULL_HANDLE); //must be able to sample from the cubemap image during creation.
+    		assert(m_environmentMapImage != VK_NULL_HANDLE); //must be able to sample from the cubemap image during creation.
 
 			if (devicePtr == nullptr)
             {
@@ -484,9 +489,52 @@ namespace vk
 
     		WriteToIrradianceImage( devicePtr, graphicsCmd, submissionFence, submissionMutex );
     	}
+
+    	void CreatePrefilterImage( vk::Device* devicePtr, VkCommandBuffer graphicsCmd, VkFence submissionFence, std::mutex& submissionMutex )
+    	{
+			assert(m_environmentMapImage != VK_NULL_HANDLE);
+
+    		if (devicePtr == nullptr)
+    		{
+    			return;
+    		}
+
+    		VkSubmitInfo submitInfo = {};
+
+    		uint32_t imageWidth = 128;
+    		uint32_t imageHeight = 128;
+
+    		//for each roughness value that's convoluted, store the blurrier results in the image's mipmap levels.
+    		uint32_t mipLevels = vk::util::CalculateMipLevels(imageWidth, imageHeight);
+
+    		VkImageCreateInfo imageCI = vk::init::ImageCreateInfo();
+    		imageCI.format = VK_FORMAT_R32G32B32A32_SFLOAT; //for now, just assume this format --> biggest possible
+    		imageCI.imageType = VK_IMAGE_TYPE_2D;
+    		imageCI.arrayLayers = 6;
+    		//NOTE: not sure yet how to divide up the resolution. the image I'm sampling is 2048x1024 pixels.
+    		imageCI.extent.width = imageWidth;
+    		imageCI.extent.height = imageHeight;
+    		imageCI.extent.depth = 1;
+    		imageCI.mipLevels = mipLevels;
+    		imageCI.samples = VK_SAMPLE_COUNT_1_BIT;
+    		imageCI.usage = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT;
+    		imageCI.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    		imageCI.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+    		imageCI.flags = VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
+
+    		m_prefilterImage = vk::init::CreateImage(devicePtr, imageCI, m_prefilterImageMemory,
+    			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+
+    		//copy the contents of the environment map here w/ vkCmdBlit (since they're different dimensions).
+
+
+
+
+
+    	}
     private:
-    	VkImage m_cubemapImage = VK_NULL_HANDLE;
-    	VkDeviceMemory m_cubemapImageMemory = VK_NULL_HANDLE;
+    	VkImage m_environmentMapImage = VK_NULL_HANDLE;
+    	VkDeviceMemory m_environmentMapImageMemory = VK_NULL_HANDLE;
     	VkDescriptorImageInfo m_cubemapInfo = {};
 
     	//NOTE: since convolution and cubemap creation have the exact same layout,
@@ -499,6 +547,9 @@ namespace vk
     	VkImage m_irradianceImage = VK_NULL_HANDLE;
     	VkDeviceMemory m_irradianceImageMemory = VK_NULL_HANDLE;
     	VkDescriptorImageInfo m_irradianceInfo = {};
+
+    	VkImage m_prefilterImage = VK_NULL_HANDLE;
+    	VkDeviceMemory m_prefilterImageMemory = VK_NULL_HANDLE;
 
     	vk::DescriptorBuffer m_computeDescriptorBuffer;
 

@@ -151,7 +151,7 @@ namespace vk
 
     	CreateComputePipelineLayout( devicePtr );
 
-		CreateCubeMapImage( devicePtr, graphicsCmd, submissionFence, transferMutex );
+		CreateEnvironmentMapImage( devicePtr, graphicsCmd, submissionFence, transferMutex );
 
     	CreateIrradianceImage( devicePtr, graphicsCmd, submissionFence, transferMutex );
 
