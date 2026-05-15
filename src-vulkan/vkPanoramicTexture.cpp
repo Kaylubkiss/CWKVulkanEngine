@@ -91,19 +91,9 @@ namespace vk
 
         VK_CHECK_RESULT(vkEndCommandBuffer(graphicsCmd));
 
-        {
-            submitInfo = {};
-            submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-            submitInfo.commandBufferCount = 1;
-            submitInfo.pCommandBuffers = &graphicsCmd;
-
-            std::lock_guard lock(transferMutex);
-            VK_CHECK_RESULT(vkQueueSubmit(devicePtr->GetQueue(DeviceQueue::GRAPHICS).handle, 1, &submitInfo,
-				submissionFence));
-        }
-
-        VK_CHECK_RESULT(vkWaitForFences(devicePtr->GetDevice(), 1, &submissionFence, VK_TRUE, UINT64_MAX));
-        VK_CHECK_RESULT(vkResetFences(devicePtr->GetDevice(), 1, &submissionFence));
+        vk::util::SubmitCommandToQueue( devicePtr->GetDevice(), graphicsCmd,
+        	devicePtr->GetQueue(DeviceQueue::GRAPHICS).handle,
+        	submissionFence, std::nullopt );
 
     	CreateComputeDescriptorBuffer( devicePtr );
 
@@ -112,6 +102,24 @@ namespace vk
 		CreateEnvironmentMapImage( devicePtr, graphicsCmd, submissionFence, transferMutex );
 
     	CreateIrradianceImage( devicePtr, graphicsCmd, submissionFence, transferMutex );
+
+    	CreatePrefilterImage( devicePtr, graphicsCmd, submissionFence, transferMutex );
+
+    	VkCommandBufferBeginInfo beginInfo = {};
+    	beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    	beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+
+    	VK_CHECK_RESULT(vkBeginCommandBuffer(graphicsCmd, &beginInfo));
+
+    	vk::util::RecordImageLayoutTransition( graphicsCmd, m_environmentMapImage,
+    		VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
+    		VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL );
+
+    	VK_CHECK_RESULT(vkEndCommandBuffer(graphicsCmd));
+
+    	vk::util::SubmitCommandToQueue( devicePtr->GetDevice(), graphicsCmd,
+    		devicePtr->GetQueue(DeviceQueue::GRAPHICS).handle,
+    		submissionFence, std::nullopt );
 
     	m_cubemapInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 

@@ -178,14 +178,40 @@ namespace vk {
 				srcStage = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
 				dstStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
 			}
-			else if (oldLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL &&
+			else if ((oldLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL ||
+				oldLayout == VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL) &&
 				newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
 			{
-				barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+				if (oldLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL)
+				{
+					barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+				}
+				else
+				{
+					barrier.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+				}
 				barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
 
 				srcStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
 				dstStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+			}
+			else if (oldLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL &&
+				newLayout == VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL)
+			{
+				barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+				barrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+
+				srcStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+				dstStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+			}
+			else if (oldLayout == VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL &&
+				newLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL)
+			{
+				barrier.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+				barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+
+				srcStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+				dstStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
 			}
 			else
 			{
@@ -226,19 +252,9 @@ namespace vk {
 
 		}
 
-		void GenerateMipMaps(const VkPhysicalDevice p_device, const VkDevice l_device, const VkCommandPool& cmdPool, const VkQueue gfxQueue, VkImage image, VkFormat imgFormat, uint32_t textureWidth, uint32_t textureHeight, uint32_t mipLevels)
+		void RecordBlitMipMapImages( VkCommandBuffer cmdBuffer, VkImage image,
+			uint32_t textureWidth, uint32_t textureHeight, uint32_t mipLevels, uint32_t layerCount )
 		{
-
-			VkFormatProperties formatProperties;
-			vkGetPhysicalDeviceFormatProperties(p_device, imgFormat, &formatProperties);
-
-			if (!(formatProperties.optimalTilingFeatures & VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT))
-			{
-				throw std::runtime_error("your physical device does not support linear blitting");
-				//TODO: generate mipmap levels with software/storing mip levels in texture image and sampling that.
-			}
-
-			VkCommandBuffer cmdBuffer = beginSingleTimeCommand(l_device, cmdPool);
 
 			VkImageMemoryBarrier barrier = {};
 			barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -247,11 +263,21 @@ namespace vk {
 			barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 			barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 			barrier.subresourceRange.baseArrayLayer = 0;
-			barrier.subresourceRange.layerCount = 1;
-			barrier.subresourceRange.levelCount = 1;
+			barrier.subresourceRange.baseMipLevel = 0;
+			barrier.subresourceRange.layerCount = layerCount;
+			barrier.subresourceRange.levelCount = 1; //only 1 mip level will be transitioned.
+			/*barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+			barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+			barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+			barrier.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
 
-			uint32_t mipWidth = textureWidth;
-			uint32_t mipHeight = textureHeight;
+			vkCmdPipelineBarrier(cmdBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT,
+						VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0,
+						nullptr, 0,
+						nullptr, 1, &barrier);*/
+
+			auto mipWidth = static_cast<int32_t>(textureWidth);
+			auto mipHeight = static_cast<int32_t>(textureHeight);
 
 			for (uint32_t i = 1; i < mipLevels; i++)
 			{
@@ -261,23 +287,25 @@ namespace vk {
 				barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
 				barrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
 
-				vkCmdPipelineBarrier(cmdBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0,
-					nullptr, 0, nullptr, 1, &barrier);
+				vkCmdPipelineBarrier(cmdBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT,
+					VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0,
+					nullptr, 0,
+					nullptr, 1, &barrier);
 
 				VkImageBlit blit = {};
 				blit.srcOffsets[0] = { 0,0,0 };
-				blit.srcOffsets[1] = { (int)(mipWidth), (int)(mipHeight), 1 };
+				blit.srcOffsets[1] = { mipWidth, mipHeight, 1 };
 				blit.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 				blit.srcSubresource.mipLevel = i - 1;
 				blit.srcSubresource.baseArrayLayer = 0;
-				blit.srcSubresource.layerCount = 1;
+				blit.srcSubresource.layerCount = layerCount;
 
 				blit.dstOffsets[0] = { 0,0,0 };
-				blit.dstOffsets[1] = { (int)(mipWidth > 1 ? mipWidth / 2 : 1), (int)(mipHeight > 1 ? mipHeight / 2 : 1), 1 };
+				blit.dstOffsets[1] = { mipWidth > 1 ? mipWidth / 2 : 1, mipHeight > 1 ? mipHeight / 2 : 1, 1 };
 				blit.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 				blit.dstSubresource.mipLevel = i;
 				blit.dstSubresource.baseArrayLayer = 0;
-				blit.dstSubresource.layerCount = 1;
+				blit.dstSubresource.layerCount = layerCount;
 
 				vkCmdBlitImage(cmdBuffer,
 					image,
@@ -292,7 +320,8 @@ namespace vk {
 				barrier.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
 				barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
 
-				vkCmdPipelineBarrier(cmdBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0,
+				vkCmdPipelineBarrier(cmdBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT,
+					VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0,
 					0, nullptr, 0, nullptr, 1, &barrier);
 
 
@@ -301,19 +330,16 @@ namespace vk {
 
 			}
 
-			barrier.subresourceRange.baseMipLevel = mipLevels - 1;
+			/*barrier.subresourceRange.baseMipLevel = mipLevels - 1;
 			barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
 			barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 			barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
 			barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
 
 			vkCmdPipelineBarrier(cmdBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0,
-				0, nullptr, 0, nullptr, 1, &barrier);
-
-			endSingleTimeCommand(l_device, cmdBuffer, cmdPool, gfxQueue);
+				0, nullptr, 0, nullptr, 1, &barrier);*/
 
 		}
-
 
 		uint32_t CalculateMipLevels( uint32_t imageWidth, uint32_t imageHeight )
 		{

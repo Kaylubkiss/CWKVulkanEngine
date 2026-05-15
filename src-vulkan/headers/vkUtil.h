@@ -39,8 +39,8 @@ namespace vk
 
 		void SubmitCommandToQueue( VkDevice device, VkCommandBuffer cmdBuffer, VkQueue queue, VkFence fence, std::optional<std::mutex> submissionMutex );
 
-		void GenerateMipMaps(const VkPhysicalDevice p_device, const VkDevice l_device, const VkCommandPool& cmdPool, const VkQueue gfxQueue,
-			VkImage image, VkFormat imgFormat, uint32_t textureWidth, uint32_t textureHeight, uint32_t mipLevels);
+		void RecordBlitMipMapImages( VkCommandBuffer cmdBuffer, VkImage image,
+			uint32_t textureWidth, uint32_t textureHeight, uint32_t mipLevels, uint32_t layerCount );
 
 		bool FormatIsFilterable( const VkPhysicalDevice p_device, VkFormat format, VkImageTiling tiling );
 
