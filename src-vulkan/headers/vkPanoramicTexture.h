@@ -183,48 +183,16 @@ namespace vk
 
 			vkCmdDispatch(graphicsCmd, 512 / 16, 512 / 16, 6);
 
-    		//transition the image layout to shader read_only.
-            {
-                VkImageMemoryBarrier barrier = {};
-                barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-                barrier.oldLayout = VK_IMAGE_LAYOUT_GENERAL;
-                barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-                barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-                barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-                barrier.image = m_environmentMapImage;
-                barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-                barrier.subresourceRange.baseMipLevel = 0;
-                barrier.subresourceRange.levelCount = VK_REMAINING_MIP_LEVELS;
-                barrier.subresourceRange.baseArrayLayer = 0;
-                barrier.subresourceRange.layerCount = VK_REMAINING_ARRAY_LAYERS;
-                barrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
-                barrier.dstAccessMask = 0;
-
-                vkCmdPipelineBarrier(graphicsCmd, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-                    VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, //bottom of pipeline so that it's ready to be read during the next compute pass.
-                    0, 0,
-                    nullptr, 0, nullptr, 1,
-                    &barrier); //asking the gpu to reconfigure the old image layout to the new layout.
-            }
+    		vk::util::RecordImageLayoutTransition( graphicsCmd, m_environmentMapImage,
+    			VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
+    			VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL );
 
     		VK_CHECK_RESULT(vkEndCommandBuffer(graphicsCmd));
 
-            //submit to queue!!
-            {
-                VkSubmitInfo submitInfo = {};
-                submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-                submitInfo.commandBufferCount = 1;
-                submitInfo.pCommandBuffers = &graphicsCmd;
+			vk::util::SubmitCommandToQueue(devicePtr->GetDevice(), graphicsCmd,
+				devicePtr->GetQueue(DeviceQueue::GRAPHICS).handle,
+				submissionFence, std::nullopt);
 
-                std::lock_guard lock(submissionMutex);
-                VK_CHECK_RESULT(vkQueueSubmit(devicePtr->GetQueue(DeviceQueue::GRAPHICS).handle, 1, &submitInfo,
-                    submissionFence));
-            }
-
-            VK_CHECK_RESULT(vkWaitForFences(devicePtr->GetDevice(), 1, &submissionFence, VK_TRUE, UINT64_MAX));
-            VK_CHECK_RESULT(vkResetFences(devicePtr->GetDevice(), 1, &submissionFence));
-
-    		m_cubemapInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
         }
 
         void CreateEnvironmentMapImage( vk::Device* devicePtr, VkCommandBuffer graphicsCmd,
@@ -234,8 +202,6 @@ namespace vk
             {
                 return;
             }
-
-        	VkSubmitInfo submitInfo = {};
 
             VkImageCreateInfo imageCI = vk::init::ImageCreateInfo();
             imageCI.format = VK_FORMAT_R32G32B32A32_SFLOAT; //for now, just assume this format --> biggest possible
@@ -247,60 +213,28 @@ namespace vk
             imageCI.extent.depth = 1;
             imageCI.mipLevels = 1;
             imageCI.samples = VK_SAMPLE_COUNT_1_BIT;
-            imageCI.usage = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT;
+            imageCI.usage = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
             imageCI.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
             imageCI.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
         	imageCI.flags = VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
 
             m_environmentMapImage = vk::init::CreateImage(devicePtr, imageCI, m_environmentMapImageMemory, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
-            //transition the image layout to general.
-            {
-                VkImageMemoryBarrier barrier = {};
-                barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-                barrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-                barrier.newLayout = VK_IMAGE_LAYOUT_GENERAL;
-                barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-                barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-                barrier.image = m_environmentMapImage;
-                barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-                barrier.subresourceRange.baseMipLevel = 0;
-                barrier.subresourceRange.levelCount = VK_REMAINING_MIP_LEVELS;
-                barrier.subresourceRange.baseArrayLayer = 0;
-                barrier.subresourceRange.layerCount = VK_REMAINING_ARRAY_LAYERS;
-                barrier.srcAccessMask = 0;
-                barrier.dstAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
+    		VkCommandBufferBeginInfo beginInfo = {};
+    		beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    		beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
 
-            	VkCommandBufferBeginInfo beginInfo = {};
-            	beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-            	beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+    		VK_CHECK_RESULT(vkBeginCommandBuffer(graphicsCmd, &beginInfo));
 
-            	VK_CHECK_RESULT(vkBeginCommandBuffer(graphicsCmd, &beginInfo));
+    		vk::util::RecordImageLayoutTransition( graphicsCmd, m_environmentMapImage,
+    			VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
+    			VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
 
-                vkCmdPipelineBarrier(graphicsCmd, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
-                    VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-                    0, 0,
-                    nullptr, 0, nullptr, 1,
-                    &barrier); //asking the gpu to reconfigure the old image layout to the new layout.
+    		VK_CHECK_RESULT(vkEndCommandBuffer(graphicsCmd));
 
-            	VK_CHECK_RESULT(vkEndCommandBuffer(graphicsCmd));
-            }
-
-
-            //submit to queue!!
-            {
-                submitInfo = {};
-                submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-                submitInfo.commandBufferCount = 1;
-                submitInfo.pCommandBuffers = &graphicsCmd;
-
-                std::lock_guard lock(submissionMutex);
-                VK_CHECK_RESULT(vkQueueSubmit(devicePtr->GetQueue(DeviceQueue::GRAPHICS).handle, 1, &submitInfo,
-                    submissionFence));
-            }
-
-            VK_CHECK_RESULT(vkWaitForFences(devicePtr->GetDevice(), 1, &submissionFence, VK_TRUE, UINT64_MAX));
-            VK_CHECK_RESULT(vkResetFences(devicePtr->GetDevice(), 1, &submissionFence));
+    		vk::util::SubmitCommandToQueue(devicePtr->GetDevice(), graphicsCmd,
+    			devicePtr->GetQueue(DeviceQueue::GRAPHICS).handle,
+    			submissionFence, std::nullopt);
 
     		m_cubemapInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
 
@@ -358,49 +292,17 @@ namespace vk
 
 			vkCmdDispatch(graphicsCmd, 512 / 16, 512 / 16, 6);
 
-    		//transition the image layout to shader read_only.
-            {
-                VkImageMemoryBarrier barrier = {};
-                barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-                barrier.oldLayout = VK_IMAGE_LAYOUT_GENERAL;
-                barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-                barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-                barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-                barrier.image = m_irradianceImage;
-                barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-                barrier.subresourceRange.baseMipLevel = 0;
-                barrier.subresourceRange.levelCount = VK_REMAINING_MIP_LEVELS;
-                barrier.subresourceRange.baseArrayLayer = 0;
-                barrier.subresourceRange.layerCount = VK_REMAINING_ARRAY_LAYERS;
-                barrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
-                barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-
-                vkCmdPipelineBarrier(graphicsCmd, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-                    VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
-                    0, 0,
-                    nullptr, 0, nullptr, 1,
-                    &barrier); //asking the gpu to reconfigure the old image layout to the new layout.
-            }
+    		vk::util::RecordImageLayoutTransition( graphicsCmd, m_irradianceImage,
+    			VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
+    			VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
     		VK_CHECK_RESULT(vkEndCommandBuffer(graphicsCmd));
 
-            //submit to queue!!
-            {
-                VkSubmitInfo submitInfo = {};
-                submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-                submitInfo.commandBufferCount = 1;
-                submitInfo.pCommandBuffers = &graphicsCmd;
-
-                std::lock_guard lock(submissionMutex);
-                VK_CHECK_RESULT(vkQueueSubmit(devicePtr->GetQueue(DeviceQueue::GRAPHICS).handle, 1, &submitInfo,
-                    submissionFence));
-            }
-
-            VK_CHECK_RESULT(vkWaitForFences(devicePtr->GetDevice(), 1, &submissionFence, VK_TRUE, UINT64_MAX));
-            VK_CHECK_RESULT(vkResetFences(devicePtr->GetDevice(), 1, &submissionFence));
+    		vk::util::SubmitCommandToQueue(devicePtr->GetDevice(), graphicsCmd,
+    			devicePtr->GetQueue(DeviceQueue::GRAPHICS).handle,
+    			submissionFence, std::nullopt);
 
     		m_irradianceInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-
     	}
 
     	void CreateIrradianceImage( vk::Device* devicePtr, VkCommandBuffer graphicsCmd,
@@ -413,8 +315,6 @@ namespace vk
             {
                 return;
             }
-
-        	VkSubmitInfo submitInfo = {};
 
             VkImageCreateInfo imageCI = vk::init::ImageCreateInfo();
             imageCI.format = VK_FORMAT_R32G32B32A32_SFLOAT; //for now, just assume this format --> biggest possible
@@ -433,52 +333,20 @@ namespace vk
 
             m_irradianceImage = vk::init::CreateImage(devicePtr, imageCI, m_irradianceImageMemory, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
-            //transition the image layout to general.
-            {
-                VkImageMemoryBarrier barrier = {};
-                barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-                barrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-                barrier.newLayout = VK_IMAGE_LAYOUT_GENERAL;
-                barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-                barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-                barrier.image = m_irradianceImage;
-                barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-                barrier.subresourceRange.baseMipLevel = 0;
-                barrier.subresourceRange.levelCount = VK_REMAINING_MIP_LEVELS;
-                barrier.subresourceRange.baseArrayLayer = 0;
-                barrier.subresourceRange.layerCount = VK_REMAINING_ARRAY_LAYERS;
-                barrier.srcAccessMask = 0;
-                barrier.dstAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
+    		VkCommandBufferBeginInfo beginInfo = {};
+    		beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    		beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
 
-            	VkCommandBufferBeginInfo beginInfo = {};
-            	beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-            	beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+    		VK_CHECK_RESULT(vkBeginCommandBuffer(graphicsCmd, &beginInfo));
 
-            	VK_CHECK_RESULT(vkBeginCommandBuffer(graphicsCmd, &beginInfo));
+    		vk::util::RecordImageLayoutTransition( graphicsCmd, m_irradianceImage,
+    			VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
 
-                vkCmdPipelineBarrier(graphicsCmd, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
-                    VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-                    0, 0,
-                    nullptr, 0, nullptr, 1,
-                    &barrier); //asking the gpu to reconfigure the old image layout to the new layout.
+    		VK_CHECK_RESULT(vkEndCommandBuffer(graphicsCmd));
 
-            	VK_CHECK_RESULT(vkEndCommandBuffer(graphicsCmd));
-            }
-
-            //submit to queue!!
-            {
-                submitInfo = {};
-                submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-                submitInfo.commandBufferCount = 1;
-                submitInfo.pCommandBuffers = &graphicsCmd;
-
-                std::lock_guard lock(submissionMutex);
-                VK_CHECK_RESULT(vkQueueSubmit(devicePtr->GetQueue(DeviceQueue::GRAPHICS).handle, 1, &submitInfo,
-                    submissionFence));
-            }
-
-            VK_CHECK_RESULT(vkWaitForFences(devicePtr->GetDevice(), 1, &submissionFence, VK_TRUE, UINT64_MAX));
-            VK_CHECK_RESULT(vkResetFences(devicePtr->GetDevice(), 1, &submissionFence));
+    		vk::util::SubmitCommandToQueue(devicePtr->GetDevice(), graphicsCmd,
+    			devicePtr->GetQueue(DeviceQueue::GRAPHICS).handle,
+    			submissionFence, std::nullopt);
 
     		m_irradianceInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
 
@@ -490,7 +358,7 @@ namespace vk
     		WriteToIrradianceImage( devicePtr, graphicsCmd, submissionFence, submissionMutex );
     	}
 
-    	void CreatePrefilterImage( vk::Device* devicePtr, VkCommandBuffer graphicsCmd, VkFence submissionFence, std::mutex& submissionMutex )
+    	/*void CreatePrefilterImage( vk::Device* devicePtr, VkCommandBuffer graphicsCmd, VkFence submissionFence, std::mutex& submissionMutex )
     	{
 			assert(m_environmentMapImage != VK_NULL_HANDLE);
 
@@ -525,13 +393,57 @@ namespace vk
     		m_prefilterImage = vk::init::CreateImage(devicePtr, imageCI, m_prefilterImageMemory,
     			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
-    		//copy the contents of the environment map here w/ vkCmdBlit (since they're different dimensions).
+    		//transition the image layout to transfer -> vkCmdBlit is considered a transfer operation.
+            {
+                VkImageMemoryBarrier barrier = {};
+                barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+                barrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+                barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+                barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+                barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+                barrier.image = m_irradianceImage;
+                barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+                barrier.subresourceRange.baseMipLevel = 0;
+                barrier.subresourceRange.levelCount = VK_REMAINING_MIP_LEVELS;
+                barrier.subresourceRange.baseArrayLayer = 0;
+                barrier.subresourceRange.layerCount = VK_REMAINING_ARRAY_LAYERS;
+                barrier.srcAccessMask = 0;
+                barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+
+            	VkCommandBufferBeginInfo beginInfo = {};
+            	beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+            	beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+
+            	VK_CHECK_RESULT(vkBeginCommandBuffer(graphicsCmd, &beginInfo));
+
+                vkCmdPipelineBarrier(graphicsCmd, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+                    VK_PIPELINE_STAGE_TRANSFER_BIT,
+                    0, 0,
+                    nullptr, 0, nullptr, 1,
+                    &barrier); //asking the gpu to reconfigure the old image layout to the new layout.
+
+            	VK_CHECK_RESULT(vkEndCommandBuffer(graphicsCmd));
+            }
+
+            //submit to queue!!
+            {
+                submitInfo = {};
+                submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+                submitInfo.commandBufferCount = 1;
+                submitInfo.pCommandBuffers = &graphicsCmd;
+
+                std::lock_guard lock(submissionMutex);
+                VK_CHECK_RESULT(vkQueueSubmit(devicePtr->GetQueue(DeviceQueue::GRAPHICS).handle, 1, &submitInfo,
+                    submissionFence));
+            }
+
+            VK_CHECK_RESULT(vkWaitForFences(devicePtr->GetDevice(), 1, &submissionFence, VK_TRUE, UINT64_MAX));
+            VK_CHECK_RESULT(vkResetFences(devicePtr->GetDevice(), 1, &submissionFence));
 
 
+			//TODO: UNFINISHED...
 
-
-
-    	}
+    	}*/
     private:
     	VkImage m_environmentMapImage = VK_NULL_HANDLE;
     	VkDeviceMemory m_environmentMapImageMemory = VK_NULL_HANDLE;

@@ -33,21 +33,14 @@ namespace vk
 
 		bool FormatIsSupported(const VkPhysicalDevice p_device, VkFormat format, VkImageTiling tiling, VkFormatFeatureFlags features);
 
-		//BEGIN TODO: move this into a device-specific class.
-		//use command pool
-		void TransitionImageLayout(const VkDevice l_device, const VkCommandPool cmdPool, 
-			const VkQueue& gfxQueue, uint32_t srcQueue, uint32_t dstQueue,
-			VkImage image, VkFormat format, 
-			VkImageLayout oldLayout, VkImageLayout newLayout, 
-			uint32_t mipLevels);
+		void RecordImageLayoutTransition( VkCommandBuffer cmdBuffer, VkImage image,
+			uint32_t srcQueue, uint32_t dstQueue,
+			VkImageLayout oldLayout, VkImageLayout newLayout );
 
-		//use command pool
-		void copyBufferToImage(const VkDevice l_device, const VkCommandPool cmdPool, VkBuffer buffer, const VkQueue gfxQueue, VkImage image, uint32_t width, uint32_t height);
-		//use command buffer
-		void copyBufferToImage(const VkDevice l_device, const VkCommandBuffer cmdBuffer, VkBuffer buffer, const VkQueue gfxQueue, VkImage image, uint32_t width, uint32_t height);
+		void SubmitCommandToQueue( VkDevice device, VkCommandBuffer cmdBuffer, VkQueue queue, VkFence fence, std::optional<std::mutex> submissionMutex );
 
-		void GenerateMipMaps(const VkPhysicalDevice p_device, const VkDevice l_device, const VkCommandPool& cmdPool, const VkQueue gfxQueue, VkImage image, VkFormat imgFormat, uint32_t textureWidth, uint32_t textureHeight, uint32_t mipLevels);
-		//...END OF TODO
+		void GenerateMipMaps(const VkPhysicalDevice p_device, const VkDevice l_device, const VkCommandPool& cmdPool, const VkQueue gfxQueue,
+			VkImage image, VkFormat imgFormat, uint32_t textureWidth, uint32_t textureHeight, uint32_t mipLevels);
 
 		bool FormatIsFilterable( const VkPhysicalDevice p_device, VkFormat format, VkImageTiling tiling );
 
