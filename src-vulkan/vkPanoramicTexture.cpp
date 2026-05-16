@@ -48,8 +48,8 @@ namespace vk
     	m_sampler = m_descriptor.sampler;
         m_imageView = m_descriptor.imageView;
 
-
-        VkSubmitInfo submitInfo = {};
+    	//for each roughness value that's convoluted, store the blurrier results in the image's mipmap levels.
+    	m_prefilterMipLevels = vk::util::CalculateMipLevels(m_prefilterWidth, m_prefilterHeight);
 
         VkFence submissionFence = vk::init::CreateFence(devicePtr->GetDevice(), false);
 
@@ -95,6 +95,7 @@ namespace vk
         vk::util::SubmitCommandToQueue( devicePtr->GetDevice(), graphicsCmd,
         	devicePtr->GetQueue(DeviceQueue::GRAPHICS).handle,
         	submissionFence, std::nullopt );
+
 
     	CreateComputeDescriptorBuffer( devicePtr );
 

@@ -30,7 +30,13 @@ namespace vk
     			vkDestroySampler(c_device, m_irradianceInfo.sampler, nullptr);
     			vkDestroyImageView(c_device, m_irradianceInfo.imageView, nullptr);
 
-    			vkDestroySampler(c_device, m_prefilterInfo.sampler, nullptr);
+    			vkDestroySampler(c_device, m_prefilterInfos[0].sampler, nullptr);
+
+    			for (uint32_t mip = 0; mip < m_prefilterMipLevels; ++mip)
+    			{
+    				vkDestroyImageView(c_device, m_prefilterInfos[mip].imageView, nullptr);
+    			}
+
     			vkDestroyImageView(c_device, m_prefilterInfo.imageView, nullptr);
 
     			vkDestroyPipeline(c_device, m_computePipeline, nullptr);
@@ -154,7 +160,6 @@ namespace vk
 
             std::vector<VkDescriptorSetLayoutBinding> layoutBindings =
             {
-
             	{
 					.binding = 0,
             		.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
@@ -169,8 +174,9 @@ namespace vk
 				}
             };
 
+    		//environment + convolution + prefiltering.
             m_computeDescriptorBuffer.Allocate(devicePtr, bufferUsageFlags, memoryProperties,
-                1, 3, layoutBindings);
+                1, 2 + m_prefilterMipLevels, layoutBindings);
 
         }
 
@@ -396,20 +402,22 @@ namespace vk
     		WriteToIrradianceImage( devicePtr, graphicsCmd, submissionFence, submissionMutex );
     	}
 
-    	void WriteToPrefilterImage( vk::Device* devicePtr, VkCommandBuffer graphicsCmd, uint32_t mipLevels,
+    	void WriteToPrefilterImage( vk::Device* devicePtr, VkCommandBuffer graphicsCmd,
     		VkFence submissionFence, std::mutex& submissionMutex )
     	{
     		vk::WriteResource writeResource = {};
     		auto descriptorBufferProperties = devicePtr->GetDescriptorBufferProperties();
 
-    		//NOTE: cubemapInfo.imageLayout changed between CreateCubeMap() -> WriteToIrradianceImage()
-    		writeResource.pImageData = &m_environmentMapInfo;
-    		m_computeDescriptorBuffer.WriteDescriptor(devicePtr, writeResource,
-				2,0,0, descriptorBufferProperties.combinedImageSamplerDescriptorSize);
+    		for (uint32_t mip = 0; mip < m_prefilterMipLevels; ++mip)
+    		{
+    			writeResource.pImageData = &m_environmentMapInfo;
+    			m_computeDescriptorBuffer.WriteDescriptor(devicePtr, writeResource,
+					2 + mip,0,0, descriptorBufferProperties.combinedImageSamplerDescriptorSize);
 
-    		writeResource.pImageData = &m_irradianceInfo;
-    		m_computeDescriptorBuffer.WriteDescriptor(devicePtr, writeResource,
-				2, 0, 1, descriptorBufferProperties.storageImageDescriptorSize, true);
+    			writeResource.pImageData = &m_prefilterInfos[mip];
+    			m_computeDescriptorBuffer.WriteDescriptor(devicePtr, writeResource,
+					2 + mip, 0, 1, descriptorBufferProperties.storageImageDescriptorSize, true);
+    		}
 
 			CreatePrefilterComputePipeline( devicePtr );
 
@@ -419,18 +427,63 @@ namespace vk
 
     		VK_CHECK_RESULT(vkBeginCommandBuffer(graphicsCmd, &beginInfo));
 
-    		uint32_t initWidth = 128, initHeight = 128;
-    		for (uint32_t i = 0; i < mipLevels; ++i)
+    		vkCmdBindPipeline(graphicsCmd, VK_PIPELINE_BIND_POINT_COMPUTE, m_prefilterPipeline);
+
+            std::vector<VkDescriptorBufferBindingInfoEXT> descriptorBufferBindingInfos =
+            {
+	            {
+		            .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_BUFFER_BINDING_INFO_EXT,
+		            .address = m_computeDescriptorBuffer.GetBuffer().GetDeviceAddress(),
+		            .usage = VK_BUFFER_USAGE_RESOURCE_DESCRIPTOR_BUFFER_BIT_EXT | VK_BUFFER_USAGE_SAMPLER_DESCRIPTOR_BUFFER_BIT_EXT
+	            },
+            };
+
+			g_vkCmdBindDescriptorBuffersEXT(graphicsCmd, static_cast<uint32_t>(descriptorBufferBindingInfos.size()),
+				descriptorBufferBindingInfos.data());
+
+    		VkDeviceSize layoutSize = m_computeDescriptorBuffer.GetLayoutSize();
+    		VkDeviceSize initOffset =  layoutSize * 2;
+
+    		uint32_t descriptorIndex = 0;
+
+    		for (uint32_t mip = 0; mip < m_prefilterMipLevels; ++mip)
     		{
-				uint32_t mipWidth = static_cast<uint32_t>(initWidth * std::pow(0.5, mipLevels));
-    			uint32_t mipHeight = static_cast<uint32_t>(initHeight * std::pow(0.5, mipLevels));
+    			VkDeviceSize bufferOffset = initOffset + mip * layoutSize;
 
+    			g_vkCmdSetDescriptorBufferOffsetsEXT(graphicsCmd, VK_PIPELINE_BIND_POINT_COMPUTE,
+					m_computePipelineLayout, 0, 1, &descriptorIndex, &bufferOffset);
 
+    			float roughness = (float)mip / (float)(m_prefilterMipLevels - 1);
+
+    			vkCmdPushConstants(graphicsCmd, m_computePipelineLayout,
+    				VK_SHADER_STAGE_COMPUTE_BIT,
+    				0, sizeof(float), &roughness);
+
+    			vkCmdDispatch(graphicsCmd, 128 / 16, 128 / 16, 6);
     		}
+
+    		vk::util::RecordImageLayoutTransition(graphicsCmd, m_prefilterImage,
+    			VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
+    			VK_IMAGE_LAYOUT_GENERAL,
+    			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
     		VK_CHECK_RESULT(vkEndCommandBuffer(graphicsCmd));
 
+    		vk::util::SubmitCommandToQueue( devicePtr->GetDevice(), graphicsCmd,
+    			devicePtr->GetQueue(DeviceQueue::GRAPHICS).handle,
+    			submissionFence, std::nullopt );
 
+    		for (uint32_t mip = 0; mip < m_prefilterMipLevels; ++mip)
+    		{
+				m_prefilterInfos[mip].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    		}
+
+    		m_prefilterInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+
+    		m_prefilterInfo.imageView = vk::Texture::CreateImageView(devicePtr->GetDevice(),
+    			m_prefilterImage, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_VIEW_TYPE_CUBE);
+
+    		m_prefilterInfo.sampler = m_prefilterInfos[0].sampler;
     	}
 
     	void CreatePrefilterImage( vk::Device* devicePtr, VkCommandBuffer graphicsCmd,
@@ -447,9 +500,6 @@ namespace vk
     		uint32_t imageWidth = 128;
     		uint32_t imageHeight = 128;
 
-    		//for each roughness value that's convoluted, store the blurrier results in the image's mipmap levels.
-    		uint32_t mipLevels = vk::util::CalculateMipLevels(imageWidth, imageHeight);
-
     		VkImageCreateInfo imageCI = vk::init::ImageCreateInfo();
     		imageCI.format = VK_FORMAT_R32G32B32A32_SFLOAT; //for now, just assume this format --> biggest possible
     		imageCI.imageType = VK_IMAGE_TYPE_2D;
@@ -458,7 +508,7 @@ namespace vk
     		imageCI.extent.width = imageWidth;
     		imageCI.extent.height = imageHeight;
     		imageCI.extent.depth = 1;
-    		imageCI.mipLevels = mipLevels;
+    		imageCI.mipLevels = m_prefilterMipLevels;
     		imageCI.samples = VK_SAMPLE_COUNT_1_BIT;
     		imageCI.usage = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT |
     			VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT; //this image will transfer to its mipped images
@@ -477,7 +527,7 @@ namespace vk
 
     		vk::util::RecordImageLayoutTransition( graphicsCmd, m_prefilterImage,
 				VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
-				VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL );
+				VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL );
 
     		VK_CHECK_RESULT(vkEndCommandBuffer(graphicsCmd));
 
@@ -485,64 +535,32 @@ namespace vk
 				devicePtr->GetQueue(DeviceQueue::GRAPHICS).handle,
 				submissionFence, std::nullopt );
 
-			// copy the environment map into the prefilter map and then generate its mipmaps.
-			{
-    			auto blitWidth = static_cast<int32_t>(imageWidth);
-    			auto blitHeight = static_cast<int32_t>(imageHeight);
+    		VkImageViewCreateInfo viewCI = vk::init::ImageViewCreateInfo();
+    		viewCI.image = m_prefilterImage;
+    		viewCI.format = VK_FORMAT_R32G32B32A32_SFLOAT;
+    		viewCI.viewType = VK_IMAGE_VIEW_TYPE_CUBE;
+    		viewCI.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    		viewCI.subresourceRange.baseMipLevel = 0;
+    		viewCI.subresourceRange.levelCount = 1;
+    		viewCI.subresourceRange.baseArrayLayer = 0;
+    		viewCI.subresourceRange.layerCount = VK_REMAINING_ARRAY_LAYERS;
+    		viewCI.components = vk::init::ComponentMappingSwizzleIdentity();
 
-    			VK_CHECK_RESULT(vkBeginCommandBuffer(graphicsCmd, &beginInfo));
+    		VkSampler sampler = vk::Texture::CreateSampler(devicePtr->GetGPU(), devicePtr->GetDevice());
 
-    			VkImageBlit blit = {};
-    			blit.srcOffsets[0] = { 0,0,0 };
-    			blit.srcOffsets[1] = { 512, 512, 1 }; // NOTE: hardcoded size of environment faces
-    			blit.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-    			blit.srcSubresource.mipLevel = 0;
-    			blit.srcSubresource.baseArrayLayer = 0;
-    			blit.srcSubresource.layerCount = 6;
+    		m_prefilterInfos.resize(m_prefilterMipLevels);
 
-    			blit.dstOffsets[0] = { 0,0,0 };
-    			blit.dstOffsets[1] = { blitWidth, blitHeight, 1 };
-    			blit.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-    			blit.dstSubresource.mipLevel = 0;
-    			blit.dstSubresource.baseArrayLayer = 0;
-    			blit.dstSubresource.layerCount = 6;
+    		for (uint32_t mip = 0; mip < m_prefilterMipLevels; ++mip)
+    		{
+			    viewCI.subresourceRange.baseMipLevel = mip;
+			    VK_CHECK_RESULT(vkCreateImageView(devicePtr->GetDevice(), &viewCI,
+			    	nullptr, &m_prefilterInfos[mip].imageView ));
 
-    			vkCmdBlitImage(graphicsCmd,
-					m_environmentMapImage,
-					VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-					m_prefilterImage,
-					VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-					1,
-					&blit, VK_FILTER_LINEAR);
-
-    			//this generates the mipmaps
-    			vk::util::RecordBlitMipMapImages( graphicsCmd, m_prefilterImage, blitWidth, blitHeight, mipLevels, 6);
-
-    			//need to transition OUT of read_only so that they can be operated on with imageStore() in the shader.
-    			//I know, this is inefficient. Just wanna get it working for now.
-    			/*vk::util::RecordImageLayoutTransition( graphicsCmd, m_prefilterImage,
-    				VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
-    				VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_GENERAL );
-    				*/
-
-    			VK_CHECK_RESULT(vkEndCommandBuffer(graphicsCmd));
+			    m_prefilterInfos[mip].imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+			    m_prefilterInfos[mip].sampler = sampler;
     		}
 
-    		vk::util::SubmitCommandToQueue( devicePtr->GetDevice(), graphicsCmd,
-    			devicePtr->GetQueue(DeviceQueue::GRAPHICS).handle,
-    			submissionFence, std::nullopt );
-
-    		/*WriteToPrefilterImage()*/
-
-    		m_prefilterInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-
-    		m_prefilterInfo.imageView = vk::Texture::CreateImageView(devicePtr->GetDevice(),
-				m_prefilterImage, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_VIEW_TYPE_CUBE);
-
-    		m_prefilterInfo.sampler = vk::Texture::CreateSampler(devicePtr->GetGPU(), devicePtr->GetDevice());
-
-			//TODO: UNFINISHED...
-
+    		WriteToPrefilterImage( devicePtr, graphicsCmd, submissionFence, submissionMutex );
     	}
     private:
     	VkImage m_environmentMapImage = VK_NULL_HANDLE;
@@ -564,9 +582,12 @@ namespace vk
 
     	VkImage m_prefilterImage = VK_NULL_HANDLE;
     	VkDeviceMemory m_prefilterImageMemory = VK_NULL_HANDLE;
+    	std::vector<VkDescriptorImageInfo> m_prefilterInfos = {}; //want a descriptor image info for each mip level
     	VkDescriptorImageInfo m_prefilterInfo = {};
 
-    	std::array<VkImageView, 6> m_prefilterImageViews = {};
+		uint32_t m_prefilterMipLevels = 0;
+    	uint32_t m_prefilterWidth = 128;
+    	uint32_t m_prefilterHeight = 128;
 
     	vk::DescriptorBuffer m_computeDescriptorBuffer;
 
