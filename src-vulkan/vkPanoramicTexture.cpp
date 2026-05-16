@@ -121,7 +121,7 @@ namespace vk
     		devicePtr->GetQueue(DeviceQueue::GRAPHICS).handle,
     		submissionFence, std::nullopt );
 
-    	m_cubemapInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    	m_environmentMapInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
         std::cout << "\033[32m" << "successfully loaded Panormaic Texture in PanoramicTexture::Create()... " << "\033[0m\n";
 

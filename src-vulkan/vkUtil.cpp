@@ -266,15 +266,6 @@ namespace vk {
 			barrier.subresourceRange.baseMipLevel = 0;
 			barrier.subresourceRange.layerCount = layerCount;
 			barrier.subresourceRange.levelCount = 1; //only 1 mip level will be transitioned.
-			/*barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-			barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
-			barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-			barrier.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
-
-			vkCmdPipelineBarrier(cmdBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT,
-						VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0,
-						nullptr, 0,
-						nullptr, 1, &barrier);*/
 
 			auto mipWidth = static_cast<int32_t>(textureWidth);
 			auto mipHeight = static_cast<int32_t>(textureHeight);

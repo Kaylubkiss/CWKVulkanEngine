@@ -24,8 +24,8 @@ namespace vk
     			vkDestroyImage(c_device, m_prefilterImage, nullptr);
     			vkFreeMemory(c_device, m_prefilterImageMemory, nullptr);
 
-    			vkDestroySampler(c_device, m_cubemapInfo.sampler, nullptr);
-    			vkDestroyImageView(c_device, m_cubemapInfo.imageView, nullptr);
+    			vkDestroySampler(c_device, m_environmentMapInfo.sampler, nullptr);
+    			vkDestroyImageView(c_device, m_environmentMapInfo.imageView, nullptr);
 
     			vkDestroySampler(c_device, m_irradianceInfo.sampler, nullptr);
     			vkDestroyImageView(c_device, m_irradianceInfo.imageView, nullptr);
@@ -44,12 +44,17 @@ namespace vk
 
     	[[nodiscard]] VkDescriptorImageInfo GetEnvironmentMapImageDescriptor() const
 	    {
-	    	return m_cubemapInfo;
+	    	return m_environmentMapInfo;
 	    }
 
     	[[nodiscard]] VkDescriptorImageInfo GetIrradianceImageDescriptor() const
     	{
 			return m_irradianceInfo;
+	    }
+
+    	[[nodiscard]] VkDescriptorImageInfo GetPrefilterMapImageDescriptor() const
+    	{
+			return m_prefilterInfo;
 	    }
 
 	    void Create( vk::Device* devicePtr,  const std::vector<vk::TextureCreateInfo>& createInfos, std::mutex& transferMutex ) override;
@@ -63,17 +68,23 @@ namespace vk
     		pipelineLayoutCI.pSetLayouts = &desciptorSetLayout;
 			pipelineLayoutCI.setLayoutCount = 1;
 
+    		VkPushConstantRange pushConstants = vk::init::PushConstantRange(0,
+    			sizeof(float), VK_SHADER_STAGE_COMPUTE_BIT);
+
+    		pipelineLayoutCI.pPushConstantRanges = &pushConstants;
+    		pipelineLayoutCI.pushConstantRangeCount = 1;
+
 			vkCreatePipelineLayout(devicePtr->GetDevice(), &pipelineLayoutCI, nullptr, &m_computePipelineLayout);
 		}
 
-    	void CreateComputePipeline( vk::Device* devicePtr )
+    	void CreateEnvironmentComputePipeline( vk::Device* devicePtr )
     	{
 			VkComputePipelineCreateInfo computePipelineCI = {};
 			computePipelineCI.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
 			computePipelineCI.flags = VK_PIPELINE_CREATE_DESCRIPTOR_BUFFER_BIT_EXT;
 
 			vk::ShaderModuleInfo shaderModuleInfo = vk::ShaderModuleInfo(devicePtr->GetDevice(),
-				"equirectangular-cubemap-convert.comp", VK_SHADER_STAGE_COMPUTE_BIT);
+				"equirectangular-to-cubemap.comp", VK_SHADER_STAGE_COMPUTE_BIT);
 
 			VkPipelineShaderStageCreateInfo shaderStageCI =
 				vk::init::PipelineShaderStageCreateInfo(shaderModuleInfo.mHandle, shaderModuleInfo.mFlags);
@@ -109,6 +120,27 @@ namespace vk
     		vkDestroyShaderModule(devicePtr->GetDevice(), shaderModuleInfo.mHandle, nullptr);
     	}
 
+    	void CreatePrefilterComputePipeline( vk::Device* devicePtr )
+    	{
+    		VkComputePipelineCreateInfo computePipelineCI = {};
+    		computePipelineCI.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
+    		computePipelineCI.flags = VK_PIPELINE_CREATE_DESCRIPTOR_BUFFER_BIT_EXT;
+
+    		vk::ShaderModuleInfo shaderModuleInfo = vk::ShaderModuleInfo(devicePtr->GetDevice(),
+				"prefilter-cubemap.comp", VK_SHADER_STAGE_COMPUTE_BIT);
+
+    		VkPipelineShaderStageCreateInfo shaderStageCI =
+				vk::init::PipelineShaderStageCreateInfo(shaderModuleInfo.mHandle, shaderModuleInfo.mFlags);
+
+    		computePipelineCI.stage = shaderStageCI;
+    		computePipelineCI.layout = m_computePipelineLayout;
+
+    		vkCreateComputePipelines(devicePtr->GetDevice(), VK_NULL_HANDLE, 1,
+				&computePipelineCI, nullptr, &m_prefilterPipeline);
+
+    		vkDestroyShaderModule(devicePtr->GetDevice(), shaderModuleInfo.mHandle, nullptr);
+    	}
+
         void CreateComputeDescriptorBuffer( vk::Device* devicePtr )
         {
 
@@ -137,7 +169,7 @@ namespace vk
             };
 
             m_computeDescriptorBuffer.Allocate(devicePtr, bufferUsageFlags, memoryProperties,
-                1, 2, layoutBindings);
+                1, 3, layoutBindings);
 
         }
 
@@ -151,13 +183,13 @@ namespace vk
 		    m_computeDescriptorBuffer.WriteDescriptor(devicePtr, writeResource,
 		    	0,0,0, descriptorBufferProperties.combinedImageSamplerDescriptorSize);
 
-		    writeResource.pImageData = &m_cubemapInfo;
+		    writeResource.pImageData = &m_environmentMapInfo;
 		    m_computeDescriptorBuffer.WriteDescriptor(devicePtr, writeResource,
 		    	0, 0, 1, descriptorBufferProperties.storageImageDescriptorSize, true);
 
 
 		    //create compute pipeline
-			CreateComputePipeline( devicePtr );
+			CreateEnvironmentComputePipeline( devicePtr );
 
 			VkCommandBufferBeginInfo beginInfo = {};
 			beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -241,12 +273,12 @@ namespace vk
     			devicePtr->GetQueue(DeviceQueue::GRAPHICS).handle,
     			submissionFence, std::nullopt);
 
-    		m_cubemapInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+    		m_environmentMapInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
 
-    		m_cubemapInfo.imageView = vk::Texture::CreateImageView(devicePtr->GetDevice(),
+    		m_environmentMapInfo.imageView = vk::Texture::CreateImageView(devicePtr->GetDevice(),
 				m_environmentMapImage, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_VIEW_TYPE_CUBE);
 
-    		m_cubemapInfo.sampler = vk::Texture::CreateSampler(devicePtr->GetGPU(), devicePtr->GetDevice());
+    		m_environmentMapInfo.sampler = vk::Texture::CreateSampler(devicePtr->GetGPU(), devicePtr->GetDevice());
 
     		WriteToEnvironmentMapImage(devicePtr, graphicsCmd, submissionFence, submissionMutex );
         }
@@ -258,7 +290,7 @@ namespace vk
     		auto descriptorBufferProperties = devicePtr->GetDescriptorBufferProperties();
 
     		//NOTE: cubemapInfo.imageLayout changed between CreateCubeMap() -> WriteToIrradianceImage()
-    		writeResource.pImageData = &m_cubemapInfo;
+    		writeResource.pImageData = &m_environmentMapInfo;
     		m_computeDescriptorBuffer.WriteDescriptor(devicePtr, writeResource,
 				1,0,0, descriptorBufferProperties.combinedImageSamplerDescriptorSize);
 
@@ -363,6 +395,45 @@ namespace vk
     		WriteToIrradianceImage( devicePtr, graphicsCmd, submissionFence, submissionMutex );
     	}
 
+    	void WriteToPrefilterImage( vk::Device* devicePtr, VkCommandBuffer graphicsCmd, uint32_t mipLevels,
+    		VkFence submissionFence, std::mutex& submissionMutex )
+    	{
+    		vk::WriteResource writeResource = {};
+    		auto descriptorBufferProperties = devicePtr->GetDescriptorBufferProperties();
+
+    		//NOTE: cubemapInfo.imageLayout changed between CreateCubeMap() -> WriteToIrradianceImage()
+    		writeResource.pImageData = &m_environmentMapInfo;
+    		m_computeDescriptorBuffer.WriteDescriptor(devicePtr, writeResource,
+				2,0,0, descriptorBufferProperties.combinedImageSamplerDescriptorSize);
+
+    		writeResource.pImageData = &m_irradianceInfo;
+    		m_computeDescriptorBuffer.WriteDescriptor(devicePtr, writeResource,
+				2, 0, 1, descriptorBufferProperties.storageImageDescriptorSize, true);
+
+			CreatePrefilterComputePipeline( devicePtr );
+
+    		VkCommandBufferBeginInfo beginInfo = {};
+    		beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    		beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+
+    		VK_CHECK_RESULT(vkBeginCommandBuffer(graphicsCmd, &beginInfo));
+
+    		uint32_t initWidth = 128, initHeight = 128;
+    		for (uint32_t i = 0; i < mipLevels; ++i)
+    		{
+				uint32_t mipWidth = static_cast<uint32_t>(initWidth * std::pow(0.5, mipLevels));
+    			uint32_t mipHeight = static_cast<uint32_t>(initHeight * std::pow(0.5, mipLevels));
+
+
+
+
+    		}
+
+    		VK_CHECK_RESULT(vkEndCommandBuffer(graphicsCmd));
+
+
+    	}
+
     	void CreatePrefilterImage( vk::Device* devicePtr, VkCommandBuffer graphicsCmd,
     		VkFence submissionFence, std::mutex& submissionMutex )
     	{
@@ -417,12 +488,12 @@ namespace vk
 				devicePtr->GetQueue(DeviceQueue::GRAPHICS).handle,
 				submissionFence, std::nullopt );
 
-    		VK_CHECK_RESULT(vkBeginCommandBuffer(graphicsCmd, &beginInfo));
-
 			// copy the environment map into the prefilter map and then generate its mipmaps.
 			{
     			auto blitWidth = static_cast<int32_t>(imageWidth);
     			auto blitHeight = static_cast<int32_t>(imageHeight);
+
+    			VK_CHECK_RESULT(vkBeginCommandBuffer(graphicsCmd, &beginInfo));
 
     			for (int i = 0; i < 6; ++i)
     			{
@@ -450,11 +521,6 @@ namespace vk
 						&blit, VK_FILTER_LINEAR);
     			}
 
-    			/*vk::util::RecordImageLayoutTransition( graphicsCmd, m_prefilterImage,
-				VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
-				VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL );
-				*/
-
     			//this generates the mipmaps
     			vk::util::RecordBlitMipMapImages( graphicsCmd, m_prefilterImage, blitWidth, blitHeight, mipLevels, 6);
 
@@ -478,7 +544,7 @@ namespace vk
     private:
     	VkImage m_environmentMapImage = VK_NULL_HANDLE;
     	VkDeviceMemory m_environmentMapImageMemory = VK_NULL_HANDLE;
-    	VkDescriptorImageInfo m_cubemapInfo = {};
+    	VkDescriptorImageInfo m_environmentMapInfo = {};
 
     	//NOTE: since convolution and cubemap creation have the exact same layout,
     	//they will share m_computePipelineLayout and m_computeDescriptorBuffer.
@@ -486,6 +552,7 @@ namespace vk
     	VkPipelineLayout m_computePipelineLayout = VK_NULL_HANDLE;
     	VkPipeline m_computePipeline = VK_NULL_HANDLE;
     	VkPipeline m_convolutionPipeline = VK_NULL_HANDLE;
+    	VkPipeline m_prefilterPipeline = VK_NULL_HANDLE;
 
     	VkImage m_irradianceImage = VK_NULL_HANDLE;
     	VkDeviceMemory m_irradianceImageMemory = VK_NULL_HANDLE;
