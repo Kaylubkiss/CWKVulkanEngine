@@ -289,7 +289,64 @@ namespace vk
 			VK_CHECK_RESULT(vkCreateGraphicsPipelines(device.GetDevice(), VK_NULL_HANDLE, 1, &pipelineCI,
 				nullptr, &skyPipeline));
 
-			pipelineManager.AddPipeline(dePipeline::SKY, skyPipeline, nullptr);
+        	std::function<void()> skyboxCreateFunc = [
+        		this,
+        		inputAssemblyStateCI,
+        		rasterizationStateCI,
+        		emptyDepthStencilStateCI,
+        		multiplesampleStateCI,
+        		emptyVertexInputStateCI,
+        		viewportStateCI]
+        	{
+
+        		VkPipeline pipeline = pipelineManager.Get(dePipeline::SKY);
+
+        		if (pipeline != VK_NULL_HANDLE)
+        		{
+        			vkDestroyPipeline(device.GetDevice(), pipeline, nullptr);
+        			pipeline = VK_NULL_HANDLE;
+        		}
+
+
+        		std::vector<VkDynamicState> dynamicStates = { VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR };
+        		VkPipelineDynamicStateCreateInfo dynamicStateCI =
+					vk::init::PipelineDynamicStateCreateInfo(dynamicStates);
+
+        		VkPipelineColorBlendAttachmentState blendAttachmentState =
+					vk::init::PipelineColorBlendAttachmentState(0xf, VK_FALSE);
+
+        		VkPipelineColorBlendStateCreateInfo colorBlendStateCI =
+        			vk::init::PipelineColorBlendStateCreateInfo(1, &blendAttachmentState);
+
+        		VkGraphicsPipelineCreateInfo pipelineCI =
+						vk::init::PipelineCreateInfo(
+							m_graphicsPipelineLayout, framebuffers.deSky[0].renderPass,
+							VK_PIPELINE_CREATE_DESCRIPTOR_BUFFER_BIT_EXT);
+
+        		std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages;
+
+        		pipelineCI.pInputAssemblyState = &inputAssemblyStateCI;
+        		pipelineCI.pRasterizationState = &rasterizationStateCI;
+        		pipelineCI.pColorBlendState = &colorBlendStateCI;
+        		pipelineCI.pDepthStencilState = &emptyDepthStencilStateCI;
+        		pipelineCI.pMultisampleState = &multiplesampleStateCI;
+        		pipelineCI.pDynamicState = &dynamicStateCI;
+        		pipelineCI.pViewportState = &viewportStateCI;
+        		pipelineCI.pVertexInputState = &emptyVertexInputStateCI;
+        		pipelineCI.stageCount = static_cast<uint32_t>(shaderStages.size());
+        		pipelineCI.pStages = shaderStages.data();
+
+        		const std::vector<ShaderModuleInfo>& shaders = pipelineManager.GetPipelineShaders(dePipeline::SKY);
+        		shaderStages[0] = vk::init::PipelineShaderStageCreateInfo(shaders[0].mHandle, shaders[0].mFlags);
+        		shaderStages[1] = vk::init::PipelineShaderStageCreateInfo(shaders[1].mHandle, shaders[1].mFlags);
+
+        		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device.GetDevice(), VK_NULL_HANDLE, 1,
+						&pipelineCI, nullptr, &pipeline));
+
+        		pipelineManager.AddPipeline(dePipeline::SKY, pipeline);
+        	};
+
+			pipelineManager.AddPipeline(dePipeline::SKY, skyPipeline, std::move(skyboxCreateFunc));
 		}
 
 		/////////////////////////////////////////////////////////////

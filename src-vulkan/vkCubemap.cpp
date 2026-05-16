@@ -77,7 +77,7 @@ namespace vk
 
         c_device = devicePtr->GetDevice();
         m_imageView = vk::Texture::CreateImageView(c_device, m_image, createInfos[0].format, VK_IMAGE_VIEW_TYPE_CUBE);
-        m_sampler = vk::Texture::CreateSampler(devicePtr->GetGPU(), c_device );
+        m_sampler = vk::Texture::CreateSampler(devicePtr->GetGPU(), c_device, 1 );
         m_descriptor.imageView = m_imageView;
         m_descriptor.sampler = m_sampler;
         m_descriptor.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;

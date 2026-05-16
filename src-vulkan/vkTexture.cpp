@@ -29,7 +29,7 @@ namespace vk
 		return nTextImageView;
 	}
 
-	VkSampler Texture::CreateSampler( VkPhysicalDevice p_device, VkDevice l_device )
+	VkSampler Texture::CreateSampler( VkPhysicalDevice p_device, VkDevice l_device, uint32_t mipLevels )
 	{
 		VkSamplerCreateInfo createInfo = {};
 		createInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
@@ -52,7 +52,7 @@ namespace vk
 		createInfo.compareEnable = VK_FALSE;
 		createInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
 		createInfo.minLod = 0.f;
-		createInfo.maxLod = static_cast<float>(1);
+		createInfo.maxLod = static_cast<float>(mipLevels);
 		createInfo.mipLodBias = 0.f; //optional...
 
 		VkSampler nTextureSampler;
@@ -282,7 +282,7 @@ namespace vk
 		}
 
 		m_imageView = vk::Texture::CreateImageView(devicePtr->GetDevice(), m_image, createInfos[0].format, VK_IMAGE_VIEW_TYPE_2D);
-		m_sampler   = vk::Texture::CreateSampler(devicePtr->GetGPU(), devicePtr->GetDevice() );
+		m_sampler   = vk::Texture::CreateSampler(devicePtr->GetGPU(), devicePtr->GetDevice(), 1 );
 		m_descriptor.imageView = m_imageView;
 		m_descriptor.sampler = m_sampler;
 		m_descriptor.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;

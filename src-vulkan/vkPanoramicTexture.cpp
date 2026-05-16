@@ -43,7 +43,7 @@ namespace vk
 
         m_descriptor.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL; //this must be respected by the time its accessed in the compute shader
 
-        m_descriptor.sampler = vk::Texture::CreateSampler(devicePtr->GetGPU(), devicePtr->GetDevice());
+        m_descriptor.sampler = vk::Texture::CreateSampler(devicePtr->GetGPU(), devicePtr->GetDevice(), 1);
 
     	m_sampler = m_descriptor.sampler;
         m_imageView = m_descriptor.imageView;

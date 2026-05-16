@@ -30,13 +30,7 @@ namespace vk
     			vkDestroySampler(c_device, m_irradianceInfo.sampler, nullptr);
     			vkDestroyImageView(c_device, m_irradianceInfo.imageView, nullptr);
 
-    			vkDestroySampler(c_device, m_prefilterInfos[0].sampler, nullptr);
-
-    			for (uint32_t mip = 0; mip < m_prefilterMipLevels; ++mip)
-    			{
-    				vkDestroyImageView(c_device, m_prefilterInfos[mip].imageView, nullptr);
-    			}
-
+    			vkDestroySampler(c_device, m_prefilterInfo.sampler, nullptr);
     			vkDestroyImageView(c_device, m_prefilterInfo.imageView, nullptr);
 
     			vkDestroyPipeline(c_device, m_computePipeline, nullptr);
@@ -285,7 +279,7 @@ namespace vk
     		m_environmentMapInfo.imageView = vk::Texture::CreateImageView(devicePtr->GetDevice(),
 				m_environmentMapImage, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_VIEW_TYPE_CUBE);
 
-    		m_environmentMapInfo.sampler = vk::Texture::CreateSampler(devicePtr->GetGPU(), devicePtr->GetDevice());
+    		m_environmentMapInfo.sampler = vk::Texture::CreateSampler(devicePtr->GetGPU(), devicePtr->GetDevice(), 1);
 
     		WriteToEnvironmentMapImage(devicePtr, graphicsCmd, submissionFence, submissionMutex );
         }
@@ -397,7 +391,7 @@ namespace vk
     		m_irradianceInfo.imageView = vk::Texture::CreateImageView(devicePtr->GetDevice(),
 				m_irradianceImage, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_VIEW_TYPE_CUBE);
 
-    		m_irradianceInfo.sampler = vk::Texture::CreateSampler(devicePtr->GetGPU(), devicePtr->GetDevice());
+    		m_irradianceInfo.sampler = vk::Texture::CreateSampler(devicePtr->GetGPU(), devicePtr->GetDevice(), 1);
 
     		WriteToIrradianceImage( devicePtr, graphicsCmd, submissionFence, submissionMutex );
     	}
@@ -405,6 +399,33 @@ namespace vk
     	void WriteToPrefilterImage( vk::Device* devicePtr, VkCommandBuffer graphicsCmd,
     		VkFence submissionFence, std::mutex& submissionMutex )
     	{
+
+    		std::vector<VkDescriptorImageInfo> prefilterInfos(m_prefilterMipLevels);
+
+    		VkImageViewCreateInfo viewCI = vk::init::ImageViewCreateInfo();
+    		viewCI.image = m_prefilterImage;
+    		viewCI.format = VK_FORMAT_R32G32B32A32_SFLOAT;
+    		viewCI.viewType = VK_IMAGE_VIEW_TYPE_CUBE;
+    		viewCI.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    		viewCI.subresourceRange.baseMipLevel = 0;
+    		viewCI.subresourceRange.levelCount = 1;
+    		viewCI.subresourceRange.baseArrayLayer = 0;
+    		viewCI.subresourceRange.layerCount = VK_REMAINING_ARRAY_LAYERS;
+    		viewCI.components = vk::init::ComponentMappingSwizzleIdentity();
+
+    		VkSampler sampler = vk::Texture::CreateSampler(devicePtr->GetGPU(), devicePtr->GetDevice(),
+    			m_prefilterMipLevels);
+
+    		for (uint32_t mip = 0; mip < m_prefilterMipLevels; ++mip)
+    		{
+    			viewCI.subresourceRange.baseMipLevel = mip;
+    			VK_CHECK_RESULT(vkCreateImageView(devicePtr->GetDevice(), &viewCI,
+					nullptr, &prefilterInfos[mip].imageView ));
+
+    			prefilterInfos[mip].imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+    			prefilterInfos[mip].sampler = sampler;
+    		}
+
     		vk::WriteResource writeResource = {};
     		auto descriptorBufferProperties = devicePtr->GetDescriptorBufferProperties();
 
@@ -414,7 +435,7 @@ namespace vk
     			m_computeDescriptorBuffer.WriteDescriptor(devicePtr, writeResource,
 					2 + mip,0,0, descriptorBufferProperties.combinedImageSamplerDescriptorSize);
 
-    			writeResource.pImageData = &m_prefilterInfos[mip];
+    			writeResource.pImageData = &prefilterInfos[mip];
     			m_computeDescriptorBuffer.WriteDescriptor(devicePtr, writeResource,
 					2 + mip, 0, 1, descriptorBufferProperties.storageImageDescriptorSize, true);
     		}
@@ -459,7 +480,7 @@ namespace vk
     				VK_SHADER_STAGE_COMPUTE_BIT,
     				0, sizeof(float), &roughness);
 
-    			vkCmdDispatch(graphicsCmd, 128 / 16, 128 / 16, 6);
+    			vkCmdDispatch(graphicsCmd, m_prefilterWidth / 16, m_prefilterHeight / 16, 6);
     		}
 
     		vk::util::RecordImageLayoutTransition(graphicsCmd, m_prefilterImage,
@@ -473,23 +494,23 @@ namespace vk
     			devicePtr->GetQueue(DeviceQueue::GRAPHICS).handle,
     			submissionFence, std::nullopt );
 
-    		for (uint32_t mip = 0; mip < m_prefilterMipLevels; ++mip)
+    		//cleanup the temporary image views
+    		for (auto& infos : prefilterInfos)
     		{
-				m_prefilterInfos[mip].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+				vkDestroyImageView(devicePtr->GetDevice(), infos.imageView, nullptr);
     		}
 
-    		m_prefilterInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+    		m_prefilterInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
     		m_prefilterInfo.imageView = vk::Texture::CreateImageView(devicePtr->GetDevice(),
     			m_prefilterImage, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_VIEW_TYPE_CUBE);
 
-    		m_prefilterInfo.sampler = m_prefilterInfos[0].sampler;
+    		m_prefilterInfo.sampler = sampler;
     	}
 
     	void CreatePrefilterImage( vk::Device* devicePtr, VkCommandBuffer graphicsCmd,
     		VkFence submissionFence, std::mutex& submissionMutex )
     	{
-
     		assert(m_environmentMapImage != VK_NULL_HANDLE);
 
     		if (devicePtr == nullptr)
@@ -535,31 +556,6 @@ namespace vk
 				devicePtr->GetQueue(DeviceQueue::GRAPHICS).handle,
 				submissionFence, std::nullopt );
 
-    		VkImageViewCreateInfo viewCI = vk::init::ImageViewCreateInfo();
-    		viewCI.image = m_prefilterImage;
-    		viewCI.format = VK_FORMAT_R32G32B32A32_SFLOAT;
-    		viewCI.viewType = VK_IMAGE_VIEW_TYPE_CUBE;
-    		viewCI.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-    		viewCI.subresourceRange.baseMipLevel = 0;
-    		viewCI.subresourceRange.levelCount = 1;
-    		viewCI.subresourceRange.baseArrayLayer = 0;
-    		viewCI.subresourceRange.layerCount = VK_REMAINING_ARRAY_LAYERS;
-    		viewCI.components = vk::init::ComponentMappingSwizzleIdentity();
-
-    		VkSampler sampler = vk::Texture::CreateSampler(devicePtr->GetGPU(), devicePtr->GetDevice());
-
-    		m_prefilterInfos.resize(m_prefilterMipLevels);
-
-    		for (uint32_t mip = 0; mip < m_prefilterMipLevels; ++mip)
-    		{
-			    viewCI.subresourceRange.baseMipLevel = mip;
-			    VK_CHECK_RESULT(vkCreateImageView(devicePtr->GetDevice(), &viewCI,
-			    	nullptr, &m_prefilterInfos[mip].imageView ));
-
-			    m_prefilterInfos[mip].imageLayout = VK_IMAGE_LAYOUT_GENERAL;
-			    m_prefilterInfos[mip].sampler = sampler;
-    		}
-
     		WriteToPrefilterImage( devicePtr, graphicsCmd, submissionFence, submissionMutex );
     	}
     private:
@@ -582,7 +578,6 @@ namespace vk
 
     	VkImage m_prefilterImage = VK_NULL_HANDLE;
     	VkDeviceMemory m_prefilterImageMemory = VK_NULL_HANDLE;
-    	std::vector<VkDescriptorImageInfo> m_prefilterInfos = {}; //want a descriptor image info for each mip level
     	VkDescriptorImageInfo m_prefilterInfo = {};
 
 		uint32_t m_prefilterMipLevels = 0;
