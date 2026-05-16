@@ -35,7 +35,6 @@ namespace vk
 
 		InitializeLogicalDevice();
 
-
 		for (auto& queue : m_queues)
 		{
 			vkGetDeviceQueue(m_device, queue.family, 0, &queue.handle);

@@ -45,6 +45,7 @@ namespace vk
 
         m_descriptor.sampler = vk::Texture::CreateSampler(devicePtr->GetGPU(), devicePtr->GetDevice());
 
+    	m_sampler = m_descriptor.sampler;
         m_imageView = m_descriptor.imageView;
 
 

@@ -35,6 +35,7 @@ namespace vk
 
     			vkDestroyPipeline(c_device, m_computePipeline, nullptr);
     			vkDestroyPipeline(c_device, m_convolutionPipeline, nullptr);
+    			vkDestroyPipeline(c_device, m_prefilterPipeline, nullptr);
 
     			vkDestroyPipelineLayout(c_device, m_computePipelineLayout, nullptr);
 
@@ -425,8 +426,6 @@ namespace vk
     			uint32_t mipHeight = static_cast<uint32_t>(initHeight * std::pow(0.5, mipLevels));
 
 
-
-
     		}
 
     		VK_CHECK_RESULT(vkEndCommandBuffer(graphicsCmd));
@@ -444,8 +443,6 @@ namespace vk
     		{
     			return;
     		}
-
-    		VkSubmitInfo submitInfo = {};
 
     		uint32_t imageWidth = 128;
     		uint32_t imageHeight = 128;
@@ -469,8 +466,8 @@ namespace vk
     		imageCI.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
     		imageCI.flags = VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
 
-    		m_prefilterImage = vk::init::CreateImage(devicePtr, imageCI, m_prefilterImageMemory,
-				VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    		m_prefilterImage = vk::init::CreateImage( devicePtr, imageCI, m_prefilterImageMemory,
+				VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT );
 
     		VkCommandBufferBeginInfo beginInfo = {};
     		beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -495,34 +492,38 @@ namespace vk
 
     			VK_CHECK_RESULT(vkBeginCommandBuffer(graphicsCmd, &beginInfo));
 
-    			for (int i = 0; i < 6; ++i)
-    			{
-    				VkImageBlit blit = {};
-    				blit.srcOffsets[0] = { 0,0,0 };
-    				blit.srcOffsets[1] = { 512, 512, 1 }; // NOTE: hardcoded size of environment faces
-    				blit.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-    				blit.srcSubresource.mipLevel = 0;
-    				blit.srcSubresource.baseArrayLayer = i;
-    				blit.srcSubresource.layerCount = 1;
+    			VkImageBlit blit = {};
+    			blit.srcOffsets[0] = { 0,0,0 };
+    			blit.srcOffsets[1] = { 512, 512, 1 }; // NOTE: hardcoded size of environment faces
+    			blit.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    			blit.srcSubresource.mipLevel = 0;
+    			blit.srcSubresource.baseArrayLayer = 0;
+    			blit.srcSubresource.layerCount = 6;
 
-    				blit.dstOffsets[0] = { 0,0,0 };
-    				blit.dstOffsets[1] = { blitWidth, blitHeight, 1 };
-    				blit.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-    				blit.dstSubresource.mipLevel = 0;
-    				blit.dstSubresource.baseArrayLayer = i;
-    				blit.dstSubresource.layerCount = 1;
+    			blit.dstOffsets[0] = { 0,0,0 };
+    			blit.dstOffsets[1] = { blitWidth, blitHeight, 1 };
+    			blit.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    			blit.dstSubresource.mipLevel = 0;
+    			blit.dstSubresource.baseArrayLayer = 0;
+    			blit.dstSubresource.layerCount = 6;
 
-    				vkCmdBlitImage(graphicsCmd,
-						m_environmentMapImage,
-						VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-						m_prefilterImage,
-						VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-						1,
-						&blit, VK_FILTER_LINEAR);
-    			}
+    			vkCmdBlitImage(graphicsCmd,
+					m_environmentMapImage,
+					VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+					m_prefilterImage,
+					VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+					1,
+					&blit, VK_FILTER_LINEAR);
 
     			//this generates the mipmaps
     			vk::util::RecordBlitMipMapImages( graphicsCmd, m_prefilterImage, blitWidth, blitHeight, mipLevels, 6);
+
+    			//need to transition OUT of read_only so that they can be operated on with imageStore() in the shader.
+    			//I know, this is inefficient. Just wanna get it working for now.
+    			/*vk::util::RecordImageLayoutTransition( graphicsCmd, m_prefilterImage,
+    				VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
+    				VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_GENERAL );
+    				*/
 
     			VK_CHECK_RESULT(vkEndCommandBuffer(graphicsCmd));
     		}
@@ -530,6 +531,8 @@ namespace vk
     		vk::util::SubmitCommandToQueue( devicePtr->GetDevice(), graphicsCmd,
     			devicePtr->GetQueue(DeviceQueue::GRAPHICS).handle,
     			submissionFence, std::nullopt );
+
+    		/*WriteToPrefilterImage()*/
 
     		m_prefilterInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
@@ -550,6 +553,7 @@ namespace vk
     	//they will share m_computePipelineLayout and m_computeDescriptorBuffer.
 
     	VkPipelineLayout m_computePipelineLayout = VK_NULL_HANDLE;
+
     	VkPipeline m_computePipeline = VK_NULL_HANDLE;
     	VkPipeline m_convolutionPipeline = VK_NULL_HANDLE;
     	VkPipeline m_prefilterPipeline = VK_NULL_HANDLE;
@@ -561,6 +565,8 @@ namespace vk
     	VkImage m_prefilterImage = VK_NULL_HANDLE;
     	VkDeviceMemory m_prefilterImageMemory = VK_NULL_HANDLE;
     	VkDescriptorImageInfo m_prefilterInfo = {};
+
+    	std::array<VkImageView, 6> m_prefilterImageViews = {};
 
     	vk::DescriptorBuffer m_computeDescriptorBuffer;
 

@@ -33,11 +33,9 @@ namespace vk
     {
         if (m_devicePtr != nullptr)
         {
-            auto sharedDevicePtr = m_devicePtr;
-
             m_buffer.Destroy();
 
-            vkDestroyDescriptorSetLayout(sharedDevicePtr->GetDevice(), m_setLayout, nullptr);
+            vkDestroyDescriptorSetLayout(m_devicePtr->GetDevice(), m_setLayout, nullptr);
             m_setLayout = VK_NULL_HANDLE;
         }
     }

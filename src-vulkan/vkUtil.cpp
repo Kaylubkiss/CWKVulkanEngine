@@ -178,6 +178,15 @@ namespace vk {
 				srcStage = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
 				dstStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
 			}
+			else if (oldLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL &&
+				newLayout == VK_IMAGE_LAYOUT_GENERAL)
+			{
+				barrier.srcAccessMask = VK_ACCESS_SHADER_READ_BIT;
+				barrier.dstAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
+
+				srcStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+				dstStage = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
+			}
 			else if ((oldLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL ||
 				oldLayout == VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL) &&
 				newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
@@ -321,15 +330,16 @@ namespace vk {
 
 			}
 
-			/*barrier.subresourceRange.baseMipLevel = mipLevels - 1;
+			barrier.subresourceRange.baseMipLevel = mipLevels - 1;
 			barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
 			barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 			barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
 			barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
 
-			vkCmdPipelineBarrier(cmdBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0,
-				0, nullptr, 0, nullptr, 1, &barrier);*/
-
+			vkCmdPipelineBarrier(cmdBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT,
+				VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0, 0,
+				nullptr, 0,
+				nullptr, 1, &barrier);
 		}
 
 		uint32_t CalculateMipLevels( uint32_t imageWidth, uint32_t imageHeight )
