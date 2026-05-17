@@ -14,7 +14,7 @@ namespace vk
 
         	vk::imageBuffers2D panoramicImageBuffer;
         	panoramicImageBuffer.resize(1);
-        	panoramicImageBuffer[0].push_back(m_test_panoramicImage.GetPrefilterMapImageDescriptor());
+        	panoramicImageBuffer[0].push_back(m_test_panoramicImage.GetEnvironmentMapImageDescriptor());
 
         	m_descriptorManagerPtr->WriteDescriptors(DescriptorCategory::eMaterial,
 				skyboxImageIndex, panoramicImageBuffer);
@@ -84,7 +84,7 @@ namespace vk
 
 	void DeferredRenderer::InitializeCompositionImageDescriptors( DescriptorManager& descriptorManager )
     {
-    	size_t imageCount = RT_COUNT + 1 + 1; //+shadow, +irradiance_map
+    	size_t imageCount = RT_COUNT + 1 + 1 + 1 + 1; //+shadow, +irradiance_map, +prefilterMap, +brdfLUT
 
     	std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings(imageCount);
 
@@ -123,6 +123,16 @@ namespace vk
 		    imageDescriptorData[frame][RT_COUNT + 1].imageLayout = irradianceMapDescriptor.imageLayout;
 		    imageDescriptorData[frame][RT_COUNT + 1].imageView = irradianceMapDescriptor.imageView;
     		imageDescriptorData[frame][RT_COUNT + 1].sampler = irradianceMapDescriptor.sampler;
+
+    		VkDescriptorImageInfo prefilterMapDescriptor = m_test_panoramicImage.GetPrefilterMapImageDescriptor();
+    		imageDescriptorData[frame][RT_COUNT + 2].imageLayout = prefilterMapDescriptor.imageLayout;
+    		imageDescriptorData[frame][RT_COUNT + 2].imageView = prefilterMapDescriptor.imageView;
+    		imageDescriptorData[frame][RT_COUNT + 2].sampler = prefilterMapDescriptor.sampler;
+
+    		VkDescriptorImageInfo brdfLUT = m_test_panoramicImage.GetBRDFLUTImageDescriptor();
+    		imageDescriptorData[frame][RT_COUNT + 3].imageLayout = brdfLUT.imageLayout;
+    		imageDescriptorData[frame][RT_COUNT + 3].imageView = brdfLUT.imageView;
+    		imageDescriptorData[frame][RT_COUNT + 3].sampler = brdfLUT.sampler;
 	    }
 
     	descriptorManager.WriteDescriptors(DescriptorCategory::eCompositionImage, compositionImageIndex, imageDescriptorData);
@@ -136,11 +146,9 @@ namespace vk
     	{
     		VkDescriptorImageInfo swapchain_image_info = {};
     		//image view and sampler should be identical across framebuffers
-    		/*swapchain_image_info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    		swapchain_image_info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
     		swapchain_image_info.imageView = framebuffers.deSky[frame].attachments[0].imageView;
-    		swapchain_image_info.sampler = framebuffers.deSky[frame].sampler;*/
-
-    		swapchain_image_info = m_test_panoramicImage.GetBRDFLUTImageDescriptor();
+    		swapchain_image_info.sampler = framebuffers.deSky[frame].sampler;
 
     		imageDescriptorData[frame].push_back(swapchain_image_info);
     	}

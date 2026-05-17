@@ -21,6 +21,7 @@ layout(set = 0, binding = 0) uniform UBO
 	vec3 viewPosition; /* position of the camera (for view direction calculation) */
 } ubo;
 
+//holy ffreck
 layout(set = 1, binding = 0) uniform sampler2D samplerPosition;
 layout(set = 1, binding = 1) uniform sampler2D samplerNormal;
 layout(set = 1, binding = 2) uniform sampler2D samplerAlbedo;
@@ -28,6 +29,8 @@ layout(set = 1, binding = 3) uniform sampler2D samplerMetallicRoughness;
 layout(set = 1, binding = 4) uniform sampler2D samplerAmbientOcclusion;
 layout(set = 1, binding = 5) uniform sampler2DArray samplerShadowMap;
 layout(set = 1, binding = 6) uniform samplerCube irradianceMap;
+layout(set = 1, binding = 7) uniform samplerCube prefilterMap;
+layout(set = 1, binding = 8) uniform sampler2D brdfLUT;
 
 
 float ShadowSampling(vec4 fragPos, float NdotL, int i)
@@ -124,7 +127,7 @@ void main()
 
     if (ao == 0.0)
     {
-        ao = 1.0;
+        ao = 0.0;
     }
 
     if (roughness == 0.0)
@@ -167,11 +170,23 @@ void main()
         Lo += (kD * albedo / M_PI + specular) * radiance * NdotL;
     }
 
-    vec3 kS = FresnelSchlick(NdotV, F0, roughness);
+    vec3 F = FresnelSchlick(NdotV, F0, roughness);
+
+    vec3 kS = F;
     vec3 kD = 1.0 - kS;
     kD *= 1.0 - metalness;
+
     vec3 irradiance = texture(irradianceMap, N).rgb;
-    vec3 ambientColor = irradiance * albedo * ao; //diffuse IBL
+    vec3 diffuse = irradiance * albedo;
+
+    vec3 R = reflect(-V, N);
+
+    const float MAX_REFLECTION_LOD = 5.0;
+    vec3 prefilteredColor = textureLod(prefilterMap, R, roughness * MAX_REFLECTION_LOD).rgb;
+    vec2 envBRDF = texture(brdfLUT, vec2(NdotV, roughness)).rg;
+    vec3 specular = prefilteredColor * (F * envBRDF.x + envBRDF.y);
+
+    vec3 ambientColor = (kD * diffuse + specular) * ao; //diffuse IBL
 
     fragColor.rgb = ambientColor + Lo;
 	fragColor.a = 1.0;
