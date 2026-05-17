@@ -136,9 +136,11 @@ namespace vk
     	{
     		VkDescriptorImageInfo swapchain_image_info = {};
     		//image view and sampler should be identical across framebuffers
-    		swapchain_image_info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    		/*swapchain_image_info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
     		swapchain_image_info.imageView = framebuffers.deSky[frame].attachments[0].imageView;
-    		swapchain_image_info.sampler = framebuffers.deSky[frame].sampler;
+    		swapchain_image_info.sampler = framebuffers.deSky[frame].sampler;*/
+
+    		swapchain_image_info = m_test_panoramicImage.GetBRDFLUTImageDescriptor();
 
     		imageDescriptorData[frame].push_back(swapchain_image_info);
     	}
