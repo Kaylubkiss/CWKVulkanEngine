@@ -9,4 +9,5 @@ layout( location = 0 ) out vec4 fragColor;
 void main()
 {
     fragColor = texture(samplerSkybox, inUVW);
+   // fragColor = textureLod(samplerSkybox, inUVW, 50);
 }

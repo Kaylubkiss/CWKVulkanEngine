@@ -270,18 +270,22 @@ namespace vk
                 return;
             }
 
+    		uint32_t width = 512, height = 512;
+    		uint32_t layers = 6;
+    		uint32_t mipLevels = vk::util::CalculateMipLevels( width, height );
+
             VkImageCreateInfo imageCI = vk::init::ImageCreateInfo();
             imageCI.format = VK_FORMAT_R32G32B32A32_SFLOAT; //for now, just assume this format --> biggest possible
             imageCI.imageType = VK_IMAGE_TYPE_2D;
-            imageCI.arrayLayers = 6;
+            imageCI.arrayLayers = layers;
             //NOTE: not sure yet how to divide up the resolution. the image I'm sampling is 2048x1024 pixels.
-            imageCI.extent.width = 512;
-            imageCI.extent.height = 512;
+            imageCI.extent.width = width;
+            imageCI.extent.height = height;
             imageCI.extent.depth = 1;
-            imageCI.mipLevels = 1;
+            imageCI.mipLevels = mipLevels;
             imageCI.samples = VK_SAMPLE_COUNT_1_BIT;
             imageCI.usage = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT |
-            	VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+            	VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
             imageCI.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
             imageCI.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
         	imageCI.flags = VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
@@ -309,9 +313,34 @@ namespace vk
     		m_environmentMapInfo.imageView = vk::Texture::CreateImageView(devicePtr->GetDevice(),
 				m_environmentMapImage, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_VIEW_TYPE_CUBE);
 
-    		m_environmentMapInfo.sampler = vk::Texture::CreateSampler(devicePtr->GetGPU(), devicePtr->GetDevice(), 1);
+    		m_environmentMapInfo.sampler = vk::Texture::CreateSampler(devicePtr->GetGPU(), devicePtr->GetDevice(), mipLevels);
 
     		WriteToEnvironmentMapImage(devicePtr, graphicsCmd, submissionFence, submissionMutex );
+
+    		//generating mip maps of the environment map
+
+    		VK_CHECK_RESULT(vkBeginCommandBuffer(graphicsCmd, &beginInfo));
+
+    		//have to set to transfer dst optimal because recording the blit operations assumes that's where the image
+    		//starts from...
+
+    		vk::util::RecordImageLayoutTransition( graphicsCmd, m_environmentMapImage,
+			VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
+			VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+
+    		vk::util::RecordBlitMipMapImages(graphicsCmd, m_environmentMapImage, width, height, mipLevels, layers);
+
+    		//and because the blit commands transition everything to read_only, we have to transition the layout
+    		//to src_optimal again... this is stupid AF.
+    		vk::util::RecordImageLayoutTransition( graphicsCmd, m_environmentMapImage,
+			VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
+			VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
+
+    		VK_CHECK_RESULT(vkEndCommandBuffer(graphicsCmd));
+
+    		vk::util::SubmitCommandToQueue(devicePtr->GetDevice(), graphicsCmd,
+				devicePtr->GetQueue(DeviceQueue::GRAPHICS).handle,
+				submissionFence, std::nullopt);
         }
 
     	void WriteToIrradianceImage( vk::Device* devicePtr, VkCommandBuffer graphicsCmd, VkFence submissionFence, std::mutex& submissionMutex )
@@ -358,7 +387,7 @@ namespace vk
 			g_vkCmdSetDescriptorBufferOffsetsEXT(graphicsCmd, VK_PIPELINE_BIND_POINT_COMPUTE,
 				m_computePipelineLayout, 0, 1, &descriptorIndex, &bufferOffset);
 
-			vkCmdDispatch(graphicsCmd, 512 / 16, 512 / 16, 6);
+			vkCmdDispatch(graphicsCmd, 32 / 16, 32 / 16, 6);
 
     		vk::util::RecordImageLayoutTransition( graphicsCmd, m_irradianceImage,
     			VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
@@ -384,13 +413,15 @@ namespace vk
                 return;
             }
 
+    		uint32_t width = 32, height = 32;
+
             VkImageCreateInfo imageCI = vk::init::ImageCreateInfo();
             imageCI.format = VK_FORMAT_R32G32B32A32_SFLOAT; //for now, just assume this format --> biggest possible
             imageCI.imageType = VK_IMAGE_TYPE_2D;
             imageCI.arrayLayers = 6;
             //NOTE: not sure yet how to divide up the resolution. the image I'm sampling is 2048x1024 pixels.
-            imageCI.extent.width = 512;
-            imageCI.extent.height = 512;
+            imageCI.extent.width = width;
+            imageCI.extent.height = height;
             imageCI.extent.depth = 1;
             imageCI.mipLevels = 1;
             imageCI.samples = VK_SAMPLE_COUNT_1_BIT;
@@ -408,7 +439,8 @@ namespace vk
     		VK_CHECK_RESULT(vkBeginCommandBuffer(graphicsCmd, &beginInfo));
 
     		vk::util::RecordImageLayoutTransition( graphicsCmd, m_irradianceImage,
-    			VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
+    			VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
+    			VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
 
     		VK_CHECK_RESULT(vkEndCommandBuffer(graphicsCmd));
 
@@ -497,7 +529,7 @@ namespace vk
 
     		uint32_t descriptorIndex = 0;
 
-    		for (uint32_t mip = 0; mip < m_prefilterMipLevels; ++mip)
+    		for (uint32_t mip = 1; mip < m_prefilterMipLevels; ++mip)
     		{
     			VkDeviceSize bufferOffset = initOffset + mip * layoutSize;
 
@@ -548,16 +580,13 @@ namespace vk
     			return;
     		}
 
-    		uint32_t imageWidth = 128;
-    		uint32_t imageHeight = 128;
-
     		VkImageCreateInfo imageCI = vk::init::ImageCreateInfo();
     		imageCI.format = VK_FORMAT_R32G32B32A32_SFLOAT; //for now, just assume this format --> biggest possible
     		imageCI.imageType = VK_IMAGE_TYPE_2D;
     		imageCI.arrayLayers = 6;
     		//NOTE: not sure yet how to divide up the resolution. the image I'm sampling is 2048x1024 pixels.
-    		imageCI.extent.width = imageWidth;
-    		imageCI.extent.height = imageHeight;
+    		imageCI.extent.width = m_prefilterWidth;
+    		imageCI.extent.height = m_prefilterHeight;
     		imageCI.extent.depth = 1;
     		imageCI.mipLevels = m_prefilterMipLevels;
     		imageCI.samples = VK_SAMPLE_COUNT_1_BIT;
@@ -722,8 +751,8 @@ namespace vk
     	VkDescriptorImageInfo m_BRDFLUTInfo = {};
 
 		uint32_t m_prefilterMipLevels = 0; //must compute this later.
-    	uint32_t m_prefilterWidth = 128;
-    	uint32_t m_prefilterHeight = 128;
+    	uint32_t m_prefilterWidth = 512;
+    	uint32_t m_prefilterHeight = 512;
 
     	vk::DescriptorBuffer m_computeDescriptorBuffer;
 

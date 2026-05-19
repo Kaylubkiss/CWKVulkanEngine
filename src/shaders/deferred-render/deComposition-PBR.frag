@@ -114,6 +114,7 @@ void main()
 	//linear filtering during the texture sampling process still distorts normals
 	vec3 N = normalize(texture(samplerNormal, inUV).rgb);
 	vec3 V = normalize(ubo.viewPosition - P);
+	vec3 R = reflect(-V, N);
 
     vec3 albedo = texture(samplerAlbedo, inUV).rgb;
 
@@ -179,9 +180,9 @@ void main()
     vec3 irradiance = texture(irradianceMap, N).rgb;
     vec3 diffuse = irradiance * albedo;
 
-    vec3 R = reflect(-V, N);
 
-    const float MAX_REFLECTION_LOD = 5.0;
+
+    const float MAX_REFLECTION_LOD = log2(512);
     vec3 prefilteredColor = textureLod(prefilterMap, R, roughness * MAX_REFLECTION_LOD).rgb;
     vec2 envBRDF = texture(brdfLUT, vec2(NdotV, roughness)).rg;
     vec3 specular = prefilteredColor * (F * envBRDF.x + envBRDF.y);

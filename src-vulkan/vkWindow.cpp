@@ -18,7 +18,7 @@ namespace vk
 		m_scissor.extent.width = width;
 		m_scissor.extent.height = height;
 
-		m_sdlPtr = SDL_CreateWindow("Caleb's Vulkan Engine", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
+		m_sdlPtr = SDL_CreateWindow("CWKVulkan-0", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
 			width, height, SDL_WINDOW_VULKAN | SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_INPUT_FOCUS);
 
 		if (m_sdlPtr == nullptr)

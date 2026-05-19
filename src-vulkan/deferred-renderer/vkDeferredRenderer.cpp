@@ -19,7 +19,7 @@ namespace vk
 		InitializeUniforms();
 		InitializeFramebuffers();
 
-		std::string skyboxName = "art/extern-textures/monochrome_studio.hdr";
+		std::string skyboxName = "art/extern-textures/spruit_sunrise_2k.hdr";
 		vk::TextureCreateInfo texture_create_info = { skyboxName, VK_FORMAT_R32G32B32A32_SFLOAT };
 
 		std::mutex dummyMutex;

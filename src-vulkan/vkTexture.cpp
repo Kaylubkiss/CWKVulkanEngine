@@ -52,7 +52,7 @@ namespace vk
 		createInfo.compareEnable = VK_FALSE;
 		createInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
 		createInfo.minLod = 0.f;
-		createInfo.maxLod = static_cast<float>(mipLevels);
+		createInfo.maxLod = VK_LOD_CLAMP_NONE;
 		createInfo.mipLodBias = 0.f; //optional...
 
 		VkSampler nTextureSampler;

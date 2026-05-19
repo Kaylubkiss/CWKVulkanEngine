@@ -69,6 +69,13 @@ void main()
     float sampleDelta = 0.025; //apply to phi and theta -- uniformly spaced samples
     float nrSamples = 0;
 
+    ivec2 outputImageSize = imageSize( outputIrradianceMap );
+    float targetResolution = max( outputImageSize.x, outputImageSize.y ); //should target 32x32. Don't need high frequency details for the diffuse portion.
+
+    ivec2 envMapSize = textureSize( environmentMap, 0 );
+
+    float targetLOD = max(0.0, log2( max( envMapSize.x, envMapSize.y) ) - log2( targetResolution ) );
+
     for (float phi = 0; phi < twoPI; phi += sampleDelta)
     {
         float sinPhi = sin(phi);
@@ -82,7 +89,7 @@ void main()
             vec3 tangentSample = vec3(sinTheta * cosPhi, sinTheta * sinPhi, cosTheta);
             vec3 sampleVec = tangentSample.x * right + tangentSample.y * up + tangentSample.z * normal;
 
-            irradiance += texture(environmentMap, sampleVec).rgb * cosTheta * sinTheta;
+            irradiance += textureLod(environmentMap, sampleVec, targetLOD).rgb * cosTheta * sinTheta;
             ++nrSamples;
         }
     }
