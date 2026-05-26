@@ -119,14 +119,14 @@ namespace vk
 
     	}
 
-    	void CreateEnvironmentComputePipeline( vk::Device* devicePtr )
+    	VkPipeline CreateComputePipeline( vk::Device* devicePtr, std::string_view fileName )
     	{
 			VkComputePipelineCreateInfo computePipelineCI = {};
 			computePipelineCI.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
 			computePipelineCI.flags = VK_PIPELINE_CREATE_DESCRIPTOR_BUFFER_BIT_EXT;
 
 			vk::ShaderModuleInfo shaderModuleInfo = vk::ShaderModuleInfo(devicePtr->GetDevice(),
-				"equirectangular-to-cubemap.comp", VK_SHADER_STAGE_COMPUTE_BIT);
+				fileName, VK_SHADER_STAGE_COMPUTE_BIT);
 
 			VkPipelineShaderStageCreateInfo shaderStageCI =
 				vk::init::PipelineShaderStageCreateInfo(shaderModuleInfo.mHandle, shaderModuleInfo.mFlags);
@@ -134,77 +134,16 @@ namespace vk
 			computePipelineCI.stage = shaderStageCI;
 			computePipelineCI.layout = m_computePipelineLayout;
 
+    		VkPipeline handle;
 			vkCreateComputePipelines(devicePtr->GetDevice(), VK_NULL_HANDLE, 1,
-				&computePipelineCI, nullptr, &m_computePipeline);
+				&computePipelineCI, nullptr, &handle);
 
 			vkDestroyShaderModule(devicePtr->GetDevice(), shaderModuleInfo.mHandle, nullptr);
 
+    		return handle;
     	}
 
-    	void CreateIrradianceComputePipeline( vk::Device* devicePtr )
-    	{
-    		VkComputePipelineCreateInfo computePipelineCI = {};
-    		computePipelineCI.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
-    		computePipelineCI.flags = VK_PIPELINE_CREATE_DESCRIPTOR_BUFFER_BIT_EXT;
-
-    		vk::ShaderModuleInfo shaderModuleInfo = vk::ShaderModuleInfo(devicePtr->GetDevice(),
-				"convolute-cubemap.comp", VK_SHADER_STAGE_COMPUTE_BIT);
-
-    		VkPipelineShaderStageCreateInfo shaderStageCI =
-				vk::init::PipelineShaderStageCreateInfo(shaderModuleInfo.mHandle, shaderModuleInfo.mFlags);
-
-    		computePipelineCI.stage = shaderStageCI;
-    		computePipelineCI.layout = m_computePipelineLayout;
-
-    		vkCreateComputePipelines(devicePtr->GetDevice(), VK_NULL_HANDLE, 1,
-				&computePipelineCI, nullptr, &m_convolutionPipeline);
-
-    		vkDestroyShaderModule(devicePtr->GetDevice(), shaderModuleInfo.mHandle, nullptr);
-    	}
-
-    	void CreatePrefilterComputePipeline( vk::Device* devicePtr )
-    	{
-    		VkComputePipelineCreateInfo computePipelineCI = {};
-    		computePipelineCI.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
-    		computePipelineCI.flags = VK_PIPELINE_CREATE_DESCRIPTOR_BUFFER_BIT_EXT;
-
-    		vk::ShaderModuleInfo shaderModuleInfo = vk::ShaderModuleInfo(devicePtr->GetDevice(),
-				"prefilter-cubemap.comp", VK_SHADER_STAGE_COMPUTE_BIT);
-
-    		VkPipelineShaderStageCreateInfo shaderStageCI =
-				vk::init::PipelineShaderStageCreateInfo(shaderModuleInfo.mHandle, shaderModuleInfo.mFlags);
-
-    		computePipelineCI.stage = shaderStageCI;
-    		computePipelineCI.layout = m_computePipelineLayout;
-
-    		vkCreateComputePipelines(devicePtr->GetDevice(), VK_NULL_HANDLE, 1,
-				&computePipelineCI, nullptr, &m_prefilterPipeline);
-
-    		vkDestroyShaderModule(devicePtr->GetDevice(), shaderModuleInfo.mHandle, nullptr);
-    	}
-
-    	void CreateBRDFLUTComputePipeline( vk::Device* devicePtr )
-    	{
-    		VkComputePipelineCreateInfo computePipelineCI = {};
-    		computePipelineCI.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
-    		computePipelineCI.flags = VK_PIPELINE_CREATE_DESCRIPTOR_BUFFER_BIT_EXT;
-
-    		vk::ShaderModuleInfo shaderModuleInfo = vk::ShaderModuleInfo(devicePtr->GetDevice(),
-				"BRDF-convolute.comp", VK_SHADER_STAGE_COMPUTE_BIT);
-
-    		VkPipelineShaderStageCreateInfo shaderStageCI =
-				vk::init::PipelineShaderStageCreateInfo(shaderModuleInfo.mHandle, shaderModuleInfo.mFlags);
-
-    		computePipelineCI.stage = shaderStageCI;
-    		computePipelineCI.layout = m_computePipelineLayout;
-
-    		vkCreateComputePipelines(devicePtr->GetDevice(), VK_NULL_HANDLE, 1,
-				&computePipelineCI, nullptr, &m_BRDFLUTPipeline);
-
-    		vkDestroyShaderModule(devicePtr->GetDevice(), shaderModuleInfo.mHandle, nullptr);
-    	}
-
-        void WriteToEnvironmentMapImage( vk::Device* devicePtr, VkCommandBuffer graphicsCmd, VkFence submissionFence, std::mutex& submissionMutex )
+        void WriteToEnvironmentMapImage( vk::Device* devicePtr, VkCommandBuffer graphicsCmd, VkFence submissionFence )
         {
     		//write to descriptor buffer
     		vk::WriteResource writeResource = {};
@@ -220,7 +159,7 @@ namespace vk
 
 
 		    //create compute pipeline
-			CreateEnvironmentComputePipeline( devicePtr );
+			m_computePipeline = CreateComputePipeline( devicePtr, "equirectangular-to-cubemap.comp" );
 
 			VkCommandBufferBeginInfo beginInfo = {};
 			beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -263,7 +202,7 @@ namespace vk
         }
 
         void CreateEnvironmentMapImage( vk::Device* devicePtr, VkCommandBuffer graphicsCmd,
-        	VkFence submissionFence, std::mutex& submissionMutex )
+        	VkFence submissionFence )
         {
             if (devicePtr == nullptr)
             {
@@ -315,7 +254,7 @@ namespace vk
 
     		m_environmentMapInfo.sampler = vk::Texture::CreateSampler(devicePtr->GetGPU(), devicePtr->GetDevice(), mipLevels);
 
-    		WriteToEnvironmentMapImage(devicePtr, graphicsCmd, submissionFence, submissionMutex );
+    		WriteToEnvironmentMapImage(devicePtr, graphicsCmd, submissionFence );
 
     		//generating mip maps of the environment map
 
@@ -343,7 +282,7 @@ namespace vk
 				submissionFence, std::nullopt);
         }
 
-    	void WriteToIrradianceImage( vk::Device* devicePtr, VkCommandBuffer graphicsCmd, VkFence submissionFence, std::mutex& submissionMutex )
+    	void WriteToIrradianceImage( vk::Device* devicePtr, VkCommandBuffer graphicsCmd, VkFence submissionFence )
     	{
     		//write to descriptor buffer
     		vk::WriteResource writeResource = {};
@@ -358,7 +297,7 @@ namespace vk
     		m_computeDescriptorBuffer.WriteDescriptor(devicePtr, writeResource,
 				1, 0, 1, descriptorBufferProperties.storageImageDescriptorSize, true);
 
-			CreateIrradianceComputePipeline( devicePtr );
+			m_convolutionPipeline = CreateComputePipeline( devicePtr, "convolute-cubemap.comp" );
 
     		VkCommandBufferBeginInfo beginInfo = {};
 			beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -403,7 +342,7 @@ namespace vk
     	}
 
     	void CreateIrradianceImage( vk::Device* devicePtr, VkCommandBuffer graphicsCmd,
-    		VkFence submissionFence, std::mutex& submissionMutex )
+    		VkFence submissionFence )
     	{
 
     		assert(m_environmentMapImage != VK_NULL_HANDLE); //must be able to sample from the cubemap image during creation.
@@ -455,11 +394,11 @@ namespace vk
 
     		m_irradianceInfo.sampler = vk::Texture::CreateSampler(devicePtr->GetGPU(), devicePtr->GetDevice(), 1);
 
-    		WriteToIrradianceImage( devicePtr, graphicsCmd, submissionFence, submissionMutex );
+    		WriteToIrradianceImage( devicePtr, graphicsCmd, submissionFence );
     	}
 
     	void WriteToPrefilterImage( vk::Device* devicePtr, VkCommandBuffer graphicsCmd,
-    		VkFence submissionFence, std::mutex& submissionMutex )
+    		VkFence submissionFence )
     	{
 
     		std::vector<VkDescriptorImageInfo> prefilterInfos(m_prefilterMipLevels);
@@ -502,7 +441,7 @@ namespace vk
 					2 + mip, 0, 1, descriptorBufferProperties.storageImageDescriptorSize, true);
     		}
 
-			CreatePrefilterComputePipeline( devicePtr );
+			m_prefilterPipeline = CreateComputePipeline( devicePtr, "prefilter-cubemap.comp" );
 
     		VkCommandBufferBeginInfo beginInfo = {};
     		beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -571,7 +510,7 @@ namespace vk
     	}
 
     	void CreatePrefilterImage( vk::Device* devicePtr, VkCommandBuffer graphicsCmd,
-    		VkFence submissionFence, std::mutex& submissionMutex )
+    		VkFence submissionFence )
     	{
     		assert(m_environmentMapImage != VK_NULL_HANDLE);
 
@@ -615,11 +554,11 @@ namespace vk
 				devicePtr->GetQueue(DeviceQueue::GRAPHICS).handle,
 				submissionFence, std::nullopt );
 
-    		WriteToPrefilterImage( devicePtr, graphicsCmd, submissionFence, submissionMutex );
+    		WriteToPrefilterImage( devicePtr, graphicsCmd, submissionFence );
     	}
 
     	void WriteToBRDFLUTImage( vk::Device* devicePtr, VkCommandBuffer graphicsCmd,
-    		VkFence submissionFence, std::mutex& submissionMutex )
+    		VkFence submissionFence )
     	{
     		vk::WriteResource writeResource = {};
     		auto descriptorBufferProperties = devicePtr->GetDescriptorBufferProperties();
@@ -630,7 +569,7 @@ namespace vk
     		m_computeDescriptorBuffer.WriteDescriptor(devicePtr, writeResource,
 				layoutIndex, 0, 1, descriptorBufferProperties.storageImageDescriptorSize, true);
 
-			CreateBRDFLUTComputePipeline( devicePtr );
+			m_BRDFLUTPipeline = CreateComputePipeline( devicePtr, "BRDF-convolute.comp" );
 
     		VkCommandBufferBeginInfo beginInfo = {};
     		beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -675,7 +614,7 @@ namespace vk
     	}
 
     	void CreateBRDFLUTImage( vk::Device* devicePtr, VkCommandBuffer graphicsCmd,
-    		VkFence submissionFence, std::mutex& submissionMutex )
+    		VkFence submissionFence )
     	{
     		if (devicePtr == nullptr)
     		{
@@ -719,7 +658,7 @@ namespace vk
     			m_BRDFLUTImage, imageCI.format, VK_IMAGE_VIEW_TYPE_2D);
     		m_BRDFLUTInfo.sampler = vk::Texture::CreateSampler(devicePtr->GetGPU(), devicePtr->GetDevice(), 1);
 
-			WriteToBRDFLUTImage( devicePtr, graphicsCmd, submissionFence, submissionMutex );
+			WriteToBRDFLUTImage( devicePtr, graphicsCmd, submissionFence );
 
     		m_BRDFLUTInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
     	}

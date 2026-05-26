@@ -101,13 +101,13 @@ namespace vk
 
     	CreateComputePipelineLayout( devicePtr );
 
-		CreateEnvironmentMapImage( devicePtr, graphicsCmd, submissionFence, transferMutex );
+		CreateEnvironmentMapImage( devicePtr, graphicsCmd, submissionFence );
 
-    	CreateIrradianceImage( devicePtr, graphicsCmd, submissionFence, transferMutex );
+    	CreateIrradianceImage( devicePtr, graphicsCmd, submissionFence );
 
-    	CreatePrefilterImage( devicePtr, graphicsCmd, submissionFence, transferMutex );
+    	CreatePrefilterImage( devicePtr, graphicsCmd, submissionFence );
 
-    	CreateBRDFLUTImage( devicePtr, graphicsCmd, submissionFence, transferMutex );
+    	CreateBRDFLUTImage( devicePtr, graphicsCmd, submissionFence );
 
     	VkCommandBufferBeginInfo beginInfo = {};
     	beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
