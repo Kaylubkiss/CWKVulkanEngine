@@ -40,8 +40,6 @@ public:
 	void Init( vk::Device* devicePtr, DescriptorManager* descriptorManagerPtr );
 	void Destroy();
 
-	size_t GetSize();
-
 	//returns whether or not a command was recorded.
 	bool UploadTextureDataToGPU( uint32_t currentFrame, VkSemaphore textureUploadSemaphore );
 	uint32_t AddTextures( const std::vector<vk::TextureCreateInfo>& createInfos, TextureType type = TextureType::NONE ); //returns the layout index of the texture

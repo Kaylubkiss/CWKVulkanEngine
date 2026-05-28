@@ -251,9 +251,3 @@ bool TextureManager::UploadTextureDataToGPU( uint32_t currentFrame, const VkSema
 
 	return true;
 }
-
-size_t TextureManager::GetSize()
-{
-	std::lock_guard lock(m_textureMutex);
-	return m_textures.size();
-}

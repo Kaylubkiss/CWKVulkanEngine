@@ -57,7 +57,6 @@ namespace vk
 
 		[[nodiscard]] bool HotReloadIsReady() const;
 
-		/* getters */
 		VkPipeline Get( uint32_t pipeline );
 
 		const std::vector<ShaderModuleInfo>& GetPipelineShaders( uint32_t pipeline );

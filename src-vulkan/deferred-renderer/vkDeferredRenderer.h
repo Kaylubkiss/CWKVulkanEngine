@@ -7,7 +7,6 @@ namespace vk
 	#define LIGHT_COUNT 2
 	#define OBJECT_COUNT (10000 + 1) //max 10 objects in the scene, +1 for blank texture
 
-	//This scene is statically 4.2 KB!!!
 	class DeferredRenderer : public RendererBase
 	{
 	public:
@@ -79,7 +78,6 @@ namespace vk
 
 		struct UniformDataDeferredShadow
 		{
-			//yikes, gonna have to copy each of these 16 floats from lights...
 			std::array<glm::mat4, LIGHT_COUNT> viewMatrices;
 		} uniformDataDeferredShadow{};
 
@@ -102,8 +100,6 @@ namespace vk
 
 		std::array<UniformBuffers, gMaxFramesInFlight> uniformBuffers;
 
-		//NOTE: this will all be done offscreen because we have a main renderpass from the swapchain we'll
-		//read the results of this from
 		struct
 		{
 			std::array<Framebuffer, gMaxFramesInFlight> deMRT; //NOTE: should be an array

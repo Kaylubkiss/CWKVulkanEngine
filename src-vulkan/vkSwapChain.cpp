@@ -1,6 +1,5 @@
 #include "vkSwapChain.h"
 #include "vkUtil.h"
-#include "vkInit.h"
 #include <stdexcept>
 
 namespace vk 
@@ -199,6 +198,7 @@ namespace vk
 		assert( createInfo.imageFormat != VK_FORMAT_UNDEFINED );
 
 		std::array<VkAttachmentDescription, 1> attachments = {};
+
 		//color attachment
 		attachments[0].format = createInfo.imageFormat;
 		attachments[0].samples = VK_SAMPLE_COUNT_1_BIT;
@@ -221,7 +221,8 @@ namespace vk
 		//for layout transitions
 		std::array<VkSubpassDependency, 2> dependencies{};
 
-		//color writing/reading dependencies. This is to ensure that the color attachment read/writes are finished before subpass 0 begins and uses them again for reading/writing.
+		//color writing/reading dependencies.
+		//This is to ensure that the color attachment read/writes are finished before subpass 0 begins and uses them again for reading/writing.
 		dependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL;
 		dependencies[0].dstSubpass = 0;
 		dependencies[0].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;

@@ -13,7 +13,6 @@ public:
 	AssetManager() = default;
 	~AssetManager() = default;
 
-	//Modifiers
 	void Init( vk::Device* devicePtr, TextureManager* textureManagerPtr, size_t workerThreadCount );
 	void Destroy();
 	void LoadObject( const ObjectCreateInfo& objectCI );
