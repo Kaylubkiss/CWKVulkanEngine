@@ -4,13 +4,13 @@
 
 constexpr uint32_t gMaxFramesInFlight = 3;
 
-inline VkDeviceSize AlignedSize(VkDeviceSize size, VkDeviceSize alignment)
-{
-	return (size + alignment - 1) & ~(alignment - 1);
-}
-
 namespace vk
 {
+	inline VkDeviceSize AlignedSize(VkDeviceSize size, VkDeviceSize alignment)
+	{
+		return (size + alignment - 1) & ~(alignment - 1);
+	}
+
 	//created in response to the need of texture manager. It needs a lot of graphics context state, but the calls to 
 	//function methods of the context to get this information seemed inconvenient.
 	//in turn, I've had to create this data structure which contains all the information that
@@ -37,8 +37,6 @@ namespace vk
 		std::string name; //(note as of 5.9.26: will represent a full file path for now)
 		VkFormat format = VK_FORMAT_UNDEFINED;
 	};
-
-
 
 }
 

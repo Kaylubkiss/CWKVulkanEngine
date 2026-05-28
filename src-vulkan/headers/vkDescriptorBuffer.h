@@ -33,7 +33,15 @@ namespace vk
 	{
 	public:
 		DescriptorBuffer() = default;
-		~DescriptorBuffer() = default;
+		DescriptorBuffer( const vk::Device* devicePtr, VkBufferUsageFlags bufferUsage, VkMemoryPropertyFlags bufferMemoryProps,
+			size_t numFrames, size_t layoutCount, const std::vector<VkDescriptorSetLayoutBinding>& bindings );
+		DescriptorBuffer( const DescriptorBuffer& other ) = delete;
+		DescriptorBuffer( DescriptorBuffer&& other ) noexcept;
+
+		DescriptorBuffer& operator=( const DescriptorBuffer& other ) = delete;
+		DescriptorBuffer& operator=( DescriptorBuffer&& other ) noexcept;
+
+		~DescriptorBuffer();
 
 		[[nodiscard]] const vk::Buffer& GetBuffer() const;
 		[[nodiscard]] size_t GetBufferSize() const;
@@ -41,10 +49,7 @@ namespace vk
 		[[nodiscard]] VkDeviceSize GetLayoutSize() const;
 		[[nodiscard]] VkDescriptorSetLayout GetLayout() const;
 
-		void Destroy();
-		void Allocate( vk::Device* devicePtr, VkBufferUsageFlags bufferUsage, VkMemoryPropertyFlags bufferMemoryProps,
-			size_t numFrames, size_t layoutCount, const std::vector<VkDescriptorSetLayoutBinding>& bindings);
-		void WriteDescriptor( vk::Device* devicePtr, const WriteResource& writeData, uint32_t layoutIndex,
+		void WriteDescriptor( const WriteResource& writeData, uint32_t layoutIndex,
 			uint32_t frame, uint32_t binding, size_t writeSize, bool storageResource = false ) const;
 	private:
 		static void GetDescriptorLayoutSize( const vk::Device* device, VkDescriptorSetLayout layout, VkDeviceSize* size );
@@ -63,8 +68,7 @@ namespace vk
 		VkDescriptorSetLayout m_setLayout = VK_NULL_HANDLE;
 		VkDeviceSize m_setLayoutSize = 0ull;
 
-
-		vk::Device* m_devicePtr = nullptr;
+		VkDevice c_device = VK_NULL_HANDLE;
 	};
 
 }

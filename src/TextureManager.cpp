@@ -57,9 +57,9 @@ bool TextureManager::AddTexture( const vk::TextureCreateInfo& createInfo )
 
 	//TODO: generate checker-board texture for objects if texture loading failed.
 
-	std::shared_ptr<vk::Texture> newTexture = std::make_shared<vk::Texture>();
+	std::vector<vk::TextureCreateInfo> createInfos = { createInfo };
 
-	newTexture->Create(m_devicePtr, { createInfo }, m_transferMutex);
+	std::shared_ptr<vk::Texture> newTexture = std::make_shared<vk::Texture>(m_devicePtr, createInfos, m_transferMutex);
 
 	{
 		std::lock_guard<std::mutex> lock(m_textureMutex);
@@ -92,9 +92,7 @@ bool TextureManager::AddCubeMapTexture( const std::vector<vk::TextureCreateInfo>
 		}
 	}
 
-	std::shared_ptr<vk::Texture> newTexture = std::make_shared<vk::Cubemap>();
-
-	newTexture->Create(m_devicePtr, createInfos, m_transferMutex);
+	std::shared_ptr<vk::Texture> newTexture = std::make_shared<vk::Cubemap>(m_devicePtr, createInfos, m_transferMutex);
 
 	{
 		std::lock_guard lock(m_textureMutex);
@@ -119,6 +117,7 @@ uint32_t TextureManager::AddTextures( const std::vector<vk::TextureCreateInfo>& 
 	{
 		return 0;
 	}
+
 
 	uint32_t layoutIndex = m_descriptorManagerPtr->GetLayoutIndex(DescriptorCategory::eMaterial);
 

@@ -39,7 +39,6 @@ namespace vk
 		createInfo.addressModeV = createInfo.addressModeU;
 		createInfo.addressModeW = createInfo.addressModeU;
 
-
 		VkPhysicalDeviceProperties pdp = { };
 		vkGetPhysicalDeviceProperties(p_device, &pdp);
 
@@ -61,7 +60,8 @@ namespace vk
 		return nTextureSampler;
 	}
 
-	void Texture::RecordTransferAndReleaseOperations( const vk::Device* devicePtr, const vk::Buffer& stagingBuffer, std::mutex& submissionMutex )
+	void Texture::RecordTransferAndReleaseOperations( const vk::Device* devicePtr, const vk::Buffer& stagingBuffer,
+		std::mutex& submissionMutex )
 	{
 		VkSubmitInfo submitInfo = {};
 
@@ -171,14 +171,22 @@ namespace vk
 		vkDestroyCommandPool(devicePtr->GetDevice(), transferCmdPool, nullptr);
 	}
 
-	void Texture::Create( vk::Device* devicePtr, const std::vector<vk::TextureCreateInfo>& createInfos, std::mutex& transferMutex )
+	Texture::Texture( const vk::Device* devicePtr, const std::vector<vk::TextureCreateInfo>& createInfos,
+		std::mutex& transferMutex )
 	{
-
-		assert(devicePtr);
+		assert(devicePtr != nullptr);
 
 		m_imageCount = createInfos.size();
+		c_device = devicePtr->GetDevice();
 
-		assert(m_imageCount == 1);
+		const uint64_t num_channels = 4;
+		int textureWidth, textureHeight, textureChannels;
+		VkDeviceSize imageSize = 0;
+
+		vk::Buffer stagingBuffer;
+
+		stbi_uc* pixels_uc = nullptr;
+		float* pixels_f = nullptr;
 
 		//Might want to make command pool a member variable.
 		const std::string& filePath = createInfos[0].name;
@@ -188,16 +196,6 @@ namespace vk
 			std::cerr << "specified filePath is empty \n";
 			throw std::runtime_error("vk::Texture::Create() FAILED");
 		}
-
-		constexpr uint64_t num_channels = 4;
-
-		int textureWidth, textureHeight, textureChannels;
-		VkDeviceSize imageSize = 0;
-
-		vk::Buffer stagingBuffer;
-
-		stbi_uc* pixels_uc = nullptr;
-		float* pixels_f = nullptr;
 
 		if (createInfos[0].format == VK_FORMAT_R8G8B8A8_UNORM ||
 			createInfos[0].format == VK_FORMAT_R8G8B8A8_SRGB)
@@ -269,8 +267,6 @@ namespace vk
 
 		RecordTransferAndReleaseOperations(devicePtr, stagingBuffer, transferMutex);
 
-		stagingBuffer.Destroy();
-
 		if (pixels_f)
 		{
 			stbi_image_free(pixels_f);
@@ -286,8 +282,50 @@ namespace vk
 		m_descriptor.imageView = m_imageView;
 		m_descriptor.sampler = m_sampler;
 		m_descriptor.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+	}
 
-		c_device = devicePtr->GetDevice();
+	Texture::Texture( Texture&& other ) noexcept
+	{
+		if (this != &other)
+		{
+			this->c_device = other.c_device;
+			this->m_image = other.m_image;
+			this->m_memory = other.m_memory;
+			this->m_imageView = other.m_imageView;
+			this->m_sampler = other.m_sampler;
+			this->m_width = other.m_width;
+			this->m_height = other.m_height;
+			this->m_imageCount = other.m_imageCount;
+			this->m_imageLayerSize = other.m_imageLayerSize;
+			this->m_descriptor = other.m_descriptor;
+
+			//because Destroy() hinges on c_device being valid, we'll just invalidate
+			//c_device on the original resource.
+			other.c_device = VK_NULL_HANDLE;
+		}
+	}
+
+	Texture& Texture::operator=( Texture &&other ) noexcept
+	{
+		if (this != &other)
+		{
+			this->c_device = other.c_device;
+			this->m_image = other.m_image;
+			this->m_memory = other.m_memory;
+			this->m_imageView = other.m_imageView;
+			this->m_sampler = other.m_sampler;
+			this->m_width = other.m_width;
+			this->m_height = other.m_height;
+			this->m_imageCount = other.m_imageCount;
+			this->m_imageLayerSize = other.m_imageLayerSize;
+			this->m_descriptor = other.m_descriptor;
+
+			//because Destroy() hinges on c_device being valid, we'll just invalidate
+			//c_device on the original resource.
+			other.c_device = VK_NULL_HANDLE;
+		}
+
+		return *this;
 	}
 
 	Texture::~Texture()

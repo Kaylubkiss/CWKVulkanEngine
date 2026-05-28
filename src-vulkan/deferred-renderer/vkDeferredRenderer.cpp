@@ -23,7 +23,7 @@ namespace vk
 		vk::TextureCreateInfo texture_create_info = { skyboxName, VK_FORMAT_R32G32B32A32_SFLOAT };
 
 		std::mutex dummyMutex;
-		m_test_panoramicImage.Create(&device, {texture_create_info}, dummyMutex);
+		m_test_panoramicImage = vk::PanoramicTexture(&device, {texture_create_info}, dummyMutex);
 
 		DeferredRenderer::InitializeDescriptors(*m_descriptorManagerPtr);
 
@@ -32,13 +32,6 @@ namespace vk
 
 	DeferredRenderer::~DeferredRenderer()
 	{
-		for (size_t i = 0; i < uniformBuffers.size(); ++i)
-		{
-			uniformBuffers[i].mrt.Destroy();
-			uniformBuffers[i].composition.Destroy();
-			uniformBuffers[i].shadow.Destroy();
-		}
-
 		vkDestroyPipelineLayout(device.GetDevice(), m_graphicsPipelineLayout, nullptr);
 
 		for (size_t frame = 0; frame < gMaxFramesInFlight; ++frame)

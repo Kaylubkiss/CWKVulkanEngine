@@ -29,47 +29,86 @@ namespace vk
         return m_setLayout;
     }
 
-    void DescriptorBuffer::Destroy()
-    {
-        if (m_devicePtr != nullptr)
-        {
-            m_buffer.Destroy();
-
-            vkDestroyDescriptorSetLayout(m_devicePtr->GetDevice(), m_setLayout, nullptr);
-            m_setLayout = VK_NULL_HANDLE;
-        }
+	DescriptorBuffer::~DescriptorBuffer()
+	{
+    	if (c_device != VK_NULL_HANDLE)
+    	{
+    		vkDestroyDescriptorSetLayout(c_device, m_setLayout, nullptr);
+    		m_setLayout = VK_NULL_HANDLE;
+    	}
     }
 
-    void DescriptorBuffer::Allocate( vk::Device* devicePtr, VkBufferUsageFlags bufferUsage, VkMemoryPropertyFlags bufferMemoryProps,
-			size_t numFrames, size_t layoutCount, const std::vector<VkDescriptorSetLayoutBinding>& bindings)
+    DescriptorBuffer::DescriptorBuffer( const vk::Device* devicePtr, VkBufferUsageFlags bufferUsage,
+    	VkMemoryPropertyFlags bufferMemoryProps,
+		size_t numFrames, size_t layoutCount, const std::vector<VkDescriptorSetLayoutBinding>& bindings )
 		{
-			m_devicePtr = devicePtr;
+			c_device = devicePtr->GetDevice();
 
 			VkDescriptorSetLayoutCreateInfo setLayoutCreateInfo = vk::init::DescriptorSetLayoutCreateInfo();
 			setLayoutCreateInfo.pBindings = bindings.data();
 			setLayoutCreateInfo.bindingCount = static_cast<uint32_t>(bindings.size());
 			setLayoutCreateInfo.flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_DESCRIPTOR_BUFFER_BIT_EXT;
 
-			VK_CHECK_RESULT(vkCreateDescriptorSetLayout(m_devicePtr->GetDevice(), &setLayoutCreateInfo,
+			VK_CHECK_RESULT(vkCreateDescriptorSetLayout(c_device, &setLayoutCreateInfo,
 				nullptr, &this->m_setLayout));
 
-			GetDescriptorLayoutSize(m_devicePtr, m_setLayout, &m_setLayoutSize);
+			GetDescriptorLayoutSize(devicePtr, m_setLayout, &m_setLayoutSize);
 
 			m_bindingOffsets.resize(setLayoutCreateInfo.bindingCount);
 
-			GetDescriptorLayoutBindingOffsets(m_devicePtr, m_setLayout, m_bindingOffsets.data(),
+			GetDescriptorLayoutBindingOffsets(devicePtr, m_setLayout, m_bindingOffsets.data(),
 				setLayoutCreateInfo.bindingCount);
 
 			m_numCols = numFrames;
 			m_bufferSize = numFrames * layoutCount * m_setLayoutSize;
-			m_buffer = vk::Buffer(m_devicePtr, bufferUsage, bufferMemoryProps, m_bufferSize);
+			m_buffer = vk::Buffer(devicePtr, bufferUsage, bufferMemoryProps, m_bufferSize);
 
 			m_buffer.Map(); //TODO: remove once integrating descriptor manager. Not all resources should be mapped.
 		}
 
-	void DescriptorBuffer::WriteDescriptor( vk::Device* devicePtr, const WriteResource& writeData, uint32_t layoutIndex,
+
+	DescriptorBuffer& DescriptorBuffer::operator=( DescriptorBuffer&& other ) noexcept
+	{
+		if (this != &other)
+		{
+			this->c_device = other.c_device;
+			this->m_setLayout = other.m_setLayout;
+			this->m_numCols = other.m_numCols;
+			this->m_buffer = std::move(other.m_buffer);
+			this->m_bufferSize = other.m_bufferSize;
+			this->m_bindingOffsets = other.m_bindingOffsets;
+			this->m_setLayoutSize = other.m_setLayoutSize;
+
+			//because Destroy() hinges on c_device being valid, we'll just invalidate
+			//c_device on the original resource.
+			other.c_device = VK_NULL_HANDLE;
+		}
+
+    	return *this;
+    }
+
+	DescriptorBuffer::DescriptorBuffer( DescriptorBuffer&& other ) noexcept
+	{
+		if (this != &other)
+		{
+			this->c_device = other.c_device;
+			this->m_setLayout = other.m_setLayout;
+			this->m_numCols = other.m_numCols;
+			this->m_buffer = std::move(other.m_buffer);
+			this->m_bufferSize = other.m_bufferSize;
+			this->m_bindingOffsets = other.m_bindingOffsets;
+			this->m_setLayoutSize = other.m_setLayoutSize;
+
+			//because Destroy() hinges on c_device being valid, we'll just invalidate
+			//c_device on the original resource.
+			other.c_device = VK_NULL_HANDLE;
+		}
+    }
+
+	void DescriptorBuffer::WriteDescriptor( const WriteResource& writeData, uint32_t layoutIndex,
 		uint32_t frame, uint32_t binding, size_t writeSize, bool storageResource ) const
 	{
+    	assert(c_device != VK_NULL_HANDLE);
 		assert(writeData.IsValid());
 
 		//TODO: might need to map the memory first before accessing
@@ -102,7 +141,7 @@ namespace vk
 			descriptorGetInfo.data.pUniformBuffer = &addrInfo;
 		}
 
-		g_vkGetDescriptorEXT(devicePtr->GetDevice(), &descriptorGetInfo,
+		g_vkGetDescriptorEXT(c_device, &descriptorGetInfo,
 			writeSize,
 			descriptorPtr + (m_numCols * layoutIndex + frame) * m_setLayoutSize +
 			m_bindingOffsets[binding]);

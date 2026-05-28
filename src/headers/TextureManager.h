@@ -58,6 +58,8 @@ private:
 	vk::Device* m_devicePtr = nullptr;
 	DescriptorManager* m_descriptorManagerPtr = nullptr;
 
+	//TODO: make pendingTextures an unordered map that gets copied from in UploadTextureDataToGPU. This ensures that
+	//m_textures only has valid textures for rendering.
 	std::vector<PendingTextureInfo> m_pendingTextures; //textures that need to finish their layout transition.
 	std::unordered_map<std::string, TextureInfo> m_textures;
 

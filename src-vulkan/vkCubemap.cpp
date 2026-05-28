@@ -3,14 +3,15 @@
 
 namespace vk
 {
-    //just one particular environment map for now
-    void Cubemap::Create( vk::Device* devicePtr, const std::vector<vk::TextureCreateInfo>& createInfos, std::mutex& transferMutex )
+    //TODO: can load partial cubemaps, but unspecified faces get a default texture.
+    Cubemap::Cubemap( vk::Device* devicePtr, const std::vector<vk::TextureCreateInfo>& createInfos, std::mutex& transferMutex )
     {
         assert(devicePtr);
 
         m_imageCount = createInfos.size();
+        c_device = devicePtr->GetDevice();
 
-        assert(m_imageCount== 6);
+        assert(m_imageCount == 6);
 
         //texture sizes should be square and/or the same in a cubemap
         int image_width, image_height, channels;
@@ -73,9 +74,7 @@ namespace vk
         {
             stbi_image_free(texture_data[i]);
         }
-        stagingBuffer.Destroy();
 
-        c_device = devicePtr->GetDevice();
         m_imageView = vk::Texture::CreateImageView(c_device, m_image, createInfos[0].format, VK_IMAGE_VIEW_TYPE_CUBE);
         m_sampler = vk::Texture::CreateSampler(devicePtr->GetGPU(), c_device, 1 );
         m_descriptor.imageView = m_imageView;

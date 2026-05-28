@@ -6,12 +6,14 @@ namespace vk
 	{
 	public:
 		Texture() = default;
-		//From filename
-		virtual ~Texture();
-		Texture& operator=( const Texture& other ) = delete;
+		Texture( const vk::Device* devicePtr, const std::vector<vk::TextureCreateInfo>& createInfos, std::mutex& transferMutex );
 		Texture( const Texture& other ) = delete;
+		Texture( Texture&& other ) noexcept;
 
-		virtual void Create( vk::Device* devicePtr, const std::vector<vk::TextureCreateInfo>& createInfos, std::mutex& transferMutex );
+		Texture& operator=( const Texture& other ) = delete;
+		Texture& operator=( Texture&& other ) noexcept;
+
+		virtual ~Texture();
 
 		[[nodiscard]] VkDescriptorImageInfo GetDescriptor() const;
 		[[nodiscard]] VkImage GetImage() const;
@@ -21,7 +23,6 @@ namespace vk
 	protected:
 		void RecordTransferAndReleaseOperations( const vk::Device* devicePtr, const vk::Buffer& stagingBuffer, std::mutex& submissionMutex );
 	protected:
-		//member variables
 		VkDevice c_device = VK_NULL_HANDLE;
 
 		VkImage m_image = VK_NULL_HANDLE;

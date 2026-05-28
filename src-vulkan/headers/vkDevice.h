@@ -28,11 +28,15 @@ namespace vk
 	{
 	public:
 		Device() = default;
+
 		void Init( VkInstance instance, VkSurfaceKHR surface );
-		~Device() = default;
-		void Destroy();
+
 		Device& operator=(const Device&) = delete;
 		Device& operator=(Device&&) = delete;
+
+		~Device() = default;
+
+		void Destroy();
 
 		//functionality
 		[[nodiscard]] uint32_t GetMemoryType( uint32_t typeBits, VkMemoryPropertyFlags flags ) const;

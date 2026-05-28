@@ -39,11 +39,7 @@ struct Mesh
 class Model
 {
 public:
-	virtual ~Model()
-	{
-		m_vertexBuffer.Destroy();
-		m_indexBuffer.Destroy();
-	};
+	virtual ~Model() = default;
 
 	//get the bounds of the model in object space.
 	[[nodiscard]] virtual glm::vec3 GetMinPoint() const { return { 0.0f, 0.0f, 0.0f }; }

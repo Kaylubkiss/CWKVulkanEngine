@@ -11,12 +11,7 @@
     void DescriptorManager::Destroy()
     {
         std::lock_guard lock(m_mutex);
-
-        for (auto& [type, bufferData] : m_descriptorBuffers)
-        {
-            bufferData.descriptor.Destroy();
-        }
-
+        m_descriptorBuffers.clear();
     }
 
     void DescriptorManager::AllocateDescriptorBuffer(DescriptorCategory category, size_t numFrames, size_t layoutCount,
@@ -26,7 +21,7 @@
 
         if (m_descriptorBuffers.contains(category))
         {
-            m_descriptorBuffers[category].descriptor.Destroy();
+            m_descriptorBuffers[category].descriptor.~DescriptorBuffer();
             m_descriptorBuffers[category].freeList.clear();
         }
 
@@ -59,7 +54,7 @@
             throw std::runtime_error("DescriptorManager::AllocateDescriptorBuffer() Failed\n");
         }
 
-        m_descriptorBuffers[category].descriptor.Allocate(
+        m_descriptorBuffers[category].descriptor = vk::DescriptorBuffer(
             m_devicePtr, bufferUsageFlags, memoryProperties,
             numFrames, layoutCount, bindings
             );
@@ -99,7 +94,7 @@
 
                 {
                     std::lock_guard lock(m_mutex);
-                    descriptor.WriteDescriptor(m_devicePtr, writeResource,
+                    descriptor.WriteDescriptor(writeResource,
                        layoutIndex, frame, binding, writeSize);
                 }
             }
@@ -121,7 +116,7 @@
 
                 {
                     std::lock_guard lock(m_mutex);
-                    descriptor.WriteDescriptor(m_devicePtr, writeResource,
+                    descriptor.WriteDescriptor( writeResource,
                         layoutIndex, frame, binding, m_properties.uniformBufferDescriptorSize);
                 }
             }

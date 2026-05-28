@@ -49,7 +49,6 @@ namespace vk::spirv
 		std::ofstream output(filename,std::ios::out | std::ios::binary);
 
 
-
 		if (output.is_open() == false)
 		{
 			std::filesystem::path filePath = filename;

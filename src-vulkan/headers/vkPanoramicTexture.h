@@ -1,51 +1,23 @@
 #pragma once
 #include "vkInit.h"
 #include "vkTexture.h"
-#include "vkUtil.h"
-
-//WIP
-//Yes, I know there's a lot of copy-paste here. I'm working on it.
 
 namespace vk
 {
-    class PanoramicTexture : public Texture //technically a type of cubemap, but inheriting cubemap would be useless.
+	//technically a type of cubemap, but inheriting cubemap would be useless.
+    class PanoramicTexture : public Texture
     {
     public:
-	    ~PanoramicTexture() override
-    	{
-    		if (c_device != VK_NULL_HANDLE)
-    		{
-    			vkDestroyImage(c_device, m_environmentMapImage, nullptr);
-    			vkFreeMemory(c_device, m_environmentMapImageMemory, nullptr);
+    	PanoramicTexture() = default;
+    	PanoramicTexture( const vk::Device* devicePtr, const std::vector<vk::TextureCreateInfo>& createInfos,
+    		std::mutex& transferMutex );
+    	PanoramicTexture( const PanoramicTexture& other ) = delete;
+    	PanoramicTexture( PanoramicTexture&& other ) noexcept;
 
-    			vkDestroyImage(c_device, m_irradianceImage, nullptr);
-    			vkFreeMemory(c_device, m_irradianceImageMemory, nullptr);
+    	PanoramicTexture& operator=( const PanoramicTexture& other ) = delete;
+    	PanoramicTexture& operator=( PanoramicTexture&& other ) noexcept;
 
-    			vkDestroyImage(c_device, m_prefilterImage, nullptr);
-    			vkFreeMemory(c_device, m_prefilterImageMemory, nullptr);
-
-    			vkDestroySampler(c_device, m_environmentMapInfo.sampler, nullptr);
-    			vkDestroyImageView(c_device, m_environmentMapInfo.imageView, nullptr);
-
-    			vkDestroySampler(c_device, m_irradianceInfo.sampler, nullptr);
-    			vkDestroyImageView(c_device, m_irradianceInfo.imageView, nullptr);
-
-    			vkDestroySampler(c_device, m_prefilterInfo.sampler, nullptr);
-    			vkDestroyImageView(c_device, m_prefilterInfo.imageView, nullptr);
-
-    			vkDestroySampler(c_device, m_BRDFLUTInfo.sampler, nullptr);
-    			vkDestroyImageView(c_device, m_BRDFLUTInfo.imageView, nullptr);
-
-    			vkDestroyPipeline(c_device, m_computePipeline, nullptr);
-    			vkDestroyPipeline(c_device, m_convolutionPipeline, nullptr);
-    			vkDestroyPipeline(c_device, m_prefilterPipeline, nullptr);
-    			vkDestroyPipeline(c_device, m_BRDFLUTPipeline, nullptr);
-
-    			vkDestroyPipelineLayout(c_device, m_computePipelineLayout, nullptr);
-
-    			m_computeDescriptorBuffer.Destroy();
-    		}
-    	}
+	    ~PanoramicTexture() override;
 
     	[[nodiscard]] VkDescriptorImageInfo GetEnvironmentMapImageDescriptor() const
 	    {
@@ -66,10 +38,8 @@ namespace vk
     	{
 			return m_BRDFLUTInfo;
 	    }
-
-	    void Create( vk::Device* devicePtr,  const std::vector<vk::TextureCreateInfo>& createInfos, std::mutex& transferMutex ) override;
     private:
-    	void CreateComputePipelineLayout( vk::Device* devicePtr )
+    	void CreateComputePipelineLayout()
     	{
 			VkPipelineLayoutCreateInfo pipelineLayoutCI = vk::init::PipelineLayoutCreateInfo();
 
@@ -84,10 +54,10 @@ namespace vk
     		pipelineLayoutCI.pPushConstantRanges = &pushConstants;
     		pipelineLayoutCI.pushConstantRangeCount = 1;
 
-			vkCreatePipelineLayout(devicePtr->GetDevice(), &pipelineLayoutCI, nullptr, &m_computePipelineLayout);
+			vkCreatePipelineLayout(c_device, &pipelineLayoutCI, nullptr, &m_computePipelineLayout);
 		}
 
-    	void CreateComputeDescriptorBuffer( vk::Device* devicePtr )
+    	void CreateComputeDescriptorBuffer( const vk::Device* devicePtr )
     	{
 
     		VkBufferUsageFlags bufferUsageFlags = VK_BUFFER_USAGE_RESOURCE_DESCRIPTOR_BUFFER_BIT_EXT |
@@ -114,18 +84,18 @@ namespace vk
     		};
 
     		//environment + convolution + prefiltering.
-    		m_computeDescriptorBuffer.Allocate(devicePtr, bufferUsageFlags, memoryProperties,
+    		m_computeDescriptorBuffer = vk::DescriptorBuffer(devicePtr, bufferUsageFlags, memoryProperties,
 				1, 2 + m_prefilterMipLevels + 1, layoutBindings);
 
     	}
 
-    	VkPipeline CreateComputePipeline( vk::Device* devicePtr, std::string_view fileName )
+    	VkPipeline CreateComputePipeline( std::string_view fileName ) const
     	{
 			VkComputePipelineCreateInfo computePipelineCI = {};
 			computePipelineCI.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
 			computePipelineCI.flags = VK_PIPELINE_CREATE_DESCRIPTOR_BUFFER_BIT_EXT;
 
-			vk::ShaderModuleInfo shaderModuleInfo = vk::ShaderModuleInfo(devicePtr->GetDevice(),
+			vk::ShaderModuleInfo shaderModuleInfo = vk::ShaderModuleInfo(c_device,
 				fileName, VK_SHADER_STAGE_COMPUTE_BIT);
 
 			VkPipelineShaderStageCreateInfo shaderStageCI =
@@ -135,35 +105,35 @@ namespace vk
 			computePipelineCI.layout = m_computePipelineLayout;
 
     		VkPipeline handle;
-			vkCreateComputePipelines(devicePtr->GetDevice(), VK_NULL_HANDLE, 1,
-				&computePipelineCI, nullptr, &handle);
+			vkCreateComputePipelines( c_device, VK_NULL_HANDLE, 1,
+				&computePipelineCI, nullptr, &handle );
 
-			vkDestroyShaderModule( devicePtr->GetDevice(), shaderModuleInfo.mHandle, nullptr );
+			vkDestroyShaderModule( c_device, shaderModuleInfo.mHandle, nullptr );
 
     		return handle;
     	}
 
-        void WriteToEnvironmentMapImage( vk::Device* devicePtr, VkCommandBuffer graphicsCmd, VkFence submissionFence );
+        void WriteToEnvironmentMapImage( const vk::Device* devicePtr, VkCommandBuffer graphicsCmd, VkFence submissionFence );
 
-        void CreateEnvironmentMapImage( vk::Device* devicePtr, VkCommandBuffer graphicsCmd,
+        void CreateEnvironmentMapImage( const vk::Device* devicePtr, VkCommandBuffer graphicsCmd,
         	VkFence submissionFence );
 
-    	void WriteToIrradianceImage( vk::Device* devicePtr, VkCommandBuffer graphicsCmd,
+    	void WriteToIrradianceImage( const vk::Device* devicePtr, VkCommandBuffer graphicsCmd,
     		VkFence submissionFence );
 
-    	void CreateIrradianceImage( vk::Device* devicePtr, VkCommandBuffer graphicsCmd,
+    	void CreateIrradianceImage( const vk::Device* devicePtr, VkCommandBuffer graphicsCmd,
     		VkFence submissionFence );
 
-    	void WriteToPrefilterImage( vk::Device* devicePtr, VkCommandBuffer graphicsCmd,
+    	void WriteToPrefilterImage( const vk::Device* devicePtr, VkCommandBuffer graphicsCmd,
     		VkFence submissionFence );
 
-    	void CreatePrefilterImage( vk::Device* devicePtr, VkCommandBuffer graphicsCmd,
+    	void CreatePrefilterImage( const vk::Device* devicePtr, VkCommandBuffer graphicsCmd,
     		VkFence submissionFence );
 
-    	void WriteToBRDFLUTImage( vk::Device* devicePtr, VkCommandBuffer graphicsCmd,
+    	void WriteToBRDFLUTImage( const vk::Device* devicePtr, VkCommandBuffer graphicsCmd,
     		VkFence submissionFence );
 
-    	void CreateBRDFLUTImage( vk::Device* devicePtr, VkCommandBuffer graphicsCmd,
+    	void CreateBRDFLUTImage( const vk::Device* devicePtr, VkCommandBuffer graphicsCmd,
     		VkFence submissionFence );
     private:
     	VkImage m_environmentMapImage = VK_NULL_HANDLE;
@@ -192,12 +162,11 @@ namespace vk
     	VkDeviceMemory m_BRDFLUTImageMemory = VK_NULL_HANDLE;
     	VkDescriptorImageInfo m_BRDFLUTInfo = {};
 
-		uint32_t m_prefilterMipLevels = 0; //must compute this later.
+		uint32_t m_prefilterMipLevels = 0;
     	uint32_t m_prefilterWidth = 512;
     	uint32_t m_prefilterHeight = 512;
 
     	vk::DescriptorBuffer m_computeDescriptorBuffer;
-
     };
 
 
