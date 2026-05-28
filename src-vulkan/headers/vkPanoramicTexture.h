@@ -39,6 +39,8 @@ namespace vk
 			return m_BRDFLUTInfo;
 	    }
     private:
+    	void CleanUp();
+
     	void CreateComputePipelineLayout()
     	{
 			VkPipelineLayoutCreateInfo pipelineLayoutCI = vk::init::PipelineLayoutCreateInfo();

@@ -31,11 +31,7 @@ namespace vk
 
 	DescriptorBuffer::~DescriptorBuffer()
 	{
-    	if (c_device != VK_NULL_HANDLE)
-    	{
-    		vkDestroyDescriptorSetLayout(c_device, m_setLayout, nullptr);
-    		m_setLayout = VK_NULL_HANDLE;
-    	}
+		CleanUp();
     }
 
     DescriptorBuffer::DescriptorBuffer( const vk::Device* devicePtr, VkBufferUsageFlags bufferUsage,
@@ -66,27 +62,6 @@ namespace vk
 			m_buffer.Map(); //TODO: remove once integrating descriptor manager. Not all resources should be mapped.
 		}
 
-
-	DescriptorBuffer& DescriptorBuffer::operator=( DescriptorBuffer&& other ) noexcept
-	{
-		if (this != &other)
-		{
-			this->c_device = other.c_device;
-			this->m_setLayout = other.m_setLayout;
-			this->m_numCols = other.m_numCols;
-			this->m_buffer = std::move(other.m_buffer);
-			this->m_bufferSize = other.m_bufferSize;
-			this->m_bindingOffsets = other.m_bindingOffsets;
-			this->m_setLayoutSize = other.m_setLayoutSize;
-
-			//because Destroy() hinges on c_device being valid, we'll just invalidate
-			//c_device on the original resource.
-			other.c_device = VK_NULL_HANDLE;
-		}
-
-    	return *this;
-    }
-
 	DescriptorBuffer::DescriptorBuffer( DescriptorBuffer&& other ) noexcept
 	{
 		if (this != &other)
@@ -103,6 +78,28 @@ namespace vk
 			//c_device on the original resource.
 			other.c_device = VK_NULL_HANDLE;
 		}
+    }
+
+	DescriptorBuffer& DescriptorBuffer::operator=( DescriptorBuffer&& other ) noexcept
+    {
+    	if (this != &other)
+    	{
+    		CleanUp();
+
+    		this->c_device = other.c_device;
+    		this->m_setLayout = other.m_setLayout;
+    		this->m_numCols = other.m_numCols;
+    		this->m_buffer = std::move(other.m_buffer);
+    		this->m_bufferSize = other.m_bufferSize;
+    		this->m_bindingOffsets = other.m_bindingOffsets;
+    		this->m_setLayoutSize = other.m_setLayoutSize;
+
+    		//because Destroy() hinges on c_device being valid, we'll just invalidate
+    		//c_device on the original resource.
+    		other.c_device = VK_NULL_HANDLE;
+    	}
+
+    	return *this;
     }
 
 	void DescriptorBuffer::WriteDescriptor( const WriteResource& writeData, uint32_t layoutIndex,
@@ -146,6 +143,15 @@ namespace vk
 			descriptorPtr + (m_numCols * layoutIndex + frame) * m_setLayoutSize +
 			m_bindingOffsets[binding]);
 	}
+
+	void DescriptorBuffer::CleanUp()
+	{
+    	if (c_device != VK_NULL_HANDLE)
+    	{
+    		vkDestroyDescriptorSetLayout(c_device, m_setLayout, nullptr);
+    		m_setLayout = VK_NULL_HANDLE;
+    	}
+    }
 
     void DescriptorBuffer::GetDescriptorLayoutSize( const vk::Device* device, VkDescriptorSetLayout layout, VkDeviceSize* size )
     {

@@ -30,6 +30,7 @@ namespace vk
 		void Flush();
 		void UnMap();
 	private:
+		void CleanUp();
 		void SetDescriptor(VkDeviceSize size = VK_WHOLE_SIZE, VkDeviceSize offset = 0);
 	private:
 		VkDevice c_device       = VK_NULL_HANDLE;

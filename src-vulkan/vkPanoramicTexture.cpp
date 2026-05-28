@@ -5,7 +5,6 @@ namespace vk
 	PanoramicTexture::PanoramicTexture( const vk::Device* devicePtr,  const std::vector<vk::TextureCreateInfo>& createInfos,
     	std::mutex& transferMutex )
     {
-
 		assert(devicePtr != nullptr);
 
         int width, height, nChannels;
@@ -144,44 +143,6 @@ namespace vk
         c_device = devicePtr->GetDevice();
     }
 
-	PanoramicTexture& PanoramicTexture::operator=( PanoramicTexture&& other ) noexcept
-	{
-		if (this != &other)
-		{
-			this->m_environmentMapImage = other.m_environmentMapImage;
-			this->m_irradianceImage = other.m_irradianceImage;
-			this->m_prefilterImage = other.m_prefilterImage;
-			this->m_BRDFLUTImage = other.m_BRDFLUTImage;
-
-			this->m_environmentMapImageMemory = other.m_environmentMapImageMemory;
-			this->m_irradianceImageMemory = other.m_irradianceImageMemory;
-			this->m_prefilterImageMemory = other.m_prefilterImageMemory;
-			this->m_BRDFLUTImageMemory = other.m_BRDFLUTImageMemory;
-
-			this->m_environmentMapInfo = other.m_environmentMapInfo;
-			this->m_irradianceInfo = other.m_irradianceInfo;
-			this->m_prefilterInfo = other.m_prefilterInfo;
-			this->m_BRDFLUTInfo = other.m_BRDFLUTInfo;
-
-			this->m_computePipeline = other.m_computePipeline;
-			this->m_convolutionPipeline = other.m_convolutionPipeline;
-			this->m_prefilterPipeline = other.m_prefilterPipeline;
-			this->m_BRDFLUTPipeline = other.m_BRDFLUTPipeline;
-
-			this->m_prefilterWidth = other.m_prefilterWidth;
-			this->m_prefilterHeight = other.m_prefilterHeight;
-			this->m_prefilterMipLevels = other.m_prefilterMipLevels;
-
-			this->m_computeDescriptorBuffer = std::move(other.m_computeDescriptorBuffer);
-
-			this->m_computePipelineLayout = other.m_computePipelineLayout;
-
-			other.c_device = VK_NULL_HANDLE;
-		}
-
-		return *this;
-	}
-
 	PanoramicTexture::PanoramicTexture( PanoramicTexture&& other ) noexcept
 	{
 		if (this != &other)
@@ -218,7 +179,52 @@ namespace vk
 		}
 	}
 
+	PanoramicTexture& PanoramicTexture::operator=( PanoramicTexture&& other ) noexcept
+	{
+		if (this != &other)
+		{
+			CleanUp();
+
+			this->m_environmentMapImage = other.m_environmentMapImage;
+			this->m_irradianceImage = other.m_irradianceImage;
+			this->m_prefilterImage = other.m_prefilterImage;
+			this->m_BRDFLUTImage = other.m_BRDFLUTImage;
+
+			this->m_environmentMapImageMemory = other.m_environmentMapImageMemory;
+			this->m_irradianceImageMemory = other.m_irradianceImageMemory;
+			this->m_prefilterImageMemory = other.m_prefilterImageMemory;
+			this->m_BRDFLUTImageMemory = other.m_BRDFLUTImageMemory;
+
+			this->m_environmentMapInfo = other.m_environmentMapInfo;
+			this->m_irradianceInfo = other.m_irradianceInfo;
+			this->m_prefilterInfo = other.m_prefilterInfo;
+			this->m_BRDFLUTInfo = other.m_BRDFLUTInfo;
+
+			this->m_computePipeline = other.m_computePipeline;
+			this->m_convolutionPipeline = other.m_convolutionPipeline;
+			this->m_prefilterPipeline = other.m_prefilterPipeline;
+			this->m_BRDFLUTPipeline = other.m_BRDFLUTPipeline;
+
+			this->m_prefilterWidth = other.m_prefilterWidth;
+			this->m_prefilterHeight = other.m_prefilterHeight;
+			this->m_prefilterMipLevels = other.m_prefilterMipLevels;
+
+			this->m_computeDescriptorBuffer = std::move(other.m_computeDescriptorBuffer);
+
+			this->m_computePipelineLayout = other.m_computePipelineLayout;
+
+			other.c_device = VK_NULL_HANDLE;
+		}
+
+		return *this;
+	}
+
 	PanoramicTexture::~PanoramicTexture()
+	{
+		CleanUp();
+	}
+
+	void PanoramicTexture::CleanUp()
 	{
 		if (c_device != VK_NULL_HANDLE)
 		{

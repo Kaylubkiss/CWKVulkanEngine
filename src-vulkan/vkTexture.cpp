@@ -60,6 +60,36 @@ namespace vk
 		return nTextureSampler;
 	}
 
+	void Texture::CleanUp()
+	{
+		if (c_device != VK_NULL_HANDLE)
+		{
+			if (m_sampler != VK_NULL_HANDLE)
+			{
+				vkDestroySampler(c_device, m_sampler, nullptr);
+				m_sampler = VK_NULL_HANDLE;
+			}
+
+			if (m_imageView != VK_NULL_HANDLE)
+			{
+				vkDestroyImageView(c_device, m_imageView, nullptr);
+				m_imageView = VK_NULL_HANDLE;
+			}
+
+			if (m_image != VK_NULL_HANDLE)
+			{
+				vkDestroyImage(c_device, m_image, nullptr);
+				m_image = VK_NULL_HANDLE;
+			}
+
+			if (m_memory != VK_NULL_HANDLE)
+			{
+				vkFreeMemory(c_device, m_memory, nullptr);
+				m_memory = VK_NULL_HANDLE;
+			}
+		}
+	}
+
 	void Texture::RecordTransferAndReleaseOperations( const vk::Device* devicePtr, const vk::Buffer& stagingBuffer,
 		std::mutex& submissionMutex )
 	{
@@ -309,6 +339,8 @@ namespace vk
 	{
 		if (this != &other)
 		{
+			CleanUp();
+
 			this->c_device = other.c_device;
 			this->m_image = other.m_image;
 			this->m_memory = other.m_memory;
@@ -330,32 +362,7 @@ namespace vk
 
 	Texture::~Texture()
 	{
-		if (c_device != VK_NULL_HANDLE)
-		{
-			if (m_sampler != VK_NULL_HANDLE)
-			{
-				vkDestroySampler(c_device, m_sampler, nullptr);
-				m_sampler = VK_NULL_HANDLE;
-			}
-
-			if (m_imageView != VK_NULL_HANDLE)
-			{
-				vkDestroyImageView(c_device, m_imageView, nullptr);
-				m_imageView = VK_NULL_HANDLE;
-			}
-
-			if (m_image != VK_NULL_HANDLE)
-			{
-				vkDestroyImage(c_device, m_image, nullptr);
-				m_image = VK_NULL_HANDLE;
-			}
-
-			if (m_memory != VK_NULL_HANDLE)
-			{
-				vkFreeMemory(c_device, m_memory, nullptr);
-				m_memory = VK_NULL_HANDLE;
-			}
-		}
+		CleanUp();
 	}
 
 
