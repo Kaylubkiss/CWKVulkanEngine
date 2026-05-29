@@ -473,7 +473,7 @@ namespace vk
     	m_computeDescriptorBuffer.WriteDescriptor( writeResource,
 			layoutIndex, 0, 1, descriptorBufferProperties.storageImageDescriptorSize, true);
 
-		m_BRDFLUTPipeline = CreateComputePipeline( "BRDF-convolute.comp" );
+		m_BRDFLUTPipeline = CreateComputePipeline( "brdf-integrate.comp" );
     	vkCmdBindPipeline(graphicsCmd, VK_PIPELINE_BIND_POINT_COMPUTE, m_BRDFLUTPipeline);
 
     	std::vector<VkDescriptorBufferBindingInfoEXT> descriptorBufferBindingInfos =
