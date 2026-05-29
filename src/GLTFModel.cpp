@@ -196,12 +196,17 @@ void GLTFModel::LoadTextures( TextureManager& textureManager, const std::vector<
 			Primitive& primitive = meshes[i]->m_primitives[j];
 
 			std::vector<vk::TextureCreateInfo> texture_create_infos;
+			VkImageUsageFlags imageUsage =  VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
 
 			if (primitive.baseColorMaterialIndex.has_value())
 			{
 				auto baseColorIndex = primitive.baseColorMaterialIndex.value();
 
-				texture_create_infos.emplace_back(textureNames[baseColorIndex], VK_FORMAT_R8G8B8A8_SRGB);
+				vk::TextureCreateInfo CI = {};
+				CI.fileNames = { textureNames[baseColorIndex] };
+				CI.format = VK_FORMAT_R8G8B8A8_SRGB;
+				CI.imageUsage = imageUsage;
+				texture_create_infos.push_back(CI);
 				//grab all the texture names specific to this primitive and then request the texture manager to make a
 				//layout with the bindings starting from index 0 -> n, where n is the number of textures.
 			}
@@ -210,17 +215,27 @@ void GLTFModel::LoadTextures( TextureManager& textureManager, const std::vector<
 			{
 				auto mrIndex = primitive.metallicRoughnessIndex.value();
 
-				texture_create_infos.emplace_back(textureNames[mrIndex], VK_FORMAT_R8G8B8A8_UNORM);
+				vk::TextureCreateInfo CI = {};
+				CI.fileNames = { textureNames[mrIndex] };
+				CI.format = VK_FORMAT_R8G8B8A8_UNORM;
+				CI.imageUsage = imageUsage;
+
+				texture_create_infos.push_back(CI);
 			}
 
 			if (primitive.ambientOcclusionIndex.has_value())
 			{
 				auto aoIndex = primitive.ambientOcclusionIndex.value();
 
-				texture_create_infos.emplace_back(textureNames[aoIndex], VK_FORMAT_R8G8B8A8_UNORM);
+				vk::TextureCreateInfo CI = {};
+				CI.fileNames = { textureNames[aoIndex] };
+				CI.format = VK_FORMAT_R8G8B8A8_UNORM;
+				CI.imageUsage = imageUsage;
+
+				texture_create_infos.push_back(CI);
 			}
 
-			primitive.textureSetLayoutIndex = textureManager.AddTextures(texture_create_infos);
+			primitive.textureSetLayoutIndex = textureManager.AddTextures(texture_create_infos );
 		}
 	}
 

@@ -4,11 +4,11 @@
 namespace vk
 {
     //TODO: can load partial cubemaps, but unspecified faces get a default texture.
-    Cubemap::Cubemap( vk::Device* devicePtr, const std::vector<vk::TextureCreateInfo>& createInfos, std::mutex& transferMutex )
+    Cubemap::Cubemap( const vk::Device* devicePtr, const vk::TextureCreateInfo& createInfo )
     {
         assert(devicePtr);
 
-        m_imageCount = createInfos.size();
+        m_imageCount = createInfo.fileNames.size();
         c_device = devicePtr->GetDevice();
 
         assert(m_imageCount == 6);
@@ -18,16 +18,16 @@ namespace vk
 
         std::vector<stbi_uc*> texture_data(m_imageCount, nullptr);
 
-        VkFormat format = createInfos[0].format;
+        VkFormat format = createInfo.format;
 
         for (size_t i = 0; i < m_imageCount; ++i)
         {
-            texture_data[i] = stbi_load((CUBEMAP_DIR + createInfos[i].name).c_str(),
+            texture_data[i] = stbi_load((CUBEMAP_DIR + createInfo.fileNames[i]).c_str(),
                 &image_width, &image_height, &channels, STBI_rgb_alpha);
 
             if (texture_data[i] == nullptr)
             {
-                std::cerr << "failed to load Cubemap image  " + createInfos[i].name << "\n";
+                std::cerr << "failed to load Cubemap image  " + createInfo.fileNames[i] << "\n";
                 throw std::runtime_error("Cubemap::CreateImage() failed!\n");
             }
         }
@@ -68,17 +68,15 @@ namespace vk
 
         m_image = vk::init::CreateImage(devicePtr, imageCI, m_memory, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
-        RecordTransferAndReleaseOperations(devicePtr, stagingBuffer, transferMutex);
+        RecordTransferAndReleaseOperations(devicePtr, stagingBuffer, createInfo.pTransferMutex);
 
         for (size_t i = 0; i < m_imageCount; ++i)
         {
             stbi_image_free(texture_data[i]);
         }
 
-        m_imageView = vk::Texture::CreateImageView(c_device, m_image, createInfos[0].format, VK_IMAGE_VIEW_TYPE_CUBE);
-        m_sampler = vk::Texture::CreateSampler(devicePtr->GetGPU(), c_device, 1 );
-        m_descriptor.imageView = m_imageView;
-        m_descriptor.sampler = m_sampler;
+        m_descriptor.imageView =  vk::Texture::CreateImageView(c_device, m_image, createInfo.format, VK_IMAGE_VIEW_TYPE_CUBE);
+        m_descriptor.sampler =  vk::Texture::CreateSampler(devicePtr->GetGPU(), c_device, 1 );;
         m_descriptor.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
         std::cout << "\033[32m" << "successfully loaded Cubemap in CreateImage()... " << "\033[0m\n";

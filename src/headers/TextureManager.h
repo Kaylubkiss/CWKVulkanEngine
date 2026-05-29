@@ -42,10 +42,10 @@ public:
 
 	//returns whether or not a command was recorded.
 	bool UploadTextureDataToGPU( uint32_t currentFrame, VkSemaphore textureUploadSemaphore );
-	uint32_t AddTextures( const std::vector<vk::TextureCreateInfo>& createInfos, TextureType type = TextureType::NONE ); //returns the layout index of the texture
+	uint32_t AddTextures(  std::vector<vk::TextureCreateInfo>& createInfos, TextureType type = TextureType::NONE ); //returns the layout index of the texture
 private:
 	bool AddTexture( const vk::TextureCreateInfo& createInfo );
-	bool AddCubeMapTexture( const std::vector<vk::TextureCreateInfo>& createInfos );
+	bool AddCubeMapTexture( const vk::TextureCreateInfo& createInfo );
 private:
 	std::mutex m_textureMutex;
 	std::mutex m_transferMutex;

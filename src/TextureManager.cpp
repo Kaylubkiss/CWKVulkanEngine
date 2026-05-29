@@ -49,39 +49,36 @@ bool TextureManager::AddTexture( const vk::TextureCreateInfo& createInfo )
 	{
 		std::lock_guard<std::mutex> lock(m_textureMutex);
 		//maybe a thread beat us to the punch, in the case that two threads call on the same texture
-		if (m_textures.contains(createInfo.name) == true)
+		if (m_textures.contains(createInfo.fileNames.back()) == true)
 		{
 			return false;
 		}
 	}
 
-	//TODO: generate checker-board texture for objects if texture loading failed.
-
-	std::vector<vk::TextureCreateInfo> createInfos = { createInfo };
-
-	std::shared_ptr<vk::Texture> newTexture = std::make_shared<vk::Texture>(m_devicePtr, createInfos, m_transferMutex);
+	//TODO: generate checker-board texture for objects if texture loading failed
+	std::shared_ptr<vk::Texture> newTexture = std::make_shared<vk::Texture>(m_devicePtr, createInfo);
 
 	{
 		std::lock_guard<std::mutex> lock(m_textureMutex);
 		//maybe a thread beat us to the punch, in the case that two threads call on the same texture
-		if (m_textures.contains(createInfo.name) == true)
+		if (m_textures.contains(createInfo.fileNames.back()) == true)
 		{
 			return false;
 		}
-		m_textures[createInfo.name].handle = std::move(newTexture);
+		m_textures[createInfo.fileNames.back()].handle = std::move(newTexture);
 		//first texture in m_textures will be blank.
-		m_textures[createInfo.name].index = static_cast<uint32_t>(m_textures.size());
+		m_textures[createInfo.fileNames.back()].index = static_cast<uint32_t>(m_textures.size());
 	}
 
-	std::cout << "texture loaded... " << createInfo.name << " loaded.\n";
+	std::cout << "texture loaded... " << createInfo.fileNames.back() << " loaded.\n";
 
 	return true;
 }
 
-bool TextureManager::AddCubeMapTexture( const std::vector<vk::TextureCreateInfo>& createInfos )
+bool TextureManager::AddCubeMapTexture( const vk::TextureCreateInfo& createInfo )
 {
 
-	const std::string& fileName = createInfos[0].name;
+	const std::string& fileName = createInfo.fileNames[0];
 
 	{
 		std::lock_guard lock(m_textureMutex);
@@ -92,7 +89,7 @@ bool TextureManager::AddCubeMapTexture( const std::vector<vk::TextureCreateInfo>
 		}
 	}
 
-	std::shared_ptr<vk::Texture> newTexture = std::make_shared<vk::Cubemap>(m_devicePtr, createInfos, m_transferMutex);
+	std::shared_ptr<vk::Texture> newTexture = std::make_shared<vk::Cubemap>(m_devicePtr, createInfo);
 
 	{
 		std::lock_guard lock(m_textureMutex);
@@ -111,13 +108,17 @@ bool TextureManager::AddCubeMapTexture( const std::vector<vk::TextureCreateInfo>
 	return true;
 }
 
-uint32_t TextureManager::AddTextures( const std::vector<vk::TextureCreateInfo>& createInfos, TextureType type )
+uint32_t TextureManager::AddTextures( std::vector<vk::TextureCreateInfo>& createInfos, TextureType type )
 {
 	if (createInfos.empty())
 	{
 		return 0;
 	}
 
+	for ( auto& CI : createInfos )
+	{
+		CI.pTransferMutex = &m_transferMutex;
+	}
 
 	uint32_t layoutIndex = m_descriptorManagerPtr->GetLayoutIndex(DescriptorCategory::eMaterial);
 
@@ -130,23 +131,33 @@ uint32_t TextureManager::AddTextures( const std::vector<vk::TextureCreateInfo>& 
 		pendingInfos.front().bindingIndex = 0;
 		pendingInfos.front().layoutIndex = layoutIndex;
 		pendingInfos.front().totalBindingCount = 1;
-		pendingInfos.front().needsGPUTransfer = AddCubeMapTexture(createInfos);
-		pendingInfos.front().texture_to_process = m_textures[createInfos[0].name].handle;
+		pendingInfos.front().needsGPUTransfer = AddCubeMapTexture(createInfos.back());
+		pendingInfos.front().texture_to_process = m_textures[createInfos.back().fileNames.back()].handle;
 		pendingInfos.front().type = type;
 	}
 	else
 	{
-		pendingInfos.resize(createInfos.size());
-		for (size_t i = 0; i < createInfos.size(); ++i)
+		vk::TextureCreateInfo individualCI = {};
+		individualCI.pTransferMutex = &m_transferMutex;
+		individualCI.imageUsage = createInfos.back().imageUsage;
+
+		size_t textureCount = createInfos.size();
+
+		pendingInfos.resize(textureCount);
+
+		for (size_t i = 0; i < textureCount; ++i)
 		{
+			individualCI.fileNames = { createInfos[i].fileNames.back() };
+			individualCI.format = createInfos[i].format;
+
 			//because layoutIndex 0 is the null/default texture, we assume that because a texture
 			//was successfully allocated, the layout's base index starts where the newly allocated
 			//texture does in the buffer.
 			pendingInfos[i].layoutIndex = layoutIndex;
 			pendingInfos[i].bindingIndex = static_cast<uint32_t>(i);
-			pendingInfos[i].totalBindingCount = static_cast<uint32_t>(createInfos.size());
-			pendingInfos[i].needsGPUTransfer = AddTexture(createInfos[i]);
-			pendingInfos[i].texture_to_process = m_textures[createInfos[i].name].handle;
+			pendingInfos[i].totalBindingCount = static_cast<uint32_t>(textureCount);
+			pendingInfos[i].needsGPUTransfer = AddTexture(individualCI);
+			pendingInfos[i].texture_to_process = m_textures[individualCI.fileNames.back()].handle;
 		}
 	}
 

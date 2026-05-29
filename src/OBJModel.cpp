@@ -263,7 +263,12 @@ void OBJModel::LoadTextures( TextureManager& textureManager, const std::vector<s
     Mesh& mesh = *GetMeshes().back();
     Primitive& primitive = mesh.m_primitives.back();
 
-    vk::TextureCreateInfo textureCI = {textureNames.back(), VK_FORMAT_R8G8B8A8_SRGB };
+    std::vector<vk::TextureCreateInfo> textureList = { };
+    vk::TextureCreateInfo CI = {};
+    CI.fileNames = { textureNames.back() };
+    CI.format = VK_FORMAT_R8G8B8A8_SRGB;
 
-    primitive.textureSetLayoutIndex = textureManager.AddTextures( { textureCI } );
+    textureList.push_back(CI);
+
+    primitive.textureSetLayoutIndex = textureManager.AddTextures( textureList );
 }

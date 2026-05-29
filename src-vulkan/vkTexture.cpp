@@ -10,7 +10,6 @@ namespace vk
 
 	VkImageView Texture::CreateImageView( VkDevice l_device, const VkImage& textureImage, VkFormat format, VkImageViewType type )
 	{
-
 		VkImageViewCreateInfo viewInfo = {};
 		viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
 		viewInfo.image = textureImage;
@@ -61,7 +60,7 @@ namespace vk
 	}
 
 	void Texture::RecordTransferAndReleaseOperations( const vk::Device* devicePtr, const vk::Buffer& stagingBuffer,
-		std::mutex& submissionMutex )
+		std::mutex* submissionMutex )
 	{
 		VkSubmitInfo submitInfo = {};
 
@@ -150,13 +149,19 @@ namespace vk
 
 		VK_CHECK_RESULT(vkEndCommandBuffer(transferCmd));
 
-		{
-			submitInfo = {};
-			submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-			submitInfo.commandBufferCount = 1;
-			submitInfo.pCommandBuffers = &transferCmd;
+		submitInfo = {};
+		submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+		submitInfo.commandBufferCount = 1;
+		submitInfo.pCommandBuffers = &transferCmd;
 
-			std::lock_guard lock(submissionMutex);
+		if (submissionMutex != nullptr)
+		{
+			std::lock_guard lock(*submissionMutex);
+			VK_CHECK_RESULT(vkQueueSubmit(devicePtr->GetQueue(DeviceQueue::TRANSFER).handle, 1, &submitInfo,
+				submissionFence));
+		}
+		else
+		{
 			VK_CHECK_RESULT(vkQueueSubmit(devicePtr->GetQueue(DeviceQueue::TRANSFER).handle, 1, &submitInfo,
 				submissionFence));
 		}
@@ -164,32 +169,27 @@ namespace vk
 		VK_CHECK_RESULT(vkWaitForFences(devicePtr->GetDevice(), 1, &submissionFence, VK_TRUE, UINT64_MAX));
 		VK_CHECK_RESULT(vkResetFences(devicePtr->GetDevice(), 1, &submissionFence));
 
-
 		vkDestroyFence(devicePtr->GetDevice(), submissionFence, nullptr);
 
 		vkFreeCommandBuffers(devicePtr->GetDevice(), transferCmdPool, 1, &transferCmd);
 		vkDestroyCommandPool(devicePtr->GetDevice(), transferCmdPool, nullptr);
 	}
 
-	Texture::Texture( const vk::Device* devicePtr, const std::vector<vk::TextureCreateInfo>& createInfos,
-		std::mutex& transferMutex )
+	Texture::Texture( const vk::Device* devicePtr, const vk::TextureCreateInfo& createInfo )
 	{
 		assert(devicePtr != nullptr);
 
-		m_imageCount = createInfos.size();
+		m_imageCount = createInfo.fileNames.size();
 		c_device = devicePtr->GetDevice();
 
 		const uint64_t num_channels = 4;
 		int textureWidth, textureHeight, textureChannels;
 		VkDeviceSize imageSize = 0;
 
-		vk::Buffer stagingBuffer;
-
 		stbi_uc* pixels_uc = nullptr;
-		float* pixels_f = nullptr;
 
 		//Might want to make command pool a member variable.
-		const std::string& filePath = createInfos[0].name;
+		const std::string& filePath = createInfo.fileNames.back();
 
 		if (filePath.empty())
 		{
@@ -197,9 +197,9 @@ namespace vk
 			throw std::runtime_error("vk::Texture::Create() FAILED");
 		}
 
-		if (createInfos[0].format == VK_FORMAT_R8G8B8A8_UNORM ||
-			createInfos[0].format == VK_FORMAT_R8G8B8A8_SRGB)
-		{
+		if (createInfo.format == VK_FORMAT_R8G8B8A8_UNORM ||
+			createInfo.format == VK_FORMAT_R8G8B8A8_SRGB) {
+
 			pixels_uc = stbi_load(filePath.c_str(),
 				&textureWidth, &textureHeight, &textureChannels, 4);
 
@@ -209,52 +209,27 @@ namespace vk
 				throw std::runtime_error("vk::Texture::Create() FAILED");
 			}
 		}
-		else if (createInfos[0].format == VK_FORMAT_R16G16B16A16_SFLOAT ||
-			createInfos[0].format == VK_FORMAT_R32G32B32A32_SFLOAT)
-		{
-			pixels_f = stbi_loadf(filePath.c_str(),
-				&textureWidth, &textureHeight, &textureChannels, 4);
-
-			if (pixels_f == nullptr)
-			{
-				std::cerr << "could not load in specified texture " + filePath << std::endl;
-				throw std::runtime_error("vk::Texture::Create() FAILED");
-			}
-		}
 		else
 		{
 			std::cerr << "specified format unsupported by vk::Texture::Create() \n";
-			std::cerr << "could not create texture: " << createInfos[0].name << std::endl;
+			std::cerr << "could not create texture: " << createInfo.fileNames.back() << std::endl;
 			throw std::runtime_error("vk::Texture::Create() FAILED");
 		}
 
 		m_width = static_cast<uint32_t>(textureWidth);
 		m_height = static_cast<uint32_t>(textureHeight);
 
-		if (pixels_uc != nullptr)
-		{
-			imageSize = static_cast<uint64_t>(textureWidth) *
-				static_cast<uint64_t>(textureHeight) * num_channels;
+		imageSize = static_cast<uint64_t>(textureWidth) *
+			static_cast<uint64_t>(textureHeight) * num_channels;
 
-			stagingBuffer = vk::Buffer(devicePtr,
+		vk::Buffer stagingBuffer = vk::Buffer(devicePtr,
 			VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
 			static_cast<size_t>(imageSize), pixels_uc);
-		}
-		else if (pixels_f != nullptr)
-		{
-			imageSize = static_cast<uint64_t>(textureWidth) *
-				static_cast<uint64_t>(textureHeight) * num_channels * sizeof(float);
-
-			stagingBuffer = vk::Buffer(devicePtr,
-			VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
-			static_cast<size_t>(imageSize), pixels_f);
-		}
 
 		VkImageCreateInfo textureImageCI = vk::init::ImageCreateInfo();
 		textureImageCI.imageType = VK_IMAGE_TYPE_2D;
-		textureImageCI.format = createInfos[0].format;
+		textureImageCI.format = createInfo.format;
 		textureImageCI.extent = {m_width, m_height, 1};
 		textureImageCI.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 		textureImageCI.mipLevels = 1;
@@ -265,22 +240,13 @@ namespace vk
 
 		m_image = vk::init::CreateImage(devicePtr, textureImageCI, m_memory, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
-		RecordTransferAndReleaseOperations(devicePtr, stagingBuffer, transferMutex);
 
-		if (pixels_f)
-		{
-			stbi_image_free(pixels_f);
-		}
+		RecordTransferAndReleaseOperations(devicePtr, stagingBuffer, createInfo.pTransferMutex);
 
-		if (pixels_uc)
-		{
-			stbi_image_free(pixels_uc);
-		}
+		stbi_image_free(pixels_uc);
 
-		m_imageView = vk::Texture::CreateImageView(devicePtr->GetDevice(), m_image, createInfos[0].format, VK_IMAGE_VIEW_TYPE_2D);
-		m_sampler   = vk::Texture::CreateSampler(devicePtr->GetGPU(), devicePtr->GetDevice(), 1 );
-		m_descriptor.imageView = m_imageView;
-		m_descriptor.sampler = m_sampler;
+		m_descriptor.imageView = vk::Texture::CreateImageView(devicePtr->GetDevice(), m_image, createInfo.format, VK_IMAGE_VIEW_TYPE_2D);;
+		m_descriptor.sampler = vk::Texture::CreateSampler(devicePtr->GetGPU(), devicePtr->GetDevice(), 1 );;
 		m_descriptor.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 	}
 
@@ -291,8 +257,6 @@ namespace vk
 			this->c_device = other.c_device;
 			this->m_image = other.m_image;
 			this->m_memory = other.m_memory;
-			this->m_imageView = other.m_imageView;
-			this->m_sampler = other.m_sampler;
 			this->m_width = other.m_width;
 			this->m_height = other.m_height;
 			this->m_imageCount = other.m_imageCount;
@@ -310,8 +274,6 @@ namespace vk
 			std::swap(this->c_device, other.c_device);
 			std::swap(this->m_image, other.m_image);
 			std::swap(this->m_memory, other.m_memory);
-			std::swap(this->m_imageView, other.m_imageView);
-			std::swap(this->m_sampler, other.m_sampler);
 			std::swap(this->m_width, other.m_width);
 			std::swap(this->m_height, other.m_height);
 			std::swap(this->m_imageCount, other.m_imageCount);
@@ -326,16 +288,16 @@ namespace vk
 	{
 		if (c_device != VK_NULL_HANDLE)
 		{
-			if (m_sampler != VK_NULL_HANDLE)
+			if (m_descriptor.sampler != VK_NULL_HANDLE)
 			{
-				vkDestroySampler(c_device, m_sampler, nullptr);
-				m_sampler = VK_NULL_HANDLE;
+				vkDestroySampler(c_device, m_descriptor.sampler, nullptr);
+				m_descriptor.sampler = VK_NULL_HANDLE;
 			}
 
-			if (m_imageView != VK_NULL_HANDLE)
+			if (m_descriptor.imageView != VK_NULL_HANDLE)
 			{
-				vkDestroyImageView(c_device, m_imageView, nullptr);
-				m_imageView = VK_NULL_HANDLE;
+				vkDestroyImageView(c_device, m_descriptor.imageView, nullptr);
+				m_descriptor.imageView = VK_NULL_HANDLE;
 			}
 
 			if (m_image != VK_NULL_HANDLE)
@@ -351,7 +313,6 @@ namespace vk
 			}
 		}
 	}
-
 
 	VkDescriptorImageInfo Texture::GetDescriptor() const
 	{

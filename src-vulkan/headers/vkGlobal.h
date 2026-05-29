@@ -34,7 +34,9 @@ namespace vk
 
 	struct TextureCreateInfo
 	{
-		std::string name; //(note as of 5.9.26: will represent a full file path for now)
+		std::mutex* pTransferMutex = nullptr; //this is for transfer operations done on a separate thread.
+		std::vector<std::string> fileNames; //(note as of 5.9.26: will represent a full file path for now)
+		VkImageUsageFlags imageUsage;
 		VkFormat format = VK_FORMAT_UNDEFINED;
 	};
 

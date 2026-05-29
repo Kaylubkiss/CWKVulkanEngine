@@ -6,7 +6,7 @@ namespace vk
 	{
 	public:
 		Texture() = default;
-		Texture( const vk::Device* devicePtr, const std::vector<vk::TextureCreateInfo>& createInfos, std::mutex& transferMutex );
+		Texture( const vk::Device* devicePtr, const vk::TextureCreateInfo& createInfo );
 		Texture( const Texture& other ) = delete;
 		Texture( Texture&& other ) noexcept;
 
@@ -21,14 +21,12 @@ namespace vk
 		static VkImageView CreateImageView( VkDevice l_device, const VkImage& textureImage, VkFormat format, VkImageViewType type );
 		static VkSampler CreateSampler( VkPhysicalDevice p_device, VkDevice l_device, uint32_t mipLevels );
 	protected:
-		void RecordTransferAndReleaseOperations( const vk::Device* devicePtr, const vk::Buffer& stagingBuffer, std::mutex& submissionMutex );
+		void RecordTransferAndReleaseOperations( const vk::Device* devicePtr, const vk::Buffer& stagingBuffer, std::mutex* submissionMutex );
 	protected:
 		VkDevice c_device = VK_NULL_HANDLE;
 
 		VkImage m_image = VK_NULL_HANDLE;
 		VkDeviceMemory m_memory = VK_NULL_HANDLE;
-		VkImageView m_imageView = VK_NULL_HANDLE;
-		VkSampler m_sampler = VK_NULL_HANDLE; //different mip-levels might need different samplers
 
 		uint32_t m_width = 0;
 		uint32_t m_height = 0;

@@ -9,7 +9,7 @@ namespace vk
     {
     public:
         Cubemap() = default;
-        Cubemap( vk::Device* devicePtr,  const std::vector<vk::TextureCreateInfo>& createInfos, std::mutex& transferMutex );
+        Cubemap( const vk::Device* devicePtr,  const vk::TextureCreateInfo& createInfo );
         ~Cubemap() override = default;
     private:
         const char* CUBEMAP_DIR = "art/extern-textures/cubemaps/";
