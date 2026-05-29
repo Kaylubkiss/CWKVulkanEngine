@@ -1,7 +1,6 @@
 #pragma once
 #include "vkInit.h"
 #include "vkTexture.h"
-#include "vkCubemap.h"
 
 namespace vk
 {
@@ -26,17 +25,17 @@ namespace vk
 
     	[[nodiscard]] VkDescriptorImageInfo GetIrradianceImageDescriptor() const
     	{
-			return m_irradianceInfo;
+			return m_irradianceMap.GetDescriptor();
 	    }
 
     	[[nodiscard]] VkDescriptorImageInfo GetPrefilterMapImageDescriptor() const
     	{
-			return m_prefilterInfo;
+			return m_prefilterMap.GetDescriptor();
 	    }
 
     	[[nodiscard]] VkDescriptorImageInfo GetBRDFLUTImageDescriptor() const
     	{
-			return m_BRDFLUTInfo;
+			return m_BRDFLUT.GetDescriptor();
 	    }
     private:
     	void CreateComputePipelineLayout()
@@ -111,51 +110,32 @@ namespace vk
     		return handle;
     	}
 
-        void WriteToEnvironmentMapImage( const vk::Device* devicePtr, VkCommandBuffer graphicsCmd );
-
-        void CreateEnvironmentMapImage( const vk::Device* devicePtr, VkCommandBuffer graphicsCmd,
+        void WriteToEnvironmentMapImage( const vk::Device* devicePtr, VkCommandBuffer graphicsCmd,
         	uint32_t width, uint32_t height, uint32_t layerCount, uint32_t mipLevels );
 
     	void WriteToIrradianceImage( const vk::Device* devicePtr, VkCommandBuffer graphicsCmd );
 
-    	void CreateIrradianceImage( const vk::Device* devicePtr, VkCommandBuffer graphicsCmd );
-
     	void WriteToPrefilterImage( const vk::Device* devicePtr, VkCommandBuffer graphicsCmd,
-    		std::vector<VkDescriptorImageInfo>& prefilterInfos );
+    		std::vector<VkDescriptorImageInfo>& prefilterInfos, uint32_t mipLevels, uint32_t layoutIndex );
 
-    	void CreatePrefilterImage( const vk::Device* devicePtr, VkCommandBuffer graphicsCmd,
-    		std::vector<VkDescriptorImageInfo>& prefilterInfos );
+    	void WriteToBRDFLUTImage( const vk::Device* devicePtr, VkCommandBuffer graphicsCmd, uint32_t layoutIndex );
 
-    	void WriteToBRDFLUTImage( const vk::Device* devicePtr, VkCommandBuffer graphicsCmd );
-
-    	void CreateBRDFLUTImage( const vk::Device* devicePtr, VkCommandBuffer graphicsCmd );
+    	vk::Texture CreateTexture( const vk::Device* devicePtr, VkCommandBuffer graphicsCmd,
+    		uint32_t width, uint32_t height, uint32_t layerCount, uint32_t mipLevels, VkImageUsageFlags imageUsage ) const;
     private:
     	vk::Texture m_environmentMap;
+    	vk::Texture m_irradianceMap;
+    	vk::Texture m_prefilterMap;
+    	vk::Texture m_BRDFLUT;
 
     	//NOTE: since convolution and cubemap creation have the exact same layout,
     	//they will share m_computePipelineLayout and m_computeDescriptorBuffer.
     	VkPipelineLayout m_computePipelineLayout = VK_NULL_HANDLE;
 
-    	VkPipeline m_computePipeline = VK_NULL_HANDLE;
+    	VkPipeline m_EquirectangularToCubemapPipeline = VK_NULL_HANDLE;
     	VkPipeline m_convolutionPipeline = VK_NULL_HANDLE;
     	VkPipeline m_prefilterPipeline = VK_NULL_HANDLE;
     	VkPipeline m_BRDFLUTPipeline = VK_NULL_HANDLE;
-
-    	VkImage m_irradianceImage = VK_NULL_HANDLE;
-    	VkDeviceMemory m_irradianceImageMemory = VK_NULL_HANDLE;
-    	VkDescriptorImageInfo m_irradianceInfo = {};
-
-    	VkImage m_prefilterImage = VK_NULL_HANDLE;
-    	VkDeviceMemory m_prefilterImageMemory = VK_NULL_HANDLE;
-    	VkDescriptorImageInfo m_prefilterInfo = {};
-
-    	VkImage m_BRDFLUTImage = VK_NULL_HANDLE;
-    	VkDeviceMemory m_BRDFLUTImageMemory = VK_NULL_HANDLE;
-    	VkDescriptorImageInfo m_BRDFLUTInfo = {};
-
-		uint32_t m_prefilterMipLevels = 0;
-    	uint32_t m_prefilterWidth = 512;
-    	uint32_t m_prefilterHeight = 512;
 
     	vk::DescriptorBuffer m_computeDescriptorBuffer;
     };

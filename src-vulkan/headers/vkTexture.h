@@ -17,6 +17,7 @@ namespace vk
 
 		[[nodiscard]] VkDescriptorImageInfo GetDescriptor() const;
 		[[nodiscard]] VkImage GetImage() const;
+		[[nodiscard]] VkExtent2D GetImageExtent() const;
 
 		void SetImageLayout( VkImageLayout layout );
 

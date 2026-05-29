@@ -82,29 +82,49 @@ namespace vk
     	vk::util::RecordImageLayoutTransition( graphicsCmd, m_image, VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
     		VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
-
 		//for each roughness value that's convoluted, store the blurrier results in the image's mipmap levels.
-		m_prefilterMipLevels = vk::util::CalculateMipLevels(m_prefilterWidth, m_prefilterHeight);
+		uint32_t prefilter_width = 512;
+		uint32_t prefilterMipLevels = vk::util::CalculateMipLevels(prefilter_width, prefilter_width);
 
 		//environment + convolution + prefiltering.
-		uint32_t layoutCount = 2 + m_prefilterMipLevels + 1;
+		uint32_t layoutCount = 2 + prefilterMipLevels + 1;
 
     	CreateComputeDescriptorBuffer( devicePtr, layoutCount );
 
     	CreateComputePipelineLayout();
 
+		uint32_t layoutIndex = 0;
+
 		uint32_t env_width = 512;
-		CreateEnvironmentMapImage( devicePtr, graphicsCmd, env_width, env_width, 6,
-			vk::util::CalculateMipLevels( env_width, env_width ) );
+		uint32_t env_mipLevels = vk::util::CalculateMipLevels( env_width, env_width );
+		m_environmentMap = CreateTexture( devicePtr, graphicsCmd, env_width, env_width,
+			6, env_mipLevels,
+			VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT |
+			VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT );
 
-    	CreateIrradianceImage( devicePtr, graphicsCmd );
+		WriteToEnvironmentMapImage( devicePtr, graphicsCmd, env_width, env_width, 6, env_mipLevels );
 
+		uint32_t irradiance_width = 32;
+		m_irradianceMap = CreateTexture( devicePtr, graphicsCmd, irradiance_width, irradiance_width,
+			6, 1, VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT );
+
+		WriteToIrradianceImage( devicePtr, graphicsCmd );
+
+		m_prefilterMap = CreateTexture( devicePtr, graphicsCmd, prefilter_width, prefilter_width, 6,
+			prefilterMipLevels, VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT );
+
+		layoutIndex = 2;
 		std::vector<VkDescriptorImageInfo> prefilterInfos;
-    	CreatePrefilterImage( devicePtr, graphicsCmd, prefilterInfos );
+		WriteToPrefilterImage( devicePtr, graphicsCmd, prefilterInfos, prefilterMipLevels, layoutIndex );
 
-    	CreateBRDFLUTImage( devicePtr, graphicsCmd );
+		uint32_t BRDF_width = 512;
+    	m_BRDFLUT = CreateTexture( devicePtr, graphicsCmd, BRDF_width, BRDF_width, 1, 1,
+    		VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT );
 
-    	vk::util::RecordImageLayoutTransition( graphicsCmd, m_environmentMap.GetImage(),
+		layoutIndex = 2 + prefilterMipLevels;
+		WriteToBRDFLUTImage( devicePtr, graphicsCmd, layoutIndex);
+
+		vk::util::RecordImageLayoutTransition( graphicsCmd, m_environmentMap.GetImage(),
     		VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
     		VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL );
 
@@ -115,13 +135,18 @@ namespace vk
     		submissionFence, std::nullopt );
 
     	m_environmentMap.SetImageLayout( VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL );
+		m_BRDFLUT.SetImageLayout( VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL );
 
         stbi_image_free(pixels);
+
+		if ( !prefilterInfos.empty() )
+		{
+			vkDestroySampler(devicePtr->GetDevice(), prefilterInfos.front().sampler, nullptr);
+		}
 
 		for ( auto& infos : prefilterInfos )
 		{
 			vkDestroyImageView(devicePtr->GetDevice(), infos.imageView, nullptr);
-
 		}
 
     	vkDestroyFence(devicePtr->GetDevice(), submissionFence, nullptr);
@@ -136,28 +161,15 @@ namespace vk
 	{
 		if (this != &other)
 		{
-			this->m_irradianceImage = other.m_irradianceImage;
-			this->m_prefilterImage = other.m_prefilterImage;
-			this->m_BRDFLUTImage = other.m_BRDFLUTImage;
-
-			this->m_irradianceImageMemory = other.m_irradianceImageMemory;
-			this->m_prefilterImageMemory = other.m_prefilterImageMemory;
-			this->m_BRDFLUTImageMemory = other.m_BRDFLUTImageMemory;
-
-			this->m_irradianceInfo = other.m_irradianceInfo;
-			this->m_prefilterInfo = other.m_prefilterInfo;
-			this->m_BRDFLUTInfo = other.m_BRDFLUTInfo;
-
-			this->m_computePipeline = other.m_computePipeline;
+			this->m_EquirectangularToCubemapPipeline = other.m_EquirectangularToCubemapPipeline;
 			this->m_convolutionPipeline = other.m_convolutionPipeline;
 			this->m_prefilterPipeline = other.m_prefilterPipeline;
 			this->m_BRDFLUTPipeline = other.m_BRDFLUTPipeline;
 
-			this->m_prefilterWidth = other.m_prefilterWidth;
-			this->m_prefilterHeight = other.m_prefilterHeight;
-			this->m_prefilterMipLevels = other.m_prefilterMipLevels;
-
 			this->m_environmentMap = std::move(other.m_environmentMap);
+			this->m_irradianceMap = std::move(other.m_irradianceMap);
+			this->m_prefilterMap = std::move(other.m_prefilterMap);
+			this->m_BRDFLUT = std::move(other.m_BRDFLUT);
 			this->m_computeDescriptorBuffer = std::move(other.m_computeDescriptorBuffer);
 
 			this->m_computePipelineLayout = other.m_computePipelineLayout;
@@ -173,26 +185,14 @@ namespace vk
 			Texture::operator=(std::move(other));
 
 			std::swap(this->m_environmentMap, other.m_environmentMap);
-			std::swap(this->m_irradianceImage, other.m_irradianceImage);
-			std::swap(this->m_prefilterImage, other.m_prefilterImage);
-			std::swap(this->m_BRDFLUTImage, other.m_BRDFLUTImage);
+			std::swap(this->m_irradianceMap, other.m_irradianceMap);
+			std::swap(this->m_prefilterMap, other.m_prefilterMap);
+			std::swap(this->m_BRDFLUT, other.m_BRDFLUT);
 
-			std::swap(this->m_irradianceImageMemory, other.m_irradianceImageMemory);
-			std::swap(this->m_prefilterImageMemory, other.m_prefilterImageMemory);
-			std::swap(this->m_BRDFLUTImageMemory, other.m_BRDFLUTImageMemory);
-
-			std::swap(this->m_irradianceInfo, other.m_irradianceInfo);
-			std::swap(this->m_prefilterInfo, other.m_prefilterInfo);
-			std::swap(this->m_BRDFLUTInfo, other.m_BRDFLUTInfo);
-
-			std::swap(this->m_computePipeline, other.m_computePipeline);
+			std::swap(this->m_EquirectangularToCubemapPipeline, other.m_EquirectangularToCubemapPipeline);
 			std::swap(this->m_convolutionPipeline, other.m_convolutionPipeline);
 			std::swap(this->m_prefilterPipeline, other.m_prefilterPipeline);
 			std::swap(this->m_BRDFLUTPipeline, other.m_BRDFLUTPipeline);
-
-			std::swap(this->m_prefilterWidth, other.m_prefilterWidth);
-			std::swap(this->m_prefilterHeight, other.m_prefilterHeight);
-			std::swap(this->m_prefilterMipLevels, other.m_prefilterMipLevels);
 
 			std::swap(this->m_computeDescriptorBuffer, other.m_computeDescriptorBuffer);
 
@@ -206,25 +206,7 @@ namespace vk
 	{
 		if (c_device != VK_NULL_HANDLE)
 		{
-			vkDestroyImage(c_device, m_irradianceImage, nullptr);
-			vkFreeMemory(c_device, m_irradianceImageMemory, nullptr);
-
-			vkDestroyImage(c_device, m_prefilterImage, nullptr);
-			vkFreeMemory(c_device, m_prefilterImageMemory, nullptr);
-
-			vkDestroyImage(c_device, m_BRDFLUTImage, nullptr);
-			vkFreeMemory(c_device, m_BRDFLUTImageMemory, nullptr);
-
-			vkDestroySampler(c_device, m_irradianceInfo.sampler, nullptr);
-			vkDestroyImageView(c_device, m_irradianceInfo.imageView, nullptr);
-
-			vkDestroySampler(c_device, m_prefilterInfo.sampler, nullptr);
-			vkDestroyImageView(c_device, m_prefilterInfo.imageView, nullptr);
-
-			vkDestroySampler(c_device, m_BRDFLUTInfo.sampler, nullptr);
-			vkDestroyImageView(c_device, m_BRDFLUTInfo.imageView, nullptr);
-
-			vkDestroyPipeline(c_device, m_computePipeline, nullptr);
+			vkDestroyPipeline(c_device, m_EquirectangularToCubemapPipeline, nullptr);
 			vkDestroyPipeline(c_device, m_convolutionPipeline, nullptr);
 			vkDestroyPipeline(c_device, m_prefilterPipeline, nullptr);
 			vkDestroyPipeline(c_device, m_BRDFLUTPipeline, nullptr);
@@ -233,7 +215,8 @@ namespace vk
 		}
 	}
 
-	void PanoramicTexture::WriteToEnvironmentMapImage( const vk::Device* devicePtr, VkCommandBuffer graphicsCmd )
+	void PanoramicTexture::WriteToEnvironmentMapImage( const vk::Device* devicePtr, VkCommandBuffer graphicsCmd,
+		uint32_t width, uint32_t height, uint32_t layerCount, uint32_t mipLevels )
     {
     	//write to descriptor buffer
     	vk::WriteResource writeResource = {};
@@ -249,9 +232,9 @@ namespace vk
 		    0, 0, 1, descriptorBufferProperties.storageImageDescriptorSize, true);
 
 	    //create compute pipeline
-		m_computePipeline = CreateComputePipeline( "equirectangular-to-cubemap.comp" );
+		m_EquirectangularToCubemapPipeline = CreateComputePipeline( "equirectangular-to-cubemap.comp" );
 
-		vkCmdBindPipeline(graphicsCmd, VK_PIPELINE_BIND_POINT_COMPUTE, m_computePipeline);
+		vkCmdBindPipeline(graphicsCmd, VK_PIPELINE_BIND_POINT_COMPUTE, m_EquirectangularToCubemapPipeline);
 
         std::vector<VkDescriptorBufferBindingInfoEXT> descriptorBufferBindingInfos =
         {
@@ -271,54 +254,24 @@ namespace vk
 		g_vkCmdSetDescriptorBufferOffsetsEXT(graphicsCmd, VK_PIPELINE_BIND_POINT_COMPUTE,
 			m_computePipelineLayout, 0, 1, &descriptorIndex, &bufferOffset);
 
-		vkCmdDispatch(graphicsCmd, 512 / 16, 512 / 16, 6);
+		VkExtent2D imageExtent = m_environmentMap.GetImageExtent();
 
-    	vk::util::RecordImageLayoutTransition( graphicsCmd, m_environmentMap.GetImage(),
-    		VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
-    		VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL );
+		vkCmdDispatch(graphicsCmd, imageExtent.width / 16, imageExtent.height / 16, 6);
+
+		vk::util::RecordImageLayoutTransition( graphicsCmd, m_environmentMap.GetImage(),
+			VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
+			VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+
+		vk::util::RecordBlitMipMapImages( graphicsCmd,  m_environmentMap.GetImage(),
+			width, height, mipLevels, layerCount );
+
+		//and because the blit commands transition everything to read_only, we have to transition the layout
+		//to src_optimal again
+		vk::util::RecordImageLayoutTransition( graphicsCmd,  m_environmentMap.GetImage(),
+		VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
+		VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL );
 
 		m_environmentMap.SetImageLayout( VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL );
-    }
-
-	void PanoramicTexture::CreateEnvironmentMapImage( const vk::Device* devicePtr, VkCommandBuffer graphicsCmd,
-		uint32_t width, uint32_t height, uint32_t layerCount, uint32_t mipLevels )
-    {
-		vk::TextureCreateInfo textureCI = {};
-		textureCI.format = VK_FORMAT_R32G32B32A32_SFLOAT;
-		textureCI.width = width;
-		textureCI.height = height;
-		textureCI.layerCount = layerCount;
-		textureCI.mipLevels = mipLevels;
-		textureCI.imageUsage = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT |
-			VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
-		textureCI.flags = VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
-
-        m_environmentMap = vk::Texture( devicePtr, textureCI );
-
-    	vk::util::RecordImageLayoutTransition( graphicsCmd, m_environmentMap.GetImage(),
-    		VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
-    		VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
-
-    	WriteToEnvironmentMapImage( devicePtr, graphicsCmd );
-
-    	//generating mip maps of the environment map
-		if (mipLevels > 1)
-		{
-			//have to set to transfer dst optimal because recording the blit operations assumes that's where the image
-			//starts from...
-			vk::util::RecordImageLayoutTransition( graphicsCmd, m_environmentMap.GetImage(),
-			VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
-			VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-
-			vk::util::RecordBlitMipMapImages(graphicsCmd,  m_environmentMap.GetImage(),
-				width, height, mipLevels, layerCount);
-
-			//and because the blit commands transition everything to read_only, we have to transition the layout
-			//to src_optimal again
-			vk::util::RecordImageLayoutTransition( graphicsCmd,  m_environmentMap.GetImage(),
-			VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
-			VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL );
-		}
     }
 
 	void PanoramicTexture::WriteToIrradianceImage( const vk::Device* devicePtr, VkCommandBuffer graphicsCmd )
@@ -332,6 +285,8 @@ namespace vk
     	writeResource.pImageData = &environmentMapDescriptor;
     	m_computeDescriptorBuffer.WriteDescriptor(writeResource,
 			1,0,0, descriptorBufferProperties.combinedImageSamplerDescriptorSize);
+
+		VkDescriptorImageInfo m_irradianceInfo = m_irradianceMap.GetDescriptor();
 
     	writeResource.pImageData = &m_irradianceInfo;
     	m_computeDescriptorBuffer.WriteDescriptor( writeResource,
@@ -359,58 +314,24 @@ namespace vk
 		g_vkCmdSetDescriptorBufferOffsetsEXT(graphicsCmd, VK_PIPELINE_BIND_POINT_COMPUTE,
 			m_computePipelineLayout, 0, 1, &descriptorIndex, &bufferOffset);
 
-		vkCmdDispatch(graphicsCmd, 32 / 16, 32 / 16, 6);
+		auto imageExtent = m_irradianceMap.GetImageExtent();
 
-    	vk::util::RecordImageLayoutTransition( graphicsCmd, m_irradianceImage,
+		vkCmdDispatch(graphicsCmd, imageExtent.width / 16, imageExtent.height / 16, 6);
+
+    	vk::util::RecordImageLayoutTransition( graphicsCmd, m_irradianceMap.GetImage(),
     		VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
     		VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
-    	m_irradianceInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-    }
-
-	void PanoramicTexture::CreateIrradianceImage( const vk::Device* devicePtr, VkCommandBuffer graphicsCmd )
-    {
-    	uint32_t width = 32, height = 32;
-
-        VkImageCreateInfo imageCI = vk::init::ImageCreateInfo();
-        imageCI.format = VK_FORMAT_R32G32B32A32_SFLOAT; //for now, just assume this format --> biggest possible
-        imageCI.imageType = VK_IMAGE_TYPE_2D;
-        imageCI.arrayLayers = 6;
-        //NOTE: not sure yet how to divide up the resolution. the image I'm sampling is 2048x1024 pixels.
-        imageCI.extent.width = width;
-        imageCI.extent.height = height;
-        imageCI.extent.depth = 1;
-        imageCI.mipLevels = 1;
-        imageCI.samples = VK_SAMPLE_COUNT_1_BIT;
-        imageCI.usage = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT;
-        imageCI.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-        imageCI.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-        imageCI.flags = VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
-
-        m_irradianceImage = vk::util::CreateImage(devicePtr, imageCI, m_irradianceImageMemory,
-        	VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-
-    	vk::util::RecordImageLayoutTransition( graphicsCmd, m_irradianceImage,
-    		VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
-    		VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
-
-    	m_irradianceInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
-
-    	m_irradianceInfo.imageView = vk::Texture::CreateImageView(devicePtr->GetDevice(),
-			m_irradianceImage, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_VIEW_TYPE_CUBE);
-
-    	m_irradianceInfo.sampler = vk::Texture::CreateSampler(devicePtr->GetGPU(), devicePtr->GetDevice(), 1);
-
-    	WriteToIrradianceImage( devicePtr, graphicsCmd );
+    	m_irradianceMap.SetImageLayout( VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL );
     }
 
 	void PanoramicTexture::WriteToPrefilterImage( const vk::Device* devicePtr, VkCommandBuffer graphicsCmd,
-		std::vector<VkDescriptorImageInfo>& prefilterInfos )
+		std::vector<VkDescriptorImageInfo>& prefilterInfos, uint32_t mipLevels, uint32_t layoutIndex )
     {
-    	prefilterInfos.resize(m_prefilterMipLevels);
+    	prefilterInfos.resize(mipLevels);
 
     	VkImageViewCreateInfo viewCI = vk::init::ImageViewCreateInfo();
-    	viewCI.image = m_prefilterImage;
+    	viewCI.image = m_prefilterMap.GetImage();
     	viewCI.format = VK_FORMAT_R32G32B32A32_SFLOAT;
     	viewCI.viewType = VK_IMAGE_VIEW_TYPE_CUBE;
     	viewCI.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
@@ -421,9 +342,9 @@ namespace vk
     	viewCI.components = vk::init::ComponentMappingSwizzleIdentity();
 
     	VkSampler sampler = vk::Texture::CreateSampler(devicePtr->GetGPU(), devicePtr->GetDevice(),
-    		m_prefilterMipLevels);
+    		mipLevels);
 
-    	for (uint32_t mip = 0; mip < m_prefilterMipLevels; ++mip)
+    	for (uint32_t mip = 0; mip < mipLevels; ++mip)
     	{
     		viewCI.subresourceRange.baseMipLevel = mip;
     		VK_CHECK_RESULT(vkCreateImageView(devicePtr->GetDevice(), &viewCI,
@@ -438,15 +359,15 @@ namespace vk
 
 		auto environmentMapDescriptor = m_environmentMap.GetDescriptor();
 
-    	for (uint32_t mip = 0; mip < m_prefilterMipLevels; ++mip)
+    	for (uint32_t mip = 0; mip < mipLevels; ++mip)
     	{
     		writeResource.pImageData = &environmentMapDescriptor;
     		m_computeDescriptorBuffer.WriteDescriptor(writeResource,
-				2 + mip,0,0, descriptorBufferProperties.combinedImageSamplerDescriptorSize);
+				layoutIndex + mip,0,0, descriptorBufferProperties.combinedImageSamplerDescriptorSize);
 
     		writeResource.pImageData = &prefilterInfos[mip];
     		m_computeDescriptorBuffer.WriteDescriptor( writeResource,
-				2 + mip, 0, 1, descriptorBufferProperties.storageImageDescriptorSize, true);
+				layoutIndex + mip, 0, 1, descriptorBufferProperties.storageImageDescriptorSize, true);
     	}
 
 		m_prefilterPipeline = CreateComputePipeline( "prefilter-cubemap.comp" );
@@ -470,73 +391,39 @@ namespace vk
 
     	uint32_t descriptorIndex = 0;
 
-    	for (uint32_t mip = 0; mip < m_prefilterMipLevels; ++mip)
+		VkExtent2D imageExtent = m_prefilterMap.GetImageExtent();
+
+    	for (uint32_t mip = 0; mip < mipLevels; ++mip)
     	{
     		VkDeviceSize bufferOffset = initOffset + mip * layoutSize;
 
     		g_vkCmdSetDescriptorBufferOffsetsEXT(graphicsCmd, VK_PIPELINE_BIND_POINT_COMPUTE,
 				m_computePipelineLayout, 0, 1, &descriptorIndex, &bufferOffset);
 
-    		float roughness = static_cast<float>(mip) / static_cast<float>(m_prefilterMipLevels - 1);
+    		float roughness = static_cast<float>(mip) / static_cast<float>(mipLevels - 1);
 
     		vkCmdPushConstants(graphicsCmd, m_computePipelineLayout,
     			VK_SHADER_STAGE_COMPUTE_BIT,
     			0, sizeof(float), &roughness);
 
-    		vkCmdDispatch(graphicsCmd, m_prefilterWidth / 16, m_prefilterHeight / 16, 6);
+    		vkCmdDispatch(graphicsCmd, imageExtent.width / 16, imageExtent.height / 16, 6);
     	}
 
-    	vk::util::RecordImageLayoutTransition(graphicsCmd, m_prefilterImage,
+    	vk::util::RecordImageLayoutTransition( graphicsCmd, m_prefilterMap.GetImage(),
     		VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
     		VK_IMAGE_LAYOUT_GENERAL,
-    		VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-
-    	//cleanup the temporary image views
-
-    	m_prefilterInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-
-    	m_prefilterInfo.imageView = vk::Texture::CreateImageView(devicePtr->GetDevice(),
-    		m_prefilterImage, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_VIEW_TYPE_CUBE);
-
-    	m_prefilterInfo.sampler = sampler;
+    		VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL );
     }
 
-	void PanoramicTexture::CreatePrefilterImage( const vk::Device* devicePtr, VkCommandBuffer graphicsCmd,
-		std::vector<VkDescriptorImageInfo>& prefilterInfos )
-	{
-		VkImageCreateInfo imageCI = vk::init::ImageCreateInfo();
-		imageCI.format = VK_FORMAT_R32G32B32A32_SFLOAT; //for now, just assume this format --> biggest possible
-		imageCI.imageType = VK_IMAGE_TYPE_2D;
-		imageCI.arrayLayers = 6;
-		imageCI.extent.width = m_prefilterWidth;
-		imageCI.extent.height = m_prefilterHeight;
-		imageCI.extent.depth = 1;
-		imageCI.mipLevels = m_prefilterMipLevels;
-		imageCI.samples = VK_SAMPLE_COUNT_1_BIT;
-		imageCI.usage = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT |
-			VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT; //this image will transfer to its mipped images
-		imageCI.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-		imageCI.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-		imageCI.flags = VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
-
-		m_prefilterImage = vk::util::CreateImage( devicePtr, imageCI, m_prefilterImageMemory,
-			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT );
-
-		vk::util::RecordImageLayoutTransition( graphicsCmd, m_prefilterImage,
-			VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
-			VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL );
-
-		WriteToPrefilterImage( devicePtr, graphicsCmd, prefilterInfos );
-	}
-
-	void PanoramicTexture::WriteToBRDFLUTImage( const vk::Device* devicePtr, VkCommandBuffer graphicsCmd )
+	void PanoramicTexture::WriteToBRDFLUTImage( const vk::Device* devicePtr, VkCommandBuffer graphicsCmd,
+		uint32_t layoutIndex )
     {
     	vk::WriteResource writeResource = {};
     	auto descriptorBufferProperties = devicePtr->GetDescriptorBufferProperties();
 
-    	uint32_t layoutIndex = 2 + m_prefilterMipLevels;
+		VkDescriptorImageInfo BRDFLUTInfo = m_BRDFLUT.GetDescriptor();
 
-    	writeResource.pImageData = &m_BRDFLUTInfo;
+    	writeResource.pImageData = &BRDFLUTInfo;
     	m_computeDescriptorBuffer.WriteDescriptor( writeResource,
 			layoutIndex, 0, 1, descriptorBufferProperties.storageImageDescriptorSize, true);
 
@@ -564,43 +451,39 @@ namespace vk
     	g_vkCmdSetDescriptorBufferOffsetsEXT(graphicsCmd, VK_PIPELINE_BIND_POINT_COMPUTE,
 				m_computePipelineLayout, 0, 1, &descriptorIndex, &bufferOffset);
 
-    	vkCmdDispatch(graphicsCmd, 512 / 16, 512 / 16, 1);
 
-    	vk::util::RecordImageLayoutTransition(graphicsCmd, m_BRDFLUTImage,
+		VkExtent2D imageExtent = m_BRDFLUT.GetImageExtent();
+
+    	vkCmdDispatch(graphicsCmd, imageExtent.width / 16, imageExtent.height / 16, 1);
+
+    	vk::util::RecordImageLayoutTransition(graphicsCmd, m_BRDFLUT.GetImage(),
 			VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
 			VK_IMAGE_LAYOUT_GENERAL,
 			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
     }
 
-	void PanoramicTexture::CreateBRDFLUTImage( const vk::Device* devicePtr, VkCommandBuffer graphicsCmd )
+	vk::Texture PanoramicTexture::CreateTexture( const vk::Device* devicePtr, VkCommandBuffer graphicsCmd,
+		uint32_t width, uint32_t height, uint32_t layerCount, uint32_t mipLevels, VkImageUsageFlags imageUsage ) const
     {
-    	VkImageCreateInfo imageCI = vk::init::ImageCreateInfo();
-    	imageCI.format = VK_FORMAT_R32G32B32A32_SFLOAT; //for now, just assume this format --> biggest possible
-    	imageCI.imageType = VK_IMAGE_TYPE_2D;
-    	imageCI.arrayLayers = 1;
-	    imageCI.mipLevels = 1;
-	    imageCI.extent.width = 512;
-	    imageCI.extent.height = 512;
-	    imageCI.extent.depth = 1;
-	    imageCI.samples = VK_SAMPLE_COUNT_1_BIT;
-    	imageCI.usage = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT; //this image will transfer to its mipped images
-    	imageCI.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    	imageCI.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+		vk::TextureCreateInfo textureCI = {};
+		textureCI.format = VK_FORMAT_R32G32B32A32_SFLOAT;
+		textureCI.width = width;
+		textureCI.height = height;
+		textureCI.layerCount = layerCount;
+		textureCI.mipLevels = mipLevels;
+		textureCI.imageUsage = imageUsage;
 
-    	m_BRDFLUTImage = vk::util::CreateImage( devicePtr, imageCI, m_BRDFLUTImageMemory,
-			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT );
+		if (layerCount == 6)
+		{
+			textureCI.flags = VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
+		}
 
-    	vk::util::RecordImageLayoutTransition( graphicsCmd, m_BRDFLUTImage,
+		vk::Texture newTexture = vk::Texture( devicePtr, textureCI );
+
+    	vk::util::RecordImageLayoutTransition( graphicsCmd, newTexture.GetImage(),
     		VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
     		VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL );
 
-    	m_BRDFLUTInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
-    	m_BRDFLUTInfo.imageView = vk::Texture::CreateImageView(devicePtr->GetDevice(),
-    		m_BRDFLUTImage, imageCI.format, VK_IMAGE_VIEW_TYPE_2D);
-    	m_BRDFLUTInfo.sampler = vk::Texture::CreateSampler(devicePtr->GetGPU(), devicePtr->GetDevice(), 1);
-
-		WriteToBRDFLUTImage( devicePtr, graphicsCmd );
-
-    	m_BRDFLUTInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+		return newTexture;
     }
 }

@@ -190,6 +190,9 @@ namespace vk
 
 		m_image = vk::util::CreateImage( devicePtr, imageCI, m_memory,
 			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT );
+
+		m_width = createInfo.width;
+		m_height = createInfo.height;
 	}
 
 	void Texture::CreateFromFileName( const vk::Device* devicePtr, const vk::TextureCreateInfo& createInfo )
@@ -385,6 +388,11 @@ namespace vk
 	VkImage Texture::GetImage() const
 	{
 		return m_image;
+	}
+
+	VkExtent2D Texture::GetImageExtent() const
+	{
+		return {m_width, m_height };
 	}
 
 	void Texture::SetImageLayout( VkImageLayout layout )

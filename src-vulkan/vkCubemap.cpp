@@ -41,7 +41,8 @@ namespace vk
         vk::Buffer stagingBuffer = vk::Buffer(devicePtr, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, image_size);
 
-        m_imageLayerSize = vk::util::AlignedSize(m_imageLayerSize, devicePtr->GetProperties().limits.optimalBufferCopyOffsetAlignment);
+        m_imageLayerSize = vk::util::AlignedSize(m_imageLayerSize,
+            devicePtr->GetProperties().limits.optimalBufferCopyOffsetAlignment);
 
         stagingBuffer.Map();
 
