@@ -2,6 +2,23 @@
 
 namespace vk
 {
+	/**
+	* Loads an HDR equirectangular texture and generates the associated
+	* image-based lighting resources:
+	*
+	* - Environment cubemap
+	* - Diffuse irradiance map
+	* - GGX prefiltered specular map
+	* - BRDF integration LUT
+	*
+	* GPU baking is executed synchronously during construction to ensure
+	* all generated textures are immediately ready for rendering.
+	*
+	* @param devicePtr Logical device abstraction containing queue access.
+	* @param createInfo Texture creation parameters and source image paths.
+	*
+	* @throws std::runtime_error if HDR image loading fails.
+	*/
 	PanoramicTexture::PanoramicTexture( const vk::Device* devicePtr,  const vk::TextureCreateInfo& createInfo )
     {
 		assert(devicePtr != nullptr);
@@ -23,6 +40,8 @@ namespace vk
 
         vk::Buffer stagingBuffer = vk::Buffer(devicePtr, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, m_imageLayerSize, pixels);
+
+		stbi_image_free(pixels); //don't need the pixel data now that it's copied over to the buffer.
 
         VkImageCreateInfo panoramicImageCI = vk::init::ImageCreateInfo();
         panoramicImageCI.imageType = VK_IMAGE_TYPE_2D;
@@ -50,11 +69,12 @@ namespace vk
 
         VkCommandBuffer graphicsCmd = vk::util::beginSingleTimeCommand(devicePtr->GetDevice(), graphicsCmdPool);
 
+		// Prepare image for staging buffer upload
     	vk::util::RecordImageLayoutTransition( graphicsCmd, m_image,
     		VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
     		VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
 
-		//copy buffer into image.
+		// Upload HDR image data to GPU memory.
 		{
 			std::vector<VkBufferImageCopy> regions(m_imageCount);
 			for (int i = 0; i < m_imageCount; ++i)
@@ -79,24 +99,26 @@ namespace vk
 				VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, regionCount, regions.data());
 		}
 
+		// Transition source texture for shader sampling.
     	vk::util::RecordImageLayoutTransition( graphicsCmd, m_image, VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
     		VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
-		//for each roughness value that's convoluted, store the blurrier results in the image's mipmap levels.
+		// Higher mip levels store progressively rougher specular reflections.
 		uint32_t prefilter_width = 512;
 		uint32_t prefilterMipLevels = vk::util::CalculateMipLevels(prefilter_width, prefilter_width);
 
-		//environment + convolution + prefiltering.
-		uint32_t layoutCount = 2 + prefilterMipLevels + 1;
+		// Allocate descriptor layouts for all generated IBL resources.
+		// Environment Map (1) + Irradiance Map (1) + BRDF LUT (1) + Prefilter Mips
+		uint32_t layoutCount = 3 + prefilterMipLevels;
 
     	CreateComputeDescriptorBuffer( devicePtr, layoutCount );
-
     	CreateComputePipelineLayout();
 
 		uint32_t layoutIndex = 0;
-
 		uint32_t env_width = 512;
 		uint32_t env_mipLevels = vk::util::CalculateMipLevels( env_width, env_width );
+
+		// Generate environment cubemap from equirectangular source.
 		m_environmentMap = CreateTexture( devicePtr, graphicsCmd, env_width, env_width,
 			6, env_mipLevels,
 			VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT |
@@ -110,6 +132,7 @@ namespace vk
 
 		WriteToIrradianceImage( devicePtr, graphicsCmd );
 
+		// Generate diffuse irradiance cubemap.
 		m_prefilterMap = CreateTexture( devicePtr, graphicsCmd, prefilter_width, prefilter_width, 6,
 			prefilterMipLevels, VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT );
 
@@ -117,6 +140,7 @@ namespace vk
 		std::vector<VkDescriptorImageInfo> prefilterInfos;
 		WriteToPrefilterImage( devicePtr, graphicsCmd, prefilterInfos, prefilterMipLevels, layoutIndex );
 
+		// Generate BRDF integration LUT.
 		uint32_t BRDF_width = 512;
     	m_BRDFLUT = CreateTexture( devicePtr, graphicsCmd, BRDF_width, BRDF_width, 1, 1,
     		VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT );
@@ -124,21 +148,14 @@ namespace vk
 		layoutIndex = 2 + prefilterMipLevels;
 		WriteToBRDFLUTImage( devicePtr, graphicsCmd, layoutIndex);
 
-		vk::util::RecordImageLayoutTransition( graphicsCmd, m_environmentMap.GetImage(),
-    		VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
-    		VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL );
-
     	VK_CHECK_RESULT(vkEndCommandBuffer(graphicsCmd));
 
+		// Submit baking workload and wait for completion before exposing resources to rendering.
     	vk::util::SubmitCommandToQueue( devicePtr->GetDevice(), graphicsCmd,
     		devicePtr->GetQueue(DeviceQueue::GRAPHICS).handle,
     		submissionFence, std::nullopt );
 
-    	m_environmentMap.SetImageLayout( VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL );
-		m_BRDFLUT.SetImageLayout( VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL );
-
-        stbi_image_free(pixels);
-
+		// Release temporary mip view resources used during prefilter generation
 		if ( !prefilterInfos.empty() )
 		{
 			vkDestroySampler(devicePtr->GetDevice(), prefilterInfos.front().sampler, nullptr);
@@ -149,14 +166,17 @@ namespace vk
 			vkDestroyImageView(devicePtr->GetDevice(), infos.imageView, nullptr);
 		}
 
-    	vkDestroyFence(devicePtr->GetDevice(), submissionFence, nullptr);
-
     	vkFreeCommandBuffers(devicePtr->GetDevice(), graphicsCmdPool, 1, &graphicsCmd);
     	vkDestroyCommandPool(devicePtr->GetDevice(), graphicsCmdPool, nullptr);
+
+		vkDestroyFence(devicePtr->GetDevice(), submissionFence, nullptr);
 
 		std::cout << "\033[32m" << "successfully loaded Panormaic Texture in PanoramicTexture::Create()... " << "\033[0m\n";
     }
 
+	/**
+	* Transfers ownership of GPU resources from another PanoramicTexture.
+	*/
 	PanoramicTexture::PanoramicTexture( PanoramicTexture&& other ) noexcept : Texture(std::move(other))
 	{
 		if (this != &other)
@@ -178,6 +198,9 @@ namespace vk
 		}
 	}
 
+	/**
+	* Transfers ownership of GPU resources while releasing existing state.
+	*/
 	PanoramicTexture& PanoramicTexture::operator=( PanoramicTexture&& other ) noexcept
 	{
 		if (this != &other)
@@ -202,6 +225,11 @@ namespace vk
 		return *this;
 	}
 
+	/**
+	* Releases compute pipelines and pipeline layout.
+	*
+	* Texture resources manage their own image and memory cleanup.
+	*/
 	PanoramicTexture::~PanoramicTexture()
 	{
 		if (c_device != VK_NULL_HANDLE)
@@ -215,10 +243,18 @@ namespace vk
 		}
 	}
 
+	/**
+	* Converts the source equirectangular texture into a cubemap.
+	*
+	* The generated cubemap is mipmapped and transitioned to
+	* VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL.
+	*
+	* @pre Source texture is in VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL.
+	*/
 	void PanoramicTexture::WriteToEnvironmentMapImage( const vk::Device* devicePtr, VkCommandBuffer graphicsCmd,
 		uint32_t width, uint32_t height, uint32_t layerCount, uint32_t mipLevels )
     {
-    	//write to descriptor buffer
+		// Bind source equirectangular texture.
     	vk::WriteResource writeResource = {};
     	auto descriptorBufferProperties = devicePtr->GetDescriptorBufferProperties();
 
@@ -226,6 +262,7 @@ namespace vk
 	    m_computeDescriptorBuffer.WriteDescriptor(writeResource,
 		    0,0,0, descriptorBufferProperties.combinedImageSamplerDescriptorSize);
 
+		// Bind destination environment cubemap.
 		auto environmentMapDescriptor = m_environmentMap.GetDescriptor();
 	    writeResource.pImageData = &environmentMapDescriptor;
 	    m_computeDescriptorBuffer.WriteDescriptor(writeResource,
@@ -256,8 +293,10 @@ namespace vk
 
 		VkExtent2D imageExtent = m_environmentMap.GetImageExtent();
 
+		// Dispatch conversion across all cubemap faces.
 		vkCmdDispatch(graphicsCmd, imageExtent.width / 16, imageExtent.height / 16, 6);
 
+		// Transition image for mipmap generation.
 		vk::util::RecordImageLayoutTransition( graphicsCmd, m_environmentMap.GetImage(),
 			VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
 			VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
@@ -265,22 +304,20 @@ namespace vk
 		vk::util::RecordBlitMipMapImages( graphicsCmd,  m_environmentMap.GetImage(),
 			width, height, mipLevels, layerCount );
 
-		//and because the blit commands transition everything to read_only, we have to transition the layout
-		//to src_optimal again
-		vk::util::RecordImageLayoutTransition( graphicsCmd,  m_environmentMap.GetImage(),
-		VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
-		VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL );
-
-		m_environmentMap.SetImageLayout( VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL );
+		m_environmentMap.SetImageLayout( VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL );
     }
 
+	/**
+	* Generates a diffuse irradiance cubemap from the environment map.
+	*
+	* @pre Environment map is in VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL.
+	*/
 	void PanoramicTexture::WriteToIrradianceImage( const vk::Device* devicePtr, VkCommandBuffer graphicsCmd )
     {
     	//write to descriptor buffer
     	vk::WriteResource writeResource = {};
     	auto descriptorBufferProperties = devicePtr->GetDescriptorBufferProperties();
 
-    	//NOTE: cubemapInfo.imageLayout changed between CreateCubeMap() -> WriteToIrradianceImage()
 		auto environmentMapDescriptor = m_environmentMap.GetDescriptor();
     	writeResource.pImageData = &environmentMapDescriptor;
     	m_computeDescriptorBuffer.WriteDescriptor(writeResource,
@@ -308,7 +345,8 @@ namespace vk
 		g_vkCmdBindDescriptorBuffersEXT(graphicsCmd, static_cast<uint32_t>(descriptorBufferBindingInfos.size()),
 			descriptorBufferBindingInfos.data());
 
-		VkDeviceSize bufferOffset = m_computeDescriptorBuffer.GetLayoutSize(); //since this is index 1.
+		// Select descriptor region for irradiance generation.
+		VkDeviceSize bufferOffset = m_computeDescriptorBuffer.GetLayoutSize();
 		uint32_t descriptorIndex = 0;
 
 		g_vkCmdSetDescriptorBufferOffsetsEXT(graphicsCmd, VK_PIPELINE_BIND_POINT_COMPUTE,
@@ -320,11 +358,16 @@ namespace vk
 
     	vk::util::RecordImageLayoutTransition( graphicsCmd, m_irradianceMap.GetImage(),
     		VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
-    		VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+    		VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL );
 
     	m_irradianceMap.SetImageLayout( VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL );
     }
 
+	/**
+	* Generates mipmapped GGX prefiltered specular reflections used for PBR IBL.
+	*
+	* Each mip level corresponds to an increasing surface roughness.
+	*/
 	void PanoramicTexture::WriteToPrefilterImage( const vk::Device* devicePtr, VkCommandBuffer graphicsCmd,
 		std::vector<VkDescriptorImageInfo>& prefilterInfos, uint32_t mipLevels, uint32_t layoutIndex )
     {
@@ -344,6 +387,7 @@ namespace vk
     	VkSampler sampler = vk::Texture::CreateSampler(devicePtr->GetGPU(), devicePtr->GetDevice(),
     		mipLevels);
 
+		// Create storage views for individual mip levels.
     	for (uint32_t mip = 0; mip < mipLevels; ++mip)
     	{
     		viewCI.subresourceRange.baseMipLevel = mip;
@@ -356,9 +400,9 @@ namespace vk
 
     	vk::WriteResource writeResource = {};
     	auto descriptorBufferProperties = devicePtr->GetDescriptorBufferProperties();
-
 		auto environmentMapDescriptor = m_environmentMap.GetDescriptor();
 
+		// Bind descriptors for each prefilter mip level
     	for (uint32_t mip = 0; mip < mipLevels; ++mip)
     	{
     		writeResource.pImageData = &environmentMapDescriptor;
@@ -371,7 +415,6 @@ namespace vk
     	}
 
 		m_prefilterPipeline = CreateComputePipeline( "prefilter-cubemap.comp" );
-
     	vkCmdBindPipeline(graphicsCmd, VK_PIPELINE_BIND_POINT_COMPUTE, m_prefilterPipeline);
 
         std::vector<VkDescriptorBufferBindingInfoEXT> descriptorBufferBindingInfos =
@@ -388,11 +431,10 @@ namespace vk
 
     	VkDeviceSize layoutSize = m_computeDescriptorBuffer.GetLayoutSize();
     	VkDeviceSize initOffset =  layoutSize * 2;
-
     	uint32_t descriptorIndex = 0;
-
 		VkExtent2D imageExtent = m_prefilterMap.GetImageExtent();
 
+		// Dispatch one pass per roughness mip level.
     	for (uint32_t mip = 0; mip < mipLevels; ++mip)
     	{
     		VkDeviceSize bufferOffset = initOffset + mip * layoutSize;
@@ -400,6 +442,7 @@ namespace vk
     		g_vkCmdSetDescriptorBufferOffsetsEXT(graphicsCmd, VK_PIPELINE_BIND_POINT_COMPUTE,
 				m_computePipelineLayout, 0, 1, &descriptorIndex, &bufferOffset);
 
+    		// Map mip level to surface roughness
     		float roughness = static_cast<float>(mip) / static_cast<float>(mipLevels - 1);
 
     		vkCmdPushConstants(graphicsCmd, m_computePipelineLayout,
@@ -413,8 +456,13 @@ namespace vk
     		VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
     		VK_IMAGE_LAYOUT_GENERAL,
     		VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL );
+
+		m_prefilterMap.SetImageLayout( VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL );
     }
 
+	/**
+	* Generates the BRDF integration lookup table used for split-sum specular IBL.
+	*/
 	void PanoramicTexture::WriteToBRDFLUTImage( const vk::Device* devicePtr, VkCommandBuffer graphicsCmd,
 		uint32_t layoutIndex )
     {
@@ -422,13 +470,11 @@ namespace vk
     	auto descriptorBufferProperties = devicePtr->GetDescriptorBufferProperties();
 
 		VkDescriptorImageInfo BRDFLUTInfo = m_BRDFLUT.GetDescriptor();
-
     	writeResource.pImageData = &BRDFLUTInfo;
     	m_computeDescriptorBuffer.WriteDescriptor( writeResource,
 			layoutIndex, 0, 1, descriptorBufferProperties.storageImageDescriptorSize, true);
 
 		m_BRDFLUTPipeline = CreateComputePipeline( "BRDF-convolute.comp" );
-
     	vkCmdBindPipeline(graphicsCmd, VK_PIPELINE_BIND_POINT_COMPUTE, m_BRDFLUTPipeline);
 
     	std::vector<VkDescriptorBufferBindingInfoEXT> descriptorBufferBindingInfos =
@@ -445,23 +491,30 @@ namespace vk
 
     	VkDeviceSize layoutSize = m_computeDescriptorBuffer.GetLayoutSize();
     	VkDeviceSize bufferOffset =  layoutSize * layoutIndex;
-
     	uint32_t descriptorIndex = 0;
 
     	g_vkCmdSetDescriptorBufferOffsetsEXT(graphicsCmd, VK_PIPELINE_BIND_POINT_COMPUTE,
 				m_computePipelineLayout, 0, 1, &descriptorIndex, &bufferOffset);
 
-
 		VkExtent2D imageExtent = m_BRDFLUT.GetImageExtent();
 
+		/// Generate 2D BRDF integration LUT.
     	vkCmdDispatch(graphicsCmd, imageExtent.width / 16, imageExtent.height / 16, 1);
 
     	vk::util::RecordImageLayoutTransition(graphicsCmd, m_BRDFLUT.GetImage(),
 			VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
 			VK_IMAGE_LAYOUT_GENERAL,
-			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL );
+
+		m_BRDFLUT.SetImageLayout( VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL );
     }
 
+	/**
+	* Creates a texture resource and transitions it to
+	* VK_IMAGE_LAYOUT_GENERAL for compute access.
+	*
+	* @return Initialized texture resource.
+	*/
 	vk::Texture PanoramicTexture::CreateTexture( const vk::Device* devicePtr, VkCommandBuffer graphicsCmd,
 		uint32_t width, uint32_t height, uint32_t layerCount, uint32_t mipLevels, VkImageUsageFlags imageUsage ) const
     {
@@ -480,6 +533,7 @@ namespace vk
 
 		vk::Texture newTexture = vk::Texture( devicePtr, textureCI );
 
+		// Prepare texture for compute shader writes.
     	vk::util::RecordImageLayoutTransition( graphicsCmd, newTexture.GetImage(),
     		VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
     		VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL );

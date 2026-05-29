@@ -4,20 +4,51 @@
 
 namespace vk
 {
-	//technically a type of cubemap, but inheriting cubemap would be useless.
+	/**
+	 * @class PanoramicTexture
+	 * @brief A specialized texture resource that takes in an equirectangular image
+	 * and bakes it into the cubemaps required for Image-Based Lighting (IBL).
+	 *
+	 * Architecture Notes:
+	 * - Inherits from vk::Texture to integrate with the engine's rendering pipeline.
+	 * - Uses VK_EXT_descriptor_buffer to bind resources directly via GPU addresses,
+	 * avoiding descriptor pool overhead.
+	 * - Enforces move-only semantics to manage the lifetimes of internal pipelines
+	 * and generated textures.
+	 */
     class PanoramicTexture : public Texture
     {
     public:
     	PanoramicTexture() = default;
+
+    	/**
+		 * @brief Synchronously bakes all required IBL maps from an equirectangular source file.
+		 */
     	PanoramicTexture( const vk::Device* devicePtr, const vk::TextureCreateInfo& createInfo );
+
+    	// Disable copy semantics to guarantee unique ownership of underlying Vulkan handles
     	PanoramicTexture( const PanoramicTexture& other ) = delete;
+    	PanoramicTexture& operator=( const PanoramicTexture& other ) = delete;
+
+    	/**
+		 * @brief Move constructor transferring unique ownership of compute pipelines and baked textures.
+		 */
     	PanoramicTexture( PanoramicTexture&& other ) noexcept;
 
-    	PanoramicTexture& operator=( const PanoramicTexture& other ) = delete;
+    	/**
+		 * @brief Move assignment operator safely swapping resource ownership.
+		 */
     	PanoramicTexture& operator=( PanoramicTexture&& other ) noexcept;
 
+    	/**
+		 * @brief Destructor releasing active compute pipelines and layouts.
+		 */
 	    ~PanoramicTexture() override;
 
+    	/**
+		 * @name Public API Resource Descriptor Getters
+		 * @{
+		 */
     	[[nodiscard]] VkDescriptorImageInfo GetEnvironmentMapImageDescriptor() const
 	    {
 	    	return m_environmentMap.GetDescriptor();
@@ -37,7 +68,12 @@ namespace vk
     	{
 			return m_BRDFLUT.GetDescriptor();
 	    }
+    	/** @} */
+
     private:
+    	/**
+		 * @brief Generates the uniform pipeline layout bound across all compute pipelines.
+		 */
     	void CreateComputePipelineLayout()
     	{
 			VkPipelineLayoutCreateInfo pipelineLayoutCI = vk::init::PipelineLayoutCreateInfo();
@@ -56,6 +92,9 @@ namespace vk
 			vkCreatePipelineLayout(c_device, &pipelineLayoutCI, nullptr, &m_computePipelineLayout);
 		}
 
+    	/**
+		 * @brief Pre-allocates the modern descriptor buffer backings matching input layout demands.
+		 */
     	void CreateComputeDescriptorBuffer( const vk::Device* devicePtr, uint32_t layoutCount )
     	{
 
@@ -86,6 +125,9 @@ namespace vk
 				1, layoutCount, layoutBindings);
     	}
 
+    	/**
+		 * @brief Helper to compile a compute shader with descriptor buffer flags.
+		 */
     	[[nodiscard]] VkPipeline CreateComputePipeline( std::string_view fileName ) const
     	{
 			VkComputePipelineCreateInfo computePipelineCI = {};
@@ -110,6 +152,7 @@ namespace vk
     		return handle;
     	}
 
+    	// Sub-stage execution wrappers orchestrating the physical GPU compute dispatches
         void WriteToEnvironmentMapImage( const vk::Device* devicePtr, VkCommandBuffer graphicsCmd,
         	uint32_t width, uint32_t height, uint32_t layerCount, uint32_t mipLevels );
 
@@ -120,18 +163,21 @@ namespace vk
 
     	void WriteToBRDFLUTImage( const vk::Device* devicePtr, VkCommandBuffer graphicsCmd, uint32_t layoutIndex );
 
+    	// Factory generator tracking internal layout allocation definitions
     	vk::Texture CreateTexture( const vk::Device* devicePtr, VkCommandBuffer graphicsCmd,
     		uint32_t width, uint32_t height, uint32_t layerCount, uint32_t mipLevels, VkImageUsageFlags imageUsage ) const;
     private:
+    	// Persistent specialized PBR asset allocations
     	vk::Texture m_environmentMap;
     	vk::Texture m_irradianceMap;
     	vk::Texture m_prefilterMap;
     	vk::Texture m_BRDFLUT;
 
-    	//NOTE: since convolution and cubemap creation have the exact same layout,
-    	//they will share m_computePipelineLayout and m_computeDescriptorBuffer.
+    	// Shared Layout Context: Convolution and base cubemap projection share structural binding layouts,
+    	// allowing efficient reuse of this unified layout and descriptor buffer allocation.
     	VkPipelineLayout m_computePipelineLayout = VK_NULL_HANDLE;
 
+    	// Individual compute pipelines for each step of the IBL baking process
     	VkPipeline m_EquirectangularToCubemapPipeline = VK_NULL_HANDLE;
     	VkPipeline m_convolutionPipeline = VK_NULL_HANDLE;
     	VkPipeline m_prefilterPipeline = VK_NULL_HANDLE;
