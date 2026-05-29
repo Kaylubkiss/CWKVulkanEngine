@@ -54,7 +54,7 @@ namespace vk
     	//for each roughness value that's convoluted, store the blurrier results in the image's mipmap levels.
     	m_prefilterMipLevels = vk::util::CalculateMipLevels(m_prefilterWidth, m_prefilterHeight);
 
-        VkFence submissionFence = vk::init::CreateFence(devicePtr->GetDevice(), false);
+        VkFence submissionFence = vk::init::CreateFence( devicePtr->GetDevice(), false );
 
         VkCommandPool graphicsCmdPool = vk::init::CommandPool(devicePtr->GetDevice(),
 		VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT, devicePtr->GetQueue(DeviceQueue::GRAPHICS).family);
@@ -93,12 +93,6 @@ namespace vk
     	vk::util::RecordImageLayoutTransition( graphicsCmd, m_image, VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
     		VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
-        VK_CHECK_RESULT(vkEndCommandBuffer(graphicsCmd));
-
-        vk::util::SubmitCommandToQueue( devicePtr->GetDevice(), graphicsCmd,
-        	devicePtr->GetQueue(DeviceQueue::GRAPHICS).handle,
-        	submissionFence, std::nullopt );
-
 
     	CreateComputeDescriptorBuffer( devicePtr );
 
@@ -108,15 +102,10 @@ namespace vk
 
     	CreateIrradianceImage( devicePtr, graphicsCmd, submissionFence );
 
-    	CreatePrefilterImage( devicePtr, graphicsCmd, submissionFence );
+		std::vector<VkDescriptorImageInfo> prefilterInfos;
+    	CreatePrefilterImage( devicePtr, graphicsCmd, prefilterInfos, submissionFence );
 
     	CreateBRDFLUTImage( devicePtr, graphicsCmd, submissionFence );
-
-    	VkCommandBufferBeginInfo beginInfo = {};
-    	beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    	beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-
-    	VK_CHECK_RESULT(vkBeginCommandBuffer(graphicsCmd, &beginInfo));
 
     	vk::util::RecordImageLayoutTransition( graphicsCmd, m_environmentMapImage,
     		VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
@@ -133,6 +122,11 @@ namespace vk
         std::cout << "\033[32m" << "successfully loaded Panormaic Texture in PanoramicTexture::Create()... " << "\033[0m\n";
 
         stbi_image_free(pixels);
+
+		for (auto& infos : prefilterInfos)
+		{
+			vkDestroyImageView(devicePtr->GetDevice(), infos.imageView, nullptr);
+		}
 
     	vkDestroyFence(devicePtr->GetDevice(), submissionFence, nullptr);
 
@@ -267,12 +261,6 @@ namespace vk
 	    //create compute pipeline
 		m_computePipeline = CreateComputePipeline( "equirectangular-to-cubemap.comp" );
 
-		VkCommandBufferBeginInfo beginInfo = {};
-		beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-		beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-
-		VK_CHECK_RESULT(vkBeginCommandBuffer(graphicsCmd, &beginInfo));
-
 		vkCmdBindPipeline(graphicsCmd, VK_PIPELINE_BIND_POINT_COMPUTE, m_computePipeline);
 
         std::vector<VkDescriptorBufferBindingInfoEXT> descriptorBufferBindingInfos =
@@ -298,12 +286,6 @@ namespace vk
     	vk::util::RecordImageLayoutTransition( graphicsCmd, m_environmentMapImage,
     		VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
     		VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL );
-
-    	VK_CHECK_RESULT(vkEndCommandBuffer(graphicsCmd));
-
-		vk::util::SubmitCommandToQueue(devicePtr->GetDevice(), graphicsCmd,
-			devicePtr->GetQueue(DeviceQueue::GRAPHICS).handle,
-			submissionFence, std::nullopt);
 
     }
 
@@ -333,21 +315,9 @@ namespace vk
 
         m_environmentMapImage = vk::init::CreateImage(devicePtr, imageCI, m_environmentMapImageMemory, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
-    	VkCommandBufferBeginInfo beginInfo = {};
-    	beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    	beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-
-    	VK_CHECK_RESULT(vkBeginCommandBuffer(graphicsCmd, &beginInfo));
-
     	vk::util::RecordImageLayoutTransition( graphicsCmd, m_environmentMapImage,
     		VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
     		VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
-
-    	VK_CHECK_RESULT(vkEndCommandBuffer(graphicsCmd));
-
-    	vk::util::SubmitCommandToQueue(devicePtr->GetDevice(), graphicsCmd,
-    		devicePtr->GetQueue(DeviceQueue::GRAPHICS).handle,
-    		submissionFence, std::nullopt);
 
     	m_environmentMapInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
 
@@ -360,11 +330,8 @@ namespace vk
 
     	//generating mip maps of the environment map
 
-    	VK_CHECK_RESULT(vkBeginCommandBuffer(graphicsCmd, &beginInfo));
-
     	//have to set to transfer dst optimal because recording the blit operations assumes that's where the image
     	//starts from...
-
     	vk::util::RecordImageLayoutTransition( graphicsCmd, m_environmentMapImage,
 		VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
 		VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
@@ -377,11 +344,6 @@ namespace vk
 		VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
 		VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
 
-    	VK_CHECK_RESULT(vkEndCommandBuffer(graphicsCmd));
-
-    	vk::util::SubmitCommandToQueue(devicePtr->GetDevice(), graphicsCmd,
-			devicePtr->GetQueue(DeviceQueue::GRAPHICS).handle,
-			submissionFence, std::nullopt);
     }
 
 	void PanoramicTexture::WriteToIrradianceImage( const vk::Device* devicePtr, VkCommandBuffer graphicsCmd, VkFence submissionFence )
@@ -401,12 +363,6 @@ namespace vk
 
 		m_convolutionPipeline = CreateComputePipeline( "convolute-cubemap.comp" );
 
-    	VkCommandBufferBeginInfo beginInfo = {};
-		beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-		beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-
-		VK_CHECK_RESULT(vkBeginCommandBuffer(graphicsCmd, &beginInfo));
-
 		vkCmdBindPipeline(graphicsCmd, VK_PIPELINE_BIND_POINT_COMPUTE, m_convolutionPipeline);
 
         std::vector<VkDescriptorBufferBindingInfoEXT> descriptorBufferBindingInfos =
@@ -421,7 +377,6 @@ namespace vk
 		g_vkCmdBindDescriptorBuffersEXT(graphicsCmd, static_cast<uint32_t>(descriptorBufferBindingInfos.size()),
 			descriptorBufferBindingInfos.data());
 
-
 		VkDeviceSize bufferOffset = m_computeDescriptorBuffer.GetLayoutSize(); //since this is index 1.
 		uint32_t descriptorIndex = 0;
 
@@ -433,12 +388,6 @@ namespace vk
     	vk::util::RecordImageLayoutTransition( graphicsCmd, m_irradianceImage,
     		VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
     		VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-
-    	VK_CHECK_RESULT(vkEndCommandBuffer(graphicsCmd));
-
-    	vk::util::SubmitCommandToQueue(devicePtr->GetDevice(), graphicsCmd,
-    		devicePtr->GetQueue(DeviceQueue::GRAPHICS).handle,
-    		submissionFence, std::nullopt);
 
     	m_irradianceInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
     }
@@ -468,21 +417,9 @@ namespace vk
 
         m_irradianceImage = vk::init::CreateImage(devicePtr, imageCI, m_irradianceImageMemory, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
-    	VkCommandBufferBeginInfo beginInfo = {};
-    	beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    	beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-
-    	VK_CHECK_RESULT(vkBeginCommandBuffer(graphicsCmd, &beginInfo));
-
     	vk::util::RecordImageLayoutTransition( graphicsCmd, m_irradianceImage,
     		VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
     		VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
-
-    	VK_CHECK_RESULT(vkEndCommandBuffer(graphicsCmd));
-
-    	vk::util::SubmitCommandToQueue(devicePtr->GetDevice(), graphicsCmd,
-    		devicePtr->GetQueue(DeviceQueue::GRAPHICS).handle,
-    		submissionFence, std::nullopt);
 
     	m_irradianceInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
 
@@ -495,9 +432,9 @@ namespace vk
     }
 
 	void PanoramicTexture::WriteToPrefilterImage( const vk::Device* devicePtr, VkCommandBuffer graphicsCmd,
-		VkFence submissionFence )
+		std::vector<VkDescriptorImageInfo>& prefilterInfos, VkFence submissionFence )
     {
-    	std::vector<VkDescriptorImageInfo> prefilterInfos(m_prefilterMipLevels);
+    	prefilterInfos.resize(m_prefilterMipLevels);
 
     	VkImageViewCreateInfo viewCI = vk::init::ImageViewCreateInfo();
     	viewCI.image = m_prefilterImage;
@@ -539,12 +476,6 @@ namespace vk
 
 		m_prefilterPipeline = CreateComputePipeline( "prefilter-cubemap.comp" );
 
-    	VkCommandBufferBeginInfo beginInfo = {};
-    	beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    	beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-
-    	VK_CHECK_RESULT(vkBeginCommandBuffer(graphicsCmd, &beginInfo));
-
     	vkCmdBindPipeline(graphicsCmd, VK_PIPELINE_BIND_POINT_COMPUTE, m_prefilterPipeline);
 
         std::vector<VkDescriptorBufferBindingInfoEXT> descriptorBufferBindingInfos =
@@ -585,17 +516,7 @@ namespace vk
     		VK_IMAGE_LAYOUT_GENERAL,
     		VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
-    	VK_CHECK_RESULT(vkEndCommandBuffer(graphicsCmd));
-
-    	vk::util::SubmitCommandToQueue( devicePtr->GetDevice(), graphicsCmd,
-    		devicePtr->GetQueue(DeviceQueue::GRAPHICS).handle,
-    		submissionFence, std::nullopt );
-
     	//cleanup the temporary image views
-    	for (auto& infos : prefilterInfos)
-    	{
-			vkDestroyImageView(devicePtr->GetDevice(), infos.imageView, nullptr);
-    	}
 
     	m_prefilterInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
@@ -606,7 +527,7 @@ namespace vk
     }
 
 	void PanoramicTexture::CreatePrefilterImage( const vk::Device* devicePtr, VkCommandBuffer graphicsCmd,
-		VkFence submissionFence )
+		std::vector<VkDescriptorImageInfo>& prefilterInfos, VkFence submissionFence )
 	{
 		assert(m_environmentMapImage != VK_NULL_HANDLE);
 
@@ -628,23 +549,11 @@ namespace vk
 		m_prefilterImage = vk::init::CreateImage( devicePtr, imageCI, m_prefilterImageMemory,
 			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT );
 
-		VkCommandBufferBeginInfo beginInfo = {};
-		beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-		beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-
-		VK_CHECK_RESULT(vkBeginCommandBuffer(graphicsCmd, &beginInfo));
-
 		vk::util::RecordImageLayoutTransition( graphicsCmd, m_prefilterImage,
 			VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
 			VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL );
 
-		VK_CHECK_RESULT(vkEndCommandBuffer(graphicsCmd));
-
-		vk::util::SubmitCommandToQueue( devicePtr->GetDevice(), graphicsCmd,
-			devicePtr->GetQueue(DeviceQueue::GRAPHICS).handle,
-			submissionFence, std::nullopt );
-
-		WriteToPrefilterImage( devicePtr, graphicsCmd, submissionFence );
+		WriteToPrefilterImage( devicePtr, graphicsCmd, prefilterInfos, submissionFence );
 	}
 
 	void PanoramicTexture::WriteToBRDFLUTImage( const vk::Device* devicePtr, VkCommandBuffer graphicsCmd,
@@ -660,12 +569,6 @@ namespace vk
 			layoutIndex, 0, 1, descriptorBufferProperties.storageImageDescriptorSize, true);
 
 		m_BRDFLUTPipeline = CreateComputePipeline( "BRDF-convolute.comp" );
-
-    	VkCommandBufferBeginInfo beginInfo = {};
-    	beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    	beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-
-    	VK_CHECK_RESULT(vkBeginCommandBuffer(graphicsCmd, &beginInfo));
 
     	vkCmdBindPipeline(graphicsCmd, VK_PIPELINE_BIND_POINT_COMPUTE, m_BRDFLUTPipeline);
 
@@ -695,12 +598,6 @@ namespace vk
 			VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
 			VK_IMAGE_LAYOUT_GENERAL,
 			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-
-    	VK_CHECK_RESULT(vkEndCommandBuffer(graphicsCmd));
-
-    	vk::util::SubmitCommandToQueue( devicePtr->GetDevice(), graphicsCmd,
-		devicePtr->GetQueue(DeviceQueue::GRAPHICS).handle,
-		submissionFence, std::nullopt );
     }
 
 	void PanoramicTexture::CreateBRDFLUTImage( const vk::Device* devicePtr, VkCommandBuffer graphicsCmd,
@@ -723,21 +620,9 @@ namespace vk
     	m_BRDFLUTImage = vk::init::CreateImage( devicePtr, imageCI, m_BRDFLUTImageMemory,
 			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT );
 
-    	VkCommandBufferBeginInfo beginInfo = {};
-    	beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    	beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-
-    	VK_CHECK_RESULT(vkBeginCommandBuffer(graphicsCmd, &beginInfo));
-
     	vk::util::RecordImageLayoutTransition( graphicsCmd, m_BRDFLUTImage,
     		VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
     		VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL );
-
-    	VK_CHECK_RESULT(vkEndCommandBuffer(graphicsCmd));
-
-    	vk::util::SubmitCommandToQueue( devicePtr->GetDevice(), graphicsCmd,
-    		devicePtr->GetQueue(DeviceQueue::GRAPHICS).handle,
-    		submissionFence, std::nullopt );
 
     	m_BRDFLUTInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
     	m_BRDFLUTInfo.imageView = vk::Texture::CreateImageView(devicePtr->GetDevice(),

@@ -125,9 +125,11 @@ namespace vk
     		VkFence submissionFence );
 
     	void WriteToPrefilterImage( const vk::Device* devicePtr, VkCommandBuffer graphicsCmd,
+    		std::vector<VkDescriptorImageInfo>& prefilterInfos,
     		VkFence submissionFence );
 
     	void CreatePrefilterImage( const vk::Device* devicePtr, VkCommandBuffer graphicsCmd,
+    		std::vector<VkDescriptorImageInfo>& prefilterInfos,
     		VkFence submissionFence );
 
     	void WriteToBRDFLUTImage( const vk::Device* devicePtr, VkCommandBuffer graphicsCmd,

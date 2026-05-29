@@ -56,29 +56,32 @@ namespace vk
 
 	void Framebuffer::Destroy() 
 	{
-		for (auto& attachment : attachments) 
+		if (contextDevice != nullptr)
 		{
-			attachment.Destroy(contextDevice->GetDevice());
-		}
+			for (auto& attachment : attachments)
+			{
+				attachment.Destroy(contextDevice->GetDevice());
+			}
 
-		attachments.clear();
+			attachments.clear();
 
-		if (sampler) 
-		{
-			vkDestroySampler(contextDevice->GetDevice(), sampler, nullptr);
-			sampler = VK_NULL_HANDLE;
-		}
+			if (sampler)
+			{
+				vkDestroySampler(contextDevice->GetDevice(), sampler, nullptr);
+				sampler = VK_NULL_HANDLE;
+			}
 
-		if (renderPass) 
-		{
-			vkDestroyRenderPass(contextDevice->GetDevice(), renderPass, nullptr);
-			renderPass = VK_NULL_HANDLE;
-		}
+			if (renderPass)
+			{
+				vkDestroyRenderPass(contextDevice->GetDevice(), renderPass, nullptr);
+				renderPass = VK_NULL_HANDLE;
+			}
 
-		if (handle) 
-		{
-			vkDestroyFramebuffer(contextDevice->GetDevice(), handle, nullptr);
-			handle = VK_NULL_HANDLE;
+			if (handle)
+			{
+				vkDestroyFramebuffer(contextDevice->GetDevice(), handle, nullptr);
+				handle = VK_NULL_HANDLE;
+			}
 		}
 	}
 

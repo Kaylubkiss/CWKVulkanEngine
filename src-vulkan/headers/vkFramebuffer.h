@@ -67,7 +67,6 @@ namespace vk
 		VkRenderPass renderPass = VK_NULL_HANDLE; //NOTE: unused in swapchain
 		VkSampler sampler = VK_NULL_HANDLE;
 		std::vector<FramebufferAttachment> attachments;
-
 	private:
 		vk::Device* contextDevice = nullptr;
 	};
