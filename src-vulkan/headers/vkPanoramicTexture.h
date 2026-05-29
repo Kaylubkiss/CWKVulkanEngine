@@ -5,50 +5,60 @@
 namespace vk
 {
 	/**
-	 * @class PanoramicTexture
-	 * @brief A specialized texture resource that takes in an equirectangular image
-	 * and bakes it into the cubemaps required for Image-Based Lighting (IBL).
-	 *
-	 * Architecture Notes:
-	 * - Inherits from vk::Texture to integrate with the engine's rendering pipeline.
-	 * - Uses VK_EXT_descriptor_buffer to bind resources directly via GPU addresses,
-	 * avoiding descriptor pool overhead.
-	 * - Enforces move-only semantics to manage the lifetimes of internal pipelines
-	 * and generated textures.
-	 */
+	* Generates image-based lighting (IBL) resources from an HDR
+	* equirectangular source texture.
+	*
+	* Generated resources:
+	* - Environment cubemap
+	* - Diffuse irradiance cubemap
+	* - GGX prefiltered specular cubemap
+	* - BRDF integration LUT
+	*
+	* The class uses compute pipelines to bake all derived textures
+	* during construction.
+	*
+	* Notes:
+	* - Inherits from vk::Texture for integration with the rendering system.
+	* - Uses VK_EXT_descriptor_buffer for GPU-addressable descriptor access.
+	* - Enforces move-only semantics for Vulkan resource ownership.
+	*/
     class PanoramicTexture : public Texture
     {
     public:
     	PanoramicTexture() = default;
 
     	/**
-		 * @brief Synchronously bakes all required IBL maps from an equirectangular source file.
-		 */
+		* Loads an HDR equirectangular texture and synchronously generates
+		* all required IBL resources.
+		*
+		* @param devicePtr Logical device abstraction.
+		* @param createInfo Texture creation parameters and source paths.
+		*/
     	PanoramicTexture( const vk::Device* devicePtr, const vk::TextureCreateInfo& createInfo );
 
-    	// Disable copy semantics to guarantee unique ownership of underlying Vulkan handles
+    	// Non-copyable due to unique Vulkan resource ownership.
     	PanoramicTexture( const PanoramicTexture& other ) = delete;
     	PanoramicTexture& operator=( const PanoramicTexture& other ) = delete;
 
     	/**
-		 * @brief Move constructor transferring unique ownership of compute pipelines and baked textures.
-		 */
+		* Transfers ownership of Vulkan resources.
+		*/
     	PanoramicTexture( PanoramicTexture&& other ) noexcept;
 
     	/**
-		 * @brief Move assignment operator safely swapping resource ownership.
-		 */
+		* Transfers ownership while releasing existing resources.
+		*/
     	PanoramicTexture& operator=( PanoramicTexture&& other ) noexcept;
 
     	/**
-		 * @brief Destructor releasing active compute pipelines and layouts.
-		 */
+		* Releases compute pipelines and pipeline layout resources.
+		*/
 	    ~PanoramicTexture() override;
 
     	/**
-		 * @name Public API Resource Descriptor Getters
-		 * @{
-		 */
+		* @name IBL Texture Descriptors
+		* @{
+		*/
     	[[nodiscard]] VkDescriptorImageInfo GetEnvironmentMapImageDescriptor() const
 	    {
 	    	return m_environmentMap.GetDescriptor();
@@ -72,8 +82,9 @@ namespace vk
 
     private:
     	/**
-		 * @brief Generates the uniform pipeline layout bound across all compute pipelines.
-		 */
+    	* Creates the shared compute pipeline layout used by all
+		* IBL baking pipelines.
+		*/
     	void CreateComputePipelineLayout()
     	{
 			VkPipelineLayoutCreateInfo pipelineLayoutCI = vk::init::PipelineLayoutCreateInfo();
@@ -93,8 +104,8 @@ namespace vk
 		}
 
     	/**
-		 * @brief Pre-allocates the modern descriptor buffer backings matching input layout demands.
-		 */
+		* Allocates the descriptor buffer used by compute pipelines.
+		*/
     	void CreateComputeDescriptorBuffer( const vk::Device* devicePtr, uint32_t layoutCount )
     	{
 
@@ -126,8 +137,8 @@ namespace vk
     	}
 
     	/**
-		 * @brief Helper to compile a compute shader with descriptor buffer flags.
-		 */
+    	* Creates a compute pipeline from a shader module.
+    	*/
     	[[nodiscard]] VkPipeline CreateComputePipeline( std::string_view fileName ) const
     	{
 			VkComputePipelineCreateInfo computePipelineCI = {};
@@ -152,32 +163,33 @@ namespace vk
     		return handle;
     	}
 
-    	// Sub-stage execution wrappers orchestrating the physical GPU compute dispatches
+    	// IBL generation stages.
         void WriteToEnvironmentMapImage( const vk::Device* devicePtr, VkCommandBuffer graphicsCmd,
         	uint32_t width, uint32_t height, uint32_t layerCount, uint32_t mipLevels );
 
-    	void WriteToIrradianceImage( const vk::Device* devicePtr, VkCommandBuffer graphicsCmd );
+    	void WriteToIrradianceImage( const vk::Device* devicePtr, VkCommandBuffer graphicsCmd, uint32_t layoutIndex );
 
     	void WriteToPrefilterImage( const vk::Device* devicePtr, VkCommandBuffer graphicsCmd,
     		std::vector<VkDescriptorImageInfo>& prefilterInfos, uint32_t mipLevels, uint32_t layoutIndex );
 
     	void WriteToBRDFLUTImage( const vk::Device* devicePtr, VkCommandBuffer graphicsCmd, uint32_t layoutIndex );
 
-    	// Factory generator tracking internal layout allocation definitions
+    	/**
+		* Creates a texture resource initialized for compute access.
+		*/
     	vk::Texture CreateTexture( const vk::Device* devicePtr, VkCommandBuffer graphicsCmd,
     		uint32_t width, uint32_t height, uint32_t layerCount, uint32_t mipLevels, VkImageUsageFlags imageUsage ) const;
     private:
-    	// Persistent specialized PBR asset allocations
+    	// IBL image resources.
     	vk::Texture m_environmentMap;
     	vk::Texture m_irradianceMap;
     	vk::Texture m_prefilterMap;
     	vk::Texture m_BRDFLUT;
 
-    	// Shared Layout Context: Convolution and base cubemap projection share structural binding layouts,
-    	// allowing efficient reuse of this unified layout and descriptor buffer allocation.
+    	// Shared compute pipeline layout.
     	VkPipelineLayout m_computePipelineLayout = VK_NULL_HANDLE;
 
-    	// Individual compute pipelines for each step of the IBL baking process
+    	// Compute pipelines for IBL creation stages
     	VkPipeline m_EquirectangularToCubemapPipeline = VK_NULL_HANDLE;
     	VkPipeline m_convolutionPipeline = VK_NULL_HANDLE;
     	VkPipeline m_prefilterPipeline = VK_NULL_HANDLE;

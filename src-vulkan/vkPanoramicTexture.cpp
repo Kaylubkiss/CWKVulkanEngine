@@ -3,7 +3,7 @@
 namespace vk
 {
 	/**
-	* Loads an HDR equirectangular texture and generates the associated
+	* Loads an HDR equirectangular texture and creates the associated
 	* image-based lighting resources:
 	*
 	* - Environment cubemap
@@ -12,7 +12,7 @@ namespace vk
 	* - BRDF integration LUT
 	*
 	* GPU baking is executed synchronously during construction to ensure
-	* all generated textures are immediately ready for rendering.
+	* all produced textures are immediately ready for rendering.
 	*
 	* @param devicePtr Logical device abstraction containing queue access.
 	* @param createInfo Texture creation parameters and source image paths.
@@ -103,11 +103,10 @@ namespace vk
     	vk::util::RecordImageLayoutTransition( graphicsCmd, m_image, VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
     		VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
-		// Higher mip levels store progressively rougher specular reflections.
 		uint32_t prefilter_width = 512;
 		uint32_t prefilterMipLevels = vk::util::CalculateMipLevels(prefilter_width, prefilter_width);
 
-		// Allocate descriptor layouts for all generated IBL resources.
+		// Allocate descriptor layouts for all IBL image resources.
 		// Environment Map (1) + Irradiance Map (1) + BRDF LUT (1) + Prefilter Mips
 		uint32_t layoutCount = 3 + prefilterMipLevels;
 
@@ -118,7 +117,7 @@ namespace vk
 		uint32_t env_width = 512;
 		uint32_t env_mipLevels = vk::util::CalculateMipLevels( env_width, env_width );
 
-		// Generate environment cubemap from equirectangular source.
+		// Create environment cubemap from equirectangular source.
 		m_environmentMap = CreateTexture( devicePtr, graphicsCmd, env_width, env_width,
 			6, env_mipLevels,
 			VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT |
@@ -126,27 +125,29 @@ namespace vk
 
 		WriteToEnvironmentMapImage( devicePtr, graphicsCmd, env_width, env_width, 6, env_mipLevels );
 
+		// Create diffuse irradiance cubemap.
 		uint32_t irradiance_width = 32;
 		m_irradianceMap = CreateTexture( devicePtr, graphicsCmd, irradiance_width, irradiance_width,
 			6, 1, VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT );
 
-		WriteToIrradianceImage( devicePtr, graphicsCmd );
+		layoutIndex = 1;
+		WriteToIrradianceImage( devicePtr, graphicsCmd, layoutIndex );
 
-		// Generate diffuse irradiance cubemap.
+		// Create GGX prefiltered specular cubemap.
 		m_prefilterMap = CreateTexture( devicePtr, graphicsCmd, prefilter_width, prefilter_width, 6,
 			prefilterMipLevels, VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT );
 
-		layoutIndex = 2;
 		std::vector<VkDescriptorImageInfo> prefilterInfos;
+		layoutIndex = 2;
 		WriteToPrefilterImage( devicePtr, graphicsCmd, prefilterInfos, prefilterMipLevels, layoutIndex );
 
-		// Generate BRDF integration LUT.
+		// Create BRDF integration LUT.
 		uint32_t BRDF_width = 512;
     	m_BRDFLUT = CreateTexture( devicePtr, graphicsCmd, BRDF_width, BRDF_width, 1, 1,
     		VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT );
 
 		layoutIndex = 2 + prefilterMipLevels;
-		WriteToBRDFLUTImage( devicePtr, graphicsCmd, layoutIndex);
+		WriteToBRDFLUTImage( devicePtr, graphicsCmd, layoutIndex );
 
     	VK_CHECK_RESULT(vkEndCommandBuffer(graphicsCmd));
 
@@ -254,7 +255,6 @@ namespace vk
 	void PanoramicTexture::WriteToEnvironmentMapImage( const vk::Device* devicePtr, VkCommandBuffer graphicsCmd,
 		uint32_t width, uint32_t height, uint32_t layerCount, uint32_t mipLevels )
     {
-		// Bind source equirectangular texture.
     	vk::WriteResource writeResource = {};
     	auto descriptorBufferProperties = devicePtr->GetDescriptorBufferProperties();
 
@@ -262,7 +262,6 @@ namespace vk
 	    m_computeDescriptorBuffer.WriteDescriptor(writeResource,
 		    0,0,0, descriptorBufferProperties.combinedImageSamplerDescriptorSize);
 
-		// Bind destination environment cubemap.
 		auto environmentMapDescriptor = m_environmentMap.GetDescriptor();
 	    writeResource.pImageData = &environmentMapDescriptor;
 	    m_computeDescriptorBuffer.WriteDescriptor(writeResource,
@@ -312,7 +311,7 @@ namespace vk
 	*
 	* @pre Environment map is in VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL.
 	*/
-	void PanoramicTexture::WriteToIrradianceImage( const vk::Device* devicePtr, VkCommandBuffer graphicsCmd )
+	void PanoramicTexture::WriteToIrradianceImage( const vk::Device* devicePtr, VkCommandBuffer graphicsCmd, uint32_t layoutIndex )
     {
     	//write to descriptor buffer
     	vk::WriteResource writeResource = {};
@@ -321,13 +320,13 @@ namespace vk
 		auto environmentMapDescriptor = m_environmentMap.GetDescriptor();
     	writeResource.pImageData = &environmentMapDescriptor;
     	m_computeDescriptorBuffer.WriteDescriptor(writeResource,
-			1,0,0, descriptorBufferProperties.combinedImageSamplerDescriptorSize);
+			layoutIndex,0,0, descriptorBufferProperties.combinedImageSamplerDescriptorSize);
 
 		VkDescriptorImageInfo m_irradianceInfo = m_irradianceMap.GetDescriptor();
 
     	writeResource.pImageData = &m_irradianceInfo;
     	m_computeDescriptorBuffer.WriteDescriptor( writeResource,
-			1, 0, 1, descriptorBufferProperties.storageImageDescriptorSize, true);
+			layoutIndex, 0, 1, descriptorBufferProperties.storageImageDescriptorSize, true);
 
 		m_convolutionPipeline = CreateComputePipeline( "convolute-cubemap.comp" );
 
