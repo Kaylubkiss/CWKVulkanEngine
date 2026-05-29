@@ -7,7 +7,8 @@ namespace vk
 		assert(devicePtr != nullptr);
 
         int width, height, nChannels;
-        float* pixels = stbi_loadf(createInfo.fileNames[0].c_str(), &width, &height, &nChannels, 4);
+        float* pixels = stbi_loadf(createInfo.fileNames[0].c_str(),
+        	&width, &height, &nChannels, 4);
 
         if (pixels == nullptr)
         {
@@ -34,7 +35,7 @@ namespace vk
         panoramicImageCI.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
         panoramicImageCI.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
 
-        m_image = vk::init::CreateImage(devicePtr, panoramicImageCI, m_memory,
+        m_image = vk::util::CreateImage(devicePtr, panoramicImageCI, m_memory,
             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
         m_descriptor.imageView = vk::Texture::CreateImageView(devicePtr->GetDevice(), m_image,
@@ -103,7 +104,7 @@ namespace vk
 
     	CreateBRDFLUTImage( devicePtr, graphicsCmd );
 
-    	vk::util::RecordImageLayoutTransition( graphicsCmd, m_environmentMapImage,
+    	vk::util::RecordImageLayoutTransition( graphicsCmd, m_environmentMap.GetImage(),
     		VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
     		VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL );
 
@@ -113,15 +114,14 @@ namespace vk
     		devicePtr->GetQueue(DeviceQueue::GRAPHICS).handle,
     		submissionFence, std::nullopt );
 
-    	m_environmentMapInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-
-        std::cout << "\033[32m" << "successfully loaded Panormaic Texture in PanoramicTexture::Create()... " << "\033[0m\n";
+    	m_environmentMap.SetImageLayout( VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL );
 
         stbi_image_free(pixels);
 
-		for (auto& infos : prefilterInfos)
+		for ( auto& infos : prefilterInfos )
 		{
 			vkDestroyImageView(devicePtr->GetDevice(), infos.imageView, nullptr);
+
 		}
 
     	vkDestroyFence(devicePtr->GetDevice(), submissionFence, nullptr);
@@ -129,23 +129,21 @@ namespace vk
     	vkFreeCommandBuffers(devicePtr->GetDevice(), graphicsCmdPool, 1, &graphicsCmd);
     	vkDestroyCommandPool(devicePtr->GetDevice(), graphicsCmdPool, nullptr);
 
+		std::cout << "\033[32m" << "successfully loaded Panormaic Texture in PanoramicTexture::Create()... " << "\033[0m\n";
     }
 
-	PanoramicTexture::PanoramicTexture( PanoramicTexture&& other ) noexcept
+	PanoramicTexture::PanoramicTexture( PanoramicTexture&& other ) noexcept : Texture(std::move(other))
 	{
 		if (this != &other)
 		{
-			this->m_environmentMapImage = other.m_environmentMapImage;
 			this->m_irradianceImage = other.m_irradianceImage;
 			this->m_prefilterImage = other.m_prefilterImage;
 			this->m_BRDFLUTImage = other.m_BRDFLUTImage;
 
-			this->m_environmentMapImageMemory = other.m_environmentMapImageMemory;
 			this->m_irradianceImageMemory = other.m_irradianceImageMemory;
 			this->m_prefilterImageMemory = other.m_prefilterImageMemory;
 			this->m_BRDFLUTImageMemory = other.m_BRDFLUTImageMemory;
 
-			this->m_environmentMapInfo = other.m_environmentMapInfo;
 			this->m_irradianceInfo = other.m_irradianceInfo;
 			this->m_prefilterInfo = other.m_prefilterInfo;
 			this->m_BRDFLUTInfo = other.m_BRDFLUTInfo;
@@ -159,6 +157,7 @@ namespace vk
 			this->m_prefilterHeight = other.m_prefilterHeight;
 			this->m_prefilterMipLevels = other.m_prefilterMipLevels;
 
+			this->m_environmentMap = std::move(other.m_environmentMap);
 			this->m_computeDescriptorBuffer = std::move(other.m_computeDescriptorBuffer);
 
 			this->m_computePipelineLayout = other.m_computePipelineLayout;
@@ -171,17 +170,17 @@ namespace vk
 	{
 		if (this != &other)
 		{
-			std::swap(this->m_environmentMapImage, other.m_environmentMapImage);
+			Texture::operator=(std::move(other));
+
+			std::swap(this->m_environmentMap, other.m_environmentMap);
 			std::swap(this->m_irradianceImage, other.m_irradianceImage);
 			std::swap(this->m_prefilterImage, other.m_prefilterImage);
 			std::swap(this->m_BRDFLUTImage, other.m_BRDFLUTImage);
 
-			std::swap(this->m_environmentMapImageMemory, other.m_environmentMapImageMemory);
 			std::swap(this->m_irradianceImageMemory, other.m_irradianceImageMemory);
 			std::swap(this->m_prefilterImageMemory, other.m_prefilterImageMemory);
 			std::swap(this->m_BRDFLUTImageMemory, other.m_BRDFLUTImageMemory);
 
-			std::swap(this->m_environmentMapInfo, other.m_environmentMapInfo);
 			std::swap(this->m_irradianceInfo, other.m_irradianceInfo);
 			std::swap(this->m_prefilterInfo, other.m_prefilterInfo);
 			std::swap(this->m_BRDFLUTInfo, other.m_BRDFLUTInfo);
@@ -207,17 +206,14 @@ namespace vk
 	{
 		if (c_device != VK_NULL_HANDLE)
 		{
-			vkDestroyImage(c_device, m_environmentMapImage, nullptr);
-			vkFreeMemory(c_device, m_environmentMapImageMemory, nullptr);
-
 			vkDestroyImage(c_device, m_irradianceImage, nullptr);
 			vkFreeMemory(c_device, m_irradianceImageMemory, nullptr);
 
 			vkDestroyImage(c_device, m_prefilterImage, nullptr);
 			vkFreeMemory(c_device, m_prefilterImageMemory, nullptr);
 
-			vkDestroySampler(c_device, m_environmentMapInfo.sampler, nullptr);
-			vkDestroyImageView(c_device, m_environmentMapInfo.imageView, nullptr);
+			vkDestroyImage(c_device, m_BRDFLUTImage, nullptr);
+			vkFreeMemory(c_device, m_BRDFLUTImageMemory, nullptr);
 
 			vkDestroySampler(c_device, m_irradianceInfo.sampler, nullptr);
 			vkDestroyImageView(c_device, m_irradianceInfo.imageView, nullptr);
@@ -247,10 +243,10 @@ namespace vk
 	    m_computeDescriptorBuffer.WriteDescriptor(writeResource,
 		    0,0,0, descriptorBufferProperties.combinedImageSamplerDescriptorSize);
 
-	    writeResource.pImageData = &m_environmentMapInfo;
+		auto environmentMapDescriptor = m_environmentMap.GetDescriptor();
+	    writeResource.pImageData = &environmentMapDescriptor;
 	    m_computeDescriptorBuffer.WriteDescriptor(writeResource,
 		    0, 0, 1, descriptorBufferProperties.storageImageDescriptorSize, true);
-
 
 	    //create compute pipeline
 		m_computePipeline = CreateComputePipeline( "equirectangular-to-cubemap.comp" );
@@ -277,43 +273,31 @@ namespace vk
 
 		vkCmdDispatch(graphicsCmd, 512 / 16, 512 / 16, 6);
 
-    	vk::util::RecordImageLayoutTransition( graphicsCmd, m_environmentMapImage,
+    	vk::util::RecordImageLayoutTransition( graphicsCmd, m_environmentMap.GetImage(),
     		VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
     		VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL );
 
+		m_environmentMap.SetImageLayout( VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL );
     }
 
 	void PanoramicTexture::CreateEnvironmentMapImage( const vk::Device* devicePtr, VkCommandBuffer graphicsCmd,
 		uint32_t width, uint32_t height, uint32_t layerCount, uint32_t mipLevels )
     {
-        VkImageCreateInfo imageCI = vk::init::ImageCreateInfo();
-        imageCI.format = VK_FORMAT_R32G32B32A32_SFLOAT; //for now, just assume this format --> biggest possible
-        imageCI.imageType = VK_IMAGE_TYPE_2D;
-        imageCI.arrayLayers = layerCount;
-        //NOTE: not sure yet how to divide up the resolution. the image I'm sampling is 2048x1024 pixels.
-        imageCI.extent.width = width;
-        imageCI.extent.height = height;
-        imageCI.extent.depth = 1;
-        imageCI.mipLevels = mipLevels;
-        imageCI.samples = VK_SAMPLE_COUNT_1_BIT;
-        imageCI.usage = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT |
-            VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
-        imageCI.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-        imageCI.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-        imageCI.flags = VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
+		vk::TextureCreateInfo textureCI = {};
+		textureCI.format = VK_FORMAT_R32G32B32A32_SFLOAT;
+		textureCI.width = width;
+		textureCI.height = height;
+		textureCI.layerCount = layerCount;
+		textureCI.mipLevels = mipLevels;
+		textureCI.imageUsage = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT |
+			VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+		textureCI.flags = VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
 
-        m_environmentMapImage = vk::init::CreateImage(devicePtr, imageCI, m_environmentMapImageMemory, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+        m_environmentMap = vk::Texture( devicePtr, textureCI );
 
-    	vk::util::RecordImageLayoutTransition( graphicsCmd, m_environmentMapImage,
+    	vk::util::RecordImageLayoutTransition( graphicsCmd, m_environmentMap.GetImage(),
     		VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
     		VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
-
-    	m_environmentMapInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
-
-    	m_environmentMapInfo.imageView = vk::Texture::CreateImageView(devicePtr->GetDevice(),
-			m_environmentMapImage, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_VIEW_TYPE_CUBE);
-
-    	m_environmentMapInfo.sampler = vk::Texture::CreateSampler(devicePtr->GetGPU(), devicePtr->GetDevice(), mipLevels);
 
     	WriteToEnvironmentMapImage( devicePtr, graphicsCmd );
 
@@ -322,19 +306,19 @@ namespace vk
 		{
 			//have to set to transfer dst optimal because recording the blit operations assumes that's where the image
 			//starts from...
-			vk::util::RecordImageLayoutTransition( graphicsCmd, m_environmentMapImage,
+			vk::util::RecordImageLayoutTransition( graphicsCmd, m_environmentMap.GetImage(),
 			VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
 			VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
 
-			vk::util::RecordBlitMipMapImages(graphicsCmd, m_environmentMapImage, width, height, mipLevels, layerCount);
+			vk::util::RecordBlitMipMapImages(graphicsCmd,  m_environmentMap.GetImage(),
+				width, height, mipLevels, layerCount);
 
 			//and because the blit commands transition everything to read_only, we have to transition the layout
 			//to src_optimal again
-			vk::util::RecordImageLayoutTransition( graphicsCmd, m_environmentMapImage,
+			vk::util::RecordImageLayoutTransition( graphicsCmd,  m_environmentMap.GetImage(),
 			VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
-			VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
+			VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL );
 		}
-
     }
 
 	void PanoramicTexture::WriteToIrradianceImage( const vk::Device* devicePtr, VkCommandBuffer graphicsCmd )
@@ -344,7 +328,8 @@ namespace vk
     	auto descriptorBufferProperties = devicePtr->GetDescriptorBufferProperties();
 
     	//NOTE: cubemapInfo.imageLayout changed between CreateCubeMap() -> WriteToIrradianceImage()
-    	writeResource.pImageData = &m_environmentMapInfo;
+		auto environmentMapDescriptor = m_environmentMap.GetDescriptor();
+    	writeResource.pImageData = &environmentMapDescriptor;
     	m_computeDescriptorBuffer.WriteDescriptor(writeResource,
 			1,0,0, descriptorBufferProperties.combinedImageSamplerDescriptorSize);
 
@@ -354,7 +339,7 @@ namespace vk
 
 		m_convolutionPipeline = CreateComputePipeline( "convolute-cubemap.comp" );
 
-		vkCmdBindPipeline(graphicsCmd, VK_PIPELINE_BIND_POINT_COMPUTE, m_convolutionPipeline);
+		vkCmdBindPipeline( graphicsCmd, VK_PIPELINE_BIND_POINT_COMPUTE, m_convolutionPipeline );
 
         std::vector<VkDescriptorBufferBindingInfoEXT> descriptorBufferBindingInfos =
         {
@@ -385,8 +370,6 @@ namespace vk
 
 	void PanoramicTexture::CreateIrradianceImage( const vk::Device* devicePtr, VkCommandBuffer graphicsCmd )
     {
-    	assert(m_environmentMapImage != VK_NULL_HANDLE); //must be able to sample from the cubemap image during creation.
-
     	uint32_t width = 32, height = 32;
 
         VkImageCreateInfo imageCI = vk::init::ImageCreateInfo();
@@ -404,7 +387,8 @@ namespace vk
         imageCI.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
         imageCI.flags = VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
 
-        m_irradianceImage = vk::init::CreateImage(devicePtr, imageCI, m_irradianceImageMemory, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+        m_irradianceImage = vk::util::CreateImage(devicePtr, imageCI, m_irradianceImageMemory,
+        	VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
     	vk::util::RecordImageLayoutTransition( graphicsCmd, m_irradianceImage,
     		VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
@@ -452,9 +436,11 @@ namespace vk
     	vk::WriteResource writeResource = {};
     	auto descriptorBufferProperties = devicePtr->GetDescriptorBufferProperties();
 
+		auto environmentMapDescriptor = m_environmentMap.GetDescriptor();
+
     	for (uint32_t mip = 0; mip < m_prefilterMipLevels; ++mip)
     	{
-    		writeResource.pImageData = &m_environmentMapInfo;
+    		writeResource.pImageData = &environmentMapDescriptor;
     		m_computeDescriptorBuffer.WriteDescriptor(writeResource,
 				2 + mip,0,0, descriptorBufferProperties.combinedImageSamplerDescriptorSize);
 
@@ -484,7 +470,7 @@ namespace vk
 
     	uint32_t descriptorIndex = 0;
 
-    	for (uint32_t mip = 1; mip < m_prefilterMipLevels; ++mip)
+    	for (uint32_t mip = 0; mip < m_prefilterMipLevels; ++mip)
     	{
     		VkDeviceSize bufferOffset = initOffset + mip * layoutSize;
 
@@ -518,8 +504,6 @@ namespace vk
 	void PanoramicTexture::CreatePrefilterImage( const vk::Device* devicePtr, VkCommandBuffer graphicsCmd,
 		std::vector<VkDescriptorImageInfo>& prefilterInfos )
 	{
-		assert(m_environmentMapImage != VK_NULL_HANDLE);
-
 		VkImageCreateInfo imageCI = vk::init::ImageCreateInfo();
 		imageCI.format = VK_FORMAT_R32G32B32A32_SFLOAT; //for now, just assume this format --> biggest possible
 		imageCI.imageType = VK_IMAGE_TYPE_2D;
@@ -535,7 +519,7 @@ namespace vk
 		imageCI.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 		imageCI.flags = VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
 
-		m_prefilterImage = vk::init::CreateImage( devicePtr, imageCI, m_prefilterImageMemory,
+		m_prefilterImage = vk::util::CreateImage( devicePtr, imageCI, m_prefilterImageMemory,
 			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT );
 
 		vk::util::RecordImageLayoutTransition( graphicsCmd, m_prefilterImage,
@@ -603,7 +587,7 @@ namespace vk
     	imageCI.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
     	imageCI.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-    	m_BRDFLUTImage = vk::init::CreateImage( devicePtr, imageCI, m_BRDFLUTImageMemory,
+    	m_BRDFLUTImage = vk::util::CreateImage( devicePtr, imageCI, m_BRDFLUTImageMemory,
 			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT );
 
     	vk::util::RecordImageLayoutTransition( graphicsCmd, m_BRDFLUTImage,

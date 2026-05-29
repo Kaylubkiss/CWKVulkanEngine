@@ -18,10 +18,15 @@ namespace vk
 		[[nodiscard]] VkDescriptorImageInfo GetDescriptor() const;
 		[[nodiscard]] VkImage GetImage() const;
 
+		void SetImageLayout( VkImageLayout layout );
+
 		static VkImageView CreateImageView( VkDevice l_device, const VkImage& textureImage, VkFormat format, VkImageViewType type );
 		static VkSampler CreateSampler( VkPhysicalDevice p_device, VkDevice l_device, uint32_t mipLevels );
 	protected:
 		void RecordTransferAndReleaseOperations( const vk::Device* devicePtr, const vk::Buffer& stagingBuffer, std::mutex* submissionMutex );
+	private:
+		void CreateFromFileName( const vk::Device* devicePtr, const vk::TextureCreateInfo& createInfo );
+		void CreateBlankTexture( const vk::Device* devicePtr, const vk::TextureCreateInfo& createInfo );
 	protected:
 		VkDevice c_device = VK_NULL_HANDLE;
 
@@ -35,7 +40,6 @@ namespace vk
 		VkDeviceSize m_imageLayerSize = 0;
 
 		VkDescriptorImageInfo m_descriptor = {};
-
 	};
 
 }

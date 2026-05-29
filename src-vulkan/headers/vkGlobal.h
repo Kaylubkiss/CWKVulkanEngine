@@ -6,10 +6,6 @@ constexpr uint32_t gMaxFramesInFlight = 3;
 
 namespace vk
 {
-	inline VkDeviceSize AlignedSize(VkDeviceSize size, VkDeviceSize alignment)
-	{
-		return (size + alignment - 1) & ~(alignment - 1);
-	}
 
 	//created in response to the need of texture manager. It needs a lot of graphics context state, but the calls to 
 	//function methods of the context to get this information seemed inconvenient.
@@ -37,7 +33,12 @@ namespace vk
 		std::mutex* pTransferMutex = nullptr; //this is for transfer operations done on a separate thread.
 		std::vector<std::string> fileNames; //(note as of 5.9.26: will represent a full file path for now)
 		VkImageUsageFlags imageUsage;
+		VkImageCreateFlags flags;
 		VkFormat format = VK_FORMAT_UNDEFINED;
+		uint32_t width = 0;
+		uint32_t height = 0;
+		uint32_t layerCount = 0;
+		uint32_t mipLevels = 0;
 	};
 
 }

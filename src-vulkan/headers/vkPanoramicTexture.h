@@ -1,6 +1,7 @@
 #pragma once
 #include "vkInit.h"
 #include "vkTexture.h"
+#include "vkCubemap.h"
 
 namespace vk
 {
@@ -20,7 +21,7 @@ namespace vk
 
     	[[nodiscard]] VkDescriptorImageInfo GetEnvironmentMapImageDescriptor() const
 	    {
-	    	return m_environmentMapInfo;
+	    	return m_environmentMap.GetDescriptor();
 	    }
 
     	[[nodiscard]] VkDescriptorImageInfo GetIrradianceImageDescriptor() const
@@ -82,12 +83,11 @@ namespace vk
 				}
     		};
 
-
     		m_computeDescriptorBuffer = vk::DescriptorBuffer(devicePtr, bufferUsageFlags, memoryProperties,
 				1, layoutCount, layoutBindings);
     	}
 
-    	VkPipeline CreateComputePipeline( std::string_view fileName ) const
+    	[[nodiscard]] VkPipeline CreateComputePipeline( std::string_view fileName ) const
     	{
 			VkComputePipelineCreateInfo computePipelineCI = {};
 			computePipelineCI.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
@@ -130,13 +130,10 @@ namespace vk
 
     	void CreateBRDFLUTImage( const vk::Device* devicePtr, VkCommandBuffer graphicsCmd );
     private:
-    	VkImage m_environmentMapImage = VK_NULL_HANDLE;
-    	VkDeviceMemory m_environmentMapImageMemory = VK_NULL_HANDLE;
-    	VkDescriptorImageInfo m_environmentMapInfo = {};
+    	vk::Texture m_environmentMap;
 
     	//NOTE: since convolution and cubemap creation have the exact same layout,
     	//they will share m_computePipelineLayout and m_computeDescriptorBuffer.
-
     	VkPipelineLayout m_computePipelineLayout = VK_NULL_HANDLE;
 
     	VkPipeline m_computePipeline = VK_NULL_HANDLE;

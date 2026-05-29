@@ -56,5 +56,13 @@ namespace vk
 
 		void endSingleTimeCommand( const VkDevice l_device, VkCommandBuffer commandBuffer,
 			const VkCommandPool cmdPool, const VkQueue gfxQueue );
+
+		VkImage CreateImage ( const vk::Device* devicePtr, const VkImageCreateInfo& createInfo,
+			VkDeviceMemory& imageMemory, VkMemoryPropertyFlags memoryFlags );
+
+		inline VkDeviceSize AlignedSize(VkDeviceSize size, VkDeviceSize alignment)
+		{
+			return (size + alignment - 1) & ~(alignment - 1);
+		}
 	}
 }

@@ -68,6 +68,7 @@ namespace vk
 
 		VkCommandPool transferCmdPool = vk::init::CommandPool(devicePtr->GetDevice(),
 			VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT, devicePtr->GetQueue(DeviceQueue::TRANSFER).family);
+
 		VkCommandBuffer transferCmd = vk::util::beginSingleTimeCommand(devicePtr->GetDevice(), transferCmdPool);
 
 		//transition image to dst-optimal layout so the staging buffer can be copied into it.
@@ -136,10 +137,6 @@ namespace vk
 			releaseBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT; //since we just wrote to the image.
 			releaseBarrier.dstAccessMask = 0;
 
-			VkCommandBufferBeginInfo beginInfo = {};
-			beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-			beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-
 			vkCmdPipelineBarrier(transferCmd, VK_PIPELINE_STAGE_TRANSFER_BIT,
 				VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
 				0, 0,
@@ -175,38 +172,49 @@ namespace vk
 		vkDestroyCommandPool(devicePtr->GetDevice(), transferCmdPool, nullptr);
 	}
 
-	Texture::Texture( const vk::Device* devicePtr, const vk::TextureCreateInfo& createInfo )
+	void Texture::CreateBlankTexture( const vk::Device* devicePtr, const vk::TextureCreateInfo& createInfo )
 	{
-		assert(devicePtr != nullptr);
+		VkImageCreateInfo imageCI = vk::init::ImageCreateInfo();
+		imageCI.format = createInfo.format;
+		imageCI.imageType = VK_IMAGE_TYPE_2D;
+		imageCI.arrayLayers = createInfo.layerCount;
+		imageCI.extent.width = createInfo.width;
+		imageCI.extent.height = createInfo.height;
+		imageCI.extent.depth = 1;
+		imageCI.mipLevels = createInfo.mipLevels;
+		imageCI.samples = VK_SAMPLE_COUNT_1_BIT;
+		imageCI.usage = createInfo.imageUsage;
+		imageCI.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+		imageCI.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+		imageCI.flags = createInfo.flags;
 
-		m_imageCount = createInfo.fileNames.size();
-		c_device = devicePtr->GetDevice();
+		m_image = vk::util::CreateImage( devicePtr, imageCI, m_memory,
+			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT );
+	}
 
+	void Texture::CreateFromFileName( const vk::Device* devicePtr, const vk::TextureCreateInfo& createInfo )
+	{
 		const uint64_t num_channels = 4;
 		int textureWidth, textureHeight, textureChannels;
 		VkDeviceSize imageSize = 0;
 
-		stbi_uc* pixels_uc = nullptr;
+		std::vector<stbi_uc*> pixelData(m_imageCount);
 
-		//Might want to make command pool a member variable.
 		const std::string& filePath = createInfo.fileNames.back();
 
-		if (filePath.empty())
-		{
-			std::cerr << "specified filePath is empty \n";
-			throw std::runtime_error("vk::Texture::Create() FAILED");
-		}
-
 		if (createInfo.format == VK_FORMAT_R8G8B8A8_UNORM ||
-			createInfo.format == VK_FORMAT_R8G8B8A8_SRGB) {
-
-			pixels_uc = stbi_load(filePath.c_str(),
-				&textureWidth, &textureHeight, &textureChannels, 4);
-
-			if (pixels_uc == nullptr)
+			createInfo.format == VK_FORMAT_R8G8B8A8_SRGB)
+		{
+			for (int i = 0; i < m_imageCount; ++i)
 			{
-				std::cerr << "could not load in specified texture " + filePath << std::endl;
-				throw std::runtime_error("vk::Texture::Create() FAILED");
+				pixelData[i] = stbi_load(filePath.c_str(),
+					&textureWidth, &textureHeight, &textureChannels, 4);
+
+				if (pixelData[i] == nullptr)
+				{
+					std::cerr << "could not load in specified texture " + filePath << std::endl;
+					throw std::runtime_error("vk::Texture::Create() FAILED");
+				}
 			}
 		}
 		else
@@ -220,34 +228,89 @@ namespace vk
 		m_height = static_cast<uint32_t>(textureHeight);
 
 		imageSize = static_cast<uint64_t>(textureWidth) *
-			static_cast<uint64_t>(textureHeight) * num_channels;
+			static_cast<uint64_t>(textureHeight) * num_channels * m_imageCount;
 
 		vk::Buffer stagingBuffer = vk::Buffer(devicePtr,
 			VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
-			static_cast<size_t>(imageSize), pixels_uc);
+			static_cast<size_t>(imageSize));
+
+		m_imageLayerSize = imageSize / static_cast<VkDeviceSize>(m_imageCount);
+		m_imageLayerSize = vk::util::AlignedSize(m_imageLayerSize, devicePtr->GetProperties().limits.optimalBufferCopyOffsetAlignment);
+
+		stagingBuffer.Map();
+
+		void* stagingBufferData = stagingBuffer.GetMappedMemory();
+
+		for (VkDeviceSize i = 0; i < m_imageCount; ++i)
+		{
+			memcpy(static_cast<stbi_uc*>(stagingBufferData) + (m_imageLayerSize * i), pixelData[i], m_imageLayerSize);
+		}
+
+		stagingBuffer.Flush();
+
+		stagingBuffer.UnMap();
 
 		VkImageCreateInfo textureImageCI = vk::init::ImageCreateInfo();
 		textureImageCI.imageType = VK_IMAGE_TYPE_2D;
 		textureImageCI.format = createInfo.format;
 		textureImageCI.extent = {m_width, m_height, 1};
 		textureImageCI.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-		textureImageCI.mipLevels = 1;
-		textureImageCI.arrayLayers = 1;
+		textureImageCI.mipLevels = createInfo.mipLevels;
+		textureImageCI.arrayLayers = createInfo.layerCount;
 		textureImageCI.samples = VK_SAMPLE_COUNT_1_BIT;
 		textureImageCI.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 		textureImageCI.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
 
-		m_image = vk::init::CreateImage(devicePtr, textureImageCI, m_memory, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+		m_image = vk::util::CreateImage(devicePtr, textureImageCI, m_memory,
+			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+
+		RecordTransferAndReleaseOperations( devicePtr, stagingBuffer, createInfo.pTransferMutex );
+
+		for (int i = 0; i < m_imageCount; ++i)
+		{
+			stbi_image_free(pixelData[i]);
+		}
+	}
+
+	Texture::Texture( const vk::Device* devicePtr, const vk::TextureCreateInfo& createInfo )
+	{
+		assert(devicePtr != nullptr);
+
+		c_device = devicePtr->GetDevice();
+		m_imageCount = 1;
+
+		if (createInfo.fileNames.empty() == false)
+		{
+			m_imageCount = createInfo.fileNames.size();
+
+			CreateFromFileName( devicePtr, createInfo );
+
+			m_descriptor.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+		}
+		else
+		{
+			m_imageCount = createInfo.layerCount;
+
+			CreateBlankTexture( devicePtr, createInfo );
+
+			m_descriptor.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+		}
 
 
-		RecordTransferAndReleaseOperations(devicePtr, stagingBuffer, createInfo.pTransferMutex);
+		VkImageViewType viewType = VK_IMAGE_VIEW_TYPE_2D;
 
-		stbi_image_free(pixels_uc);
+		if (createInfo.layerCount == 6)
+		{
+			viewType = VK_IMAGE_VIEW_TYPE_CUBE;
+		}
 
-		m_descriptor.imageView = vk::Texture::CreateImageView(devicePtr->GetDevice(), m_image, createInfo.format, VK_IMAGE_VIEW_TYPE_2D);;
-		m_descriptor.sampler = vk::Texture::CreateSampler(devicePtr->GetGPU(), devicePtr->GetDevice(), 1 );;
-		m_descriptor.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+		m_descriptor.imageView = vk::Texture::CreateImageView(devicePtr->GetDevice(), m_image,
+			createInfo.format, viewType);
+
+		m_descriptor.sampler = vk::Texture::CreateSampler(devicePtr->GetGPU(),
+			devicePtr->GetDevice(), createInfo.mipLevels );
+
 	}
 
 	Texture::Texture( Texture&& other ) noexcept
@@ -322,6 +385,11 @@ namespace vk
 	VkImage Texture::GetImage() const
 	{
 		return m_image;
+	}
+
+	void Texture::SetImageLayout( VkImageLayout layout )
+	{
+		m_descriptor.imageLayout = layout;
 	}
 
 

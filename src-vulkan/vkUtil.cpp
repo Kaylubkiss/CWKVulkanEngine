@@ -101,7 +101,32 @@ namespace vk {
 
 			return false;
 		}
-		
+
+
+		VkImage CreateImage( const vk::Device* devicePtr, const VkImageCreateInfo& createInfo,
+			VkDeviceMemory& imageMemory, VkMemoryPropertyFlags memoryFlags )
+		{
+
+			VkDevice device = devicePtr->GetDevice();
+
+			VkImage nImage;
+			VK_CHECK_RESULT(vkCreateImage(device, &createInfo, nullptr, &nImage));
+
+			VkMemoryRequirements memRequirements;
+			vkGetImageMemoryRequirements(device, nImage, &memRequirements);
+
+			VkMemoryAllocateInfo memAllocInfo = {};
+			memAllocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+			memAllocInfo.allocationSize = memRequirements.size;
+			memAllocInfo.memoryTypeIndex = devicePtr->GetMemoryType(memRequirements.memoryTypeBits, memoryFlags);
+
+			VK_CHECK_RESULT(vkAllocateMemory(device, &memAllocInfo, nullptr, &imageMemory));
+
+			VK_CHECK_RESULT(vkBindImageMemory(device, nImage, imageMemory, 0));
+
+			return nImage;
+		}
+
 		//use command pool
 		void RecordImageLayoutTransition( VkCommandBuffer cmdBuffer, VkImage image,
 			uint32_t srcQueue, uint32_t dstQueue,
@@ -156,6 +181,7 @@ namespace vk {
 			{
 				//note: automatically assumes that general layout was for writing.
 				barrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
+
 				if (newLayout == VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL)
 				{
 					barrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;

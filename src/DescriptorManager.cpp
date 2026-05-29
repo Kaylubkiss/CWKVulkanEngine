@@ -71,7 +71,6 @@
     void DescriptorManager::WriteDescriptors(DescriptorCategory category, uint32_t layoutIndex,
         vk::imageBuffers2D& imageDescriptors, bool storageResource)
     {
-
         auto& descriptor = m_descriptorBuffers[category].descriptor;
 
         vk::WriteResource writeResource;

@@ -149,6 +149,8 @@ uint32_t TextureManager::AddTextures( std::vector<vk::TextureCreateInfo>& create
 		{
 			individualCI.fileNames = { createInfos[i].fileNames.back() };
 			individualCI.format = createInfos[i].format;
+			individualCI.layerCount = createInfos[i].layerCount;
+			individualCI.mipLevels = createInfos[i].mipLevels;
 
 			//because layoutIndex 0 is the null/default texture, we assume that because a texture
 			//was successfully allocated, the layout's base index starts where the newly allocated

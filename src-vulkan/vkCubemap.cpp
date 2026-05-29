@@ -6,12 +6,10 @@ namespace vk
     //TODO: can load partial cubemaps, but unspecified faces get a default texture.
     Cubemap::Cubemap( const vk::Device* devicePtr, const vk::TextureCreateInfo& createInfo )
     {
-        assert(devicePtr);
+        assert( devicePtr );
 
-        m_imageCount = createInfo.fileNames.size();
+        m_imageCount = 6;
         c_device = devicePtr->GetDevice();
-
-        assert(m_imageCount == 6);
 
         //texture sizes should be square and/or the same in a cubemap
         int image_width, image_height, channels;
@@ -43,15 +41,19 @@ namespace vk
         vk::Buffer stagingBuffer = vk::Buffer(devicePtr, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, image_size);
 
-        m_imageLayerSize = AlignedSize(m_imageLayerSize, devicePtr->GetProperties().limits.optimalBufferCopyOffsetAlignment);
+        m_imageLayerSize = vk::util::AlignedSize(m_imageLayerSize, devicePtr->GetProperties().limits.optimalBufferCopyOffsetAlignment);
 
         stagingBuffer.Map();
+
         void* stagingBufferData = stagingBuffer.GetMappedMemory();
+
         for (VkDeviceSize i = 0; i < m_imageCount; ++i)
         {
             memcpy(static_cast<stbi_uc*>(stagingBufferData) + (m_imageLayerSize * i), texture_data[i], m_imageLayerSize);
         }
+
         stagingBuffer.Flush();
+
         stagingBuffer.UnMap();
 
         VkImageCreateInfo imageCI = vk::init::ImageCreateInfo();
@@ -66,7 +68,7 @@ namespace vk
         imageCI.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
         imageCI.flags = VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
 
-        m_image = vk::init::CreateImage(devicePtr, imageCI, m_memory, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+        m_image = vk::util::CreateImage(devicePtr, imageCI, m_memory, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
         RecordTransferAndReleaseOperations(devicePtr, stagingBuffer, createInfo.pTransferMutex);
 

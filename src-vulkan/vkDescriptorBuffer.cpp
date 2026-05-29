@@ -146,7 +146,7 @@ namespace vk
     {
         assert(size);
         g_vkGetDescriptorSetLayoutSizeEXT(device->GetDevice(), layout, size);
-        *size = AlignedSize(*size, device->GetDescriptorBufferProperties().descriptorBufferOffsetAlignment);
+        *size = vk::util::AlignedSize(*size, device->GetDescriptorBufferProperties().descriptorBufferOffsetAlignment);
     }
 
     void DescriptorBuffer::GetDescriptorLayoutBindingOffsets( const vk::Device* device, VkDescriptorSetLayout layout,

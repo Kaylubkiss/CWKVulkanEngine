@@ -125,10 +125,6 @@ namespace vk
 
 		VkSubmitInfo SubmitInfo();
 
-		//special engine-specific resources
-		VkImage CreateImage ( const vk::Device* devicePtr, const VkImageCreateInfo& createInfo,
-			VkDeviceMemory& imageMemory, VkMemoryPropertyFlags memoryFlags );
-
 		VkComponentMapping ComponentMappingSwizzleIdentity();
 	}
 
