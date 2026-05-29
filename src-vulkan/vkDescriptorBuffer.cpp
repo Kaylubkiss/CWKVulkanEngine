@@ -31,7 +31,11 @@ namespace vk
 
 	DescriptorBuffer::~DescriptorBuffer()
 	{
-		CleanUp();
+    	if (c_device != VK_NULL_HANDLE)
+    	{
+    		vkDestroyDescriptorSetLayout(c_device, m_setLayout, nullptr);
+    		m_setLayout = VK_NULL_HANDLE;
+    	}
     }
 
     DescriptorBuffer::DescriptorBuffer( const vk::Device* devicePtr, VkBufferUsageFlags bufferUsage,
@@ -84,19 +88,13 @@ namespace vk
     {
     	if (this != &other)
     	{
-    		CleanUp();
-
-    		this->c_device = other.c_device;
-    		this->m_setLayout = other.m_setLayout;
-    		this->m_numCols = other.m_numCols;
-    		this->m_buffer = std::move(other.m_buffer);
-    		this->m_bufferSize = other.m_bufferSize;
-    		this->m_bindingOffsets = other.m_bindingOffsets;
-    		this->m_setLayoutSize = other.m_setLayoutSize;
-
-    		//because Destroy() hinges on c_device being valid, we'll just invalidate
-    		//c_device on the original resource.
-    		other.c_device = VK_NULL_HANDLE;
+    		std::swap(this->c_device, other.c_device);
+    		std::swap(this->m_setLayout, other.m_setLayout);
+    		std::swap(this->m_numCols, other.m_numCols);
+    		std::swap(this->m_buffer, other.m_buffer);
+    		std::swap(this->m_bufferSize, other.m_bufferSize);
+    		std::swap(this->m_bindingOffsets, other.m_bindingOffsets);
+    		std::swap(this->m_setLayoutSize, other.m_setLayoutSize);
     	}
 
     	return *this;
@@ -143,15 +141,6 @@ namespace vk
 			descriptorPtr + (m_numCols * layoutIndex + frame) * m_setLayoutSize +
 			m_bindingOffsets[binding]);
 	}
-
-	void DescriptorBuffer::CleanUp()
-	{
-    	if (c_device != VK_NULL_HANDLE)
-    	{
-    		vkDestroyDescriptorSetLayout(c_device, m_setLayout, nullptr);
-    		m_setLayout = VK_NULL_HANDLE;
-    	}
-    }
 
     void DescriptorBuffer::GetDescriptorLayoutSize( const vk::Device* device, VkDescriptorSetLayout layout, VkDeviceSize* size )
     {

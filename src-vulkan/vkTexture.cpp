@@ -60,36 +60,6 @@ namespace vk
 		return nTextureSampler;
 	}
 
-	void Texture::CleanUp()
-	{
-		if (c_device != VK_NULL_HANDLE)
-		{
-			if (m_sampler != VK_NULL_HANDLE)
-			{
-				vkDestroySampler(c_device, m_sampler, nullptr);
-				m_sampler = VK_NULL_HANDLE;
-			}
-
-			if (m_imageView != VK_NULL_HANDLE)
-			{
-				vkDestroyImageView(c_device, m_imageView, nullptr);
-				m_imageView = VK_NULL_HANDLE;
-			}
-
-			if (m_image != VK_NULL_HANDLE)
-			{
-				vkDestroyImage(c_device, m_image, nullptr);
-				m_image = VK_NULL_HANDLE;
-			}
-
-			if (m_memory != VK_NULL_HANDLE)
-			{
-				vkFreeMemory(c_device, m_memory, nullptr);
-				m_memory = VK_NULL_HANDLE;
-			}
-		}
-	}
-
 	void Texture::RecordTransferAndReleaseOperations( const vk::Device* devicePtr, const vk::Buffer& stagingBuffer,
 		std::mutex& submissionMutex )
 	{
@@ -329,8 +299,6 @@ namespace vk
 			this->m_imageLayerSize = other.m_imageLayerSize;
 			this->m_descriptor = other.m_descriptor;
 
-			//because Destroy() hinges on c_device being valid, we'll just invalidate
-			//c_device on the original resource.
 			other.c_device = VK_NULL_HANDLE;
 		}
 	}
@@ -339,22 +307,16 @@ namespace vk
 	{
 		if (this != &other)
 		{
-			CleanUp();
-
-			this->c_device = other.c_device;
-			this->m_image = other.m_image;
-			this->m_memory = other.m_memory;
-			this->m_imageView = other.m_imageView;
-			this->m_sampler = other.m_sampler;
-			this->m_width = other.m_width;
-			this->m_height = other.m_height;
-			this->m_imageCount = other.m_imageCount;
-			this->m_imageLayerSize = other.m_imageLayerSize;
-			this->m_descriptor = other.m_descriptor;
-
-			//because Destroy() hinges on c_device being valid, we'll just invalidate
-			//c_device on the original resource.
-			other.c_device = VK_NULL_HANDLE;
+			std::swap(this->c_device, other.c_device);
+			std::swap(this->m_image, other.m_image);
+			std::swap(this->m_memory, other.m_memory);
+			std::swap(this->m_imageView, other.m_imageView);
+			std::swap(this->m_sampler, other.m_sampler);
+			std::swap(this->m_width, other.m_width);
+			std::swap(this->m_height, other.m_height);
+			std::swap(this->m_imageCount, other.m_imageCount);
+			std::swap(this->m_imageLayerSize, other.m_imageLayerSize);
+			std::swap(this->m_descriptor, other.m_descriptor);
 		}
 
 		return *this;
@@ -362,7 +324,32 @@ namespace vk
 
 	Texture::~Texture()
 	{
-		CleanUp();
+		if (c_device != VK_NULL_HANDLE)
+		{
+			if (m_sampler != VK_NULL_HANDLE)
+			{
+				vkDestroySampler(c_device, m_sampler, nullptr);
+				m_sampler = VK_NULL_HANDLE;
+			}
+
+			if (m_imageView != VK_NULL_HANDLE)
+			{
+				vkDestroyImageView(c_device, m_imageView, nullptr);
+				m_imageView = VK_NULL_HANDLE;
+			}
+
+			if (m_image != VK_NULL_HANDLE)
+			{
+				vkDestroyImage(c_device, m_image, nullptr);
+				m_image = VK_NULL_HANDLE;
+			}
+
+			if (m_memory != VK_NULL_HANDLE)
+			{
+				vkFreeMemory(c_device, m_memory, nullptr);
+				m_memory = VK_NULL_HANDLE;
+			}
+		}
 	}
 
 

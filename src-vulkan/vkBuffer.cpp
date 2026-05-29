@@ -17,7 +17,7 @@ namespace vk
 			other.c_device = VK_NULL_HANDLE;
 			other.m_handle = VK_NULL_HANDLE;
 			other.m_memory = VK_NULL_HANDLE;
-			other.m_mappedMemory = VK_NULL_HANDLE;
+			other.m_mappedMemory = nullptr;
 			other.m_descriptor = {};
 			other.m_size = 0;
 		}
@@ -27,21 +27,12 @@ namespace vk
 	{
 		if (this != &other)
 		{
-			CleanUp();
-
-			this->c_device = other.c_device;
-			this->m_size = other.m_size;
-			this->m_memory = other.m_memory;
-			this->m_handle = other.m_handle;
-			this->m_mappedMemory = other.m_mappedMemory;
-			this->m_descriptor = other.m_descriptor;
-
-			other.c_device = VK_NULL_HANDLE;
-			other.m_handle = VK_NULL_HANDLE;
-			other.m_memory = VK_NULL_HANDLE;
-			other.m_mappedMemory = VK_NULL_HANDLE;
-			other.m_descriptor = {};
-			other.m_size = 0;
+			std::swap(this->c_device, other.c_device);
+			std::swap(this->m_size, other.m_size);
+			std::swap(this->m_memory, other.m_memory);
+			std::swap(this->m_handle, other.m_handle);
+			std::swap(this->m_mappedMemory, other.m_mappedMemory);
+			std::swap(this->m_descriptor, other.m_descriptor);
 		}
 
 		return *this;
@@ -95,7 +86,21 @@ namespace vk
 
 	Buffer::~Buffer()
 	{
-		CleanUp();
+		if (c_device != VK_NULL_HANDLE)
+		{
+			if (m_memory != VK_NULL_HANDLE)
+			{
+				UnMap(); //already checks if the mapped memory is null before freeing.
+				vkFreeMemory(c_device, m_memory, nullptr);
+				m_memory = VK_NULL_HANDLE;
+			}
+
+			if (m_handle != VK_NULL_HANDLE)
+			{
+				vkDestroyBuffer(c_device, m_handle, nullptr);
+				m_handle = VK_NULL_HANDLE;
+			}
+		}
 	}
 
 	VkDeviceAddress Buffer::GetDeviceAddress() const
@@ -157,25 +162,6 @@ namespace vk
 		{
 			vkUnmapMemory(c_device, m_memory);
 			m_mappedMemory = nullptr;
-		}
-	}
-
-	void Buffer::CleanUp()
-	{
-		if (c_device != VK_NULL_HANDLE)
-		{
-			if (m_memory != VK_NULL_HANDLE)
-			{
-				UnMap(); //already checks if the mapped memory is null before freeing.
-				vkFreeMemory(c_device, m_memory, nullptr);
-				m_memory = VK_NULL_HANDLE;
-			}
-
-			if (m_handle != VK_NULL_HANDLE)
-			{
-				vkDestroyBuffer(c_device, m_handle, nullptr);
-				m_handle = VK_NULL_HANDLE;
-			}
 		}
 	}
 }

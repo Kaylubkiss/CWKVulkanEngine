@@ -183,48 +183,39 @@ namespace vk
 	{
 		if (this != &other)
 		{
-			CleanUp();
+			std::swap(this->m_environmentMapImage, other.m_environmentMapImage);
+			std::swap(this->m_irradianceImage, other.m_irradianceImage);
+			std::swap(this->m_prefilterImage, other.m_prefilterImage);
+			std::swap(this->m_BRDFLUTImage, other.m_BRDFLUTImage);
 
-			this->m_environmentMapImage = other.m_environmentMapImage;
-			this->m_irradianceImage = other.m_irradianceImage;
-			this->m_prefilterImage = other.m_prefilterImage;
-			this->m_BRDFLUTImage = other.m_BRDFLUTImage;
+			std::swap(this->m_environmentMapImageMemory, other.m_environmentMapImageMemory);
+			std::swap(this->m_irradianceImageMemory, other.m_irradianceImageMemory);
+			std::swap(this->m_prefilterImageMemory, other.m_prefilterImageMemory);
+			std::swap(this->m_BRDFLUTImageMemory, other.m_BRDFLUTImageMemory);
 
-			this->m_environmentMapImageMemory = other.m_environmentMapImageMemory;
-			this->m_irradianceImageMemory = other.m_irradianceImageMemory;
-			this->m_prefilterImageMemory = other.m_prefilterImageMemory;
-			this->m_BRDFLUTImageMemory = other.m_BRDFLUTImageMemory;
+			std::swap(this->m_environmentMapInfo, other.m_environmentMapInfo);
+			std::swap(this->m_irradianceInfo, other.m_irradianceInfo);
+			std::swap(this->m_prefilterInfo, other.m_prefilterInfo);
+			std::swap(this->m_BRDFLUTInfo, other.m_BRDFLUTInfo);
 
-			this->m_environmentMapInfo = other.m_environmentMapInfo;
-			this->m_irradianceInfo = other.m_irradianceInfo;
-			this->m_prefilterInfo = other.m_prefilterInfo;
-			this->m_BRDFLUTInfo = other.m_BRDFLUTInfo;
+			std::swap(this->m_computePipeline, other.m_computePipeline);
+			std::swap(this->m_convolutionPipeline, other.m_convolutionPipeline);
+			std::swap(this->m_prefilterPipeline, other.m_prefilterPipeline);
+			std::swap(this->m_BRDFLUTPipeline, other.m_BRDFLUTPipeline);
 
-			this->m_computePipeline = other.m_computePipeline;
-			this->m_convolutionPipeline = other.m_convolutionPipeline;
-			this->m_prefilterPipeline = other.m_prefilterPipeline;
-			this->m_BRDFLUTPipeline = other.m_BRDFLUTPipeline;
+			std::swap(this->m_prefilterWidth, other.m_prefilterWidth);
+			std::swap(this->m_prefilterHeight, other.m_prefilterHeight);
+			std::swap(this->m_prefilterMipLevels, other.m_prefilterMipLevels);
 
-			this->m_prefilterWidth = other.m_prefilterWidth;
-			this->m_prefilterHeight = other.m_prefilterHeight;
-			this->m_prefilterMipLevels = other.m_prefilterMipLevels;
+			std::swap(this->m_computeDescriptorBuffer, other.m_computeDescriptorBuffer);
 
-			this->m_computeDescriptorBuffer = std::move(other.m_computeDescriptorBuffer);
-
-			this->m_computePipelineLayout = other.m_computePipelineLayout;
-
-			other.c_device = VK_NULL_HANDLE;
+			std::swap(this->m_computePipelineLayout, other.m_computePipelineLayout);
 		}
 
 		return *this;
 	}
 
 	PanoramicTexture::~PanoramicTexture()
-	{
-		CleanUp();
-	}
-
-	void PanoramicTexture::CleanUp()
 	{
 		if (c_device != VK_NULL_HANDLE)
 		{

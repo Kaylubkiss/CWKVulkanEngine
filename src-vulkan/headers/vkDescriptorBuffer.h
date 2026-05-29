@@ -52,7 +52,6 @@ namespace vk
 		void WriteDescriptor( const WriteResource& writeData, uint32_t layoutIndex,
 			uint32_t frame, uint32_t binding, size_t writeSize, bool storageResource = false ) const;
 	private:
-		void CleanUp();
 		static void GetDescriptorLayoutSize( const vk::Device* device, VkDescriptorSetLayout layout, VkDeviceSize* size );
 		static void GetDescriptorLayoutBindingOffsets( const vk::Device* device, VkDescriptorSetLayout layout,
 		VkDeviceSize offsets[], uint32_t binding_count );
