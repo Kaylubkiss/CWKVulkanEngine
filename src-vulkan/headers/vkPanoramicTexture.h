@@ -5,10 +5,10 @@
 namespace vk
 {
 	/**
-	* Generates image-based lighting (IBL) resources from an HDR
+	* Produces image-based lighting (IBL) resources from an HDR
 	* equirectangular source texture.
 	*
-	* Generated resources:
+	* Created resources:
 	* - Environment cubemap
 	* - Diffuse irradiance cubemap
 	* - GGX prefiltered specular cubemap
@@ -28,7 +28,7 @@ namespace vk
     	PanoramicTexture() = default;
 
     	/**
-		* Loads an HDR equirectangular texture and synchronously generates
+		* Loads an HDR equirectangular texture and synchronously creates
 		* all required IBL resources.
 		*
 		* @param devicePtr Logical device abstraction.

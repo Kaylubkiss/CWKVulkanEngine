@@ -247,7 +247,7 @@ namespace vk
 	/**
 	* Converts the source equirectangular texture into a cubemap.
 	*
-	* The generated cubemap is mipmapped and transitioned to
+	* The produced cubemap is mipmapped and transitioned to
 	* VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL.
 	*
 	* @pre Source texture is in VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL.
@@ -307,7 +307,7 @@ namespace vk
     }
 
 	/**
-	* Generates a diffuse irradiance cubemap from the environment map.
+	* Produces a diffuse irradiance cubemap from the environment map.
 	*
 	* @pre Environment map is in VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL.
 	*/
@@ -363,7 +363,7 @@ namespace vk
     }
 
 	/**
-	* Generates mipmapped GGX prefiltered specular reflections used for PBR IBL.
+	* Produces mipmapped GGX prefiltered specular reflections used for PBR IBL.
 	*
 	* Each mip level corresponds to an increasing surface roughness.
 	*/
@@ -460,7 +460,7 @@ namespace vk
     }
 
 	/**
-	* Generates the BRDF integration lookup table used for split-sum specular IBL.
+	* Produces the BRDF integration lookup table used for split-sum specular IBL.
 	*/
 	void PanoramicTexture::WriteToBRDFLUTImage( const vk::Device* devicePtr, VkCommandBuffer graphicsCmd,
 		uint32_t layoutIndex )
