@@ -497,7 +497,7 @@ namespace vk
 
 		VkExtent2D imageExtent = m_BRDFLUT.GetImageExtent();
 
-		/// Generate 2D BRDF integration LUT.
+		// Generate 2D BRDF integration LUT.
     	vkCmdDispatch(graphicsCmd, imageExtent.width / 16, imageExtent.height / 16, 1);
 
     	vk::util::RecordImageLayoutTransition(graphicsCmd, m_BRDFLUT.GetImage(),
