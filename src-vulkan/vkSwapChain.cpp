@@ -4,7 +4,7 @@
 
 namespace vk 
 {
-	void SwapChain::Init(vk::Device* devicePtr, const vk::Window& appWindow)
+	SwapChain::SwapChain( vk::Device* devicePtr, const vk::Window& appWindow )
 	{
 		assert(devicePtr);
 
@@ -61,6 +61,52 @@ namespace vk
 		createInfo.pQueueFamilyIndices = nullptr;
 
 		CreateRenderPass();
+
+		Create( appWindow );
+	}
+
+	SwapChain::SwapChain( SwapChain&& other ) noexcept
+	{
+		this->framebuffers = std::move(other.framebuffers);
+		this->images = std::move(other.images);
+		this->renderPass = other.renderPass;
+		this->handle = other.handle;
+		this->m_devicePtr = other.m_devicePtr;
+		this->createInfo = other.createInfo;
+
+		other.m_devicePtr = nullptr;
+	}
+
+
+	SwapChain& SwapChain::operator=( SwapChain&& other ) noexcept
+	{
+		if (this != &other)
+		{
+			std::swap(this->handle, other.handle);
+			std::swap(this->createInfo, other.createInfo);
+			std::swap(this->images, other.images);
+			std::swap(this->framebuffers, other.framebuffers);
+			std::swap(this->renderPass, other.renderPass);
+			std::swap(this->m_devicePtr, other.m_devicePtr);
+		}
+
+		return *this;
+	}
+
+	SwapChain::~SwapChain()
+	{
+		if (m_devicePtr != nullptr)
+		{
+			for (auto& framebuffer : framebuffers)
+			{
+				framebuffer.Destroy();
+			}
+
+			vkDestroyRenderPass(m_devicePtr->GetDevice(), renderPass, nullptr);
+
+			vkDestroySwapchainKHR(m_devicePtr->GetDevice(), this->handle, nullptr);
+			handle = VK_NULL_HANDLE;
+		}
 	}
 
 	void SwapChain::Create( const vk::Window& appWindow )
@@ -141,7 +187,7 @@ namespace vk
 		uint32_t imageCount = 0;
 		VK_CHECK_RESULT(vkGetSwapchainImagesKHR(m_devicePtr->GetDevice(), this->handle, &imageCount, nullptr));
 
-		this->images.resize(imageCount);
+		this->images.resize( imageCount );
 		VK_CHECK_RESULT(vkGetSwapchainImagesKHR(m_devicePtr->GetDevice(), this->handle, &imageCount, this->images.data()));
 
 		VkCommandBuffer commandBuffer = m_devicePtr->CreateCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
@@ -177,20 +223,24 @@ namespace vk
 		SwapChain::Create( appWindow );
 	}
 
-	void SwapChain::Destroy() 
+	const std::vector<vk::Framebuffer>& SwapChain::GetFramebuffers() const
 	{
-		if (m_devicePtr != nullptr)
-		{
-			for (auto& framebuffer : framebuffers)
-			{
-				framebuffer.Destroy();
-			}
+		return this->framebuffers;
+	}
 
-			vkDestroyRenderPass(m_devicePtr->GetDevice(), renderPass, nullptr);
+	const std::vector<VkImage>& SwapChain::GetImages() const
+	{
+		return this->images;
+	}
 
-			vkDestroySwapchainKHR(m_devicePtr->GetDevice(), this->handle, nullptr);
-			handle = VK_NULL_HANDLE;
-		}
+	VkRenderPass SwapChain::GetRenderPass() const
+	{
+		return this->renderPass;
+	}
+
+	VkSwapchainKHR SwapChain::GetHandle() const
+	{
+		return this->handle;
 	}
 
 	void SwapChain::CreateRenderPass()

@@ -369,7 +369,7 @@ namespace vk
 			colorBlendStateCI = vk::init::PipelineColorBlendStateCreateInfo(1, &blendAttachmentState);
 
 			pipelineCI.pVertexInputState = &emptyVertexInputStateCI;
-			pipelineCI.renderPass = swapChain.renderPass;
+			pipelineCI.renderPass = swapChain.GetRenderPass();
 
 			VkPipelineDepthStencilStateCreateInfo emptyDepthStencilStateCI =
 				vk::init::PipelineDepthStencilStateCreateInfo(VK_FALSE,

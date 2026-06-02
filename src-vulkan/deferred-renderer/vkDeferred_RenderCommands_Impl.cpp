@@ -236,6 +236,8 @@ namespace vk
 
 			VkViewport windowViewport = m_window.Viewport();
 
+			const auto& frameBuffers = swapChain.GetFramebuffers();
+
 			clearValues[0].color = { 0,0,0,0 };
 
 			VkRenderPassBeginInfo renderPassBeginInfo = vk::init::RenderPassBeginInfo();
@@ -243,11 +245,11 @@ namespace vk
 			renderPassBeginInfo.pClearValues = clearValues;
 			renderPassBeginInfo.renderArea.extent =
 				{
-					static_cast<uint32_t>(swapChain.framebuffers[currentImageIndex].width),
-					static_cast<uint32_t>(swapChain.framebuffers[currentImageIndex].height)
+					static_cast<uint32_t>(frameBuffers[currentImageIndex].width),
+					static_cast<uint32_t>(frameBuffers[currentImageIndex].height)
 				};
-			renderPassBeginInfo.renderPass = swapChain.renderPass;
-			renderPassBeginInfo.framebuffer = swapChain.framebuffers[currentImageIndex].handle;
+			renderPassBeginInfo.renderPass = swapChain.GetRenderPass();
+			renderPassBeginInfo.framebuffer = frameBuffers[currentImageIndex].handle;
 
 
 			vkCmdBeginRenderPass(cmdBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);

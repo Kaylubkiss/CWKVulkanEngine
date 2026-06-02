@@ -27,11 +27,7 @@ namespace vk
 		device = vk::Device(m_instance.GetGPU(VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU),
 			m_window.Surface(), deviceExtensions);
 
-		swapChain.Init(&this->device, m_window); //need window for its surface and viewport info.
-		swapChain.Create(m_window);
-
-		//conforms to higher frame counts to prevent flickering.
-		m_settings.maxFramesInFlight = std::max(swapChain.createInfo.minImageCount, m_settings.maxFramesInFlight);
+		swapChain = vk::SwapChain( &this->device, m_window ); //need window for its surface and viewport info.
 
 		CreateSynchronizationPrimitives();
 
@@ -46,7 +42,7 @@ namespace vk
 			userInterfaceCI.contextPhysicalDevice = this->device.GetGPU();
 			userInterfaceCI.contextQueue = this->device.GetQueue(DeviceQueue::GRAPHICS);
 			userInterfaceCI.contextWindow = m_window.WindowPtr();
-			userInterfaceCI.renderPass = swapChain.renderPass;
+			userInterfaceCI.renderPass = swapChain.GetRenderPass();
 			userInterfaceCI.minImages = m_settings.maxFramesInFlight;
 			userInterfaceCI.viewPortExtent = m_window.Extents();
 
@@ -67,7 +63,6 @@ namespace vk
 	{
 		if (device.GetDevice() != VK_NULL_HANDLE)
 		{
-			swapChain.Destroy();
 			UIOverlay.Destroy();
 
 			device.FreeCommandBuffers(commandBuffers.data(), static_cast<uint32_t>(commandBuffers.size()));
@@ -227,7 +222,7 @@ namespace vk
 		}
 
 		VkResult result = 
-			vkAcquireNextImageKHR(device.GetDevice(), swapChain.handle, UINT64_MAX,
+			vkAcquireNextImageKHR(device.GetDevice(), swapChain.GetHandle(), UINT64_MAX,
 				presentCompleteSemaphores[currentFrame], (VkFence)nullptr, &currentImageIndex);
 	
 		if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
@@ -283,7 +278,9 @@ namespace vk
 		presentInfo.pWaitSemaphores = &renderCompleteSemaphores[currentImageIndex];
 		presentInfo.pImageIndices = &currentImageIndex;
 		presentInfo.swapchainCount = 1;
-		presentInfo.pSwapchains = &this->swapChain.handle;
+
+		auto swapChainHandle = this->swapChain.GetHandle();
+		presentInfo.pSwapchains = &swapChainHandle;
 
 		VkResult result = vkQueuePresentKHR(device.GetQueue(DeviceQueue::PRESENT).handle, &presentInfo);
 
