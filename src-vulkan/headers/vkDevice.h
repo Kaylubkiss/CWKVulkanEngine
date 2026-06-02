@@ -28,15 +28,15 @@ namespace vk
 	{
 	public:
 		Device() = default;
+		Device( VkPhysicalDevice gpu, VkSurfaceKHR surface, std::vector<const char*>& requestedExtensions  );
 
-		void Init( VkInstance instance, VkSurfaceKHR surface );
+		Device& operator=( const Device& other ) = delete;
+		Device( const Device& other ) = delete;
 
-		Device& operator=(const Device&) = delete;
-		Device& operator=(Device&&) = delete;
+		Device( Device&& other) noexcept;
+		Device& operator=( Device&& other ) noexcept;
 
-		~Device() = default;
-
-		void Destroy();
+		~Device();
 
 		//functionality
 		[[nodiscard]] uint32_t GetMemoryType( uint32_t typeBits, VkMemoryPropertyFlags flags ) const;
@@ -53,15 +53,13 @@ namespace vk
 		void FreeCommandBuffers( const VkCommandBuffer* commandBuffers, uint32_t count ) const;
 		VkCommandBuffer CreateCommandBuffer( VkCommandBufferLevel level, bool begin );
 		void FlushCommandBuffer( VkCommandBuffer cmdBuffer, VkQueue queue, bool free );
-		void AddExtension(const char* name);
 	//helpers
 	private:
 		void FindPhysicalDevices( VkInstance instance );
 		void FindQueueFamilies( VkSurfaceKHR windowSurface );
-		void InitializeLogicalDevice();
-		void CheckRequestedExtensions() const;
+		void InitializeLogicalDevice( std::vector<const char*>& requestedExtensions );
+		void CheckRequestedExtensions( std::vector<const char*>& requestedExtensions ) const;
 	private:
-		std::vector<const char*> m_requestedExtensions;
 		std::array<vk::Queue, DeviceQueue::MAX_QUEUES> m_queues;
 
 		VkPhysicalDeviceDescriptorBufferPropertiesEXT m_descriptorBufferProps = {};

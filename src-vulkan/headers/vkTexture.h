@@ -7,10 +7,11 @@ namespace vk
 	public:
 		Texture() = default;
 		Texture( const vk::Device* devicePtr, const vk::TextureCreateInfo& createInfo );
-		Texture( const Texture& other ) = delete;
-		Texture( Texture&& other ) noexcept;
 
 		Texture& operator=( const Texture& other ) = delete;
+		Texture( const Texture& other ) = delete;
+
+		Texture( Texture&& other ) noexcept;
 		Texture& operator=( Texture&& other ) noexcept;
 
 		virtual ~Texture();

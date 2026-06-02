@@ -8,18 +8,24 @@ namespace vk
 	//constructor
 	RendererBase::RendererBase()
 	{
-		m_window.Init(640, 480);
+		m_window = vk::Window(640, 480);
 
 		std::vector<const char*> instanceLayers = {"VK_LAYER_KHRONOS_validation"};
 		std::vector<const char*> instanceExtensions = m_window.GetInstanceExtensions();
-		m_instance.Create(instanceExtensions, instanceLayers);
+		m_instance = vk::Instance(instanceExtensions, instanceLayers);
 
 		m_window.CreateSurface(m_instance.GetHandle());
 
-		device.AddExtension(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
-		device.AddExtension(VK_EXT_DESCRIPTOR_BUFFER_EXTENSION_NAME);
-		device.AddExtension(VK_EXT_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME);
-		device.Init(m_instance.GetHandle(), m_window.Surface());
+		std::vector<const char*> deviceExtensions =
+		{
+			{
+				VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+				VK_EXT_DESCRIPTOR_BUFFER_EXTENSION_NAME,
+				VK_EXT_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME
+			}
+		};
+		device = vk::Device(m_instance.GetGPU(VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU),
+			m_window.Surface(), deviceExtensions);
 
 		swapChain.Init(&this->device, m_window); //need window for its surface and viewport info.
 		swapChain.Create(m_window);
@@ -77,9 +83,6 @@ namespace vk
 
 				vkDestroyFence(device.GetDevice(), inFlightFences[i], nullptr);
 			}
-
-			//must destroy the device before instance
-			this->device.Destroy();
 
 			vkDestroySurfaceKHR(m_instance.GetHandle(), m_window.Surface(), nullptr);
 		}

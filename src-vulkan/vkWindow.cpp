@@ -3,12 +3,41 @@
 namespace vk 
 {
 
-	Window::~Window()
+
+	Window::Window( Window&& other ) noexcept
 	{
-		SDL_DestroyWindow(m_sdlPtr);
+		this->m_scissor = other.m_scissor;
+		this->m_viewport = other.m_viewport;
+		this->m_surface = other.m_surface;
+		this->isPrepared = other.isPrepared;
+		this->m_sdlPtr = other.m_sdlPtr;
+
+		other.m_sdlPtr = nullptr;
 	}
 
-	void Window::Init( uint32_t width, uint32_t height )
+	Window& Window::operator=( Window&& other ) noexcept
+	{
+		if (this != &other)
+		{
+			std::swap(this->m_scissor, other.m_scissor);
+			std::swap(this->m_viewport, other.m_viewport);
+			std::swap(this->m_surface, other.m_surface);
+			std::swap(this->isPrepared, other.isPrepared);
+			std::swap(this->m_sdlPtr, other.m_sdlPtr);
+		}
+
+		return *this;
+	}
+
+	Window::~Window()
+	{
+		if (m_sdlPtr != nullptr)
+		{
+			SDL_DestroyWindow(m_sdlPtr);
+		}
+	}
+
+	Window::Window( uint32_t width, uint32_t height )
 	{
 		m_viewport.width = static_cast<float>(width);
 		m_viewport.height = static_cast<float>(height);

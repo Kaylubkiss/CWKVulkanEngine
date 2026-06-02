@@ -8,7 +8,58 @@ namespace vk
 		return m_handle;
 	}
 
-    void Instance::Create( std::vector<const char*>& extensions, std::vector<const char*>& layers )
+	VkPhysicalDevice Instance::GetGPU( VkPhysicalDeviceType type )
+	{
+		std::vector<VkPhysicalDevice> gpus;
+		std::optional<size_t> g_index;
+
+		//list the physical devices
+		uint32_t max_devices = 0;
+
+		//vulkan will ignor whatever was set in physicalDeviceCount and overwrite max_devices
+		VK_CHECK_RESULT(vkEnumeratePhysicalDevices(m_handle, &max_devices, nullptr));
+
+		if (max_devices == 0)
+		{
+			std::cerr << "could not find any GPUs to use!\n";
+			throw std::runtime_error("Device::FindPhysicalDevices() Failed!\n");
+		}
+
+		gpus.resize( max_devices );
+
+		VK_CHECK_RESULT(vkEnumeratePhysicalDevices(m_handle, &max_devices, gpus.data()));
+
+		for (size_t i = 0; i < max_devices; ++i)
+		{
+
+			VkPhysicalDeviceProperties properties;
+			VkPhysicalDeviceFeatures features;
+
+			vkGetPhysicalDeviceProperties(gpus[i], &properties);
+			vkGetPhysicalDeviceFeatures(gpus[i], &features);
+
+			if ((properties.deviceType == type) &&
+				features.geometryShader && features.samplerAnisotropy)
+			{
+				std::cout << "picked device " << i << '\n';
+
+				g_index = i;
+				break;
+			}
+		}
+
+		if (g_index.has_value() == false)
+		{
+			std::cerr << "could not find suitable physical device!";
+			throw std::runtime_error("Device::FindPhysicalDevices() Failed!\n");
+		}
+
+		VkPhysicalDevice gpu = gpus[g_index.value()];
+
+		return gpu;
+	}
+
+    Instance::Instance( std::vector<const char*>& extensions, std::vector<const char*>& layers )
     {
 		//create instance info.
 		VkApplicationInfo appInfo = {};
@@ -65,6 +116,25 @@ namespace vk
 				}
 		}
     }
+
+	Instance::Instance( Instance&& other ) noexcept
+	{
+		this->m_handle = other.m_handle;
+		this->m_debugMessenger = other.m_debugMessenger;
+
+		other.m_handle = VK_NULL_HANDLE;
+	}
+
+	Instance& Instance::operator=( Instance&& other ) noexcept
+	{
+		if (this != &other)
+		{
+			std::swap(this->m_handle, other.m_handle);
+			std::swap(this->m_debugMessenger, other.m_debugMessenger);
+		}
+
+		return *this;
+	}
 
     Instance::~Instance()
     {
