@@ -59,7 +59,7 @@ namespace vk
 
 		this->mCamera = Camera({ 0.f, 0.f, 10.f }, { 0.f, 0.f, -1.f }, { 0,1,0 });
 
-		this->pipelineManager.Init(m_info);
+		this->pipelineManager = vk::PipelineManager(m_info);
 	}
 
 	//destructor
@@ -67,12 +67,10 @@ namespace vk
 	{
 		if (device.GetDevice() != VK_NULL_HANDLE)
 		{
-			pipelineManager.Destroy();
 			swapChain.Destroy();
 			UIOverlay.Destroy();
 
 			device.FreeCommandBuffers(commandBuffers.data(), static_cast<uint32_t>(commandBuffers.size()));
-			//device command pool is deallocated in ~Device()
 
 			//semaphores
 			for (int i = 0; i < gMaxFramesInFlight; ++i)

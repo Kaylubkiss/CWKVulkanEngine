@@ -34,12 +34,20 @@ namespace vk
 	class PipelineManager
 	{
 	public:
-		void Init( const GraphicsContextInfo& contextInfo );
+		PipelineManager() = default;
+		PipelineManager( const GraphicsContextInfo& contextInfo );
+
+		PipelineManager( const PipelineManager& other ) = delete;
+		PipelineManager& operator=( const PipelineManager& other ) = delete;
+
+		PipelineManager( PipelineManager&& other ) noexcept;
+		PipelineManager& operator=( PipelineManager&& other ) noexcept;
+
 
 		/*
 			*@brief Destroys the pipeline handle and all the vulkan objects (shaders, descriptory layout) created under it.
 		*/
-		void Destroy();
+		~PipelineManager();
 		/*
 			*@brief Compiles a shader file to sprv, creates a shader module and puts it into a vector.
 
@@ -47,7 +55,7 @@ namespace vk
 
 			*@return void
 		*/
-		void AddModule( uint32_t pipeline, const ShaderModuleInfo& shaderModuleInfo );
+		void AddModule( uint32_t pipeline, ShaderModuleInfo&& shaderModuleInfo );
 
 		void AddPipeline( uint32_t pipeline, const VkPipeline handle, std::function<void()>&& createFunc = nullptr );
 

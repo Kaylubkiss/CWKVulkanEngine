@@ -62,13 +62,13 @@ namespace vk
 			vk::ShaderModuleInfo fragShaderInfo = vk::ShaderModuleInfo(device.GetDevice(),
 				"deferred-render/deComposition-PBR.frag", VK_SHADER_STAGE_FRAGMENT_BIT);
 
-			shaderStages[0] = vk::init::PipelineShaderStageCreateInfo(vertShaderInfo.mHandle, vertShaderInfo.mFlags);
-			shaderStages[1] = vk::init::PipelineShaderStageCreateInfo(fragShaderInfo.mHandle, fragShaderInfo.mFlags);
+			shaderStages[0] = vk::init::PipelineShaderStageCreateInfo(vertShaderInfo.GetHandle(), vertShaderInfo.GetShaderStageFlags());
+			shaderStages[1] = vk::init::PipelineShaderStageCreateInfo(fragShaderInfo.GetHandle(), fragShaderInfo.GetShaderStageFlags());
 
 			rasterizationStateCI.cullMode = VK_CULL_MODE_FRONT_BIT;
 
-			pipelineManager.AddModule(dePipeline::COMPOSITION, vertShaderInfo);
-			pipelineManager.AddModule(dePipeline::COMPOSITION, fragShaderInfo);
+			pipelineManager.AddModule(dePipeline::COMPOSITION, std::move(vertShaderInfo));
+			pipelineManager.AddModule(dePipeline::COMPOSITION, std::move(fragShaderInfo));
 
 			VkPipeline lightPassPipeline = VK_NULL_HANDLE;
 			VK_CHECK_RESULT(vkCreateGraphicsPipelines(device.GetDevice(), VK_NULL_HANDLE, 1, &pipelineCI,
@@ -120,10 +120,10 @@ namespace vk
 					pipelineCI.stageCount = static_cast<uint32_t>(shaderStages.size());
 					pipelineCI.pStages = shaderStages.data();
 
-					const std::vector<ShaderModuleInfo>& shaders =
+					const auto& shaders =
 						pipelineManager.GetPipelineShaders(dePipeline::COMPOSITION);
-					shaderStages[0] = vk::init::PipelineShaderStageCreateInfo(shaders[0].mHandle, shaders[0].mFlags);
-					shaderStages[1] = vk::init::PipelineShaderStageCreateInfo(shaders[1].mHandle, shaders[1].mFlags);
+					shaderStages[0] = vk::init::PipelineShaderStageCreateInfo(shaders[0].GetHandle(), shaders[0].GetShaderStageFlags());
+					shaderStages[1] = vk::init::PipelineShaderStageCreateInfo(shaders[1].GetHandle(), shaders[1].GetShaderStageFlags());
 
 					VK_CHECK_RESULT(vkCreateGraphicsPipelines(device.GetDevice(), VK_NULL_HANDLE, 1,
 						&pipelineCI, nullptr, &pipeline));
@@ -144,8 +144,8 @@ namespace vk
 				"deferred-render/deMRT.frag", VK_SHADER_STAGE_FRAGMENT_BIT);
 
 
-			shaderStages[0] = vk::init::PipelineShaderStageCreateInfo(vertShaderInfo.mHandle, vertShaderInfo.mFlags);
-			shaderStages[1] = vk::init::PipelineShaderStageCreateInfo(fragShaderInfo.mHandle, fragShaderInfo.mFlags);
+			shaderStages[0] = vk::init::PipelineShaderStageCreateInfo(vertShaderInfo.GetHandle(), vertShaderInfo.GetShaderStageFlags());
+			shaderStages[1] = vk::init::PipelineShaderStageCreateInfo(fragShaderInfo.GetHandle(), fragShaderInfo.GetShaderStageFlags());
 
 
 			rasterizationStateCI.cullMode = VK_CULL_MODE_BACK_BIT;
@@ -176,8 +176,8 @@ namespace vk
 
 			pipelineCI.pVertexInputState = &vertexInputStateCI;
 
-			pipelineManager.AddModule(dePipeline::MRT, vertShaderInfo);
-			pipelineManager.AddModule(dePipeline::MRT, fragShaderInfo);
+			pipelineManager.AddModule(dePipeline::MRT, std::move(vertShaderInfo));
+			pipelineManager.AddModule(dePipeline::MRT, std::move(fragShaderInfo));
 
 			VkPipeline mrtPipeline = VK_NULL_HANDLE;
 			VK_CHECK_RESULT(vkCreateGraphicsPipelines(device.GetDevice(), VK_NULL_HANDLE, 1,
@@ -247,8 +247,8 @@ namespace vk
 					pipelineCI.pStages = shaderStages.data();
 
 					const std::vector<ShaderModuleInfo>& shaders = pipelineManager.GetPipelineShaders(dePipeline::MRT);
-					shaderStages[0] = vk::init::PipelineShaderStageCreateInfo(shaders[0].mHandle, shaders[0].mFlags);
-					shaderStages[1] = vk::init::PipelineShaderStageCreateInfo(shaders[1].mHandle, shaders[1].mFlags);
+					shaderStages[0] = vk::init::PipelineShaderStageCreateInfo(shaders[0].GetHandle(), shaders[0].GetShaderStageFlags());
+					shaderStages[1] = vk::init::PipelineShaderStageCreateInfo(shaders[1].GetHandle(), shaders[1].GetShaderStageFlags());
 
 					VK_CHECK_RESULT(vkCreateGraphicsPipelines(device.GetDevice(), VK_NULL_HANDLE, 1,
 						&pipelineCI, nullptr, &pipeline));
@@ -266,11 +266,11 @@ namespace vk
 			vk::ShaderModuleInfo vertShaderInfo = vk::ShaderModuleInfo(device.GetDevice(), "sky.vert", VK_SHADER_STAGE_VERTEX_BIT);
 			vk::ShaderModuleInfo fragShaderInfo = vk::ShaderModuleInfo(device.GetDevice(), "sky.frag", VK_SHADER_STAGE_FRAGMENT_BIT);
 
-			pipelineManager.AddModule(dePipeline::SKY, vertShaderInfo);
-			pipelineManager.AddModule(dePipeline::SKY, fragShaderInfo);
+			pipelineManager.AddModule(dePipeline::SKY, std::move(vertShaderInfo));
+			pipelineManager.AddModule(dePipeline::SKY, std::move(fragShaderInfo));
 
-			shaderStages[0] = vk::init::PipelineShaderStageCreateInfo(vertShaderInfo.mHandle, vertShaderInfo.mFlags);
-			shaderStages[1] = vk::init::PipelineShaderStageCreateInfo(fragShaderInfo.mHandle, fragShaderInfo.mFlags);
+			shaderStages[0] = vk::init::PipelineShaderStageCreateInfo(vertShaderInfo.GetHandle(), vertShaderInfo.GetShaderStageFlags());
+			shaderStages[1] = vk::init::PipelineShaderStageCreateInfo(fragShaderInfo.GetHandle(), fragShaderInfo.GetShaderStageFlags());
 
 			rasterizationStateCI.cullMode = VK_CULL_MODE_NONE;
 			colorBlendStateCI = vk::init::PipelineColorBlendStateCreateInfo(1, &blendAttachmentState);
@@ -337,8 +337,8 @@ namespace vk
         		pipelineCI.pStages = shaderStages.data();
 
         		const std::vector<ShaderModuleInfo>& shaders = pipelineManager.GetPipelineShaders(dePipeline::SKY);
-        		shaderStages[0] = vk::init::PipelineShaderStageCreateInfo(shaders[0].mHandle, shaders[0].mFlags);
-        		shaderStages[1] = vk::init::PipelineShaderStageCreateInfo(shaders[1].mHandle, shaders[1].mFlags);
+        		shaderStages[0] = vk::init::PipelineShaderStageCreateInfo(shaders[0].GetHandle(), shaders[0].GetShaderStageFlags());
+        		shaderStages[1] = vk::init::PipelineShaderStageCreateInfo(shaders[1].GetHandle(), shaders[1].GetShaderStageFlags());
 
         		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device.GetDevice(), VK_NULL_HANDLE, 1,
 						&pipelineCI, nullptr, &pipeline));
@@ -358,12 +358,12 @@ namespace vk
 			vk::ShaderModuleInfo fragShaderInfo = vk::ShaderModuleInfo(device.GetDevice(), "deferred-render/quad.frag",
 				VK_SHADER_STAGE_FRAGMENT_BIT);
 
-			shaderStages[0] = vk::init::PipelineShaderStageCreateInfo(vertShaderInfo.mHandle, vertShaderInfo.mFlags);
-			shaderStages[1] = vk::init::PipelineShaderStageCreateInfo(fragShaderInfo.mHandle, fragShaderInfo.mFlags);
+			shaderStages[0] = vk::init::PipelineShaderStageCreateInfo(vertShaderInfo.GetHandle(), vertShaderInfo.GetShaderStageFlags());
+			shaderStages[1] = vk::init::PipelineShaderStageCreateInfo(fragShaderInfo.GetHandle(), fragShaderInfo.GetShaderStageFlags());
 
 
-			pipelineManager.AddModule(dePipeline::SWAPCHAIN, vertShaderInfo);
-			pipelineManager.AddModule(dePipeline::SWAPCHAIN, fragShaderInfo);
+			pipelineManager.AddModule(dePipeline::SWAPCHAIN, std::move(vertShaderInfo));
+			pipelineManager.AddModule(dePipeline::SWAPCHAIN, std::move(fragShaderInfo));
 
 			rasterizationStateCI.cullMode = VK_CULL_MODE_NONE;
 			colorBlendStateCI = vk::init::PipelineColorBlendStateCreateInfo(1, &blendAttachmentState);
@@ -393,11 +393,11 @@ namespace vk
 			vk::ShaderModuleInfo geoShaderInfo = ShaderModuleInfo(device.GetDevice(), "deferred-render/deShadow.geom",
 				VK_SHADER_STAGE_GEOMETRY_BIT);
 
-			shaderStages[0] = vk::init::PipelineShaderStageCreateInfo(vertShaderInfo.mHandle, vertShaderInfo.mFlags);
-			shaderStages[1] = vk::init::PipelineShaderStageCreateInfo(geoShaderInfo.mHandle, geoShaderInfo.mFlags);
+			shaderStages[0] = vk::init::PipelineShaderStageCreateInfo(vertShaderInfo.GetHandle(), vertShaderInfo.GetShaderStageFlags());
+			shaderStages[1] = vk::init::PipelineShaderStageCreateInfo(geoShaderInfo.GetHandle(), geoShaderInfo.GetShaderStageFlags());
 
-			pipelineManager.AddModule(dePipeline::SHADOW, vertShaderInfo);
-			pipelineManager.AddModule(dePipeline::SHADOW, geoShaderInfo);
+			pipelineManager.AddModule(dePipeline::SHADOW, std::move(vertShaderInfo));
+			pipelineManager.AddModule(dePipeline::SHADOW, std::move(geoShaderInfo));
 
 			//shadow pass doesn't have color attachments
 			colorBlendStateCI.attachmentCount = 0;

@@ -149,7 +149,7 @@ namespace vk
 				fileName, VK_SHADER_STAGE_COMPUTE_BIT);
 
 			VkPipelineShaderStageCreateInfo shaderStageCI =
-				vk::init::PipelineShaderStageCreateInfo(shaderModuleInfo.mHandle, shaderModuleInfo.mFlags);
+				vk::init::PipelineShaderStageCreateInfo(shaderModuleInfo.GetHandle(), shaderModuleInfo.GetShaderStageFlags());
 
 			computePipelineCI.stage = shaderStageCI;
 			computePipelineCI.layout = m_computePipelineLayout;
@@ -157,8 +157,6 @@ namespace vk
     		VkPipeline handle;
 			vkCreateComputePipelines( c_device, VK_NULL_HANDLE, 1,
 				&computePipelineCI, nullptr, &handle );
-
-			vkDestroyShaderModule( c_device, shaderModuleInfo.mHandle, nullptr );
 
     		return handle;
     	}

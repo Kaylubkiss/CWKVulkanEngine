@@ -10,14 +10,35 @@
 namespace vk 
 {
 
-	void PipelineManager::Init( const GraphicsContextInfo& contextInfo )
+	PipelineManager::PipelineManager( const GraphicsContextInfo& contextInfo )
 	{
 		assert(contextInfo.devicePtr != nullptr);
 
 		contextLogicalDevice = contextInfo.devicePtr->GetDevice();
 	}
 
-	void PipelineManager::Destroy()
+	PipelineManager::PipelineManager( PipelineManager&& other ) noexcept
+	{
+		this->contextLogicalDevice = other.contextLogicalDevice;
+		this->hotReloadInfos = other.hotReloadInfos;
+		this->pipelines = std::move(other.pipelines);
+
+		other.contextLogicalDevice = VK_NULL_HANDLE;
+	}
+
+	PipelineManager& PipelineManager::operator=( PipelineManager&& other ) noexcept
+	{
+		if (this != &other)
+		{
+			std::swap(this->contextLogicalDevice, other.contextLogicalDevice);
+			std::swap(this->hotReloadInfos, other.hotReloadInfos);
+			std::swap(this->pipelines, other.pipelines);
+		}
+
+		return *this;
+	}
+
+	PipelineManager::~PipelineManager()
 	{
 		if (contextLogicalDevice != VK_NULL_HANDLE)
 		{
@@ -26,20 +47,15 @@ namespace vk
 				vk::Pipeline& currPipeline = pipeline.second;
 
 				vkDestroyPipeline(contextLogicalDevice, currPipeline.handle, nullptr);
-
-				for (auto& shaderModule : currPipeline.shaderModules)
-				{
-					vkDestroyShaderModule(contextLogicalDevice, shaderModule.mHandle, nullptr);
-				}
 			}
 
 			pipelines.clear();
 		}
 	}
 
-	void PipelineManager::AddModule( uint32_t pipeline, const ShaderModuleInfo& shaderModuleInfo )
+	void PipelineManager::AddModule( uint32_t pipeline, ShaderModuleInfo&& shaderModuleInfo )
 	{
-		pipelines[pipeline].shaderModules.push_back(shaderModuleInfo);
+		pipelines[pipeline].shaderModules.push_back(std::move(shaderModuleInfo));
 	}
 
 	void PipelineManager::AddPipeline( uint32_t pipeline, const VkPipeline handle, std::function<void()>&& createFunc )
@@ -71,10 +87,8 @@ namespace vk
 			{
 				ShaderModuleInfo& shaderModule = pipeline.shaderModules[module.index];
 
-				vkDestroyShaderModule(contextLogicalDevice, shaderModule.mHandle, nullptr);
-				shaderModule.mHandle = VK_NULL_HANDLE;
-
-				shaderModule.mHandle = vk::init::ShaderModule(contextLogicalDevice, module.path.c_str());
+				shaderModule = vk::ShaderModuleInfo( contextLogicalDevice,
+					shaderModule.GetFileName(), shaderModule.GetShaderStageFlags() );
 			}
 
 			pipeline.createFunc();
@@ -97,29 +111,31 @@ namespace vk
 
 			struct stat fileStat = {};
 
-			if (stat(shader.mFilePath.c_str(), &fileStat) != 0)
+			const auto& shaderFileName = SHADER_PATH + shader.GetFileName();
+
+			if (stat(shaderFileName.c_str(), &fileStat) != 0)
 			{
-				std::cerr << "[ERROR] Can't Read File " << shader.mFilePath << '\n';
+				std::cerr << "[ERROR] Can't Read File " << shaderFileName << '\n';
 				continue;
 			}
 
 			//check if the filesystem saw any changes.
-			if (shader.lastModificationTime != fileStat.st_mtime)
+			if (shader.GetModificationTime() != fileStat.st_mtime)
 			{
 				//reassign so errors don't pop up forever.
-				shader.lastModificationTime = fileStat.st_mtime;
+				shader.SetModificationTime( fileStat.st_mtime );
 
 				//creation function determines that a pipeline can be hot reloaded.
 				if (pipeline.createFunc != nullptr)
 				{
-					info.pipeline_index = static_cast<int>(pipelineIndex);
+					info.pipeline_index = static_cast<int>( pipelineIndex );
 
 					auto shaderPath =
-						vk::spirv::ReadSourceAndWriteToSpirv(shader.mFilePath, shader.mShaderKind, true);
+						vk::spirv::ReadSourceAndWriteToSpirv(shaderFileName, shader.GetShaderKind(), true);
 
 					if (shaderPath.has_value() == false)
 					{
-						std::cerr << "[ERROR] Couldn't write to file " << shader.mFilePath << '\n';
+						std::cerr << "[ERROR] Couldn't write to file " << shaderFileName << '\n';
 						continue;
 					}
 
