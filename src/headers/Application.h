@@ -22,7 +22,6 @@ public:
 		Camera& camera, const uTransformObject& uTransform, PhysicsSystem& physics);*/
 private:
 	void init();
-	void test();
 	void loop();
 	void exit();
 private:

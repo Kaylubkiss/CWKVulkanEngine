@@ -20,7 +20,6 @@ void TextureManager::Init( vk::Device* devicePtr, DescriptorManager* descriptorM
 
 void TextureManager::Destroy()
 {
-
 	if (m_devicePtr != nullptr)
 	{
 		VkDevice contextDevice = m_devicePtr->GetDevice();

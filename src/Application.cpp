@@ -1,8 +1,6 @@
 #include "Input.h"
 #include "vkDeferredRenderer.h"
 
-#include "test.h"
-
 PhysicsSystem& Application::GetPhysics() 
 {
 	return this->m_physics;
@@ -22,8 +20,6 @@ void Application::run()
 {
 	//initialize all resources.
 	Application::init();
-
-	//Application::test();
 	 
 	//render, update, render, update...
 	Application::loop();
@@ -51,18 +47,6 @@ void Application::init()
 
 	m_assetManager.Init(rendererInfo.devicePtr, &m_textureManager, 2);
 }
-
-void Application::test()
-{
-	auto rendererInfo = m_vulkanGraphicsContext->GetInfo();
-
-	std::mutex mootMutex;
-	std::vector<std::string> fileNames = {"art/extern-textures/monochrome_studio.hdr"};
-	test::LoadPanoramicImage(rendererInfo.devicePtr, fileNames,mootMutex);
-
-	RequestExit();
-}
-
 
 /*void Application::SelectWorldObjects(const vk::Window& appWindow,
 									 Camera& camera, const uTransformObject& uTransform, PhysicsSystem& physics)
