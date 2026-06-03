@@ -1,5 +1,6 @@
 #include "vkSwapChain.h"
 #include "vkUtil.h"
+#include "vkInit.h"
 #include <stdexcept>
 
 namespace vk 
@@ -69,10 +70,12 @@ namespace vk
 	{
 		this->framebuffers = std::move(other.framebuffers);
 		this->images = std::move(other.images);
+		this->imageViews = std::move(other.imageViews);
 		this->renderPass = other.renderPass;
 		this->handle = other.handle;
 		this->m_devicePtr = other.m_devicePtr;
 		this->createInfo = other.createInfo;
+		this->m_extent = other.m_extent;
 
 		other.m_devicePtr = nullptr;
 	}
@@ -85,6 +88,8 @@ namespace vk
 			std::swap(this->handle, other.handle);
 			std::swap(this->createInfo, other.createInfo);
 			std::swap(this->images, other.images);
+			std::swap(this->imageViews, other.imageViews);
+			std::swap(this->m_extent, other.m_extent);
 			std::swap(this->framebuffers, other.framebuffers);
 			std::swap(this->renderPass, other.renderPass);
 			std::swap(this->m_devicePtr, other.m_devicePtr);
@@ -97,14 +102,12 @@ namespace vk
 	{
 		if (m_devicePtr != nullptr)
 		{
-			for (auto& framebuffer : framebuffers)
-			{
-				framebuffer.Destroy();
-			}
+			DestroyFramebufferResources();
 
 			vkDestroyRenderPass(m_devicePtr->GetDevice(), renderPass, nullptr);
 
 			vkDestroySwapchainKHR(m_devicePtr->GetDevice(), this->handle, nullptr);
+
 			handle = VK_NULL_HANDLE;
 		}
 	}
@@ -174,14 +177,11 @@ namespace vk
 
 		if (oldSwapchain != VK_NULL_HANDLE)
 		{
-			for (auto& framebuffer : framebuffers)
-			{
-				framebuffer.Destroy();
-			}
+			DestroyFramebufferResources();
 
 			vkDestroySwapchainKHR(m_devicePtr->GetDevice(), oldSwapchain, nullptr);
+
 			oldSwapchain = VK_NULL_HANDLE;
-			images.clear();
 		}
 		
 		uint32_t imageCount = 0;
@@ -223,7 +223,7 @@ namespace vk
 		SwapChain::Create( appWindow );
 	}
 
-	const std::vector<vk::Framebuffer>& SwapChain::GetFramebuffers() const
+	const std::vector<VkFramebuffer>& SwapChain::GetFramebuffers() const
 	{
 		return this->framebuffers;
 	}
@@ -241,6 +241,11 @@ namespace vk
 	VkSwapchainKHR SwapChain::GetHandle() const
 	{
 		return this->handle;
+	}
+
+	VkExtent2D SwapChain::GetExtent() const
+	{
+		return m_extent;
 	}
 
 	void SwapChain::CreateRenderPass()
@@ -305,38 +310,45 @@ namespace vk
 	{
 		assert( renderPass != VK_NULL_HANDLE );
 
-		this->framebuffers.clear();
+		DestroyFramebufferResources();
+
 		this->framebuffers.resize(this->images.size());
+		this->imageViews.resize(images.size());
 
 		uint32_t width = static_cast<uint32_t>(vp.width);
 		uint32_t height = static_cast<uint32_t>(vp.height);
 
-		vk::FramebufferAttachmentCreateInfo attachmentInfo = {};
-		attachmentInfo.width = width;
-		attachmentInfo.height = height;
-		attachmentInfo.layerCount = 1;
-		attachmentInfo.sampleCount = VK_SAMPLE_COUNT_1_BIT;
-		attachmentInfo.operatingLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-		attachmentInfo.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-		attachmentInfo.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+		m_extent = { width, height };
 
-		for (unsigned i = 0; i < this->images.size(); ++i) 
+		VkImageSubresourceRange subresourceRange = {};
+		subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		subresourceRange.levelCount = 1;
+		subresourceRange.layerCount = 1;
+
+		VkImageViewCreateInfo viewInfo = vk::init::ImageViewCreateInfo();
+		viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+		viewInfo.format = createInfo.imageFormat;
+		viewInfo.subresourceRange = subresourceRange;
+		viewInfo.components =
 		{
-			framebuffers[i].Init(m_devicePtr);
-			framebuffers[i].width = width;
-			framebuffers[i].height = height;
+			VK_COMPONENT_SWIZZLE_R,
+			VK_COMPONENT_SWIZZLE_G,
+			VK_COMPONENT_SWIZZLE_B,
+			VK_COMPONENT_SWIZZLE_A
+		};
 
-			attachmentInfo.format = createInfo.imageFormat;
-			attachmentInfo.alreadyAllocatedImage = images[i];
 
-			framebuffers[i].AddAttachment(attachmentInfo);
+		for (size_t i = 0; i < this->images.size(); ++i)
+		{
+			viewInfo.image = images[i];
 
-			std::vector<VkImageView> imageViews(framebuffers[i].attachments.size());
-			for (size_t j = 0; j < framebuffers[i].attachments.size(); ++j)
-			{
-				imageViews[j] = framebuffers[i].attachments[j].imageView;
-			}
+			VK_CHECK_RESULT(vkCreateImageView(m_devicePtr->GetDevice(), &viewInfo,
+				nullptr, &imageViews[i]));
+		}
 
+
+		for (size_t i = 0; i < this->framebuffers.size(); ++i)
+		{
 			//create framebuffer info
 			VkFramebufferCreateInfo framebufferCreateInfo =
 			{
@@ -344,18 +356,44 @@ namespace vk
 				nullptr, //pNext
 				0, //reserved for future expansion.. flags are zero now.
 				renderPass,
-				static_cast<uint32_t>(imageViews.size()),// attachmentCount
-				imageViews.data(), //attachments
-				framebuffers[i].width, //width
-				framebuffers[i].height, //height
+				1,// attachmentCount
+				&imageViews[i], //attachments
+				width, //width
+				height, //height
 				1 //1 layer
 			};
 
 			VK_CHECK_RESULT(vkCreateFramebuffer(m_devicePtr->GetDevice(), &framebufferCreateInfo,
-				nullptr, &this->framebuffers[i].handle));
+				nullptr, &this->framebuffers[i]));
 		}
 
 
+	}
+
+	void SwapChain::DestroyFramebufferResources()
+	{
+		if (m_devicePtr != nullptr)
+		{
+			for ( auto& imageView : imageViews )
+			{
+				if ( imageView )
+				{
+					vkDestroyImageView(m_devicePtr->GetDevice(), imageView, nullptr);
+				}
+
+				imageView = VK_NULL_HANDLE;
+			}
+
+			for ( auto& framebuffer : framebuffers )
+			{
+				if ( framebuffer )
+				{
+					vkDestroyFramebuffer(m_devicePtr->GetDevice(), framebuffer, nullptr);
+				}
+
+				framebuffer = VK_NULL_HANDLE;
+			}
+		}
 	}
 
 

@@ -105,10 +105,14 @@ namespace vk
 			VkRenderPassBeginInfo renderPassBeginInfo = vk::init::RenderPassBeginInfo();
 			renderPassBeginInfo.clearValueCount = RT_COUNT + 1;
 			renderPassBeginInfo.pClearValues = clearValues;
-			renderPassBeginInfo.renderArea.extent = { (uint32_t)framebuffers.deMRT[currentFrame].width,
-				(uint32_t)framebuffers.deMRT[currentFrame].height };
-			renderPassBeginInfo.renderPass = framebuffers.deMRT[currentFrame].renderPass;
-			renderPassBeginInfo.framebuffer = framebuffers.deMRT[currentFrame].handle;
+
+			VkExtent2D fbExtent = framebuffers.deMRT[currentFrame].GetExtent();
+			VkRenderPass fbRenderPass = framebuffers.deMRT[currentFrame].GetRenderPass();
+			VkFramebuffer fbHandle = framebuffers.deMRT[currentFrame].GetHandle();
+
+			renderPassBeginInfo.renderArea.extent = { fbExtent.width, fbExtent.height };
+			renderPassBeginInfo.renderPass = fbRenderPass;
+			renderPassBeginInfo.framebuffer = fbHandle;
 
 			vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineManager.Get(dePipeline::MRT));
 
@@ -153,11 +157,14 @@ namespace vk
 			VkRenderPassBeginInfo renderPassBeginInfo = vk::init::RenderPassBeginInfo();
 			renderPassBeginInfo.clearValueCount = 1;
 			renderPassBeginInfo.pClearValues = clearValues;
-			renderPassBeginInfo.renderArea.extent =
-				{static_cast<uint32_t>(framebuffers.deComposition[currentFrame].width),
-					static_cast<uint32_t>(framebuffers.deComposition[currentFrame].height)};
-			renderPassBeginInfo.renderPass = framebuffers.deComposition[currentFrame].renderPass;
-			renderPassBeginInfo.framebuffer = framebuffers.deComposition[currentFrame].handle;
+
+			VkExtent2D fbExtent = framebuffers.deComposition[currentFrame].GetExtent();
+			VkRenderPass fbRenderPass = framebuffers.deComposition[currentFrame].GetRenderPass();
+			VkFramebuffer fbHandle = framebuffers.deComposition[currentFrame].GetHandle();
+
+			renderPassBeginInfo.renderArea.extent = fbExtent;
+			renderPassBeginInfo.renderPass = fbRenderPass;
+			renderPassBeginInfo.framebuffer = fbHandle;
 
 			vkCmdBeginRenderPass(cmdBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
@@ -198,11 +205,14 @@ namespace vk
 			VkRenderPassBeginInfo renderPassBeginInfo = vk::init::RenderPassBeginInfo();
 			renderPassBeginInfo.clearValueCount = 2;
 			renderPassBeginInfo.pClearValues = clearValues;
-			renderPassBeginInfo.renderArea.extent =
-				{static_cast<uint32_t>(framebuffers.deSky[currentFrame].width),
-					static_cast<uint32_t>(framebuffers.deSky[currentFrame].height)};
-			renderPassBeginInfo.renderPass = framebuffers.deSky[currentFrame].renderPass;
-			renderPassBeginInfo.framebuffer = framebuffers.deSky[currentFrame].handle;
+
+			VkExtent2D fbExtent = framebuffers.deSky[currentFrame].GetExtent();
+			VkRenderPass fbRenderPass = framebuffers.deSky[currentFrame].GetRenderPass();
+			VkFramebuffer fbHandle = framebuffers.deSky[currentFrame].GetHandle();
+
+			renderPassBeginInfo.renderArea.extent = fbExtent;
+			renderPassBeginInfo.renderPass = fbRenderPass;
+			renderPassBeginInfo.framebuffer = fbHandle;
 
 			vkCmdBeginRenderPass(cmdBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
@@ -236,20 +246,18 @@ namespace vk
 
 			VkViewport windowViewport = m_window.Viewport();
 
-			const auto& frameBuffers = swapChain.GetFramebuffers();
-
 			clearValues[0].color = { 0,0,0,0 };
 
 			VkRenderPassBeginInfo renderPassBeginInfo = vk::init::RenderPassBeginInfo();
 			renderPassBeginInfo.clearValueCount = 1;
 			renderPassBeginInfo.pClearValues = clearValues;
-			renderPassBeginInfo.renderArea.extent =
-				{
-					static_cast<uint32_t>(frameBuffers[currentImageIndex].width),
-					static_cast<uint32_t>(frameBuffers[currentImageIndex].height)
-				};
+
+			VkExtent2D fbExtent = swapChain.GetExtent();
+			VkFramebuffer fbHandle = swapChain.GetFramebuffers()[currentImageIndex];
+
+			renderPassBeginInfo.renderArea.extent = fbExtent;
 			renderPassBeginInfo.renderPass = swapChain.GetRenderPass();
-			renderPassBeginInfo.framebuffer = frameBuffers[currentImageIndex].handle;
+			renderPassBeginInfo.framebuffer = fbHandle;
 
 
 			vkCmdBeginRenderPass(cmdBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);

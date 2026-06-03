@@ -11,6 +11,7 @@ namespace vk
 		this->m_surface = other.m_surface;
 		this->isPrepared = other.isPrepared;
 		this->m_sdlPtr = other.m_sdlPtr;
+		this->c_instance = other.c_instance;
 
 		other.m_sdlPtr = nullptr;
 	}
@@ -24,6 +25,7 @@ namespace vk
 			std::swap(this->m_surface, other.m_surface);
 			std::swap(this->isPrepared, other.isPrepared);
 			std::swap(this->m_sdlPtr, other.m_sdlPtr);
+			std::swap(this->c_instance, other.c_instance);
 		}
 
 		return *this;
@@ -34,6 +36,11 @@ namespace vk
 		if (m_sdlPtr != nullptr)
 		{
 			SDL_DestroyWindow(m_sdlPtr);
+
+			if (c_instance != VK_NULL_HANDLE)
+			{
+				vkDestroySurfaceKHR(c_instance, m_surface, nullptr);
+			}
 		}
 	}
 
@@ -64,6 +71,8 @@ namespace vk
 	{
 		if (vulkanInstance != VK_NULL_HANDLE)
 		{
+			c_instance = vulkanInstance;
+
 			if (m_surface == VK_NULL_HANDLE)
 			{
 				if (SDL_Vulkan_CreateSurface(m_sdlPtr, vulkanInstance, &m_surface) != SDL_TRUE)

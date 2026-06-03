@@ -50,24 +50,41 @@ namespace vk
 	};
 
 
-	struct Framebuffer 
+	class Framebuffer
 	{
 	public:
-		void Init( vk::Device* contextDevice );
-		void Destroy();
+		Framebuffer() = default;
+		Framebuffer( vk::Device* contextDevice );
+
+		Framebuffer( const Framebuffer& other ) = delete;
+		Framebuffer& operator=( const Framebuffer& other ) = delete;
+
+		Framebuffer( Framebuffer&& other ) noexcept;
+		Framebuffer& operator=( Framebuffer&& other ) noexcept;
+
+		~Framebuffer();
+
 		void CreateSampler( VkFilter minFilter, VkFilter magFilter, VkSamplerAddressMode addressMode );
 		void CreateFramebuffer();
 		void AddAttachment( const vk::FramebufferAttachmentCreateInfo& createInfo );
+		void SetExtent( VkExtent2D extent );
+
+		const std::vector<FramebufferAttachment>& GetAttachments() const;
+		VkExtent2D GetExtent() const;
+		VkRenderPass GetRenderPass() const;
+		VkSampler GetSampler() const;
+		VkFramebuffer GetHandle() const;
 	private:
 		void CreateRenderPass();
-	public:
+	private:
+		std::vector<FramebufferAttachment> attachments;
 		uint32_t width = 0;
 		uint32_t height = 0;
 		VkFramebuffer handle = VK_NULL_HANDLE;
 		VkRenderPass renderPass = VK_NULL_HANDLE; //NOTE: unused in swapchain
 		VkSampler sampler = VK_NULL_HANDLE;
-		std::vector<FramebufferAttachment> attachments;
-	private:
+
 		vk::Device* contextDevice = nullptr;
+
 	};
 }

@@ -111,16 +111,19 @@ namespace vk
     	{
     		imageDescriptorData[frame].resize(imageCount);
 
+    		const auto& mrtAttachments = framebuffers.deMRT[frame].GetAttachments();
+    		const auto& shadowAttachments = framebuffers.deShadow[frame].GetAttachments();
+
     		for (size_t binding = 0; binding < RT_COUNT; ++binding)
     		{
-    			imageDescriptorData[frame][binding].imageLayout = framebuffers.deMRT[frame].attachments[binding].layout;
-    			imageDescriptorData[frame][binding].imageView = framebuffers.deMRT[frame].attachments[binding].imageView;
-    			imageDescriptorData[frame][binding].sampler = framebuffers.deMRT[frame].sampler;
+    			imageDescriptorData[frame][binding].imageLayout = mrtAttachments[binding].layout;
+    			imageDescriptorData[frame][binding].imageView = mrtAttachments[binding].imageView;
+    			imageDescriptorData[frame][binding].sampler = framebuffers.deMRT[frame].GetSampler();
     		}
 
-    		imageDescriptorData[frame][RT_COUNT].imageLayout = framebuffers.deShadow[frame].attachments[0].layout;
-    		imageDescriptorData[frame][RT_COUNT].imageView = framebuffers.deShadow[frame].attachments[0].imageView;
-    		imageDescriptorData[frame][RT_COUNT].sampler = framebuffers.deShadow[frame].sampler;
+    		imageDescriptorData[frame][RT_COUNT].imageLayout = shadowAttachments[0].layout;
+    		imageDescriptorData[frame][RT_COUNT].imageView = shadowAttachments[0].imageView;
+    		imageDescriptorData[frame][RT_COUNT].sampler = framebuffers.deShadow[frame].GetSampler();
 
     		VkDescriptorImageInfo irradianceMapDescriptor = m_test_panoramicImage.GetIrradianceImageDescriptor();
 		    imageDescriptorData[frame][RT_COUNT + 1].imageLayout = irradianceMapDescriptor.imageLayout;
@@ -145,13 +148,17 @@ namespace vk
     	imageDescriptorData.clear();
     	imageDescriptorData.resize(gMaxFramesInFlight);
 
+
+
     	for (size_t frame = 0; frame < imageDescriptorData.size(); ++frame)
     	{
+    		const auto& skyAttachments = framebuffers.deSky[frame].GetAttachments();
+
     		VkDescriptorImageInfo swapchain_image_info = {};
     		//image view and sampler should be identical across framebuffers
     		swapchain_image_info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-    		swapchain_image_info.imageView = framebuffers.deSky[frame].attachments[0].imageView;
-    		swapchain_image_info.sampler = framebuffers.deSky[frame].sampler;
+    		swapchain_image_info.imageView = skyAttachments[0].imageView;
+    		swapchain_image_info.sampler = framebuffers.deSky[frame].GetSampler();
 
     		imageDescriptorData[frame].push_back(swapchain_image_info);
     	}

@@ -7,7 +7,8 @@
 namespace vk
 {
 
-	DeferredRenderer::DeferredRenderer( TextureManager* textureManagerPtr, DescriptorManager* descriptorManagerPtr )
+	DeferredRenderer::DeferredRenderer( TextureManager* textureManagerPtr,
+		DescriptorManager* descriptorManagerPtr )
 	{
 
 		m_descriptorManagerPtr = descriptorManagerPtr;
@@ -34,14 +35,6 @@ namespace vk
 	DeferredRenderer::~DeferredRenderer()
 	{
 		vkDestroyPipelineLayout(device.GetDevice(), m_graphicsPipelineLayout, nullptr);
-
-		for (size_t frame = 0; frame < gMaxFramesInFlight; ++frame)
-		{
-			framebuffers.deMRT[frame].Destroy();
-			framebuffers.deShadow[frame].Destroy();
-			framebuffers.deSky[frame].Destroy();
-			framebuffers.deComposition[frame].Destroy();
-		}
 	}
 
 	void DeferredRenderer::InitializeUniforms()

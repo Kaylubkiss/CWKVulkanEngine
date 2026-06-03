@@ -76,8 +76,6 @@ namespace vk
 
 				vkDestroyFence(device.GetDevice(), inFlightFences[i], nullptr);
 			}
-
-			vkDestroySurfaceKHR(m_instance.GetHandle(), m_window.Surface(), nullptr);
 		}
 	}
 

@@ -36,6 +36,8 @@ namespace vk
 		SDL_Window* m_sdlPtr = nullptr;
 		VkSurfaceKHR m_surface = VK_NULL_HANDLE;
 
+		VkInstance c_instance = VK_NULL_HANDLE;
+
 		bool isPrepared = false;
 	};
 

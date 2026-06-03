@@ -41,7 +41,6 @@ namespace vk
 		virtual void FillOutGraphicsContextInfo();
 	private:
 		void CreateSynchronizationPrimitives();
-
 	protected:
 		struct Settings //TODO: make this into a bitmask
 		{

@@ -17,15 +17,17 @@ namespace vk
 
 		for (auto& MRTFramebuffer : framebuffers.deMRT)
 		{
-			MRTFramebuffer.Destroy();
-			MRTFramebuffer.Init(&this->device);
+			MRTFramebuffer = vk::Framebuffer(&this->device);
 
-			MRTFramebuffer.width = static_cast<uint32_t>(viewport.width);
-			MRTFramebuffer.height = static_cast<uint32_t>(viewport.height);
+			MRTFramebuffer.SetExtent(
+				{ static_cast<uint32_t>(viewport.width),
+				static_cast<uint32_t>(viewport.height) } );
 
 			VkFramebufferCreateInfo framebufferCI = vk::init::FramebufferCreateInfo();
-			framebufferCI.width = MRTFramebuffer.width;
-			framebufferCI.height = MRTFramebuffer.height;
+
+			VkExtent2D fbExtent = MRTFramebuffer.GetExtent();
+			framebufferCI.width = fbExtent.width;
+			framebufferCI.height = fbExtent.height;
 			framebufferCI.layers = 1;
 
 			vk::FramebufferAttachmentCreateInfo attachmentCI = {};
@@ -78,16 +80,16 @@ namespace vk
 
 		for (auto& shadowMapFramebuffer : framebuffers.deShadow)
 		{
-			shadowMapFramebuffer.Destroy();
-			shadowMapFramebuffer.Init(&this->device);
+			shadowMapFramebuffer = vk::Framebuffer(&this->device);
 
-			shadowMapFramebuffer.width = 2048;
-			shadowMapFramebuffer.height = 2048;
+			shadowMapFramebuffer.SetExtent( { 2048, 2048 } );
 
 			vk::FramebufferAttachmentCreateInfo attachmentCI = {};
 			attachmentCI.format = VK_FORMAT_D32_SFLOAT_S8_UINT;
-			attachmentCI.width = shadowMapFramebuffer.width;
-			attachmentCI.height = shadowMapFramebuffer.height;
+
+			VkExtent2D fbExtent = shadowMapFramebuffer.GetExtent();
+			attachmentCI.width = fbExtent.width;
+			attachmentCI.height = fbExtent.height;
 			attachmentCI.layerCount = LIGHT_COUNT;
 			attachmentCI.sampleCount = VK_SAMPLE_COUNT_1_BIT;
 			attachmentCI.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
@@ -110,17 +112,19 @@ namespace vk
 
 		for (auto& compositionFramebuffer :  framebuffers.deComposition)
 		{
-			compositionFramebuffer.Destroy();
-			compositionFramebuffer.Init(&this->device);
+			compositionFramebuffer = vk::Framebuffer(&this->device);
 
-			compositionFramebuffer.width = static_cast<uint32_t>(viewport.width);
-			compositionFramebuffer.height = static_cast<uint32_t>(viewport.height);
+			compositionFramebuffer.SetExtent(
+				{ static_cast<uint32_t>(viewport.width),
+				static_cast<uint32_t>(viewport.height) } );
 
 			vk::FramebufferAttachmentCreateInfo attachmentCI = {};
 			attachmentCI.layerCount = 1;
 			attachmentCI.sampleCount = VK_SAMPLE_COUNT_1_BIT;
-			attachmentCI.width = compositionFramebuffer.width;
-			attachmentCI.height = compositionFramebuffer.height;
+
+			VkExtent2D fbExtent = compositionFramebuffer.GetExtent();
+			attachmentCI.width = fbExtent.width;
+			attachmentCI.height = fbExtent.height;
 			attachmentCI.format = VK_FORMAT_R16G16B16A16_SFLOAT;
 			attachmentCI.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
 			attachmentCI.loadOP = VK_ATTACHMENT_LOAD_OP_CLEAR;
@@ -146,20 +150,22 @@ namespace vk
 
 		for (auto& skyFramebuffer : framebuffers.deSky)
 		{
-			skyFramebuffer.Destroy(); //in case we resize the window.
-			skyFramebuffer.Init(&this->device);
+			skyFramebuffer = vk::Framebuffer(&this->device);
 
-			skyFramebuffer.width = static_cast<uint32_t>(viewport.width);
-			skyFramebuffer.height = static_cast<uint32_t>(viewport.height);
+			skyFramebuffer.SetExtent(
+			 { static_cast<uint32_t>(viewport.width),
+			 	static_cast<uint32_t>(viewport.height) } );
 
 			auto& compositionFramebuffer = framebuffers.deComposition[frame];
 
 			vk::FramebufferAttachmentCreateInfo attachmentCI = {};
 			attachmentCI.layerCount = 1;
 			attachmentCI.sampleCount = VK_SAMPLE_COUNT_1_BIT;
-			attachmentCI.width = skyFramebuffer.width;
-			attachmentCI.height = skyFramebuffer.height;
-			attachmentCI.format = compositionFramebuffer.attachments.front().format;
+
+			VkExtent2D fbExtent = skyFramebuffer.GetExtent();
+			attachmentCI.width = fbExtent.width;
+			attachmentCI.height = fbExtent.height;
+			attachmentCI.format = compositionFramebuffer.GetAttachments().front().format;
 			//since this is the final pass, the color of this output will be sampled by the swapchain quad.
 			attachmentCI.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
 			attachmentCI.loadOP = VK_ATTACHMENT_LOAD_OP_LOAD;
@@ -167,7 +173,7 @@ namespace vk
 			attachmentCI.initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 			attachmentCI.operatingLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 			attachmentCI.finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-			attachmentCI.alreadyAllocatedView = compositionFramebuffer.attachments.front().imageView;
+			attachmentCI.alreadyAllocatedView = compositionFramebuffer.GetAttachments().front().imageView;
 
 			skyFramebuffer.AddAttachment(attachmentCI);
 
@@ -176,14 +182,14 @@ namespace vk
 
 			auto& MRTFramebuffer = framebuffers.deMRT[frame];
 
-			attachmentCI.format = MRTFramebuffer.attachments.back().format;
+			attachmentCI.format = MRTFramebuffer.GetAttachments().back().format;
 			attachmentCI.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
 			attachmentCI.loadOP = VK_ATTACHMENT_LOAD_OP_LOAD; //loading in the depth buffer from MRT stage.
 			attachmentCI.storeOP = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 			attachmentCI.initialLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
 			attachmentCI.operatingLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
 			attachmentCI.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
-			attachmentCI.alreadyAllocatedView = MRTFramebuffer.attachments.back().imageView;
+			attachmentCI.alreadyAllocatedView = MRTFramebuffer.GetAttachments().back().imageView;
 
 			skyFramebuffer.AddAttachment(attachmentCI);
 

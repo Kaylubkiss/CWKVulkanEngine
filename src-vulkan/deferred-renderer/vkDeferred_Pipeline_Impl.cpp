@@ -39,7 +39,7 @@ namespace vk
 		std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages = {};
 
 		VkGraphicsPipelineCreateInfo pipelineCI = vk::init::PipelineCreateInfo(m_graphicsPipelineLayout,
-			framebuffers.deComposition[0].renderPass, VK_PIPELINE_CREATE_DESCRIPTOR_BUFFER_BIT_EXT);
+			framebuffers.deComposition[0].GetRenderPass(), VK_PIPELINE_CREATE_DESCRIPTOR_BUFFER_BIT_EXT);
 		pipelineCI.pInputAssemblyState = &inputAssemblyStateCI;
 		pipelineCI.pRasterizationState = &rasterizationStateCI;
 		pipelineCI.pColorBlendState = &colorBlendStateCI;
@@ -106,7 +106,7 @@ namespace vk
 
 					VkGraphicsPipelineCreateInfo pipelineCI =
 						vk::init::PipelineCreateInfo(
-							m_graphicsPipelineLayout, framebuffers.deComposition[0].renderPass,
+							m_graphicsPipelineLayout, framebuffers.deComposition[0].GetRenderPass(),
 							VK_PIPELINE_CREATE_DESCRIPTOR_BUFFER_BIT_EXT);
 
 					pipelineCI.pInputAssemblyState = &inputAssemblyStateCI;
@@ -150,7 +150,7 @@ namespace vk
 
 			rasterizationStateCI.cullMode = VK_CULL_MODE_BACK_BIT;
 
-			pipelineCI.renderPass = framebuffers.deMRT[0].renderPass;
+			pipelineCI.renderPass = framebuffers.deMRT[0].GetRenderPass();
 
 			//there are 5 color outputs in this stage.
 			std::array<VkPipelineColorBlendAttachmentState, RT_COUNT> blendAttachmentStates = {};
@@ -232,7 +232,7 @@ namespace vk
 					std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages;
 
 					VkGraphicsPipelineCreateInfo pipelineCI =
-						vk::init::PipelineCreateInfo(m_graphicsPipelineLayout, framebuffers.deMRT[0].renderPass,
+						vk::init::PipelineCreateInfo(m_graphicsPipelineLayout, framebuffers.deMRT[0].GetRenderPass(),
 							VK_PIPELINE_CREATE_DESCRIPTOR_BUFFER_BIT_EXT);
 
 					pipelineCI.pInputAssemblyState = &inputAssemblyStateCI;
@@ -277,7 +277,7 @@ namespace vk
 
 			//using a full-screen quad method.
 			pipelineCI.pVertexInputState = &emptyVertexInputStateCI;
-			pipelineCI.renderPass = framebuffers.deSky[0].renderPass;
+			pipelineCI.renderPass = framebuffers.deSky[0].GetRenderPass();
 
 			VkPipelineDepthStencilStateCreateInfo emptyDepthStencilStateCI =
 				vk::init::PipelineDepthStencilStateCreateInfo(VK_TRUE,
@@ -320,7 +320,7 @@ namespace vk
 
         		VkGraphicsPipelineCreateInfo pipelineCI =
 						vk::init::PipelineCreateInfo(
-							m_graphicsPipelineLayout, framebuffers.deSky[0].renderPass,
+							m_graphicsPipelineLayout, framebuffers.deSky[0].GetRenderPass(),
 							VK_PIPELINE_CREATE_DESCRIPTOR_BUFFER_BIT_EXT);
 
         		std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages;
@@ -412,7 +412,7 @@ namespace vk
 			dynamicStates.push_back(VK_DYNAMIC_STATE_DEPTH_BIAS);
 			dynamicStateCI = vk::init::PipelineDynamicStateCreateInfo(dynamicStates);
 
-			pipelineCI.renderPass = framebuffers.deShadow[0].renderPass;
+			pipelineCI.renderPass = framebuffers.deShadow[0].GetRenderPass();
 
 			//shadow pass only consumes the position of vertices
 			VkVertexInputBindingDescription vertexBindingDescription = vk::init::VertexInputBindingDescription();
