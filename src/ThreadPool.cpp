@@ -9,23 +9,12 @@ void ThreadPool::Init(size_t num_threads)
 
 }
 
-bool ThreadPool::isBusy() 
-{
-	bool isBusy = false;
-	{
-		std::unique_lock<std::mutex> lock(queue_mutex);
-		isBusy = !tasks.empty();
-	}
-	return isBusy;
-}
-
 void ThreadPool::EnqueueTask(std::function<void()>& task)
 {
 	{
 		std::unique_lock<std::mutex> lock(queue_mutex);
 		tasks.push(std::move(task));
 	}
-
 
 	condition_variable.notify_one();
 }

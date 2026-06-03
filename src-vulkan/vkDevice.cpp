@@ -8,13 +8,14 @@
 namespace vk 
 {
 	
-	void Device::Init( VkInstance instance, VkSurfaceKHR windowSurface )
+	Device::Device( VkPhysicalDevice gpu, VkSurfaceKHR windowSurface,
+		std::vector<const char*>& requestedExtensions  )
 	{
-		assert(instance != VK_NULL_HANDLE && windowSurface != VK_NULL_HANDLE);
+		assert(gpu != VK_NULL_HANDLE && windowSurface != VK_NULL_HANDLE);
 
-		FindPhysicalDevices(instance);
+		m_gpu = gpu;
 		
-		CheckRequestedExtensions();
+		CheckRequestedExtensions( requestedExtensions );
 
 		//device properties
 		vkGetPhysicalDeviceMemoryProperties(m_gpu, &m_memoryProps);
@@ -31,10 +32,9 @@ namespace vk
 
 		assert(m_descriptorBufferProps.maxDescriptorBufferBindings >= 2);
 
-		FindQueueFamilies(windowSurface);
+		FindQueueFamilies( windowSurface );
 
-		InitializeLogicalDevice();
-
+		InitializeLogicalDevice(requestedExtensions  );
 
 		for (auto& queue : m_queues)
 		{
@@ -68,7 +68,37 @@ namespace vk
 			VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT, m_queues[DeviceQueue::GRAPHICS].family);
 	}
 
-	void Device::Destroy()
+	Device::Device( Device&& other ) noexcept
+	{
+		this->m_device = other.m_device;
+		this->m_gpu = other.m_gpu;
+		this->m_commandPool = other.m_commandPool;
+		this->m_descriptorBufferProps = other.m_descriptorBufferProps;
+		this->m_queues = other.m_queues;
+		this->m_memoryProps = other.m_memoryProps;
+		this->m_properties = other.m_properties;
+
+		other.m_device = VK_NULL_HANDLE;
+	}
+
+
+	Device& Device::operator=( Device&& other ) noexcept
+	{
+		if (this != &other)
+		{
+			std::swap(this->m_device, other.m_device);
+			std::swap(this->m_gpu, other.m_gpu);
+			std::swap(this->m_commandPool, other.m_commandPool);
+			std::swap(this->m_descriptorBufferProps, other.m_descriptorBufferProps);
+			std::swap(this->m_queues, other.m_queues);
+			std::swap(this->m_memoryProps, other.m_memoryProps);
+			std::swap(this->m_properties, other.m_properties);
+		}
+
+		return *this;
+	}
+
+	Device::~Device()
 	{
 		if (m_device != VK_NULL_HANDLE)
 		{
@@ -85,7 +115,7 @@ namespace vk
 
 	void Device::FindPhysicalDevices( VkInstance instance )
 	{
-		assert(instance != VK_NULL_HANDLE);
+		assert( instance != VK_NULL_HANDLE );
 
 		std::vector<VkPhysicalDevice> gpus;
 		std::optional<size_t> g_index;
@@ -102,7 +132,7 @@ namespace vk
 			throw std::runtime_error("Device::FindPhysicalDevices() Failed!\n");
 		}
 
-		gpus.resize(max_devices);
+		gpus.resize( max_devices );
 
 		VK_CHECK_RESULT(vkEnumeratePhysicalDevices(instance, &max_devices, gpus.data()));
 
@@ -155,7 +185,7 @@ namespace vk
 
 		queueFamilies.resize(queueFamilyPropertyCount);
 
-		vkGetPhysicalDeviceQueueFamilyProperties(m_gpu, &queueFamilyPropertyCount, queueFamilies.data());
+		vkGetPhysicalDeviceQueueFamilyProperties( m_gpu, &queueFamilyPropertyCount, queueFamilies.data());
 
 		bool setGraphicsQueue = false;
 		bool setPresentQueue = false;
@@ -208,7 +238,7 @@ namespace vk
 
 	}
 
-	void Device::InitializeLogicalDevice()
+	void Device::InitializeLogicalDevice( std::vector<const char*>& requestedExtensions )
 	{
 		assert(m_queues[DeviceQueue::GRAPHICS].family != -1 && m_queues[DeviceQueue::PRESENT].family != -1);
 
@@ -266,8 +296,8 @@ namespace vk
 		deviceCreateInfo.flags = 0;
 		deviceCreateInfo.pNext = nullptr;
 
-		deviceCreateInfo.enabledExtensionCount = static_cast<uint32_t>(m_requestedExtensions.size());
-		deviceCreateInfo.ppEnabledExtensionNames = m_requestedExtensions.data();
+		deviceCreateInfo.enabledExtensionCount = static_cast<uint32_t>(requestedExtensions.size());
+		deviceCreateInfo.ppEnabledExtensionNames = requestedExtensions.data();
 
 		VkPhysicalDeviceFeatures deviceFeatures = {};
 		deviceFeatures.geometryShader = VK_TRUE;
@@ -293,7 +323,7 @@ namespace vk
 		VK_CHECK_RESULT(vkCreateDevice(m_gpu, &deviceCreateInfo, nullptr, &m_device));
 	}
 
-	void Device::CheckRequestedExtensions() const
+	void Device::CheckRequestedExtensions( std::vector<const char*>& requestedExtensions ) const
 	{
 		uint32_t extension_count = 0;
 		vkEnumerateDeviceExtensionProperties(m_gpu, nullptr, &extension_count, nullptr);
@@ -301,7 +331,7 @@ namespace vk
 		std::vector<VkExtensionProperties> supportedExtensions(extension_count);
 		vkEnumerateDeviceExtensionProperties(m_gpu, nullptr, &extension_count, supportedExtensions.data());
 
-		for (auto& e : m_requestedExtensions)
+		for (auto& e : requestedExtensions)
 		{
 			bool foundExtension = false;
 			for (auto& se : supportedExtensions) 
@@ -437,19 +467,5 @@ namespace vk
 			cmdBuffer = VK_NULL_HANDLE;
 		}
 
-	}
-
-	void Device::AddExtension( const char* name )
-	{
-		//gotta save memory.
-		for (auto& extension : m_requestedExtensions)
-		{
-			if (strcmp(extension, name) == 0)
-			{
-				return;
-			}
-		}
-
-		m_requestedExtensions.push_back(name);
 	}
 }

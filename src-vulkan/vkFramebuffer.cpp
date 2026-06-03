@@ -1,4 +1,5 @@
 #include "vkFramebuffer.h"
+#include "vkInit.h"
 
 namespace vk 
 {
@@ -31,7 +32,7 @@ namespace vk
 			VK_FORMAT_D16_UNORM
 		};
 
-		return std::find(formats.begin(), formats.end(), format) != formats.end();
+		return std::ranges::find(formats, format) != formats.end();
 	}
 
 	inline bool FormatHasStencil(VkFormat format)
@@ -43,41 +44,73 @@ namespace vk
 			VK_FORMAT_S8_UINT
 		};
 
-		return std::find(formats.begin(), formats.end(), format) != formats.end();
+		return std::ranges::find(formats.begin(), formats.end(), format) != formats.end();
 
 	}
 
-	void Framebuffer::Init( vk::Device* contextDevice )
+	Framebuffer::Framebuffer( vk::Device* contextDevice )
 	{
 		assert(contextDevice != nullptr);
 		this->contextDevice = contextDevice;
 	}
 
-	void Framebuffer::Destroy() 
+	Framebuffer::Framebuffer( Framebuffer&& other ) noexcept
 	{
-		for (auto& attachment : attachments) 
+		this->handle = other.handle;
+		this->attachments = std::move(other.attachments);
+		this->width = other.width;
+		this->height = other.height;
+		this->renderPass = other.renderPass;
+		this->sampler = other.sampler;
+		this->contextDevice = other.contextDevice;
+
+		other.contextDevice = nullptr;
+	}
+
+	Framebuffer& Framebuffer::operator=( Framebuffer&& other ) noexcept
+	{
+		if (this != &other)
 		{
-			attachment.Destroy(contextDevice->GetDevice());
+			std::swap(this->handle, other.handle);
+			std::swap(this->attachments, other.attachments);
+			std::swap(this->width, other.width);
+			std::swap(this->height, other.height);
+			std::swap(this->renderPass, other.renderPass);
+			std::swap(this->sampler, other.sampler);
+			std::swap(this->contextDevice, other.contextDevice);
 		}
 
-		attachments.clear();
+		return *this;
+	}
 
-		if (sampler) 
+	Framebuffer::~Framebuffer()
+	{
+		if (contextDevice != nullptr)
 		{
-			vkDestroySampler(contextDevice->GetDevice(), sampler, nullptr);
-			sampler = VK_NULL_HANDLE;
-		}
+			for (auto& attachment : attachments)
+			{
+				attachment.Destroy(contextDevice->GetDevice());
+			}
 
-		if (renderPass) 
-		{
-			vkDestroyRenderPass(contextDevice->GetDevice(), renderPass, nullptr);
-			renderPass = VK_NULL_HANDLE;
-		}
+			attachments.clear();
 
-		if (handle) 
-		{
-			vkDestroyFramebuffer(contextDevice->GetDevice(), handle, nullptr);
-			handle = VK_NULL_HANDLE;
+			if (sampler)
+			{
+				vkDestroySampler(contextDevice->GetDevice(), sampler, nullptr);
+				sampler = VK_NULL_HANDLE;
+			}
+
+			if (renderPass)
+			{
+				vkDestroyRenderPass(contextDevice->GetDevice(), renderPass, nullptr);
+				renderPass = VK_NULL_HANDLE;
+			}
+
+			if (handle)
+			{
+				vkDestroyFramebuffer(contextDevice->GetDevice(), handle, nullptr);
+				handle = VK_NULL_HANDLE;
+			}
 		}
 	}
 
@@ -337,6 +370,37 @@ namespace vk
 		attachment.layout = createInfo.operatingLayout;
 
 		this->attachments.push_back(attachment);
+	}
+
+	const std::vector<FramebufferAttachment>& Framebuffer::GetAttachments() const
+	{
+		return attachments;
+	}
+
+	void Framebuffer::SetExtent( VkExtent2D extent )
+	{
+		width = extent.width;
+		height = extent.height;
+	}
+
+	VkExtent2D Framebuffer::GetExtent() const
+	{
+		return {width, height};
+	}
+
+	VkRenderPass Framebuffer::GetRenderPass() const
+	{
+		return renderPass;
+	}
+
+	VkSampler Framebuffer::GetSampler() const
+	{
+		return sampler;
+	}
+
+	VkFramebuffer Framebuffer::GetHandle() const
+	{
+		return handle;
 	}
 
 

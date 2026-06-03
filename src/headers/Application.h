@@ -1,7 +1,7 @@
 #pragma once
 #include "Timer.h"
 #include "Physics.h"
-#include "vkContextBase.h"
+#include "vkRendererBase.h"
 #include "TextureManager.h"
 #include "DescriptorManager.h"
 
@@ -13,7 +13,7 @@ public:
 
 	PhysicsSystem& GetPhysics();
 	Timer& GetTimer();
-	vk::ContextBase* GetVulkanContext() const;
+	vk::RendererBase* GetVulkanRenderer() const;
 
 	void run();
 
@@ -22,13 +22,12 @@ public:
 		Camera& camera, const uTransformObject& uTransform, PhysicsSystem& physics);*/
 private:
 	void init();
-	void test();
 	void loop();
 	void exit();
 private:
 	Timer mTime;
 	PhysicsSystem m_physics;
-	std::unique_ptr<vk::ContextBase> m_vulkanGraphicsContext;
+	std::unique_ptr<vk::RendererBase> m_vulkanGraphicsContext;
 	AssetManager m_assetManager;
 	TextureManager m_textureManager;
 	DescriptorManager m_descriptorManager;

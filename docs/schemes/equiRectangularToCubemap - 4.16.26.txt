@@ -1,0 +1,61 @@
+(TODO: unfinished)
+//NEW
+
+
+1) consolidate cubemap, panoramic, and regular texture creation (DO THIS AFTER IMPLEMENTING THE PANORAMIC TEXTURE/DIFFUSE IBL)
+    -Why? In order to improve debugging (not creating duplicate code), and creating future texture assets faster.
+    -How? provide additional arguments to texture creation methods.
+        - +format, +determining type of texture based on image count within Texture::Create()
+
+2 ) [x] sampling equirectangular map through shader as a skybox
+
+3 ) [] finish diffuse implementation of IBL
+
+4 ) [] finish specular implementation of IBL
+
+
+
+//OLD - (marked on 5.8.26)
+1) first create an image out of the equirectangular map that can be sampled from in the compute shader
+
+then, manage the concepts of a compute shader:
+
+globalInvocationSize = total # of work items
+workGroupSize = # of work items per group
+
+-> # work groups = globalInvocationSize/workGroupSize
+
+# work groups can be multiple dimensions in size (x, y, z)
+
+notes about cubemap direction vectors:
+
+direction = forward + u * right + v * up
+
+think of the basis vectors of the faces (representing a coordinate system).
+
+right -> horizontal axis;
+up -> vertical axis;
+
+2) ready the layout of the equirectangular for transfer, then copy the staging buffer (pixels)
+
+3) create a cubemap image and transition its layout to VK_IMAGE_LAYOUT_GENERAL and VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT.
+This will ready it for imageStore() operations in the compute shader.
+
+4)  transition the layout to VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL for sampling in the compute shader.
+
+	(submit to transfer queue queue)
+
+5) release the equirectangular & cubemap image to the graphics queue (where compute bit is).
+
+6) because it's rare for any other kind of image conversion in this engine,
+i'll just add a bool in the pendingTextureInfo: isPanoramicImage.
+
+
+
+
+
+
+
+
+
+ 

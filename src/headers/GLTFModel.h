@@ -21,7 +21,7 @@ private:
 	void LoadMeshes( fastgltf::Asset& asset, std::vector<Vertex>& vertexBuffer, std::vector<uint32_t>& indexBuffer );
 	std::string LoadImage( const fastgltf::Image& image );
 private:
-	VkIndexType m_indexBufferType = VK_INDEX_TYPE_UINT16;
+	VkIndexType m_indexBufferType = VK_INDEX_TYPE_UINT32;
 	std::vector<std::shared_ptr<vk::Texture>> m_textures;
 
 

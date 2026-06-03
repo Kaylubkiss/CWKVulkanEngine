@@ -3,12 +3,48 @@
 namespace vk 
 {
 
-	Window::~Window()
+
+	Window::Window( Window&& other ) noexcept
 	{
-		SDL_DestroyWindow(m_sdlPtr);
+		this->m_scissor = other.m_scissor;
+		this->m_viewport = other.m_viewport;
+		this->m_surface = other.m_surface;
+		this->isPrepared = other.isPrepared;
+		this->m_sdlPtr = other.m_sdlPtr;
+		this->c_instance = other.c_instance;
+
+		other.m_sdlPtr = nullptr;
 	}
 
-	void Window::Init( uint32_t width, uint32_t height )
+	Window& Window::operator=( Window&& other ) noexcept
+	{
+		if (this != &other)
+		{
+			std::swap(this->m_scissor, other.m_scissor);
+			std::swap(this->m_viewport, other.m_viewport);
+			std::swap(this->m_surface, other.m_surface);
+			std::swap(this->isPrepared, other.isPrepared);
+			std::swap(this->m_sdlPtr, other.m_sdlPtr);
+			std::swap(this->c_instance, other.c_instance);
+		}
+
+		return *this;
+	}
+
+	Window::~Window()
+	{
+		if (m_sdlPtr != nullptr)
+		{
+			SDL_DestroyWindow(m_sdlPtr);
+
+			if (c_instance != VK_NULL_HANDLE)
+			{
+				vkDestroySurfaceKHR(c_instance, m_surface, nullptr);
+			}
+		}
+	}
+
+	Window::Window( uint32_t width, uint32_t height )
 	{
 		m_viewport.width = static_cast<float>(width);
 		m_viewport.height = static_cast<float>(height);
@@ -18,7 +54,7 @@ namespace vk
 		m_scissor.extent.width = width;
 		m_scissor.extent.height = height;
 
-		m_sdlPtr = SDL_CreateWindow("Caleb's Vulkan Engine", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
+		m_sdlPtr = SDL_CreateWindow("CWKVulkan-0", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
 			width, height, SDL_WINDOW_VULKAN | SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_INPUT_FOCUS);
 
 		if (m_sdlPtr == nullptr)
@@ -35,6 +71,8 @@ namespace vk
 	{
 		if (vulkanInstance != VK_NULL_HANDLE)
 		{
+			c_instance = vulkanInstance;
+
 			if (m_surface == VK_NULL_HANDLE)
 			{
 				if (SDL_Vulkan_CreateSurface(m_sdlPtr, vulkanInstance, &m_surface) != SDL_TRUE)

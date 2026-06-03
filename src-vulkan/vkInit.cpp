@@ -1,5 +1,5 @@
 #include "vkInit.h"
-#include "vkUtility.h"
+#include "vkUtil.h"
 #include "Vertex.h"
 
 namespace vk
@@ -723,68 +723,7 @@ namespace vk
 
 		///// ENGINE SPECIFIC RESOURCES ////
 
-		VkImage CreateImage
-		(
-			const VkPhysicalDevice& p_device, const VkDevice& l_device, uint32_t width, uint32_t height, uint32_t mipLevels,
-			VkFormat format, VkImageUsageFlags usage, 
-			VkMemoryPropertyFlags flags, VkDeviceMemory& imageMemory
-		)
-		{
 
-			VkPhysicalDeviceMemoryProperties	vpdmp;
-			vkGetPhysicalDeviceMemoryProperties(p_device, &vpdmp);
-
-			VkImageCreateInfo imageCreateInfo = { };
-			imageCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-			imageCreateInfo.imageType = VK_IMAGE_TYPE_2D;
-			imageCreateInfo.extent.width = width;
-			imageCreateInfo.extent.height = height;
-			imageCreateInfo.extent.depth = 1;
-			imageCreateInfo.mipLevels = mipLevels;
-			imageCreateInfo.arrayLayers = 1;
-			imageCreateInfo.format = format;
-			imageCreateInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
-			imageCreateInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED; //texels from the transition are not preserved.
-			imageCreateInfo.usage = usage;
-			imageCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE; //assume that the graphics and presentation queue family is the same.
-			imageCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;
-
-
-			VkImage nImage;
-			VK_CHECK_RESULT(vkCreateImage(l_device, &imageCreateInfo, nullptr, &nImage));
-
-			VkMemoryRequirements memRequirements;
-			vkGetImageMemoryRequirements(l_device, nImage, &memRequirements);
-
-			VkMemoryAllocateInfo memAllocInfo = {};
-			memAllocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-			memAllocInfo.allocationSize = memRequirements.size;
-
-			bool foundMemType = false;
-			for (uint32_t i = 0; i < vpdmp.memoryTypeCount; i++)
-			{
-				VkMemoryType vmt = vpdmp.memoryTypes[i];
-				VkMemoryPropertyFlags vmpf = vmt.propertyFlags;
-				if ((memRequirements.memoryTypeBits & (1 << i)) != 0)
-				{
-					if ((vmpf & flags) != 0)
-					{
-						memAllocInfo.memoryTypeIndex = i;
-						foundMemType = true;
-						break;
-					}
-				}
-			}
-
-			assert(foundMemType);
-
-			VK_CHECK_RESULT(vkAllocateMemory(l_device, &memAllocInfo, nullptr, &imageMemory));
-
-			VK_CHECK_RESULT(vkBindImageMemory(l_device, nImage, imageMemory, 0));
-
-			return nImage;
-
-		}
 
 
 		VkComponentMapping ComponentMappingSwizzleIdentity()

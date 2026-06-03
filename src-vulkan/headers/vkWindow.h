@@ -6,9 +6,17 @@ namespace vk
 	{
 	public:
 		Window() = default;
+		Window( uint32_t width, uint32_t height );
+
+
+		Window( const Window& other ) = delete;
+		Window& operator=( const Window& other ) = delete;
+
+		Window( Window&& other ) noexcept;
+		Window& operator=( Window&& other ) noexcept;
+
 		~Window();
 
-		void Init( uint32_t width, uint32_t height );
 		void CreateSurface( VkInstance vulkanInstance );
 
 		VkExtent2D Extents() const;
@@ -27,6 +35,8 @@ namespace vk
 
 		SDL_Window* m_sdlPtr = nullptr;
 		VkSurfaceKHR m_surface = VK_NULL_HANDLE;
+
+		VkInstance c_instance = VK_NULL_HANDLE;
 
 		bool isPrepared = false;
 	};

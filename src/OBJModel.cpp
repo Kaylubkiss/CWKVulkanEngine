@@ -258,9 +258,19 @@ void OBJModel::Draw( const vk::DrawInfo& drawInfo )
 void OBJModel::LoadTextures( TextureManager& textureManager, const std::vector<std::string>& textureNames )
 {
     //OBJ is assumed to only contain one primitive.
-    //Materials are not support with this implementation,
-    //this code-base will treat .obj as a primitive format for only geometry and texture data.
+    //Materials are not supported with this implementation,
+    //this code-base will treat .obj as a primitive format for only geometry and color texture data.
     Mesh& mesh = *GetMeshes().back();
     Primitive& primitive = mesh.m_primitives.back();
-    primitive.textureSetLayoutIndex = textureManager.AddTextures( textureNames );
+
+    std::vector<vk::TextureCreateInfo> textureList = { };
+    vk::TextureCreateInfo CI = {};
+    CI.fileNames = { textureNames.back() };
+    CI.format = VK_FORMAT_R8G8B8A8_SRGB;
+    CI.mipLevels = 1;
+    CI.layerCount = 1;
+
+    textureList.push_back(CI);
+
+    primitive.textureSetLayoutIndex = textureManager.AddTextures( textureList );
 }

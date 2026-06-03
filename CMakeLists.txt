@@ -66,7 +66,7 @@ src/ThreadPool.cpp
 src/TextureManager.cpp
 src/AssetManager.cpp
 src/ApplicationGlobal.cpp
-src/CameraController.cpp
+src/Input.cpp
 src/UserInterface.cpp
 src/GLTFModel.cpp
 src/OBJModel.cpp
@@ -76,10 +76,9 @@ src/DescriptorManager.cpp
 set(VULKAN_SRC_DIR src-vulkan)
 
 set(VULKAN_ENGINE_SRC 
-${VULKAN_SRC_DIR}/vkUtility.cpp
+${VULKAN_SRC_DIR}/vkUtil.cpp
 ${VULKAN_SRC_DIR}/vkInit.cpp
-${VULKAN_SRC_DIR}/vkGlobal.cpp
-${VULKAN_SRC_DIR}/vkContextBase.cpp
+${VULKAN_SRC_DIR}/vkRendererBase.cpp
 ${VULKAN_SRC_DIR}/vkSwapChain.cpp
 ${VULKAN_SRC_DIR}/vkBuffer.cpp
 ${VULKAN_SRC_DIR}/vkTexture.cpp
@@ -90,13 +89,15 @@ ${VULKAN_SRC_DIR}/vkFramebuffer.cpp
 ${VULKAN_SRC_DIR}/vkInstance.cpp
 ${VULKAN_SRC_DIR}/vkDescriptorBuffer.cpp
 ${VULKAN_SRC_DIR}/vkShaderModule.cpp
+${VULKAN_SRC_DIR}/vkCubemap.cpp
+${VULKAN_SRC_DIR}/vkPanoramicTexture.cpp
 )
 
-set(VULKAN_SCENES_DIR src-vulkan/scenes)
+set(VULKAN_SCENES_DIR src-vulkan/deferred-renderer)
 
 set(VULKAN_ENGINE_SCENES_SOURCE
-		${VULKAN_SCENES_DIR}/vkDeferredShadingContext.cpp
-		${VULKAN_SCENES_DIR}/vkDeferredShadingContext.h
+		${VULKAN_SCENES_DIR}/vkDeferredRenderer.cpp
+		${VULKAN_SCENES_DIR}/vkDeferredRenderer.h
 		${VULKAN_SCENES_DIR}/vkDeferred_Descriptor_Impl.cpp
 		${VULKAN_SCENES_DIR}/vkDeferred_Framebuffer_Impl.cpp
 		${VULKAN_SCENES_DIR}/vkDeferred_Pipeline_Impl.cpp
@@ -125,24 +126,23 @@ ${HEADER_SRC_DIR}/ThreadPool.h
 ${HEADER_SRC_DIR}/AssetManager.h
 ${HEADER_SRC_DIR}/TextureManager.h
 ${HEADER_SRC_DIR}/ApplicationGlobal.h
-${HEADER_SRC_DIR}/CameraController.h
+${HEADER_SRC_DIR}/Input.h
 ${HEADER_SRC_DIR}/SpirvHelper.h
 ${HEADER_SRC_DIR}/UserInterface.h
 ${HEADER_SRC_DIR}/GLTFModel.h
 ${HEADER_SRC_DIR}/OBJModel.h
 ${HEADER_SRC_DIR}/Model.h
 ${HEADER_SRC_DIR}/DescriptorManager.h
-${HEADER_SRC_DIR}/test.h
 )
 				 
 set(VULKAN_HEADER_DIR src-vulkan/headers)
 
 set(VULKAN_ENGINE_HEADERS 
-${VULKAN_HEADER_DIR}/vkUtility.h
+${VULKAN_HEADER_DIR}/vkUtil.h
 ${VULKAN_HEADER_DIR}/vkGlobal.h
 ${VULKAN_HEADER_DIR}/vkInit.h
 ${VULKAN_HEADER_DIR}/vkWindow.h
-${VULKAN_HEADER_DIR}/vkContextBase.h
+${VULKAN_HEADER_DIR}/vkRendererBase.h
 ${VULKAN_HEADER_DIR}/vkBuffer.h
 ${VULKAN_HEADER_DIR}/vkTexture.h
 ${VULKAN_HEADER_DIR}/vkSwapChain.h
@@ -183,7 +183,7 @@ target_precompile_headers(${PROJECT_NAME} PUBLIC ${HEADER_SRC_DIR}/pch.h)
 target_include_directories(${PROJECT_NAME} PRIVATE
 src/headers
 src-vulkan/headers
-src-vulkan/scenes
+		src-vulkan/deferred-renderer
 extern/stb
 extern/tinyobjloader
 extern/imgui

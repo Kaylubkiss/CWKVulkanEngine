@@ -25,7 +25,7 @@ public:
 
     // [frame][binding]
     void WriteDescriptors(DescriptorCategory category, uint32_t layoutIndex,
-        vk::imageBuffers2D& imageDescriptors);
+        vk::imageBuffers2D& imageDescriptors, bool storageResource = false);
 
     void WriteDescriptors(DescriptorCategory category, uint32_t layoutIndex,
         vk::resourceBufferPtrs2D& resourceDescriptors);

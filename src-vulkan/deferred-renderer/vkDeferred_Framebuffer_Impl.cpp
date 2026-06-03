@@ -1,0 +1,207 @@
+#include "vkDeferredRenderer.h"
+#include "vkInit.h"
+
+namespace vk
+{
+	void DeferredRenderer::InitializeFramebuffers()
+	{
+		InitializeDeferredFramebuffer();
+		InitializeDeferredShadowFramebuffer();
+		InitializeDeferredCompositionFramebuffer();
+		InitializeDeferredSkyboxFramebuffer();
+	}
+
+    void DeferredRenderer::InitializeDeferredFramebuffer()
+	{
+		VkViewport viewport = m_window.Viewport();
+
+		for (auto& MRTFramebuffer : framebuffers.deMRT)
+		{
+			MRTFramebuffer = vk::Framebuffer(&this->device);
+
+			MRTFramebuffer.SetExtent(
+				{ static_cast<uint32_t>(viewport.width),
+				static_cast<uint32_t>(viewport.height) } );
+
+			VkFramebufferCreateInfo framebufferCI = vk::init::FramebufferCreateInfo();
+
+			VkExtent2D fbExtent = MRTFramebuffer.GetExtent();
+			framebufferCI.width = fbExtent.width;
+			framebufferCI.height = fbExtent.height;
+			framebufferCI.layers = 1;
+
+			vk::FramebufferAttachmentCreateInfo attachmentCI = {};
+
+			//position attachment
+			attachmentCI.format = VK_FORMAT_R16G16B16A16_SFLOAT;
+			attachmentCI.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+			attachmentCI.width = framebufferCI.width;
+			attachmentCI.height = framebufferCI.height;
+			attachmentCI.layerCount = 1;
+			attachmentCI.sampleCount = VK_SAMPLE_COUNT_1_BIT;
+			attachmentCI.loadOP = VK_ATTACHMENT_LOAD_OP_CLEAR;
+			attachmentCI.storeOP = VK_ATTACHMENT_STORE_OP_STORE;
+			attachmentCI.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+			attachmentCI.operatingLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+			attachmentCI.finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+			MRTFramebuffer.AddAttachment(attachmentCI);
+
+			//normal attachment
+			MRTFramebuffer.AddAttachment(attachmentCI);
+
+			//albedo attachment
+			attachmentCI.format = VK_FORMAT_R8G8B8A8_UNORM;
+			MRTFramebuffer.AddAttachment(attachmentCI);
+
+			//metallic roughness attachment
+			//because there's no optimal tiling feature for a smaller format, I'm sticking with the albedo's format for now.
+			MRTFramebuffer.AddAttachment(attachmentCI);
+
+			//ambient occlusion attachment
+			MRTFramebuffer.AddAttachment(attachmentCI);
+
+			//depth attachment
+			attachmentCI.format = VK_FORMAT_D24_UNORM_S8_UINT;
+			attachmentCI.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+			attachmentCI.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
+			attachmentCI.operatingLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+			MRTFramebuffer.AddAttachment(attachmentCI);
+
+			MRTFramebuffer.CreateSampler(VK_FILTER_LINEAR, VK_FILTER_LINEAR,
+				VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE);
+
+			MRTFramebuffer.CreateFramebuffer();
+		}
+	}
+
+	void DeferredRenderer::InitializeDeferredShadowFramebuffer()
+    {
+    	VkViewport viewport = m_window.Viewport();
+
+		for (auto& shadowMapFramebuffer : framebuffers.deShadow)
+		{
+			shadowMapFramebuffer = vk::Framebuffer(&this->device);
+
+			shadowMapFramebuffer.SetExtent( { 2048, 2048 } );
+
+			vk::FramebufferAttachmentCreateInfo attachmentCI = {};
+			attachmentCI.format = VK_FORMAT_D32_SFLOAT_S8_UINT;
+
+			VkExtent2D fbExtent = shadowMapFramebuffer.GetExtent();
+			attachmentCI.width = fbExtent.width;
+			attachmentCI.height = fbExtent.height;
+			attachmentCI.layerCount = LIGHT_COUNT;
+			attachmentCI.sampleCount = VK_SAMPLE_COUNT_1_BIT;
+			attachmentCI.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+			attachmentCI.loadOP = VK_ATTACHMENT_LOAD_OP_CLEAR;
+			attachmentCI.storeOP = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+			attachmentCI.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
+			attachmentCI.operatingLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+			shadowMapFramebuffer.AddAttachment(attachmentCI);
+
+			shadowMapFramebuffer.CreateSampler(VK_FILTER_LINEAR, VK_FILTER_LINEAR,
+				VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE);
+
+			shadowMapFramebuffer.CreateFramebuffer();
+		}
+    }
+
+	void DeferredRenderer::InitializeDeferredCompositionFramebuffer()
+	{
+		VkViewport viewport = m_window.Viewport();
+
+		for (auto& compositionFramebuffer :  framebuffers.deComposition)
+		{
+			compositionFramebuffer = vk::Framebuffer(&this->device);
+
+			compositionFramebuffer.SetExtent(
+				{ static_cast<uint32_t>(viewport.width),
+				static_cast<uint32_t>(viewport.height) } );
+
+			vk::FramebufferAttachmentCreateInfo attachmentCI = {};
+			attachmentCI.layerCount = 1;
+			attachmentCI.sampleCount = VK_SAMPLE_COUNT_1_BIT;
+
+			VkExtent2D fbExtent = compositionFramebuffer.GetExtent();
+			attachmentCI.width = fbExtent.width;
+			attachmentCI.height = fbExtent.height;
+			attachmentCI.format = VK_FORMAT_R16G16B16A16_SFLOAT;
+			attachmentCI.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+			attachmentCI.loadOP = VK_ATTACHMENT_LOAD_OP_CLEAR;
+			attachmentCI.storeOP = VK_ATTACHMENT_STORE_OP_STORE;
+			attachmentCI.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+			attachmentCI.operatingLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+			attachmentCI.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+			compositionFramebuffer.AddAttachment(attachmentCI);
+
+			compositionFramebuffer.CreateSampler(VK_FILTER_LINEAR, VK_FILTER_LINEAR,
+				VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE);
+
+			compositionFramebuffer.CreateFramebuffer();
+		}
+	}
+
+	void DeferredRenderer::InitializeDeferredSkyboxFramebuffer()
+	{
+		VkViewport viewport = m_window.Viewport();
+
+		size_t frame = 0;
+
+		for (auto& skyFramebuffer : framebuffers.deSky)
+		{
+			skyFramebuffer = vk::Framebuffer(&this->device);
+
+			skyFramebuffer.SetExtent(
+			 { static_cast<uint32_t>(viewport.width),
+			 	static_cast<uint32_t>(viewport.height) } );
+
+			auto& compositionFramebuffer = framebuffers.deComposition[frame];
+
+			vk::FramebufferAttachmentCreateInfo attachmentCI = {};
+			attachmentCI.layerCount = 1;
+			attachmentCI.sampleCount = VK_SAMPLE_COUNT_1_BIT;
+
+			VkExtent2D fbExtent = skyFramebuffer.GetExtent();
+			attachmentCI.width = fbExtent.width;
+			attachmentCI.height = fbExtent.height;
+			attachmentCI.format = compositionFramebuffer.GetAttachments().front().format;
+			//since this is the final pass, the color of this output will be sampled by the swapchain quad.
+			attachmentCI.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+			attachmentCI.loadOP = VK_ATTACHMENT_LOAD_OP_LOAD;
+			attachmentCI.storeOP = VK_ATTACHMENT_STORE_OP_STORE;
+			attachmentCI.initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+			attachmentCI.operatingLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+			attachmentCI.finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+			attachmentCI.alreadyAllocatedView = compositionFramebuffer.GetAttachments().front().imageView;
+
+			skyFramebuffer.AddAttachment(attachmentCI);
+
+			//depth attachment from the mrt stage is used to compare the depth of each fragment --> more efficient
+			//coloring of the frame by discarding the pixels below the threshold (1.f).
+
+			auto& MRTFramebuffer = framebuffers.deMRT[frame];
+
+			attachmentCI.format = MRTFramebuffer.GetAttachments().back().format;
+			attachmentCI.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+			attachmentCI.loadOP = VK_ATTACHMENT_LOAD_OP_LOAD; //loading in the depth buffer from MRT stage.
+			attachmentCI.storeOP = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+			attachmentCI.initialLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
+			attachmentCI.operatingLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
+			attachmentCI.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
+			attachmentCI.alreadyAllocatedView = MRTFramebuffer.GetAttachments().back().imageView;
+
+			skyFramebuffer.AddAttachment(attachmentCI);
+
+			skyFramebuffer.CreateSampler(VK_FILTER_LINEAR, VK_FILTER_LINEAR,
+				VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE);
+
+			skyFramebuffer.CreateFramebuffer();
+
+			++frame;
+		}
+	}
+
+}
+
+

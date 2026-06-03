@@ -1,6 +1,6 @@
 #include "TextureManager.h"
-
 #include "vkCubemap.h"
+#include "vkInit.h"
 
 void TextureManager::Init( vk::Device* devicePtr, DescriptorManager* descriptorManagerPtr )
 {
@@ -20,7 +20,6 @@ void TextureManager::Init( vk::Device* devicePtr, DescriptorManager* descriptorM
 
 void TextureManager::Destroy()
 {
-
 	if (m_devicePtr != nullptr)
 	{
 		VkDevice contextDevice = m_devicePtr->GetDevice();
@@ -44,44 +43,41 @@ void TextureManager::Destroy()
 	}
 }
 
-bool TextureManager::AddTexture( const std::string& fileName )
+bool TextureManager::AddTexture( const vk::TextureCreateInfo& createInfo )
 {
 	{
 		std::lock_guard<std::mutex> lock(m_textureMutex);
 		//maybe a thread beat us to the punch, in the case that two threads call on the same texture
-		if (m_textures.contains(fileName) == true)
+		if (m_textures.contains(createInfo.fileNames.back()) == true)
 		{
 			return false;
 		}
 	}
 
-	//TODO: generate checker-board texture for objects if texture loading failed.
-
-	std::shared_ptr<vk::Texture> newTexture = std::make_shared<vk::Texture>();
-
-	newTexture->Create(m_devicePtr, { fileName }, m_transferMutex);
+	//TODO: generate checker-board texture for objects if texture loading failed
+	std::shared_ptr<vk::Texture> newTexture = std::make_shared<vk::Texture>(m_devicePtr, createInfo);
 
 	{
 		std::lock_guard<std::mutex> lock(m_textureMutex);
 		//maybe a thread beat us to the punch, in the case that two threads call on the same texture
-		if (m_textures.contains(fileName) == true)
+		if (m_textures.contains(createInfo.fileNames.back()) == true)
 		{
 			return false;
 		}
-		m_textures[fileName].handle = std::move(newTexture);
+		m_textures[createInfo.fileNames.back()].handle = std::move(newTexture);
 		//first texture in m_textures will be blank.
-		m_textures[fileName].index = static_cast<uint32_t>(m_textures.size());
+		m_textures[createInfo.fileNames.back()].index = static_cast<uint32_t>(m_textures.size());
 	}
 
-	std::cout << "texture loaded... " << fileName << " loaded.\n";
+	std::cout << "texture loaded... " << createInfo.fileNames.back() << " loaded.\n";
 
 	return true;
 }
 
-bool TextureManager::AddCubeMapTexture( const std::vector<std::string>& fileNames )
+bool TextureManager::AddCubeMapTexture( const vk::TextureCreateInfo& createInfo )
 {
 
-	const std::string& fileName = fileNames[0];
+	const std::string& fileName = createInfo.fileNames[0];
 
 	{
 		std::lock_guard lock(m_textureMutex);
@@ -92,9 +88,7 @@ bool TextureManager::AddCubeMapTexture( const std::vector<std::string>& fileName
 		}
 	}
 
-	std::shared_ptr<vk::Texture> newTexture = std::make_shared<vk::Cubemap>();
-
-	newTexture->Create(m_devicePtr, fileNames, m_transferMutex);
+	std::shared_ptr<vk::Texture> newTexture = std::make_shared<vk::Cubemap>(m_devicePtr, createInfo);
 
 	{
 		std::lock_guard lock(m_textureMutex);
@@ -113,43 +107,59 @@ bool TextureManager::AddCubeMapTexture( const std::vector<std::string>& fileName
 	return true;
 }
 
-uint32_t TextureManager::AddTextures( const std::vector<std::string>& fileNames, bool isCubemap )
+uint32_t TextureManager::AddTextures( std::vector<vk::TextureCreateInfo>& createInfos, TextureType type )
 {
-	if (fileNames.empty())
+	if (createInfos.empty())
 	{
 		return 0;
 	}
 
-	uint32_t layoutIndex = m_descriptorManagerPtr->GetLayoutIndex(DescriptorCategory::eMaterial);
+	for ( auto& CI : createInfos )
+	{
+		CI.pTransferMutex = &m_transferMutex;
+	}
 
+	uint32_t layoutIndex = m_descriptorManagerPtr->GetLayoutIndex(DescriptorCategory::eMaterial);
 
 	std::vector<PendingTextureInfo> pendingInfos;
 
-	if (!isCubemap)
-	{
-		pendingInfos.resize(fileNames.size());
-
-		for (size_t i = 0; i < fileNames.size(); ++i)
-		{
-			//because layoutIndex 0 is the null/default texture, we assume that because a texture
-			//was successfully allocated, the layout's base index starts where the newly allocated
-			//texture does in the buffer.
-			pendingInfos[i].layoutIndex = layoutIndex;
-			pendingInfos[i].bindingIndex = static_cast<uint32_t>(i);
-			pendingInfos[i].totalBindingCount = static_cast<uint32_t>(fileNames.size());
-			pendingInfos[i].needsGPUTransfer = AddTexture(fileNames[i]);
-			pendingInfos[i].texture_to_process = m_textures[fileNames[i]].handle;
-		}
-	}
-	else
+	if (type == TextureType::CUBEMAP)
 	{
 		pendingInfos.resize(1);
 
 		pendingInfos.front().bindingIndex = 0;
 		pendingInfos.front().layoutIndex = layoutIndex;
 		pendingInfos.front().totalBindingCount = 1;
-		pendingInfos.front().needsGPUTransfer = AddCubeMapTexture(fileNames);
-		pendingInfos.front().texture_to_process = m_textures[fileNames[0]].handle;
+		pendingInfos.front().needsGPUTransfer = AddCubeMapTexture(createInfos.back());
+		pendingInfos.front().texture_to_process = m_textures[createInfos.back().fileNames.back()].handle;
+		pendingInfos.front().type = type;
+	}
+	else
+	{
+		vk::TextureCreateInfo individualCI = {};
+		individualCI.pTransferMutex = &m_transferMutex;
+		individualCI.imageUsage = createInfos.back().imageUsage;
+
+		size_t textureCount = createInfos.size();
+
+		pendingInfos.resize(textureCount);
+
+		for (size_t i = 0; i < textureCount; ++i)
+		{
+			individualCI.fileNames = { createInfos[i].fileNames.back() };
+			individualCI.format = createInfos[i].format;
+			individualCI.layerCount = createInfos[i].layerCount;
+			individualCI.mipLevels = createInfos[i].mipLevels;
+
+			//because layoutIndex 0 is the null/default texture, we assume that because a texture
+			//was successfully allocated, the layout's base index starts where the newly allocated
+			//texture does in the buffer.
+			pendingInfos[i].layoutIndex = layoutIndex;
+			pendingInfos[i].bindingIndex = static_cast<uint32_t>(i);
+			pendingInfos[i].totalBindingCount = static_cast<uint32_t>(textureCount);
+			pendingInfos[i].needsGPUTransfer = AddTexture(individualCI);
+			pendingInfos[i].texture_to_process = m_textures[individualCI.fileNames.back()].handle;
+		}
 	}
 
 	{
@@ -228,8 +238,6 @@ bool TextureManager::UploadTextureDataToGPU( uint32_t currentFrame, const VkSema
 	VK_CHECK_RESULT(vkQueueSubmit(m_devicePtr->GetQueue(vk::DeviceQueue::GRAPHICS).handle,
 		1, &submitInfo, VK_NULL_HANDLE));
 
-	// NOTE: this is incomplete until the submission is synced on the GPU
-	/*FillDescriptorBuffer(texturesToProcess);*/
 	vk::imageBuffers2D imageDescriptors;
 	imageDescriptors.resize(1);
 
@@ -253,10 +261,4 @@ bool TextureManager::UploadTextureDataToGPU( uint32_t currentFrame, const VkSema
 
 
 	return true;
-}
-
-size_t TextureManager::GetSize()
-{
-	std::lock_guard lock(m_textureMutex);
-	return m_textures.size();
 }

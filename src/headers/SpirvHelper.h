@@ -1,7 +1,7 @@
 #pragma once
 
 #include "shaderc/shaderc.hpp"
-#include "vkUtility.h"
+#include "vkUtil.h"
 
 namespace vk::spirv
 {
@@ -47,7 +47,6 @@ namespace vk::spirv
 	inline void WriteSpirvFile( const char* filename, const std::vector<uint32_t>& data )
 	{
 		std::ofstream output(filename,std::ios::out | std::ios::binary);
-
 
 
 		if (output.is_open() == false)
@@ -99,9 +98,14 @@ namespace vk::spirv
 		{
 			sourceFilePath.replace_filename(sourceFilePath.stem().string() + "-geom");
 		}
+		else if (shader_kind == shaderc_compute_shader)
+		{
+			sourceFilePath.replace_filename(sourceFilePath.stem().string() + "-comp");
+		}
 		else
 		{
 			std::cerr << "[ERROR] unsupported shader type: " << shader_kind << '\n';
+			std::cerr << "vk::spirv::ConvertToSpirvFilePath() Failed\n";
 			return "";
 		}
 

@@ -13,14 +13,11 @@ public:
 	AssetManager() = default;
 	~AssetManager() = default;
 
-	//Modifiers
 	void Init( vk::Device* devicePtr, TextureManager* textureManagerPtr, size_t workerThreadCount );
 	void Destroy();
 	void LoadObject( const ObjectCreateInfo& objectCI );
 	void DrawObjects( const vk::DrawInfo& drawInfo ) const;
 	void Update( float dt );
-	//returns whether or not a command was recorded.
-	bool SyncIO( uint32_t currentFrame, VkSemaphore textureUploadSemaphore );
 protected:
 	void InitTestScene();
 private:

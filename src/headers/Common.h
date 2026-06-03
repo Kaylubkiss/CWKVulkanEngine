@@ -38,7 +38,6 @@
 #include <algorithm>
 #include <filesystem>
 
-
 #include "Vertex.h"
 
 #include "vkGlobal.h"

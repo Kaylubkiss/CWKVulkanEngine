@@ -1,22 +1,12 @@
 #pragma once
 
-#include "vkBuffer.h"
-#include "vkUtility.h"
-#include "vkInit.h"
 #include "vkDevice.h"
-#include "vkDescriptorBuffer.h"
 
 constexpr uint32_t gMaxFramesInFlight = 3;
 
-inline VkDeviceSize AlignedSize(VkDeviceSize size, VkDeviceSize alignment)
-{
-	return (size + alignment - 1) & ~(alignment - 1);
-}
-
-class UserInterface;
-
 namespace vk
 {
+
 	//created in response to the need of texture manager. It needs a lot of graphics context state, but the calls to 
 	//function methods of the context to get this information seemed inconvenient.
 	//in turn, I've had to create this data structure which contains all the information that
@@ -38,11 +28,19 @@ namespace vk
 		uint32_t setCount = 1; //it would make sense that there is at least 1 set being described.
 	};
 
+	struct TextureCreateInfo
+	{
+		std::mutex* pTransferMutex = nullptr; //this is for transfer operations done on a separate thread.
+		std::vector<std::string> fileNames; //(note as of 5.9.26: will represent a full file path for now)
+		VkImageUsageFlags imageUsage;
+		VkImageCreateFlags flags;
+		VkFormat format = VK_FORMAT_UNDEFINED;
+		uint32_t width = 0;
+		uint32_t height = 0;
+		uint32_t layerCount = 0;
+		uint32_t mipLevels = 0;
+	};
 
-	VkCommandBuffer beginSingleTimeCommand( const VkDevice l_device, const VkCommandPool cmdPool );
-
-	void endSingleTimeCommand( const VkDevice l_device, VkCommandBuffer commandBuffer,
-		const VkCommandPool cmdPool, const VkQueue gfxQueue );
 }
 
 

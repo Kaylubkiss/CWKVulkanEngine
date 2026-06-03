@@ -1,18 +1,14 @@
 #pragma once
 #include "SpirvHelper.h"
 
+#define SHADER_PATH "shaders/"
+
 //ShaderModuleInfo
 namespace vk
 {
-    struct ShaderModuleInfo
+    class ShaderModuleInfo
     {
-        VkShaderModule mHandle = VK_NULL_HANDLE;
-        time_t lastModificationTime = 0;
-        std::string mFilePath = "";
-
-        VkShaderStageFlagBits mFlags = VK_SHADER_STAGE_ALL;
-        shaderc_shader_kind mShaderKind = shaderc_glsl_infer_from_source; /*arguments in runtime shader compilation */
-
+    public:
         /*
             *@brief intializer list for a ShaderModuleInfo object. Compiles the specified shader source to sprv and also sets the shader stage flags.
 
@@ -23,5 +19,30 @@ namespace vk
         */
         ShaderModuleInfo() = default;
         ShaderModuleInfo( const VkDevice l_device, std::string_view filename, VkShaderStageFlagBits shaderFlags );
+
+        ShaderModuleInfo& operator=( const ShaderModuleInfo& other ) = delete;
+        ShaderModuleInfo( const ShaderModuleInfo& other ) = delete;
+
+        ShaderModuleInfo& operator=( ShaderModuleInfo&& other ) noexcept;
+        ShaderModuleInfo( ShaderModuleInfo&& other ) noexcept;
+
+        ~ShaderModuleInfo();
+
+        void SetModificationTime( time_t timeStamp );
+
+        VkShaderModule GetHandle() const;
+        VkShaderStageFlagBits GetShaderStageFlags() const;
+        const std::string& GetFileName() const;
+        time_t GetModificationTime() const;
+        shaderc_shader_kind GetShaderKind() const;
+
+    private:
+        std::string m_filePath;
+        time_t m_modificationTime = 0;
+        VkShaderModule m_handle = VK_NULL_HANDLE;
+        VkDevice c_device = VK_NULL_HANDLE;
+
+        VkShaderStageFlagBits m_shaderStageFlags = VK_SHADER_STAGE_ALL;
+        shaderc_shader_kind m_shaderKind = shaderc_glsl_infer_from_source; /*arguments in runtime shader compilation */
     };
 }

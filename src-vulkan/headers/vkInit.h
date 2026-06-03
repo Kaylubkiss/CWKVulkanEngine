@@ -4,7 +4,6 @@ namespace vk
 {
 	namespace init 
 	{
-
 		VkVertexInputBindingDescription VertexInputBindingDescription( uint32_t binding = 0 );
 
 		VkPipelineVertexInputStateCreateInfo PipelineVertexInputStateCreateInfo();
@@ -125,14 +124,6 @@ namespace vk
 		VkCommandBufferAllocateInfo CommandBufferAllocateInfo();
 
 		VkSubmitInfo SubmitInfo();
-
-		//special engine-specific resources
-		VkImage CreateImage
-		(
-			const VkPhysicalDevice& p_device, const VkDevice& l_device, uint32_t width, uint32_t height,
-			uint32_t mipLevels, VkFormat format, VkImageUsageFlags usage,
-			VkMemoryPropertyFlags flags, VkDeviceMemory& imageMemory
-		);
 
 		VkComponentMapping ComponentMappingSwizzleIdentity();
 	}

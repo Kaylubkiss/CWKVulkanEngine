@@ -12,7 +12,6 @@ public:
 	//MUST CALL THIS BEFORE EXITING PROGRAM.
 	void Terminate();
 	void EnqueueTask(std::function<void()>& task);
-	bool isBusy();
 private:
 	void ThreadLoop();
 private:
