@@ -41,11 +41,13 @@ namespace vk
     private:
         std::string m_filePath;
         time_t m_modificationTime = 0;
+
         VkShaderModule m_handle = VK_NULL_HANDLE;
-        VkDevice c_device = VK_NULL_HANDLE;
 
         VkShaderStageFlagBits m_shaderStageFlags = VK_SHADER_STAGE_ALL;
         shaderc_shader_kind m_shaderKind = shaderc_glsl_infer_from_source; /*arguments in runtime shader compilation */
+
+        VkDevice c_device = VK_NULL_HANDLE;
     };
 }
 

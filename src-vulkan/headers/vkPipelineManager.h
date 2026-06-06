@@ -6,14 +6,14 @@
 #define VK_PIPELINE_MANAGER_HPP
 
 #include "vkShaderModule.h"
+#include "vkPipelineBuilder.h"
 
 //PipelineManager
 namespace vk 
 {
 	struct Pipeline 
 	{
-		std::function<void()> createFunc = nullptr;
-		std::vector<ShaderModuleInfo> shaderModules;
+		std::unique_ptr<PipelineBuilder> pipelineBuilder;
 		VkPipeline handle = VK_NULL_HANDLE;
 	};
 
@@ -26,7 +26,7 @@ namespace vk
 	struct HotReloadInfo
 	{
 		int pipeline_index = -1;
-		std::vector<HotReloadModuleInfo> modules;
+		std::vector<HotReloadModuleInfo> moduleInfos;
 	};
 
 	/*
@@ -57,9 +57,8 @@ namespace vk
 
 			*@return void
 		*/
-		void AddModule( uint32_t pipeline, ShaderModuleInfo&& shaderModuleInfo );
 
-		void AddPipeline( uint32_t pipeline, const VkPipeline handle, std::function<void()>&& createFunc = nullptr );
+		void AddPipeline( uint32_t pipeline, Pipeline& pipelineInfo );
 
 		void HotReloadShaders();
 
@@ -69,7 +68,6 @@ namespace vk
 
 		VkPipeline Get( uint32_t pipeline );
 
-		const std::vector<ShaderModuleInfo>& GetPipelineShaders( uint32_t pipeline );
 	private:
 		std::map<uint32_t, vk::Pipeline> pipelines;
 		std::map<uint32_t, HotReloadInfo> hotReloadInfos;

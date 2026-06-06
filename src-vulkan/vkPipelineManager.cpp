@@ -53,26 +53,17 @@ namespace vk
 		}
 	}
 
-	void PipelineManager::AddModule( uint32_t pipeline, ShaderModuleInfo&& shaderModuleInfo )
+	void PipelineManager::AddPipeline( uint32_t pipeline, Pipeline& pipelineInfo )
 	{
-		pipelines[pipeline].shaderModules.push_back(std::move(shaderModuleInfo));
-	}
-
-	void PipelineManager::AddPipeline( uint32_t pipeline, const VkPipeline handle, std::function<void()>&& createFunc )
-	{
-		pipelines[pipeline].handle = handle;
-
-		if (createFunc != nullptr) 
-		{
-			pipelines[pipeline].createFunc = std::move(createFunc);
-		}
+		pipelines[pipeline].pipelineBuilder = std::move(pipelineInfo.pipelineBuilder);
+		pipelines[pipeline].handle = pipelineInfo.handle;
 	}
 
 
 	//recreate the pipeline and its marked modules
 	void PipelineManager::HotReloadShaders() 
 	{
-		VK_CHECK_RESULT(vkDeviceWaitIdle(contextLogicalDevice));
+		VK_CHECK_RESULT( vkDeviceWaitIdle(contextLogicalDevice) );
 
 		for ( auto& hInfo : hotReloadInfos )
 		{
@@ -83,15 +74,16 @@ namespace vk
 			vkDestroyPipeline(contextLogicalDevice,  pipeline.handle, nullptr);
 			pipeline.handle = VK_NULL_HANDLE;
 
-			for ( auto& module : info.modules )
-			{
-				ShaderModuleInfo& shaderModule = pipeline.shaderModules[module.index];
+			auto& shaderModules = pipeline.pipelineBuilder->GetShaderModules();
 
-				shaderModule = vk::ShaderModuleInfo( contextLogicalDevice,
-					shaderModule.GetFileName(), shaderModule.GetShaderStageFlags() );
+			for ( auto& module : info.moduleInfos )
+			{
+				shaderModules[module.index] = vk::ShaderModuleInfo( contextLogicalDevice,
+					shaderModules[module.index].GetFileName(),
+					shaderModules[module.index].GetShaderStageFlags() );
 			}
 
-			pipeline.createFunc();
+			pipeline.pipelineBuilder->CreatePipeline( contextLogicalDevice, &pipeline.handle );
 		}
 
 		hotReloadInfos.clear();
@@ -100,38 +92,40 @@ namespace vk
 	//helper for DetectHotReloadableShaders()
 	inline HotReloadInfo CheckPipelineShaderChanges( uint32_t pipelineIndex, vk::Pipeline& pipeline )
 	{
+
 		HotReloadInfo info;
 
-		//avoid any unecessary reallocations.
-		info.modules.reserve(pipeline.shaderModules.size());
-
-		for ( size_t i = 0; i < pipeline.shaderModules.size(); ++i )
+		if (pipeline.pipelineBuilder != nullptr)
 		{
-			ShaderModuleInfo& shader = pipeline.shaderModules[i];
+			//avoid any unecessary reallocations.
+			auto& shaderModules = pipeline.pipelineBuilder->GetShaderModules();
 
-			struct stat fileStat = {};
+			size_t shaderCount = shaderModules.size();
 
-			const auto& shaderFileName = SHADER_PATH + shader.GetFileName();
+			info.moduleInfos.reserve(shaderCount);
 
-			if (stat(shaderFileName.c_str(), &fileStat) != 0)
+			for ( size_t i = 0; i < shaderCount; ++i )
 			{
-				std::cerr << "[ERROR] Can't Read File " << shaderFileName << '\n';
-				continue;
-			}
+				std::string shaderFileName = SHADER_PATH + shaderModules[i].GetFileName();
 
-			//check if the filesystem saw any changes.
-			if (shader.GetModificationTime() != fileStat.st_mtime)
-			{
-				//reassign so errors don't pop up forever.
-				shader.SetModificationTime( fileStat.st_mtime );
-
-				//creation function determines that a pipeline can be hot reloaded.
-				if (pipeline.createFunc != nullptr)
+				struct stat fileStat = {};
+				if (stat(shaderFileName.c_str(), &fileStat) != 0)
 				{
+					std::cerr << "[ERROR] Can't Read File " << shaderFileName << '\n';
+					continue;
+				}
+
+				//check if the filesystem saw any changes.
+				if (shaderModules[i].GetModificationTime() != fileStat.st_mtime)
+				{
+					//reassign so errors don't pop up forever.
+					shaderModules[i].SetModificationTime( fileStat.st_mtime );
+
 					info.pipeline_index = static_cast<int>( pipelineIndex );
 
 					auto shaderPath =
-						vk::spirv::ReadSourceAndWriteToSpirv(shaderFileName, shader.GetShaderKind(), true);
+						vk::spirv::ReadSourceAndWriteToSpirv(shaderFileName,
+							shaderModules[i].GetShaderKind(), true);
 
 					if (shaderPath.has_value() == false)
 					{
@@ -139,13 +133,13 @@ namespace vk
 						continue;
 					}
 
-					info.modules.push_back({i, shaderPath.value()});
-				}
-				else
-				{
-					std::cerr << "no creation function provided for pipeline " << '\n';
+					info.moduleInfos.push_back({i, shaderPath.value()});
 				}
 			}
+		}
+		else
+		{
+			std::cerr << "no builder provided for this pipeline, can't hot reload\n";
 		}
 
 		return info;
@@ -171,10 +165,5 @@ namespace vk
 	VkPipeline PipelineManager::Get( uint32_t pipeline )
 	{
 		return pipelines[pipeline].handle;
-	}
-
-	const std::vector<ShaderModuleInfo>& PipelineManager::GetPipelineShaders( uint32_t pipeline )
-	{
-		return pipelines[pipeline].shaderModules;
 	}
 }

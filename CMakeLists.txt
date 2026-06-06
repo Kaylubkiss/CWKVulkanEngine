@@ -91,6 +91,7 @@ ${VULKAN_SRC_DIR}/vkDescriptorBuffer.cpp
 ${VULKAN_SRC_DIR}/vkShaderModule.cpp
 ${VULKAN_SRC_DIR}/vkCubemap.cpp
 ${VULKAN_SRC_DIR}/vkPanoramicTexture.cpp
+${VULKAN_SRC_DIR}/vkPipelineBuilder.cpp
 )
 
 set(VULKAN_SCENES_DIR src-vulkan/deferred-renderer)
@@ -155,6 +156,7 @@ ${VULKAN_HEADER_DIR}/vkInstance.h
 ${VULKAN_HEADER_DIR}/vkDescriptorBuffer.h
 ${VULKAN_HEADER_DIR}/vkShaderModule.h
 ${VULKAN_HEADER_DIR}/vkPanoramicTexture.h
+${VULKAN_HEADER_DIR}/vkPipelineBuilder.h
 )
 
 source_group("Header Files/VulkanHeaders" FILES ${VULKAN_ENGINE_HEADERS})	
