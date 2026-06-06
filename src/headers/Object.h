@@ -3,7 +3,10 @@
 
 #include "Model.h"
 
-class TextureManager;
+namespace vk
+{
+	class TextureManager;
+}
 
 struct ObjectCreateInfo
 {
@@ -13,7 +16,7 @@ struct ObjectCreateInfo
 	std::string objName;
 	std::vector<std::string> textureFileNames;
 	vk::Device* devicePtr = nullptr;
-	TextureManager* textureManagerPtr = nullptr;
+	vk::TextureManager* textureManagerPtr = nullptr;
 	bool hasPhysicsComponent = false;
 };
 
@@ -22,11 +25,11 @@ class Object final
 public:
 	//Constructors
 	explicit Object() = default;
-	explicit Object( const ObjectCreateInfo& objectCI, TextureManager& textureManager );
+	explicit Object( const ObjectCreateInfo& objectCI, vk::TextureManager& textureManager );
 	//Destructors
 	~Object() = default;
 	//Mutators
-	void LoadTextures( TextureManager& textureManager, const std::vector<std::string>& fileNames );
+	void LoadTextures( vk::TextureManager& textureManager, const std::vector<std::string>& fileNames );
 	void Update( const float& interpFactor );
 	void InitPhysics();
 	void Draw( const vk::DrawInfo& drawInfo ) const;

@@ -4,8 +4,8 @@
 #include "Timer.h"
 #include "Physics.h"
 #include "vkRendererBase.h"
-#include "TextureManager.h"
-#include "DescriptorManager.h"
+#include "../../src-vulkan/headers/vkTextureManager.h"
+#include "../../src-vulkan/headers/vkDescriptorManager.h"
 
 class Application
 {
@@ -31,8 +31,8 @@ private:
 	PhysicsSystem m_physics;
 	std::unique_ptr<vk::RendererBase> m_vulkanGraphicsContext;
 	AssetManager m_assetManager;
-	TextureManager m_textureManager;
-	DescriptorManager m_descriptorManager;
+	vk::TextureManager m_textureManager;
+	vk::DescriptorManager m_descriptorManager;
 
 	bool exitApplication = false;
 };

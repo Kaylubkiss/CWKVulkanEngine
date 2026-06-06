@@ -17,7 +17,7 @@ public:
 	~GLTFModel() override = default;
 
 	void Draw( const vk::DrawInfo& drawInfo ) override;
-	void LoadTextures( TextureManager& textureManager, const std::vector<std::string>& textureNames ) override;
+	void LoadTextures( vk::TextureManager& textureManager, const std::vector<std::string>& textureNames ) override;
 private:
 	//helpers
 	void LoadMeshes( fastgltf::Asset& asset, std::vector<Vertex>& vertexBuffer, std::vector<uint32_t>& indexBuffer );

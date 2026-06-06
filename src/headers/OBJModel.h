@@ -14,7 +14,7 @@ public:
 	[[nodiscard]] glm::vec3 GetMaxPoint() const override;
 
 	void Draw( const vk::DrawInfo& drawInfo ) override;
-	void LoadTextures( TextureManager& textureManager, const std::vector<std::string>& textureNames ) override;
+	void LoadTextures( vk::TextureManager& textureManager, const std::vector<std::string>& textureNames ) override;
 private:
 	void ComputeVertices(std::vector<Vertex>& vertexBuffer, std::vector<uint16_t>& indexBuffer);
 	void ComputeVertexNormals(std::vector<Vertex>& vertexBuffer, std::vector<uint16_t>& indexBuffer);

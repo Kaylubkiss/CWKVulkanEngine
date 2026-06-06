@@ -255,7 +255,7 @@ void OBJModel::Draw( const vk::DrawInfo& drawInfo )
     }
 }
 
-void OBJModel::LoadTextures( TextureManager& textureManager, const std::vector<std::string>& textureNames )
+void OBJModel::LoadTextures( vk::TextureManager& textureManager, const std::vector<std::string>& textureNames )
 {
     //OBJ is assumed to only contain one primitive.
     //Materials are not supported with this implementation,

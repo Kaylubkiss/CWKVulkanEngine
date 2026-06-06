@@ -7,7 +7,7 @@
 #define GLTF_OBJECT_PATH "art/gltf/"
 #define OBJ_PATH "art/obj/"
 
-Object::Object( const ObjectCreateInfo& objectCI, TextureManager& textureManager )
+Object::Object( const ObjectCreateInfo& objectCI, vk::TextureManager& textureManager )
 {
     assert(objectCI.devicePtr != nullptr);
     
@@ -70,7 +70,7 @@ Object::Object( const ObjectCreateInfo& objectCI, TextureManager& textureManager
     }
 }
 
-void Object::LoadTextures( TextureManager& textureManager, const std::vector<std::string>& fileNames )
+void Object::LoadTextures( vk::TextureManager& textureManager, const std::vector<std::string>& fileNames )
 {
     m_model->LoadTextures(textureManager, fileNames);
 }

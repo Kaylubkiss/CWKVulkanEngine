@@ -10,12 +10,13 @@ namespace vk
 	public:
 		//assume that build info is shared among all buffers.
 		Buffer() = default;
-		Buffer( const Buffer& other ) = delete;
-		Buffer( Buffer&& other ) noexcept;
 		Buffer( const vk::Device* devicePtr, VkBufferUsageFlags usage, VkMemoryPropertyFlags flags,
 			size_t size, void* data = nullptr );
 
+		Buffer( const Buffer& other ) = delete;
 		Buffer& operator=( const Buffer& other ) = delete;
+
+		Buffer( Buffer&& other ) noexcept;
 		Buffer& operator=( Buffer&& other ) noexcept;
 
 		~Buffer();

@@ -21,7 +21,7 @@ namespace vk
 		void RecordCommandBuffers( AssetManager& assetManager ) override;
 		void UpdateUI() override;
 		void InitializePipeline() override;
-		void InitializeDescriptors( DescriptorManager& descriptorManager  ) override;
+		void InitializeDescriptors( vk::DescriptorManager& descriptorManager  ) override;
 	private:
 		void InitializeFramebuffers();
 		void InitializeDeferredFramebuffer();

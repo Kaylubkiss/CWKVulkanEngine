@@ -36,7 +36,7 @@ void AssetManager::Destroy()
 	m_objects.clear(); //destroy objects with ~Object();
 }
 
-void AssetManager::Init( vk::Device* devicePtr, TextureManager* textureManagerPtr, size_t workerThreadCount )
+void AssetManager::Init( vk::Device* devicePtr, vk::TextureManager* textureManagerPtr, size_t workerThreadCount )
 {
 	assert(devicePtr != nullptr);
 	assert(textureManagerPtr != nullptr);

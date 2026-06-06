@@ -63,14 +63,12 @@ src/Object.cpp
 src/Physics.cpp
 src/Timer.cpp
 src/ThreadPool.cpp
-src/TextureManager.cpp
 src/AssetManager.cpp
 src/ApplicationGlobal.cpp
 src/Input.cpp
 src/UserInterface.cpp
 src/GLTFModel.cpp
 src/OBJModel.cpp
-src/DescriptorManager.cpp
 )
 
 set(VULKAN_SRC_DIR src-vulkan)
@@ -92,6 +90,8 @@ ${VULKAN_SRC_DIR}/vkShaderModule.cpp
 ${VULKAN_SRC_DIR}/vkCubemap.cpp
 ${VULKAN_SRC_DIR}/vkPanoramicTexture.cpp
 ${VULKAN_SRC_DIR}/vkPipelineBuilder.cpp
+${VULKAN_SRC_DIR}/vkTextureManager.cpp
+${VULKAN_SRC_DIR}/vkDescriptorManager.cpp
 )
 
 set(VULKAN_SCENES_DIR src-vulkan/deferred-renderer)
@@ -125,7 +125,6 @@ ${HEADER_SRC_DIR}/Physics.h
 ${HEADER_SRC_DIR}/Timer.h
 ${HEADER_SRC_DIR}/ThreadPool.h
 ${HEADER_SRC_DIR}/AssetManager.h
-${HEADER_SRC_DIR}/TextureManager.h
 ${HEADER_SRC_DIR}/ApplicationGlobal.h
 ${HEADER_SRC_DIR}/Input.h
 ${HEADER_SRC_DIR}/SpirvHelper.h
@@ -133,7 +132,6 @@ ${HEADER_SRC_DIR}/UserInterface.h
 ${HEADER_SRC_DIR}/GLTFModel.h
 ${HEADER_SRC_DIR}/OBJModel.h
 ${HEADER_SRC_DIR}/Model.h
-${HEADER_SRC_DIR}/DescriptorManager.h
 )
 				 
 set(VULKAN_HEADER_DIR src-vulkan/headers)
@@ -157,6 +155,8 @@ ${VULKAN_HEADER_DIR}/vkDescriptorBuffer.h
 ${VULKAN_HEADER_DIR}/vkShaderModule.h
 ${VULKAN_HEADER_DIR}/vkPanoramicTexture.h
 ${VULKAN_HEADER_DIR}/vkPipelineBuilder.h
+${VULKAN_HEADER_DIR}/vkDescriptorManager.h
+${VULKAN_HEADER_DIR}/vkTextureManager.h
 )
 
 source_group("Header Files/VulkanHeaders" FILES ${VULKAN_ENGINE_HEADERS})	

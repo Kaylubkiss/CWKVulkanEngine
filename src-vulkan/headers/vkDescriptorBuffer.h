@@ -36,10 +36,11 @@ namespace vk
 		DescriptorBuffer() = default;
 		DescriptorBuffer( const vk::Device* devicePtr, VkBufferUsageFlags bufferUsage, VkMemoryPropertyFlags bufferMemoryProps,
 			size_t numFrames, size_t layoutCount, const std::vector<VkDescriptorSetLayoutBinding>& bindings );
-		DescriptorBuffer( const DescriptorBuffer& other ) = delete;
-		DescriptorBuffer( DescriptorBuffer&& other ) noexcept;
 
+		DescriptorBuffer( const DescriptorBuffer& other ) = delete;
 		DescriptorBuffer& operator=( const DescriptorBuffer& other ) = delete;
+
+		DescriptorBuffer( DescriptorBuffer&& other ) noexcept;
 		DescriptorBuffer& operator=( DescriptorBuffer&& other ) noexcept;
 
 		~DescriptorBuffer();

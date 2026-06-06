@@ -180,7 +180,7 @@ void GLTFModel::Draw( const vk::DrawInfo& drawInfo )
 	}
 }
 
-void GLTFModel::LoadTextures( TextureManager& textureManager, const std::vector<std::string>& textureNames )
+void GLTFModel::LoadTextures( vk::TextureManager& textureManager, const std::vector<std::string>& textureNames )
 {
 	if (textureNames.empty())
 	{

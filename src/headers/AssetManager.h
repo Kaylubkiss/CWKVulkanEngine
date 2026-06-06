@@ -5,7 +5,10 @@
 #include "ThreadPool.h"
 #include <shared_mutex>
 
-class TextureManager;
+namespace vk
+{
+	class TextureManager;
+}
 
 typedef std::unordered_map<std::string, std::unique_ptr<Object>> ObjectMap;
 
@@ -15,7 +18,7 @@ public:
 	AssetManager() = default;
 	~AssetManager() = default;
 
-	void Init( vk::Device* devicePtr, TextureManager* textureManagerPtr, size_t workerThreadCount );
+	void Init( vk::Device* devicePtr, vk::TextureManager* textureManagerPtr, size_t workerThreadCount );
 	void Destroy();
 	void LoadObject( const ObjectCreateInfo& objectCI );
 	void DrawObjects( const vk::DrawInfo& drawInfo ) const;
@@ -27,7 +30,7 @@ private:
 	vk::Device* c_devicePtr = nullptr;
 	ObjectMap m_objects;
 	ThreadPool m_threadWorkers; //this needs to be destroyed first.
-	TextureManager* m_textureManagerPtr = nullptr;
+	vk::TextureManager* m_textureManagerPtr = nullptr;
 
 	//TODO: make buffer pool for geometry.
 };

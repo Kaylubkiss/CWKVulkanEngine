@@ -1,7 +1,10 @@
 #ifndef MODEL_HPP
 #define MODEL_HPP
 
-class TextureManager;
+namespace vk
+{
+	class TextureManager;
+}
 
 struct Node //notice: no pointing to parents. Might be something for later.
 {
@@ -92,7 +95,7 @@ public:
 	}
 
 	virtual void Draw( const vk::DrawInfo& drawInfo ) = 0;
-	virtual void LoadTextures( TextureManager& textureManager, const std::vector<std::string>& textureNames ) = 0;
+	virtual void LoadTextures( vk::TextureManager& textureManager, const std::vector<std::string>& textureNames ) = 0;
 	[[nodiscard]] const std::vector<std::string>& GetTextureNames() const { return m_textureNames; }
 	static void DrawMeshPrimitives( const vk::DrawInfo& drawInfo, const std::vector<Primitive>& primitives )
 	{

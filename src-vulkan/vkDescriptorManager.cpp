@@ -1,6 +1,9 @@
-#include "DescriptorManager.h"
+#include "headers/vkDescriptorManager.h"
 
- void DescriptorManager::Init( vk::Device* devicePtr )
+namespace vk
+{
+
+    void DescriptorManager::Init( vk::Device* devicePtr )
     {
         assert(devicePtr != nullptr);
 
@@ -179,3 +182,4 @@
 
         return -1;
     }
+}
