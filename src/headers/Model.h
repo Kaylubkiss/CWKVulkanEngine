@@ -1,4 +1,6 @@
-#pragma once
+#ifndef MODEL_HPP
+#define MODEL_HPP
+
 class TextureManager;
 
 struct Node //notice: no pointing to parents. Might be something for later.
@@ -125,3 +127,5 @@ private:
 	vk::Buffer m_vertexBuffer;
 	vk::Buffer m_indexBuffer;
 };
+
+#endif

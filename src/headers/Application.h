@@ -1,4 +1,6 @@
-#pragma once
+#ifndef APPLICATION_HPP
+#define APPLICATION_HPP
+
 #include "Timer.h"
 #include "Physics.h"
 #include "vkRendererBase.h"
@@ -34,6 +36,8 @@ private:
 
 	bool exitApplication = false;
 };
+
+#endif
 
 
 

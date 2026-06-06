@@ -1,4 +1,6 @@
-#pragma once
+#ifndef TEXTURE_MANAGER_HPP
+#define TEXTURE_MANAGER_HPP
+
 #include "vkTexture.h"
 
 //NOTE: DOES NOT NEED TO BE A POWER OF TWO
@@ -65,3 +67,5 @@ private:
 
 	//TODO: make buffer pool for textures.
 };
+
+#endif

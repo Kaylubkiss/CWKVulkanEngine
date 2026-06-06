@@ -1,4 +1,6 @@
-#pragma once
+#ifndef VK_SHADER_MODULE_HPP
+#define VK_SHADER_MODULE_HPP
+
 #include "SpirvHelper.h"
 
 #define SHADER_PATH "shaders/"
@@ -46,3 +48,5 @@ namespace vk
         shaderc_shader_kind m_shaderKind = shaderc_glsl_infer_from_source; /*arguments in runtime shader compilation */
     };
 }
+
+#endif

@@ -1,4 +1,6 @@
-#pragma once
+#ifndef VK_PANORAMIC_TEXTURE_HPP
+#define VK_PANORAMIC_TEXTURE_HPP
+
 #include "vkInit.h"
 #include "vkTexture.h"
 
@@ -198,3 +200,5 @@ namespace vk
 
 
 }
+
+#endif

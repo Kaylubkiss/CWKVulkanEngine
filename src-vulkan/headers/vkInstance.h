@@ -1,4 +1,5 @@
-#pragma once
+#ifndef VK_INSTANCE_HPP
+#define VK_INSTANCE_HPP
 
 namespace vk
 {
@@ -24,5 +25,7 @@ namespace vk
     };
 
 }
+
+#endif
 
 

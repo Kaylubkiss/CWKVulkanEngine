@@ -1,4 +1,5 @@
-#pragma once
+#ifndef VK_TEXTURE_HPP
+#define VK_TEXTURE_HPP
 
 namespace vk 
 {
@@ -45,3 +46,5 @@ namespace vk
 	};
 
 }
+
+#endif

@@ -1,4 +1,5 @@
-#pragma once
+#ifndef VK_BUFFER_HPP
+#define VK_BUFFER_HPP
 
 namespace vk 
 {
@@ -41,5 +42,7 @@ namespace vk
 		VkDescriptorBufferInfo m_descriptor = {};
 	};
 }
+
+#endif
 
 

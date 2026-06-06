@@ -1,4 +1,5 @@
-#pragma once
+#ifndef VK_GLOBAL_HPP
+#define VK_GLOBAL_HPP
 
 #include "vkDevice.h"
 
@@ -42,6 +43,8 @@ namespace vk
 	};
 
 }
+
+#endif
 
 
 

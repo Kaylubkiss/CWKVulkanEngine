@@ -1,4 +1,6 @@
-#pragma once
+#ifndef VK_DEVICE_HPP
+#define VK_DEVICE_HPP
+
 #include "vkBuffer.h"
 
 extern PFN_vkGetDescriptorSetLayoutBindingOffsetEXT g_vkGetDescriptorSetLayoutBindingOffsetEXT;
@@ -75,3 +77,4 @@ namespace vk
 
 }
 
+#endif

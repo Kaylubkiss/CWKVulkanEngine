@@ -1,4 +1,5 @@
-#pragma once
+#ifndef VK_SWAPCHAIN_HPP
+#define VK_SWAPCHAIN_HPP
 
 #include "vkFramebuffer.h"
 
@@ -48,3 +49,5 @@ namespace vk
 
 	
 }
+
+#endif

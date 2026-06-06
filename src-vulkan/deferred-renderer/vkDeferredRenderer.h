@@ -1,4 +1,6 @@
-#pragma once
+#ifndef VK_DEFERRED_RENDERER_HPP
+#define VK_DEFERRED_RENDERER_HPP
+
 #include "vkRendererBase.h"
 #include "vkPanoramicTexture.h"
 
@@ -133,3 +135,5 @@ namespace vk
 	};
 
 }
+
+#endif

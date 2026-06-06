@@ -1,4 +1,5 @@
-#pragma once
+#ifndef VK_DESCRIPTOR_BUFFER_HPP
+#define VK_DESCRIPTOR_BUFFER_HPP
 
 namespace vk
 {
@@ -72,3 +73,5 @@ namespace vk
 	};
 
 }
+
+#endif

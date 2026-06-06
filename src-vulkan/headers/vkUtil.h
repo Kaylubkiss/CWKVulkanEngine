@@ -1,4 +1,5 @@
-#pragma once
+#ifndef VK_UTIL_HPP
+#define VK_UTIL_HPP
 
 //this should be made to do something more useful, but for now it can be a useful alias
 #define VK_CHECK_RESULT(function) assert(function == VK_SUCCESS)
@@ -66,3 +67,5 @@ namespace vk
 		}
 	}
 }
+
+#endif

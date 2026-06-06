@@ -1,4 +1,6 @@
-#pragma once
+#ifndef CAMERA_HPP
+#define CAMERA_HPP
+
 #include <reactphysics3d/reactphysics3d.h>
 
 #include "Physics.h"
@@ -43,5 +45,7 @@ private:
 
 	void UpdatePosition( reactphysics3d::Vector3& velocity, float dt );
 };
+
+#endif
 
 

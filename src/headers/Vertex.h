@@ -1,4 +1,5 @@
-#pragma once
+#ifndef VERTEX_HPP
+#define VERTEX_HPP
 
 struct Vertex
 {
@@ -54,3 +55,5 @@ namespace std {
 		}
 	};
 }
+
+#endif

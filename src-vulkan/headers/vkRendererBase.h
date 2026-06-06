@@ -1,4 +1,5 @@
-#pragma once
+#ifndef VK_RENDERER_BASE_HPP
+#define VK_RENDERER_BASE_HPP
 
 #include "vkWindow.h"
 #include "vkInstance.h"
@@ -77,3 +78,5 @@ namespace vk
 		TextureManager* m_textureManagerPtr = nullptr;
 	};
 }	
+
+#endif

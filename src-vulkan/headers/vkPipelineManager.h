@@ -2,7 +2,9 @@
 	* filename: VkPipelineManager.h
 	* author: Caleb Kissinger
 */
-#pragma once
+#ifndef VK_PIPELINE_MANAGER_HPP
+#define VK_PIPELINE_MANAGER_HPP
+
 #include "vkShaderModule.h"
 
 //PipelineManager
@@ -75,3 +77,5 @@ namespace vk
 	};
 
 }
+
+#endif

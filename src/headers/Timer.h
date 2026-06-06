@@ -1,4 +1,5 @@
-#pragma once
+#ifndef TIMER_HPP
+#define TIMER_HPP
 
 #include <chrono>
 
@@ -17,3 +18,5 @@ private:
 	double elapsedSecond = 0;
 	int deltaCount = 0;
 };
+
+#endif

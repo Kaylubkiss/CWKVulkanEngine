@@ -1,4 +1,6 @@
-#pragma once
+#ifndef COMMON_HPP
+#define COMMON_HPP
+
 //IF ENABLED: this means older versions of code compiled with mvsc from before 2017 will probably not be compatible.
 //IF DISABLED: alignment may not be correct. For now, I'm willing to let this happen until something goes bad.
 //#define _DISABLE_EXTENDED_ALIGNED_STORAGE
@@ -42,6 +44,8 @@
 
 #include "vkGlobal.h"
 #include "ApplicationGlobal.h"
+
+#endif
 
 
 

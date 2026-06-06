@@ -1,4 +1,6 @@
-#pragma once
+#ifndef APPLICATION_MANAGER_HPP
+#define APPLICATION_MANAGER_HPP
+
 #include "Object.h"
 #include "ThreadPool.h"
 #include <shared_mutex>
@@ -29,4 +31,6 @@ private:
 
 	//TODO: make buffer pool for geometry.
 };
+
+#endif
 

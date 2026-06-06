@@ -1,4 +1,5 @@
-#pragma once
+#ifndef DESCRIPTOR_MANAGER_HPP
+#define DESCRIPTOR_MANAGER_HPP
 
 #include "vkDescriptorBuffer.h"
 
@@ -55,3 +56,5 @@ private:
 
 
 };
+
+#endif

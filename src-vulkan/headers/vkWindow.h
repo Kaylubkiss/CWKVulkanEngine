@@ -1,4 +1,5 @@
-#pragma once
+#ifndef VK_WINDOW_HPP
+#define VK_WINDOW_HPP
 
 namespace vk 
 {
@@ -42,3 +43,5 @@ namespace vk
 	};
 
 }
+
+#endif

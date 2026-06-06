@@ -1,4 +1,6 @@
-#pragma once
+#ifndef OBJ_MODEL_HPP
+#define OBJ_MODEL_HPP
+
 #include "Model.h"
 
 class OBJModel : public Model
@@ -21,3 +23,5 @@ private:
 	glm::vec3 m_maxLocalPoint   = glm::vec3(0.f);
 	glm::vec3 m_minLocalPoint   = glm::vec3(0.f);	
 };
+
+#endif

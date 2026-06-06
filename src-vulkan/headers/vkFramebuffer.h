@@ -1,4 +1,5 @@
-#pragma once
+#ifndef VK_FRAMEBUFFER_HPP
+#define VK_FRAMEBUFFER_HPP
 
 #include "vkDevice.h"
 
@@ -88,3 +89,5 @@ namespace vk
 
 	};
 }
+
+#endif

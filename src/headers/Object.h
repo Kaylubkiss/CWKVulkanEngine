@@ -1,4 +1,5 @@
-#pragma once
+#ifndef OBJECT_HPP
+#define OBJECT_HPP
 
 #include "Model.h"
 
@@ -34,4 +35,5 @@ private:
 	PhysicsComponent m_physicsComponent;
 };
 
+#endif
 

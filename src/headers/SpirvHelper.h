@@ -1,4 +1,5 @@
-#pragma once
+#ifndef SPIRV_HELPER_HPP
+#define SPIRV_HELPER_HPP
 
 #include "shaderc/shaderc.hpp"
 #include "vkUtil.h"
@@ -170,4 +171,6 @@ namespace vk::spirv
 	}
 
 }
+
+#endif
 

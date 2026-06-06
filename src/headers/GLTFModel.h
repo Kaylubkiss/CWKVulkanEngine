@@ -1,4 +1,6 @@
-#pragma once
+#ifndef GLTF_MODEL_HPP
+#define GLTF_MODEL_HPP
+
 //NOTE (11/5/25): JUST SUPPORTING MESH AND TEXTURES FOR NOW
 #include "Model.h"
 
@@ -23,9 +25,6 @@ private:
 private:
 	VkIndexType m_indexBufferType = VK_INDEX_TYPE_UINT32;
 	std::vector<std::shared_ptr<vk::Texture>> m_textures;
-
-
-
-
-
 };
+
+#endif

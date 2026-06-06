@@ -1,4 +1,5 @@
-#pragma once
+#ifndef USER_INTERFACE_HPP
+#define USER_INTERFACE_HPP
 
 #include "vkTexture.h"
 
@@ -49,3 +50,5 @@ private:
 	static constexpr uint32_t max_textures = 100;
 	bool isInitialized = false;
 };
+
+#endif

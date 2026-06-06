@@ -1,4 +1,6 @@
-#pragma once
+#ifndef PHYSICS_HPP
+#define PHYSICS_HPP
+
 #include <reactphysics3d/reactphysics3d.h>
 
 //for general objects.
@@ -64,3 +66,5 @@ public:
 		return 1.f;
 	}
 };
+
+#endif

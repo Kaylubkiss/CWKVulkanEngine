@@ -1,4 +1,6 @@
-#pragma once
+#ifndef THREAD_POOL_HPP
+#define THREAD_POOL_HPP
+
 #include <functional>
 #include <queue>
 #include <condition_variable>
@@ -21,3 +23,5 @@ private:
 	std::queue<std::function<void()>> tasks;
 	bool terminate = false;
 };
+
+#endif

@@ -1,4 +1,5 @@
-#pragma once
+#ifndef VK_CUBEMAP_HPP
+#define VK_CUBEMAP_HPP
 
 //NOTE: entire implementation is WIP
 #include "vkTexture.h"
@@ -17,3 +18,5 @@ namespace vk
 
 
 }
+
+#endif
