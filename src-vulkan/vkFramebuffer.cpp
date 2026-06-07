@@ -133,7 +133,7 @@ namespace vk
 	void Framebuffer::CreateRenderPass() 
 	{
 		//can add a renderpass from external source
-		if (renderPass != VK_NULL_HANDLE)
+		if ( renderPass != VK_NULL_HANDLE )
 		{
 			return;
 		}

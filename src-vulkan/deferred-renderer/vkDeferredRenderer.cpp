@@ -187,6 +187,26 @@ namespace vk
 
 		InitializeFramebuffers();
 
+		auto& mrtPipelineBuilder =
+			pipelineManager.GetPipelineManager(dePipeline::MRT);
+		if (mrtPipelineBuilder != nullptr)
+		{
+			mrtPipelineBuilder->UpdateRenderPass(framebuffers.deMRT.back().GetRenderPass());
+		}
+
+		auto& compositionPipelineBuilder =
+			pipelineManager.GetPipelineManager(dePipeline::COMPOSITION);
+		if (compositionPipelineBuilder != nullptr)
+		{
+			compositionPipelineBuilder->UpdateRenderPass(framebuffers.deComposition.back().GetRenderPass());
+		}
+
+		auto& skyboxPipelineBuilder = pipelineManager.GetPipelineManager(dePipeline::SKY);
+		if (skyboxPipelineBuilder != nullptr)
+		{
+			skyboxPipelineBuilder->UpdateRenderPass(framebuffers.deSky.back().GetRenderPass());
+		}
+
 		InitializeCompositionImageDescriptors(*m_descriptorManagerPtr);
 	}
 

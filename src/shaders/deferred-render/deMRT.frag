@@ -23,7 +23,7 @@ void main()
 	vec4 normalMap = texture(normalSampler, inTexCoord);
 	if (normalMap.x != 0 && normalMap.y != 0 && normalMap.z != 0)
 	{
-	   outNormal = normalMap;
+	   outNormal = normalize(vec4(vec3(normalMap.xyz * 2.0 - 1.0),0));
 	}
 	else
 	{

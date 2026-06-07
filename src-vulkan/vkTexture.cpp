@@ -206,7 +206,8 @@ namespace vk
 		const std::string& filePath = createInfo.fileNames.back();
 
 		if (createInfo.format == VK_FORMAT_R8G8B8A8_UNORM ||
-			createInfo.format == VK_FORMAT_R8G8B8A8_SRGB)
+			createInfo.format == VK_FORMAT_R8G8B8A8_SRGB ||
+			createInfo.format == VK_FORMAT_R8G8B8A8_SNORM)
 		{
 			for (int i = 0; i < m_imageCount; ++i)
 			{

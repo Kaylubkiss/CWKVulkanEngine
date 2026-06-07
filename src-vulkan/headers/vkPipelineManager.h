@@ -68,6 +68,8 @@ namespace vk
 
 		VkPipeline Get( uint32_t pipeline );
 
+		std::unique_ptr<vk::PipelineBuilder>& GetPipelineManager( uint32_t pipeline );
+
 	private:
 		std::map<uint32_t, vk::Pipeline> pipelines;
 		std::map<uint32_t, HotReloadInfo> hotReloadInfos;

@@ -166,4 +166,9 @@ namespace vk
 	{
 		return pipelines[pipeline].handle;
 	}
+
+	std::unique_ptr<vk::PipelineBuilder>& PipelineManager::GetPipelineManager( uint32_t pipeline )
+	{
+		return pipelines[pipeline].pipelineBuilder;
+	}
 }

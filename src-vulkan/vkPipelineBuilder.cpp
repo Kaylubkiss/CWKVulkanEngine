@@ -137,6 +137,11 @@ namespace vk
     	return *this;
     }
 
+	void PipelineBuilder::UpdateRenderPass( VkRenderPass renderpass )
+    {
+    	c_renderPass = renderpass;
+    }
+
 	void PipelineBuilder::CreatePipeline( VkDevice device, VkPipeline* pipeline )
 	{
 		if ( pipeline != nullptr )

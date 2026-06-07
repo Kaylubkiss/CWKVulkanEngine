@@ -93,14 +93,15 @@ namespace vk
 
 	void RendererBase::ResizeWindow()
 	{
-		VK_CHECK_RESULT(vkDeviceWaitIdle(device.GetDevice()));
+		VK_CHECK_RESULT( vkDeviceWaitIdle(device.GetDevice()) );
 
 		VkSurfaceCapabilitiesKHR surfaceCapabilities;
-		VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device.GetGPU(), m_window.Surface(), &surfaceCapabilities));
+		VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceCapabilitiesKHR( device.GetGPU(), m_window.Surface(),
+			&surfaceCapabilities ));
 
-		m_window.UpdateExtents(surfaceCapabilities.currentExtent);
+		m_window.UpdateExtents( surfaceCapabilities.currentExtent );
 
-		if (m_window.IsMinimized())
+		if ( m_window.IsMinimized() )
 		{
 			return; //window is minimized, and 0 sizes will cause errors/crashes --> isPrepared will remain false.
 		}

@@ -40,6 +40,9 @@ namespace vk
         //color blending
         PipelineBuilder& SetBlendAttachmentCount( uint32_t count );
 
+        //for hot-reloading and resizing the framebuffer
+        void UpdateRenderPass( VkRenderPass renderpass );
+
         void CreatePipeline( VkDevice device, VkPipeline* pipeline );
     private:
         std::vector<ShaderModuleInfo> m_shaderModules;

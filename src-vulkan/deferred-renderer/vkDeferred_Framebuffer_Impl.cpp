@@ -6,7 +6,7 @@ namespace vk
 	void DeferredRenderer::InitializeFramebuffers()
 	{
 		InitializeDeferredFramebuffer();
-		InitializeDeferredShadowFramebuffer();
+		//InitializeDeferredShadowFramebuffer();
 		InitializeDeferredCompositionFramebuffer();
 		InitializeDeferredSkyboxFramebuffer();
 	}
@@ -17,7 +17,7 @@ namespace vk
 
 		for (auto& MRTFramebuffer : framebuffers.deMRT)
 		{
-			MRTFramebuffer = vk::Framebuffer(&this->device);
+			MRTFramebuffer = vk::Framebuffer( &this->device );
 
 			MRTFramebuffer.SetExtent(
 				{ static_cast<uint32_t>(viewport.width),

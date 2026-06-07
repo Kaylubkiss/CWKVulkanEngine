@@ -121,9 +121,9 @@ namespace vk
     			imageDescriptorData[frame][binding].sampler = framebuffers.deMRT[frame].GetSampler();
     		}
 
-    		imageDescriptorData[frame][RT_COUNT].imageLayout = shadowAttachments[0].layout;
+    		/*imageDescriptorData[frame][RT_COUNT].imageLayout = shadowAttachments[0].layout;
     		imageDescriptorData[frame][RT_COUNT].imageView = shadowAttachments[0].imageView;
-    		imageDescriptorData[frame][RT_COUNT].sampler = framebuffers.deShadow[frame].GetSampler();
+    		imageDescriptorData[frame][RT_COUNT].sampler = framebuffers.deShadow[frame].GetSampler();*/
 
     		VkDescriptorImageInfo irradianceMapDescriptor = m_test_panoramicImage.GetIrradianceImageDescriptor();
 		    imageDescriptorData[frame][RT_COUNT + 1].imageLayout = irradianceMapDescriptor.imageLayout;
