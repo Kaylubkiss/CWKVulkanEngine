@@ -23,23 +23,23 @@ namespace vk
 
         void Destroy();
 
-        void AllocateDescriptorBuffer(DescriptorCategory category, size_t numFrames, size_t layoutCount,
-            const std::vector<VkDescriptorSetLayoutBinding>& bindings);
+        void AllocateDescriptorBuffer( DescriptorCategory category, size_t numFrames, size_t layoutCount,
+            const std::vector<VkDescriptorSetLayoutBinding>& bindings );
 
         // [frame][binding]
-        void WriteDescriptors(DescriptorCategory category, uint32_t layoutIndex,
-            vk::imageBuffers2D& imageDescriptors, bool storageResource = false);
+        void WriteDescriptors( DescriptorCategory category, uint32_t layoutIndex,
+            vk::imageBuffers2D& imageDescriptors, bool storageResource = false );
 
-        void WriteDescriptors(DescriptorCategory category, uint32_t layoutIndex,
-            vk::resourceBufferPtrs2D& resourceDescriptors);
+        void WriteDescriptors( DescriptorCategory category, uint32_t layoutIndex,
+            vk::resourceBufferPtrs2D& resourceDescriptors );
 
-        uint32_t GetLayoutIndex(DescriptorCategory category);
+        uint32_t GetLayoutIndex( DescriptorCategory category );
 
-        VkDeviceSize GetLayoutSize(DescriptorCategory category);
+        VkDeviceSize GetLayoutSize( DescriptorCategory category );
 
-        VkDescriptorSetLayout GetLayout(DescriptorCategory category);
+        VkDescriptorSetLayout GetLayout( DescriptorCategory category );
 
-        VkDeviceAddress GetDescriptorAddress(DescriptorCategory category);
+        VkDeviceAddress GetDescriptorAddress( DescriptorCategory category );
 
 
     private:
@@ -55,8 +55,6 @@ namespace vk
 
         vk::Device* m_devicePtr = nullptr;
         VkPhysicalDeviceDescriptorBufferPropertiesEXT m_properties = {};
-
-
     };
 }
 

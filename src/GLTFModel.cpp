@@ -195,7 +195,7 @@ void GLTFModel::LoadTextures( vk::TextureManager& textureManager, const std::vec
 		{
 			Primitive& primitive = meshes[i]->m_primitives[j];
 
-			std::vector<vk::TextureCreateInfo> texture_create_infos;
+			std::vector<vk::TextureCreateInfo> texture_create_infos(4);
 			VkImageUsageFlags imageUsage =  VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
 
 			if (primitive.baseColorMaterialIndex.has_value())
@@ -209,9 +209,22 @@ void GLTFModel::LoadTextures( vk::TextureManager& textureManager, const std::vec
 				CI.mipLevels = 1;
 				CI.layerCount = 1;
 
-				texture_create_infos.push_back(CI);
+				texture_create_infos[0] = CI;
 				//grab all the texture names specific to this primitive and then request the texture manager to make a
 				//layout with the bindings starting from index 0 -> n, where n is the number of textures.
+			}
+
+			if (primitive.normalMaterialIndex.has_value())
+			{
+				auto normalIndex = primitive.normalMaterialIndex.value();
+				vk::TextureCreateInfo CI = {};
+				CI.fileNames = { textureNames[normalIndex] };
+				CI.format = VK_FORMAT_R8G8B8A8_UNORM;
+				CI.imageUsage = imageUsage;
+				CI.mipLevels = 1;
+				CI.layerCount = 1;
+
+				texture_create_infos[1] = CI;
 			}
 
 			if (primitive.metallicRoughnessIndex.has_value())
@@ -225,7 +238,7 @@ void GLTFModel::LoadTextures( vk::TextureManager& textureManager, const std::vec
 				CI.mipLevels = 1;
 				CI.layerCount = 1;
 
-				texture_create_infos.push_back(CI);
+				texture_create_infos[2] = CI;
 			}
 
 			if (primitive.ambientOcclusionIndex.has_value())
@@ -239,7 +252,7 @@ void GLTFModel::LoadTextures( vk::TextureManager& textureManager, const std::vec
 				CI.mipLevels = 1;
 				CI.layerCount = 1;
 
-				texture_create_infos.push_back(CI);
+				texture_create_infos[3] = CI;
 			}
 
 			primitive.textureSetLayoutIndex = textureManager.AddTextures(texture_create_infos );
@@ -260,8 +273,6 @@ void GLTFModel::LoadMeshes( fastgltf::Asset& asset, std::vector<Vertex>& vertexB
 
 		newMesh->m_name = mesh.name;
 
-
-
 		for (auto& primitive : mesh.primitives)
 		{
 			if (primitive.type != fastgltf::PrimitiveType::Triangles)
@@ -281,6 +292,11 @@ void GLTFModel::LoadMeshes( fastgltf::Asset& asset, std::vector<Vertex>& vertexB
 			if (p_pbr.baseColorTexture.has_value())
 			{
 				newPrim.baseColorMaterialIndex = p_pbr.baseColorTexture.value().textureIndex;
+			}
+
+			if (p_material.normalTexture.has_value())
+			{
+				newPrim.normalMaterialIndex = p_material.normalTexture.value().textureIndex;
 			}
 
 			if (p_pbr.metallicRoughnessTexture.has_value())

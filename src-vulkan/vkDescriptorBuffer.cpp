@@ -106,6 +106,8 @@ namespace vk
     	assert(c_device != VK_NULL_HANDLE);
 		assert(writeData.IsValid());
 
+
+
 		//TODO: might need to map the memory first before accessing
 		char* descriptorPtr = static_cast<char*>(m_buffer.GetMappedMemory());
 
@@ -113,6 +115,12 @@ namespace vk
 
 		if (writeData.pImageData)
 		{
+			if (writeData.pImageData->imageView == VK_NULL_HANDLE ||
+				writeData.pImageData->sampler == VK_NULL_HANDLE)
+			{
+				return;
+			}
+
 			if (storageResource)
 			{
 				descriptorGetInfo.type = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;

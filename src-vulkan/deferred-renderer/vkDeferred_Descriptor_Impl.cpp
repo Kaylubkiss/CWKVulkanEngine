@@ -169,7 +169,7 @@ namespace vk
 	void DeferredRenderer::InitializeMaterialDescriptors( DescriptorManager& descriptorManager )
     {
     	//texture material samplers
-    	std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings(3);
+    	std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings(4);
 
     	//albedo
     	setLayoutBindings[0].binding = 0;
@@ -177,17 +177,22 @@ namespace vk
     	setLayoutBindings[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
     	setLayoutBindings[0].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 
-    	//metallic roughness
     	setLayoutBindings[1].binding = 1;
     	setLayoutBindings[1].descriptorCount = 1;
     	setLayoutBindings[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
     	setLayoutBindings[1].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 
-    	//ambient occlusion
+    	//metallic roughness
     	setLayoutBindings[2].binding = 2;
     	setLayoutBindings[2].descriptorCount = 1;
     	setLayoutBindings[2].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
     	setLayoutBindings[2].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+    	//ambient occlusion
+    	setLayoutBindings[3].binding = 3;
+    	setLayoutBindings[3].descriptorCount = 1;
+    	setLayoutBindings[3].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    	setLayoutBindings[3].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 
 		descriptorManager.AllocateDescriptorBuffer(DescriptorCategory::eMaterial, 1,
 			OBJECT_COUNT, setLayoutBindings);

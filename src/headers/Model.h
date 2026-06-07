@@ -25,6 +25,7 @@ struct Primitive
 	uint32_t textureSetLayoutIndex = 0;
 
 	std::optional<size_t> baseColorMaterialIndex;
+	std::optional<size_t> normalMaterialIndex;
 	std::optional<size_t> metallicRoughnessIndex;
 	std::optional<size_t> ambientOcclusionIndex;
 };

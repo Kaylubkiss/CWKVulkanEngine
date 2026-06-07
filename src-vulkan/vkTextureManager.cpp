@@ -148,19 +148,22 @@ namespace vk
 
 			for (size_t i = 0; i < textureCount; ++i)
 			{
-				individualCI.fileNames = { createInfos[i].fileNames.back() };
-				individualCI.format = createInfos[i].format;
-				individualCI.layerCount = createInfos[i].layerCount;
-				individualCI.mipLevels = createInfos[i].mipLevels;
+				if (createInfos[i].fileNames.empty() == false)
+				{
+					individualCI.fileNames = { createInfos[i].fileNames.back() };
+					individualCI.format = createInfos[i].format;
+					individualCI.layerCount = createInfos[i].layerCount;
+					individualCI.mipLevels = createInfos[i].mipLevels;
 
-				//because layoutIndex 0 is the null/default texture, we assume that because a texture
-				//was successfully allocated, the layout's base index starts where the newly allocated
-				//texture does in the buffer.
-				pendingInfos[i].layoutIndex = layoutIndex;
-				pendingInfos[i].bindingIndex = static_cast<uint32_t>(i);
-				pendingInfos[i].totalBindingCount = static_cast<uint32_t>(textureCount);
-				pendingInfos[i].needsGPUTransfer = AddTexture(individualCI);
-				pendingInfos[i].texture_to_process = m_textures[individualCI.fileNames.back()].handle;
+					//because layoutIndex 0 is the null/default texture, we assume that because a texture
+					//was successfully allocated, the layout's base index starts where the newly allocated
+					//texture does in the buffer.
+					pendingInfos[i].layoutIndex = layoutIndex;
+					pendingInfos[i].bindingIndex = static_cast<uint32_t>(i);
+					pendingInfos[i].totalBindingCount = static_cast<uint32_t>(textureCount);
+					pendingInfos[i].needsGPUTransfer = AddTexture(individualCI);
+					pendingInfos[i].texture_to_process = m_textures[individualCI.fileNames.back()].handle;
+				}
 			}
 		}
 
@@ -252,7 +255,10 @@ namespace vk
 
 			for (size_t binding = 0; binding < texturesToProcess[i].totalBindingCount; ++binding)
 			{
-				imageDescriptors[0][binding] = texturesToProcess[i + binding].texture_to_process->GetDescriptor();
+				if  (texturesToProcess[i + binding].texture_to_process != nullptr)
+				{
+					imageDescriptors[0][binding] = texturesToProcess[i + binding].texture_to_process->GetDescriptor();
+				}
 			}
 
 			m_descriptorManagerPtr->WriteDescriptors(DescriptorCategory::eMaterial, layoutIndex, imageDescriptors);
