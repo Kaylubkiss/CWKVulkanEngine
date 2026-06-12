@@ -51,7 +51,6 @@ namespace vk
 		bool AddTexture( const vk::TextureCreateInfo& createInfo );
 	private:
 		std::mutex m_textureMutex;
-		std::mutex m_transferMutex;
 		std::mutex m_pendingTexturesMutex;
 
 		VkCommandPool m_graphicsCommandPool = VK_NULL_HANDLE;
