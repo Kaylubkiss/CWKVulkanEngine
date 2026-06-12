@@ -199,7 +199,6 @@ namespace vk
 		VK_CHECK_RESULT(vkEndCommandBuffer(m_commandBuffers[currentFrame]));
 		VK_CHECK_RESULT(vkEndCommandBuffer(m_transferCommandBuffers[currentFrame]));
 
-
 		VkSubmitInfo submitInfo = {};
 		submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 		submitInfo.commandBufferCount = 1;
