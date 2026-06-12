@@ -22,7 +22,7 @@ namespace vk
 
 		std::string skyboxName = "art/extern-textures/spruit_sunrise_2k.hdr";
 		vk::TextureCreateInfo texture_create_info = {  };
-		texture_create_info.fileNames = { skyboxName };
+		texture_create_info.fileName = { skyboxName };
 		texture_create_info.format = VK_FORMAT_R32G32B32A32_SFLOAT;
 
 		m_test_panoramicImage = vk::PanoramicTexture(&device, texture_create_info);

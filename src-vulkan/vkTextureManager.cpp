@@ -1,4 +1,4 @@
-#include "headers/vkTextureManager.h"
+#include "vkTextureManager.h"
 #include "vkCubemap.h"
 #include "vkInit.h"
 
@@ -12,12 +12,21 @@ namespace vk
 		m_graphicsCommandPool = vk::init::CommandPool(m_devicePtr->GetDevice(),
 			VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT, m_devicePtr->GetQueue(vk::DeviceQueue::GRAPHICS).family);
 
+		m_transferCommandPool = vk::init::CommandPool(m_devicePtr->GetDevice(),
+			VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT, m_devicePtr->GetQueue(vk::DeviceQueue::TRANSFER).family);
+
 		VkCommandBufferAllocateInfo cmdBufferAllocateInfo = vk::init::CommandBufferAllocateInfo();
 		cmdBufferAllocateInfo.commandPool = m_graphicsCommandPool;
 		cmdBufferAllocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
 		cmdBufferAllocateInfo.commandBufferCount = static_cast<uint32_t>(m_commandBuffers.size());
 		VK_CHECK_RESULT(vkAllocateCommandBuffers(m_devicePtr->GetDevice(), &cmdBufferAllocateInfo,
 			m_commandBuffers.data()));
+
+		cmdBufferAllocateInfo.commandPool = m_transferCommandPool;
+
+		VK_CHECK_RESULT(vkAllocateCommandBuffers(m_devicePtr->GetDevice(), &cmdBufferAllocateInfo,
+			m_transferCommandBuffers.data()));
+
 	}
 
 	void TextureManager::Destroy()
@@ -29,7 +38,11 @@ namespace vk
 			vkFreeCommandBuffers(contextDevice, m_graphicsCommandPool,
 					static_cast<uint32_t>(m_commandBuffers.size()), m_commandBuffers.data());
 
+			vkFreeCommandBuffers(contextDevice, m_transferCommandPool,
+				static_cast<uint32_t>(m_transferCommandBuffers.size()), m_transferCommandBuffers.data());
+
 			vkDestroyCommandPool(contextDevice, m_graphicsCommandPool, nullptr);
+			vkDestroyCommandPool(contextDevice, m_transferCommandPool, nullptr);
 		}
 
 		//NOTE: object/asset manager should call terminate on all threads before this code
@@ -50,120 +63,65 @@ namespace vk
 		{
 			std::lock_guard<std::mutex> lock(m_textureMutex);
 			//maybe a thread beat us to the punch, in the case that two threads call on the same texture
-			if (m_textures.contains(createInfo.fileNames.back()) == true)
+			if (m_textures.contains(createInfo.fileName) == true)
 			{
 				return false;
 			}
 		}
 
 		//TODO: generate checker-board texture for objects if texture loading failed
-		std::shared_ptr<vk::Texture> newTexture = std::make_shared<vk::Texture>(m_devicePtr, createInfo);
-
 		{
+			std::shared_ptr<vk::Texture> newTexture = std::make_shared<vk::Texture>(m_devicePtr, createInfo);
+
 			std::lock_guard<std::mutex> lock(m_textureMutex);
 			//maybe a thread beat us to the punch, in the case that two threads call on the same texture
-			if (m_textures.contains(createInfo.fileNames.back()) == true)
+			if (m_textures.contains(createInfo.fileName) == true)
 			{
 				return false;
 			}
-			m_textures[createInfo.fileNames.back()].handle = std::move(newTexture);
+			m_textures[createInfo.fileName].handle = std::move(newTexture);
 			//first texture in m_textures will be blank.
-			m_textures[createInfo.fileNames.back()].index = static_cast<uint32_t>(m_textures.size());
+			m_textures[createInfo.fileName].index = static_cast<uint32_t>(m_textures.size());
 		}
 
-		std::cout << "texture loaded... " << createInfo.fileNames.back() << " loaded.\n";
-
-		return true;
-	}
-
-	bool TextureManager::AddCubeMapTexture( const vk::TextureCreateInfo& createInfo )
-	{
-
-		const std::string& fileName = createInfo.fileNames[0];
-
-		{
-			std::lock_guard lock(m_textureMutex);
-			//maybe a thread beat us to the punch, in the case that two threads call on the same texture
-			if (m_textures.contains(fileName) == true)
-			{
-				return false;
-			}
-		}
-
-		std::shared_ptr<vk::Texture> newTexture = std::make_shared<vk::Cubemap>(m_devicePtr, createInfo);
-
-		{
-			std::lock_guard lock(m_textureMutex);
-			//maybe a thread beat us to the punch, in the case that two threads call on the same texture
-			if (m_textures.contains(fileName) == true)
-			{
-				return false;
-			}
-			m_textures[fileName].handle = std::move(newTexture);
-			//first texture in m_textures will be blank.
-			m_textures[fileName].index = static_cast<uint32_t>(m_textures.size());
-		}
-
-		std::cout << "CubeMap texture loaded... " << fileName << " (starting-at) loaded.\n";
+		std::cout << "texture loaded... " << createInfo.fileName << " loaded.\n";
 
 		return true;
 	}
 
 	uint32_t TextureManager::AddTextures( std::vector<vk::TextureCreateInfo>& createInfos, TextureType type )
 	{
+		(void)(type); //so the user can specify a panoramic texture, cubemap texture
+
 		if (createInfos.empty())
 		{
 			return 0;
 		}
 
-		for ( auto& CI : createInfos )
+		uint32_t layoutIndex = m_descriptorManagerPtr->GetLayoutIndex( DescriptorCategory::eMaterial );
+		const size_t textureCount = createInfos.size();
+		std::vector<PendingTextureInfo> pendingInfos(textureCount);
+
+		vk::TextureCreateInfo individualCI = {};
+		individualCI.imageUsage = createInfos.back().imageUsage;
+
+		for (size_t i = 0; i < textureCount; ++i)
 		{
-			CI.pTransferMutex = &m_transferMutex;
-		}
-
-		uint32_t layoutIndex = m_descriptorManagerPtr->GetLayoutIndex(DescriptorCategory::eMaterial);
-
-		std::vector<PendingTextureInfo> pendingInfos;
-
-		if (type == TextureType::CUBEMAP)
-		{
-			pendingInfos.resize(1);
-
-			pendingInfos.front().bindingIndex = 0;
-			pendingInfos.front().layoutIndex = layoutIndex;
-			pendingInfos.front().totalBindingCount = 1;
-			pendingInfos.front().needsGPUTransfer = AddCubeMapTexture(createInfos.back());
-			pendingInfos.front().texture_to_process = m_textures[createInfos.back().fileNames.back()].handle;
-			pendingInfos.front().type = type;
-		}
-		else
-		{
-			vk::TextureCreateInfo individualCI = {};
-			individualCI.pTransferMutex = &m_transferMutex;
-			individualCI.imageUsage = createInfos.back().imageUsage;
-
-			size_t textureCount = createInfos.size();
-
-			pendingInfos.resize(textureCount);
-
-			for (size_t i = 0; i < textureCount; ++i)
+			if (createInfos[i].fileName.empty() == false)
 			{
-				if (createInfos[i].fileNames.empty() == false)
-				{
-					individualCI.fileNames = { createInfos[i].fileNames.back() };
-					individualCI.format = createInfos[i].format;
-					individualCI.layerCount = createInfos[i].layerCount;
-					individualCI.mipLevels = createInfos[i].mipLevels;
+				individualCI.fileName = createInfos[i].fileName;
+				individualCI.format = createInfos[i].format;
+				individualCI.layerCount = createInfos[i].layerCount;
+				individualCI.mipLevels = createInfos[i].mipLevels;
 
-					//because layoutIndex 0 is the null/default texture, we assume that because a texture
-					//was successfully allocated, the layout's base index starts where the newly allocated
-					//texture does in the buffer.
-					pendingInfos[i].layoutIndex = layoutIndex;
-					pendingInfos[i].bindingIndex = static_cast<uint32_t>(i);
-					pendingInfos[i].totalBindingCount = static_cast<uint32_t>(textureCount);
-					pendingInfos[i].needsGPUTransfer = AddTexture(individualCI);
-					pendingInfos[i].texture_to_process = m_textures[individualCI.fileNames.back()].handle;
-				}
+				//because layoutIndex 0 is the null/default texture, we assume that because a texture
+				//was successfully allocated, the layout's base index starts where the newly allocated
+				//texture does in the buffer.
+				pendingInfos[i].layoutIndex = layoutIndex;
+				pendingInfos[i].bindingIndex = static_cast<uint32_t>(i);
+				pendingInfos[i].totalBindingCount = static_cast<uint32_t>(textureCount);
+				pendingInfos[i].needsGPUTransfer = AddTexture(individualCI);
+				pendingInfos[i].texture_to_process = m_textures[individualCI.fileName].handle;
 			}
 		}
 
@@ -178,7 +136,7 @@ namespace vk
 		return layoutIndex;
 	}
 
-	bool TextureManager::UploadTextureDataToGPU( uint32_t currentFrame, const VkSemaphore signalSemaphore )
+	bool TextureManager::UploadTextureDataToGPU( uint32_t currentFrame, TextureUploadSemaphores& semaphores )
 	{
 		std::vector<PendingTextureInfo> texturesToProcess;
 		{
@@ -196,6 +154,10 @@ namespace vk
 		VkCommandBufferBeginInfo cmdBufferBeginInfo = vk::init::CommandBufferBeginInfo();
 		cmdBufferBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
 
+		uint32_t transferQueueFamily = m_devicePtr->GetQueue(DeviceQueue::TRANSFER).family;
+		uint32_t graphicsQueueFamily = m_devicePtr->GetQueue(DeviceQueue::GRAPHICS).family;
+
+		VK_CHECK_RESULT(vkBeginCommandBuffer(m_transferCommandBuffers[currentFrame], &cmdBufferBeginInfo));
 		VK_CHECK_RESULT(vkBeginCommandBuffer(m_commandBuffers[currentFrame], &cmdBufferBeginInfo));
 
 		for (auto& t : texturesToProcess)
@@ -203,6 +165,9 @@ namespace vk
 			if (t.needsGPUTransfer)
 			{
 				vk::Texture* curr_texture = t.texture_to_process.get();
+
+				curr_texture->RecordTransferAndReleaseOperations( m_transferCommandBuffers[currentFrame],
+					transferQueueFamily, graphicsQueueFamily );
 
 				VkImageMemoryBarrier acquireBarrier = {};
 				acquireBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -232,13 +197,31 @@ namespace vk
 		}
 
 		VK_CHECK_RESULT(vkEndCommandBuffer(m_commandBuffers[currentFrame]));
+		VK_CHECK_RESULT(vkEndCommandBuffer(m_transferCommandBuffers[currentFrame]));
+
 
 		VkSubmitInfo submitInfo = {};
 		submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 		submitInfo.commandBufferCount = 1;
-		submitInfo.pCommandBuffers = &m_commandBuffers[currentFrame];
-		submitInfo.pSignalSemaphores = &signalSemaphore;
+		submitInfo.pCommandBuffers = &m_transferCommandBuffers[currentFrame];
+		submitInfo.pSignalSemaphores = &semaphores.transferSubmitSemaphore;
 		submitInfo.signalSemaphoreCount = 1;
+
+		VK_CHECK_RESULT(vkQueueSubmit(m_devicePtr->GetQueue(vk::DeviceQueue::TRANSFER).handle,
+		1, &submitInfo, VK_NULL_HANDLE));
+
+		submitInfo = {};
+		submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+		submitInfo.commandBufferCount = 1;
+		submitInfo.pCommandBuffers = &m_commandBuffers[currentFrame];
+		submitInfo.waitSemaphoreCount = 1;
+
+		std::array<VkPipelineStageFlags, 1> transferWaitStage = {VK_PIPELINE_STAGE_TRANSFER_BIT};
+		submitInfo.pWaitDstStageMask = transferWaitStage.data();
+
+		submitInfo.pWaitSemaphores = &semaphores.transferSubmitSemaphore;
+		submitInfo.signalSemaphoreCount = 1;
+		submitInfo.pSignalSemaphores = &semaphores.graphicsSubmitSemaphore;
 
 		VK_CHECK_RESULT(vkQueueSubmit(m_devicePtr->GetQueue(vk::DeviceQueue::GRAPHICS).handle,
 			1, &submitInfo, VK_NULL_HANDLE));

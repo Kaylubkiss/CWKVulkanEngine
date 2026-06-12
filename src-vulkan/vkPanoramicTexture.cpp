@@ -1,4 +1,5 @@
 #include "vkPanoramicTexture.h"
+#include <stb_image.h>
 
 namespace vk
 {
@@ -24,7 +25,7 @@ namespace vk
 		assert(devicePtr != nullptr);
 
         int width, height, nChannels;
-        float* pixels = stbi_loadf(createInfo.fileNames[0].c_str(),
+        float* pixels = stbi_loadf(createInfo.fileName.c_str(),
         	&width, &height, &nChannels, 4);
 
         if (pixels == nullptr)
@@ -35,7 +36,6 @@ namespace vk
 		c_device = devicePtr->GetDevice();
         m_width = width;
         m_height = height;
-		m_imageCount = createInfo.fileNames.size();
         m_imageLayerSize = static_cast<VkDeviceSize>(width) * static_cast<VkDeviceSize>(height) * 4 * sizeof(float);
 
         vk::Buffer stagingBuffer = vk::Buffer(devicePtr, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
@@ -76,27 +76,21 @@ namespace vk
 
 		// Upload HDR image data to GPU memory.
 		{
-			std::vector<VkBufferImageCopy> regions(m_imageCount);
-			for (int i = 0; i < m_imageCount; ++i)
+			VkBufferImageCopy region = {};
+			region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+			region.imageSubresource.mipLevel = 0;
+			region.imageSubresource.baseArrayLayer = 0;
+			region.imageSubresource.layerCount = 1;
+			region.bufferOffset = 0;
+			region.imageExtent =
 			{
-				regions[i] = {};
-				regions[i].imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-				regions[i].imageSubresource.mipLevel = 0;
-				regions[i].imageSubresource.baseArrayLayer = i;
-				regions[i].imageSubresource.layerCount = 1;
-				regions[i].bufferOffset = m_imageLayerSize * i;
-				regions[i].imageExtent =
-				{
-					m_width,
-					m_height,
-					1
-				};
-			}
-
-			uint32_t regionCount = static_cast<uint32_t>(regions.size());
+				m_width,
+				m_height,
+				1
+			};
 
 			vkCmdCopyBufferToImage(graphicsCmd, stagingBuffer.GetHandle(), m_image,
-				VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, regionCount, regions.data());
+				VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
 		}
 
 		// Transition source texture for shader sampling.

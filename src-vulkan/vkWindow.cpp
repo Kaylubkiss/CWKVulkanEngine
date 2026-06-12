@@ -41,6 +41,8 @@ namespace vk
 			{
 				vkDestroySurfaceKHR(c_instance, m_surface, nullptr);
 			}
+
+			SDL_Quit();
 		}
 	}
 

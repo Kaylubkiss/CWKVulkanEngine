@@ -59,18 +59,8 @@ namespace vk
 		return nTextureSampler;
 	}
 
-	void Texture::RecordTransferAndReleaseOperations( const vk::Device* devicePtr, const vk::Buffer& stagingBuffer,
-		std::mutex* submissionMutex )
+	void Texture::RecordTransferAndReleaseOperations( VkCommandBuffer cmdBuffer, uint32_t srcQueueFamily, uint32_t dstQueueFamily )
 	{
-		VkSubmitInfo submitInfo = {};
-
-		VkFence submissionFence = vk::init::CreateFence(devicePtr->GetDevice(), false);
-
-		VkCommandPool transferCmdPool = vk::init::CommandPool(devicePtr->GetDevice(),
-			VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT, devicePtr->GetQueue(DeviceQueue::TRANSFER).family);
-
-		VkCommandBuffer transferCmd = vk::util::beginSingleTimeCommand(devicePtr->GetDevice(), transferCmdPool);
-
 		//transition image to dst-optimal layout so the staging buffer can be copied into it.
 		{
 			VkImageMemoryBarrier barrier = {};
@@ -88,7 +78,7 @@ namespace vk
 			barrier.srcAccessMask = 0;
 			barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
 
-			vkCmdPipelineBarrier(transferCmd, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+			vkCmdPipelineBarrier(cmdBuffer, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
 				VK_PIPELINE_STAGE_TRANSFER_BIT,
 				0, 0,
 				nullptr, 0, nullptr, 1,
@@ -97,27 +87,21 @@ namespace vk
 
 		//copy buffer into image.
 		{
-			std::vector<VkBufferImageCopy> regions(m_imageCount);
-			for (int i = 0; i < m_imageCount; ++i)
+			VkBufferImageCopy region = {};
+			region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+			region.imageSubresource.mipLevel = 0;
+			region.imageSubresource.baseArrayLayer = 0;
+			region.imageSubresource.layerCount = 1;
+			region.bufferOffset = 0;
+			region.imageExtent =
 			{
-				regions[i] = {};
-				regions[i].imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-				regions[i].imageSubresource.mipLevel = 0;
-				regions[i].imageSubresource.baseArrayLayer = i;
-				regions[i].imageSubresource.layerCount = 1;
-				regions[i].bufferOffset = m_imageLayerSize * i;
-				regions[i].imageExtent =
-				{
-					m_width,
-					m_height,
-					1
-				};
-			}
+				m_width,
+				m_height,
+				1
+			};
 
-			uint32_t regionCount = static_cast<uint32_t>(regions.size());
-
-			vkCmdCopyBufferToImage(transferCmd, stagingBuffer.GetHandle(), m_image,
-				VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, regionCount, regions.data());
+		vkCmdCopyBufferToImage(cmdBuffer, m_stagingBuffer.GetHandle(), m_image,
+			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
 		}
 
 		//release transfer queue to graphics queue
@@ -126,8 +110,8 @@ namespace vk
 			releaseBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
 			releaseBarrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
 			releaseBarrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-			releaseBarrier.srcQueueFamilyIndex = devicePtr->GetQueue(DeviceQueue::TRANSFER).family;
-			releaseBarrier.dstQueueFamilyIndex = devicePtr->GetQueue(DeviceQueue::GRAPHICS).family;
+			releaseBarrier.srcQueueFamilyIndex = srcQueueFamily;
+			releaseBarrier.dstQueueFamilyIndex = dstQueueFamily;
 			releaseBarrier.image = m_image;
 			releaseBarrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 			releaseBarrier.subresourceRange.baseMipLevel = 0;
@@ -137,39 +121,12 @@ namespace vk
 			releaseBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT; //since we just wrote to the image.
 			releaseBarrier.dstAccessMask = 0;
 
-			vkCmdPipelineBarrier(transferCmd, VK_PIPELINE_STAGE_TRANSFER_BIT,
+			vkCmdPipelineBarrier(cmdBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT,
 				VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
 				0, 0,
 				nullptr, 0, nullptr, 1,
 				&releaseBarrier); //asking the gpu to reconfigure the old image layout to the new layout.
 		}
-
-		VK_CHECK_RESULT(vkEndCommandBuffer(transferCmd));
-
-		submitInfo = {};
-		submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-		submitInfo.commandBufferCount = 1;
-		submitInfo.pCommandBuffers = &transferCmd;
-
-		if (submissionMutex != nullptr)
-		{
-			std::lock_guard lock(*submissionMutex);
-			VK_CHECK_RESULT(vkQueueSubmit(devicePtr->GetQueue(DeviceQueue::TRANSFER).handle, 1, &submitInfo,
-				submissionFence));
-		}
-		else
-		{
-			VK_CHECK_RESULT(vkQueueSubmit(devicePtr->GetQueue(DeviceQueue::TRANSFER).handle, 1, &submitInfo,
-				submissionFence));
-		}
-
-		VK_CHECK_RESULT(vkWaitForFences(devicePtr->GetDevice(), 1, &submissionFence, VK_TRUE, UINT64_MAX));
-		VK_CHECK_RESULT(vkResetFences(devicePtr->GetDevice(), 1, &submissionFence));
-
-		vkDestroyFence(devicePtr->GetDevice(), submissionFence, nullptr);
-
-		vkFreeCommandBuffers(devicePtr->GetDevice(), transferCmdPool, 1, &transferCmd);
-		vkDestroyCommandPool(devicePtr->GetDevice(), transferCmdPool, nullptr);
 	}
 
 	void Texture::CreateBlankTexture( const vk::Device* devicePtr, const vk::TextureCreateInfo& createInfo )
@@ -201,30 +158,23 @@ namespace vk
 		int textureWidth, textureHeight, textureChannels;
 		VkDeviceSize imageSize = 0;
 
-		std::vector<stbi_uc*> pixelData(m_imageCount);
-
-		const std::string& filePath = createInfo.fileNames.back();
-
-		if (createInfo.format == VK_FORMAT_R8G8B8A8_UNORM ||
-			createInfo.format == VK_FORMAT_R8G8B8A8_SRGB ||
-			createInfo.format == VK_FORMAT_R8G8B8A8_SNORM)
-		{
-			for (int i = 0; i < m_imageCount; ++i)
-			{
-				pixelData[i] = stbi_load(filePath.c_str(),
-					&textureWidth, &textureHeight, &textureChannels, 4);
-
-				if (pixelData[i] == nullptr)
-				{
-					std::cerr << "could not load in specified texture " + filePath << std::endl;
-					throw std::runtime_error("vk::Texture::Create() FAILED");
-				}
-			}
-		}
-		else
+		if (createInfo.format != VK_FORMAT_R8G8B8A8_UNORM &&
+			createInfo.format != VK_FORMAT_R8G8B8A8_SRGB &&
+			createInfo.format != VK_FORMAT_R8G8B8A8_SNORM)
 		{
 			std::cerr << "specified format unsupported by vk::Texture::Create() \n";
-			std::cerr << "could not create texture: " << createInfo.fileNames.back() << std::endl;
+			std::cerr << "could not create texture: " << createInfo.fileName << std::endl;
+			throw std::runtime_error("vk::Texture::Create() FAILED");
+		}
+
+		const std::string& filePath = createInfo.fileName;
+
+		stbi_uc* pixelData = stbi_load(filePath.c_str(),
+			&textureWidth, &textureHeight, &textureChannels, 4);
+
+		if (pixelData == nullptr)
+		{
+			std::cerr << "could not load in specified texture " + filePath << std::endl;
 			throw std::runtime_error("vk::Texture::Create() FAILED");
 		}
 
@@ -232,28 +182,27 @@ namespace vk
 		m_height = static_cast<uint32_t>(textureHeight);
 
 		imageSize = static_cast<uint64_t>(textureWidth) *
-			static_cast<uint64_t>(textureHeight) * num_channels * m_imageCount;
+			static_cast<uint64_t>(textureHeight) * num_channels;
 
-		vk::Buffer stagingBuffer = vk::Buffer(devicePtr,
+		m_stagingBuffer = vk::Buffer(devicePtr,
 			VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
 			static_cast<size_t>(imageSize));
 
-		m_imageLayerSize = imageSize / static_cast<VkDeviceSize>(m_imageCount);
+		m_imageLayerSize = imageSize;
 		m_imageLayerSize = vk::util::AlignedSize(m_imageLayerSize, devicePtr->GetProperties().limits.optimalBufferCopyOffsetAlignment);
 
-		stagingBuffer.Map();
+		m_stagingBuffer.Map();
 
-		void* stagingBufferData = stagingBuffer.GetMappedMemory();
+		void* stagingBufferData = m_stagingBuffer.GetMappedMemory();
 
-		for (VkDeviceSize i = 0; i < m_imageCount; ++i)
-		{
-			memcpy(static_cast<stbi_uc*>(stagingBufferData) + (m_imageLayerSize * i), pixelData[i], m_imageLayerSize);
-		}
+		memcpy(static_cast<stbi_uc*>(stagingBufferData), pixelData, m_imageLayerSize);
 
-		stagingBuffer.Flush();
+		m_stagingBuffer.Flush();
 
-		stagingBuffer.UnMap();
+		m_stagingBuffer.UnMap();
+
+		stbi_image_free(pixelData);
 
 		VkImageCreateInfo textureImageCI = vk::init::ImageCreateInfo();
 		textureImageCI.imageType = VK_IMAGE_TYPE_2D;
@@ -269,12 +218,8 @@ namespace vk
 		m_image = vk::util::CreateImage(devicePtr, textureImageCI, m_memory,
 			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
-		RecordTransferAndReleaseOperations( devicePtr, stagingBuffer, createInfo.pTransferMutex );
+		//RecordTransferAndReleaseOperations( devicePtr, createInfo.stagingBuffer, createInfo.pTransferMutex );
 
-		for (int i = 0; i < m_imageCount; ++i)
-		{
-			stbi_image_free(pixelData[i]);
-		}
 	}
 
 	Texture::Texture( const vk::Device* devicePtr, const vk::TextureCreateInfo& createInfo )
@@ -282,20 +227,15 @@ namespace vk
 		assert(devicePtr != nullptr);
 
 		c_device = devicePtr->GetDevice();
-		m_imageCount = 1;
 
-		if (createInfo.fileNames.empty() == false)
+		if (createInfo.fileName.empty() == false)
 		{
-			m_imageCount = createInfo.fileNames.size();
-
 			CreateFromFileName( devicePtr, createInfo );
 
 			m_descriptor.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 		}
 		else
 		{
-			m_imageCount = createInfo.layerCount;
-
 			CreateBlankTexture( devicePtr, createInfo );
 
 			m_descriptor.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
@@ -326,7 +266,6 @@ namespace vk
 			this->m_memory = other.m_memory;
 			this->m_width = other.m_width;
 			this->m_height = other.m_height;
-			this->m_imageCount = other.m_imageCount;
 			this->m_imageLayerSize = other.m_imageLayerSize;
 			this->m_descriptor = other.m_descriptor;
 
@@ -343,7 +282,6 @@ namespace vk
 			std::swap(this->m_memory, other.m_memory);
 			std::swap(this->m_width, other.m_width);
 			std::swap(this->m_height, other.m_height);
-			std::swap(this->m_imageCount, other.m_imageCount);
 			std::swap(this->m_imageLayerSize, other.m_imageLayerSize);
 			std::swap(this->m_descriptor, other.m_descriptor);
 		}

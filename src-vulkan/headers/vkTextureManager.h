@@ -24,9 +24,9 @@ namespace vk
 		std::shared_ptr<vk::Texture> texture_to_process;
 
 		//the index into bufferOffsets of the texture layout
-		uint32_t bindingIndex = 0;
 		size_t totalBindingCount = 0;
 
+		uint32_t bindingIndex = 0;
 		//layoutIndex = the base layout index to start from, offset by bindingOffset for other textures in a layout.
 		uint32_t layoutIndex = 0;
 
@@ -45,19 +45,20 @@ namespace vk
 		void Destroy();
 
 		//returns whether or not a command was recorded.
-		bool UploadTextureDataToGPU( uint32_t currentFrame, VkSemaphore textureUploadSemaphore );
+		bool UploadTextureDataToGPU( uint32_t currentFrame, TextureUploadSemaphores& semaphores );
 		uint32_t AddTextures(  std::vector<vk::TextureCreateInfo>& createInfos, TextureType type = TextureType::NONE ); //returns the layout index of the texture
 	private:
 		bool AddTexture( const vk::TextureCreateInfo& createInfo );
-		bool AddCubeMapTexture( const vk::TextureCreateInfo& createInfo );
 	private:
 		std::mutex m_textureMutex;
 		std::mutex m_transferMutex;
 		std::mutex m_pendingTexturesMutex;
 
 		VkCommandPool m_graphicsCommandPool = VK_NULL_HANDLE;
+		VkCommandPool m_transferCommandPool = VK_NULL_HANDLE;
 
 		std::array<VkCommandBuffer, gMaxFramesInFlight> m_commandBuffers = {};
+		std::array<VkCommandBuffer, gMaxFramesInFlight> m_transferCommandBuffers = {};
 
 		vk::Device* m_devicePtr = nullptr;
 		DescriptorManager* m_descriptorManagerPtr = nullptr;

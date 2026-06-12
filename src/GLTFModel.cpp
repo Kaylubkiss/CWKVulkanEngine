@@ -203,7 +203,7 @@ void GLTFModel::LoadTextures( vk::TextureManager& textureManager, const std::vec
 				auto baseColorIndex = primitive.baseColorMaterialIndex.value();
 
 				vk::TextureCreateInfo CI = {};
-				CI.fileNames = { textureNames[baseColorIndex] };
+				CI.fileName = textureNames[baseColorIndex];
 				CI.format = VK_FORMAT_R8G8B8A8_SRGB;
 				CI.imageUsage = imageUsage;
 				CI.mipLevels = 1;
@@ -218,7 +218,7 @@ void GLTFModel::LoadTextures( vk::TextureManager& textureManager, const std::vec
 			{
 				auto normalIndex = primitive.normalMaterialIndex.value();
 				vk::TextureCreateInfo CI = {};
-				CI.fileNames = { textureNames[normalIndex] };
+				CI.fileName = textureNames[normalIndex];
 				CI.format = VK_FORMAT_R8G8B8A8_UNORM;
 				CI.imageUsage = imageUsage;
 				CI.mipLevels = 1;
@@ -232,7 +232,7 @@ void GLTFModel::LoadTextures( vk::TextureManager& textureManager, const std::vec
 				auto mrIndex = primitive.metallicRoughnessIndex.value();
 
 				vk::TextureCreateInfo CI = {};
-				CI.fileNames = { textureNames[mrIndex] };
+				CI.fileName = textureNames[mrIndex];
 				CI.format = VK_FORMAT_R8G8B8A8_UNORM;
 				CI.imageUsage = imageUsage;
 				CI.mipLevels = 1;
@@ -246,7 +246,7 @@ void GLTFModel::LoadTextures( vk::TextureManager& textureManager, const std::vec
 				auto aoIndex = primitive.ambientOcclusionIndex.value();
 
 				vk::TextureCreateInfo CI = {};
-				CI.fileNames = { textureNames[aoIndex] };
+				CI.fileName = textureNames[aoIndex];
 				CI.format = VK_FORMAT_R8G8B8A8_UNORM;
 				CI.imageUsage = imageUsage;
 				CI.mipLevels = 1;

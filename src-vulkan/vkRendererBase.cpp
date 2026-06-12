@@ -72,7 +72,8 @@ namespace vk
 			{
 				vkDestroySemaphore(this->device.GetDevice(), presentCompleteSemaphores[i], nullptr);
 				vkDestroySemaphore(this->device.GetDevice(), renderCompleteSemaphores[i], nullptr);
-				vkDestroySemaphore(this->device.GetDevice(), textureUploadSemaphores[i], nullptr);
+				vkDestroySemaphore(this->device.GetDevice(), textureUploadSemaphores[i].graphicsSubmitSemaphore, nullptr);
+				vkDestroySemaphore(this->device.GetDevice(), textureUploadSemaphores[i].transferSubmitSemaphore, nullptr);
 
 				vkDestroyFence(device.GetDevice(), inFlightFences[i], nullptr);
 			}
@@ -87,7 +88,8 @@ namespace vk
 			inFlightFences[i] = vk::init::CreateFence(device.GetDevice(), true);
 			presentCompleteSemaphores[i] = vk::init::CreateSemaphore(device.GetDevice());
 			renderCompleteSemaphores[i] = vk::init::CreateSemaphore(device.GetDevice());
-			textureUploadSemaphores[i] = vk::init::CreateSemaphore(device.GetDevice());
+			textureUploadSemaphores[i].graphicsSubmitSemaphore = vk::init::CreateSemaphore(device.GetDevice());
+			textureUploadSemaphores[i].transferSubmitSemaphore = vk::init::CreateSemaphore(device.GetDevice());
 		}
 	}
 
@@ -119,8 +121,11 @@ namespace vk
 			vkDestroyFence(device.GetDevice(), inFlightFences[i], nullptr);
 			inFlightFences[i] = VK_NULL_HANDLE;
 
-			vkDestroySemaphore(device.GetDevice(), textureUploadSemaphores[i], nullptr);
-			textureUploadSemaphores[i] = VK_NULL_HANDLE;
+			vkDestroySemaphore(device.GetDevice(), textureUploadSemaphores[i].graphicsSubmitSemaphore, nullptr);
+			textureUploadSemaphores[i].graphicsSubmitSemaphore = VK_NULL_HANDLE;
+
+			vkDestroySemaphore(device.GetDevice(), textureUploadSemaphores[i].transferSubmitSemaphore, nullptr);
+			textureUploadSemaphores[i].transferSubmitSemaphore = VK_NULL_HANDLE;
 		}
 
 		CreateSynchronizationPrimitives();
@@ -168,7 +173,8 @@ namespace vk
 		if (m_window.IsPrepared() == false)
 		{
 			VkSurfaceCapabilitiesKHR surfaceCapabilities;
-			VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device.GetGPU(), m_window.Surface(), &surfaceCapabilities));
+			VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device.GetGPU(),
+				m_window.Surface(), &surfaceCapabilities));
 
 			//the question is: CAN the window be resized? If the window's minimized, then we shouldn't proceed with
 			//preparing the frame. Otherwise, we should resize the window as ImGui will crash without
@@ -256,7 +262,7 @@ namespace vk
 			if (textureSubmitted == true)
 			{
 				pipelineWaitStages.push_back(VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
-				waitSemaphores.push_back(textureUploadSemaphores[currentFrame]);
+				waitSemaphores.push_back(textureUploadSemaphores[currentFrame].graphicsSubmitSemaphore);
 			}
 		}
 

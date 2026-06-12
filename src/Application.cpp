@@ -33,7 +33,8 @@ void Application::init()
 {
 	if (SDL_Init(SDL_INIT_VIDEO) < 0)
 	{
-		printf("SDL could not initialize! SDL_Error: %s\n", SDL_GetError());
+		std::cerr << "SDL could not initialize! SDL_Error " << SDL_GetError() << '\n';
+		throw std::runtime_error("Could not initialize window\n");
 	}
 
 	m_vulkanGraphicsContext = std::make_unique<vk::DeferredRenderer>(&m_textureManager, &m_descriptorManager);
@@ -138,11 +139,11 @@ void Application::loop()
 
 void Application::exit()
 {
-	SDL_Quit();
-
 	m_assetManager.Destroy();
 	m_textureManager.Destroy();
 	m_descriptorManager.Destroy();
+
+	SDL_Quit();
 }
 
 

@@ -265,7 +265,7 @@ void OBJModel::LoadTextures( vk::TextureManager& textureManager, const std::vect
 
     std::vector<vk::TextureCreateInfo> textureList = { };
     vk::TextureCreateInfo CI = {};
-    CI.fileNames = { textureNames.back() };
+    CI.fileName = textureNames.back();
     CI.format = VK_FORMAT_R8G8B8A8_SRGB;
     CI.mipLevels = 1;
     CI.layerCount = 1;

@@ -15,6 +15,12 @@ namespace vk
 	class DescriptorManager;
 }
 
+struct TextureUploadSemaphores
+{
+	VkSemaphore transferSubmitSemaphore = VK_NULL_HANDLE;
+	VkSemaphore graphicsSubmitSemaphore = VK_NULL_HANDLE;
+};
+
 namespace vk
 {
 	class RendererBase
@@ -74,7 +80,7 @@ namespace vk
 		std::array<VkCommandBuffer, gMaxFramesInFlight> commandBuffers;
 		std::array<VkSemaphore, gMaxFramesInFlight> presentCompleteSemaphores;
 		std::array<VkSemaphore, gMaxFramesInFlight> renderCompleteSemaphores;
-		std::array<VkSemaphore, gMaxFramesInFlight> textureUploadSemaphores; //for I/O synchronization
+		std::array<TextureUploadSemaphores, gMaxFramesInFlight> textureUploadSemaphores; //for I/O synchronization
 		std::array<VkFence, gMaxFramesInFlight> inFlightFences;
 
 		TextureManager* m_textureManagerPtr = nullptr;

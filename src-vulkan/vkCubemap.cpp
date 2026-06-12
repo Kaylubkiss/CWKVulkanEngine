@@ -1,14 +1,14 @@
 #include "vkCubemap.h"
-#include "vkInit.h"
+#include <vkInit.h>
+#include <stb_image.h>
 
 namespace vk
 {
     //TODO: can load partial cubemaps, but unspecified faces get a default texture.
     Cubemap::Cubemap( const vk::Device* devicePtr, const vk::TextureCreateInfo& createInfo )
     {
-        assert( devicePtr );
+        /*assert( devicePtr );
 
-        m_imageCount = 6;
         c_device = devicePtr->GetDevice();
 
         //texture sizes should be square and/or the same in a cubemap
@@ -82,6 +82,6 @@ namespace vk
         m_descriptor.sampler =  vk::Texture::CreateSampler(devicePtr->GetGPU(), c_device, 1 );;
         m_descriptor.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
-        std::cout << "\033[32m" << "successfully loaded Cubemap in CreateImage()... " << "\033[0m\n";
+        std::cout << "\033[32m" << "successfully loaded Cubemap in CreateImage()... " << "\033[0m\n";*/
     }
 }
