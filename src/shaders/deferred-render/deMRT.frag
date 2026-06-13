@@ -1,5 +1,4 @@
 #version 450
-#extension GL_KHR_vulkan_glsl : enable
 
 layout(set = 2, binding = 0) uniform sampler2D colorSampler;
 layout(set = 2, binding = 1) uniform sampler2D normalSampler;
@@ -9,6 +8,7 @@ layout(set = 2, binding = 3) uniform sampler2D ambientOcclusionSampler;
 layout( location = 0 ) in vec4 inWorldPosition;
 layout( location = 1 ) in vec4 inWorldNormal;
 layout( location = 2 ) in vec2 inTexCoord;
+layout( location = 3 ) in mat3 inTBN;
 
 layout( location = 0 ) out vec4 outPosition;
 layout( location = 1 ) out vec4 outNormal;
@@ -23,7 +23,7 @@ void main()
 	vec4 normalMap = texture(normalSampler, inTexCoord);
 	if (normalMap.x != 0 && normalMap.y != 0 && normalMap.z != 0)
 	{
-	   outNormal = normalize(vec4(vec3(normalMap.xyz * 2.0 - 1.0),0));
+	   outNormal = normalize(vec4(inTBN * vec3(normalMap.xyz * 2.0 - 1.0),0));
 	}
 	else
 	{

@@ -59,7 +59,8 @@ namespace vk
 		return nTextureSampler;
 	}
 
-	void Texture::RecordTransferAndReleaseOperations( VkCommandBuffer cmdBuffer, uint32_t srcQueueFamily, uint32_t dstQueueFamily )
+	void Texture::RecordTransferAndReleaseOperations( VkCommandBuffer cmdBuffer,
+		uint32_t srcQueueFamily, uint32_t dstQueueFamily )
 	{
 		//transition image to dst-optimal layout so the staging buffer can be copied into it.
 		{

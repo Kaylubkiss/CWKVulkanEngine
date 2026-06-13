@@ -94,7 +94,7 @@ GLTFModel::GLTFModel( vk::Device* device, const std::filesystem::path& filePath 
 	}
 
 	size_t vertexBufferSize = vertices.size() * sizeof(vertices[0]);
-	size_t indexBufferSize = indices_32.size() * sizeof(indices_32[0]);
+	size_t indexBufferSize;
 	void* indicesData = indices_32.data();
 
 	std::vector<uint16_t> indices_16;
@@ -108,6 +108,10 @@ GLTFModel::GLTFModel( vk::Device* device, const std::filesystem::path& filePath 
 
 		indexBufferSize = indices_16.size() * sizeof(indices_16[0]);
 		indicesData = indices_16.data();
+	}
+	else
+	{
+		indexBufferSize = indices_32.size() * sizeof(indices_32[0]);
 	}
 
 	auto& vertexBuffer = GetVertexBuffer();
@@ -259,6 +263,47 @@ void GLTFModel::LoadTextures( vk::TextureManager& textureManager, const std::vec
 		}
 	}
 
+}
+
+template<typename T> //either uint32_t or uint16_t
+void GLTFModel::CalculateTangentBitangent( std::vector<Vertex>& vertices, const std::vector<T>& indices )
+{
+	for (int i = 0; i < indices.size(); i += 3)
+	{
+		glm::vec3& pos1 = vertices[indices[i]].pos;
+		glm::vec3& pos2 = vertices[indices[i + 1]].pos;
+		glm::vec3& pos3 = vertices[indices[i + 2]].pos;
+
+		glm::vec2& uv1 = vertices[indices[i]].uv;
+		glm::vec2& uv2 = vertices[indices[i + 1]].uv;
+		glm::vec2& uv3 = vertices[indices[i + 2]].uv;
+
+		glm::vec3 edge1 = pos2 - pos1;
+		glm::vec3 edge2 = pos3 - pos1;
+
+		glm::vec2 dUV1 = uv2 - uv1;
+		glm::vec2 dUV2 = uv3 - uv1;
+
+		float f = 1.0f / (dUV1.x * dUV2.y - dUV2.x * dUV1.y);
+
+		glm::vec3& tan = vertices[indices[i]].tangent;
+		glm::vec3& bitan = vertices[indices[i]].bitan;
+
+		tan.x = f * (dUV2.y * edge1.x - dUV1.y * edge2.x);
+		tan.y = f * (dUV2.y * edge1.y - dUV1.y * edge2.y);
+		tan.z = f * (dUV2.y * edge1.z - dUV1.y * edge2.z);
+
+		bitan.x = f * (-dUV2.x * edge1.x + dUV1.x * edge2.x);
+		bitan.y = f * (-dUV2.x * edge1.y + dUV1.x * edge2.y);
+		bitan.z = f * (-dUV2.x * edge1.z + dUV1.x * edge2.z);
+
+		//because the vertices are not indexed yet, each need their own copy of the tan and bitan vectors
+		vertices[indices[i + 1]].tan = tan;
+		vertices[indices[i + 2]].tan = tan;
+
+		vertices[indices[i + 1]].bitan = bitan;
+		vertices[indices[i + 2]].bitan = bitan;
+	}
 }
 
 void GLTFModel::LoadMeshes( fastgltf::Asset& asset, std::vector<Vertex>& vertexBuffer,

@@ -20,6 +20,8 @@ public:
 	void LoadTextures( vk::TextureManager& textureManager, const std::vector<std::string>& textureNames ) override;
 private:
 	//helpers
+	template<typename T> //either uint32_t or uint16_t
+	void CalculateTangentBitangent( std::vector<Vertex>& vertices, const std::vector<T>& indices );
 	void LoadMeshes( fastgltf::Asset& asset, std::vector<Vertex>& vertexBuffer, std::vector<uint32_t>& indexBuffer );
 	std::string LoadImage( const fastgltf::Image& image );
 private:

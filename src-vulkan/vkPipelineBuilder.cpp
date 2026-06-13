@@ -197,7 +197,7 @@ namespace vk
 			//vertex input binding attributes
 
 			VkPipelineVertexInputStateCreateInfo vertexInputStateCI = vk::init::PipelineVertexInputStateCreateInfo();
-			VkVertexInputBindingDescription vertexBindingDescription = vk::init::VertexInputBindingDescription();;
+			VkVertexInputBindingDescription vertexBindingDescription = vk::init::VertexInputBindingDescription();
 			auto vertexInputAttributeDescriptions = Vertex::InputAttributeDescriptions();
 
 			if ( m_vertexBindingAttributeEnable == VK_TRUE )
