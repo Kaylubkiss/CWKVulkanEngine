@@ -239,7 +239,10 @@ namespace vk
 		}
 		else
 		{
-			VK_CHECK_RESULT(result);
+			if (result != VK_SUCCESS)
+			{
+				throw std::runtime_error("vkAcquireNextImageKHR failed\n");
+			}
 		}
 
 		pipelineManager.DetectHotReloadableShaders();
@@ -298,7 +301,10 @@ namespace vk
 		}
 		else
 		{
-			VK_CHECK_RESULT(result);
+			if (result != VK_SUCCESS)
+			{
+				throw std::runtime_error("vkQueuePresentKHR failed\n");
+			}
 		}
 
 		currentFrame = (currentFrame + 1) % m_settings.maxFramesInFlight;

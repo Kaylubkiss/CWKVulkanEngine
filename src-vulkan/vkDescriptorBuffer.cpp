@@ -106,12 +106,11 @@ namespace vk
     	assert(c_device != VK_NULL_HANDLE);
 		assert(writeData.IsValid());
 
-
-
 		//TODO: might need to map the memory first before accessing
 		char* descriptorPtr = static_cast<char*>(m_buffer.GetMappedMemory());
 
 		VkDescriptorGetInfoEXT descriptorGetInfo = {VK_STRUCTURE_TYPE_DESCRIPTOR_GET_INFO_EXT};
+    	VkDescriptorAddressInfoEXT addrInfo = { VK_STRUCTURE_TYPE_DESCRIPTOR_ADDRESS_INFO_EXT };
 
 		if (writeData.pImageData)
 		{
@@ -136,7 +135,6 @@ namespace vk
 		{
 			descriptorGetInfo.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 
-			VkDescriptorAddressInfoEXT addrInfo = { VK_STRUCTURE_TYPE_DESCRIPTOR_ADDRESS_INFO_EXT };
 			addrInfo.address = writeData.pResourceData->GetDeviceAddress();
 			addrInfo.range = writeData.pResourceData->GetSize();
 			addrInfo.format = VK_FORMAT_UNDEFINED;

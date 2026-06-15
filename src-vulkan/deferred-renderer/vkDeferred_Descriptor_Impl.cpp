@@ -65,7 +65,6 @@ namespace vk
 		    for (size_t frame = 0; frame < resourceBufferPtrs.size(); ++frame)
 		    {
 			    vk::Buffer* handle = &uniformBuffers[frame].shadow;
-
 			    resourceBufferPtrs[frame].push_back(handle);
 		    }
 

@@ -2,7 +2,15 @@
 #define VK_UTIL_HPP
 
 //this should be made to do something more useful, but for now it can be a useful alias
-#define VK_CHECK_RESULT(function) assert(function == VK_SUCCESS)
+#define VK_CHECK_RESULT(function) \
+{ \
+	VkResult result = function; \
+	if (result != VK_SUCCESS) \
+	{ \
+		std::cerr << "VkResult " << result << "at " << __FILE__ << " on line " << __LINE__ << '\n'; \
+		assert(result == VK_SUCCESS); \
+	} \
+}\
 
 namespace vk 
 {

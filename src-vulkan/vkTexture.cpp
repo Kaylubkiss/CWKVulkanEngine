@@ -22,7 +22,7 @@ namespace vk
 		viewInfo.subresourceRange.layerCount = VK_REMAINING_ARRAY_LAYERS;
 		viewInfo.components = vk::init::ComponentMappingSwizzleIdentity();
 
-		VkImageView nTextImageView;
+		VkImageView nTextImageView = VK_NULL_HANDLE;
 		VK_CHECK_RESULT(vkCreateImageView(l_device, &viewInfo, nullptr, &nTextImageView));
 
 		return nTextImageView;
@@ -53,7 +53,7 @@ namespace vk
 		createInfo.maxLod = VK_LOD_CLAMP_NONE;
 		createInfo.mipLodBias = 0.f; //optional...
 
-		VkSampler nTextureSampler;
+		VkSampler nTextureSampler = VK_NULL_HANDLE;
 		VK_CHECK_RESULT(vkCreateSampler(l_device, &createInfo, nullptr, &nTextureSampler));
 
 		return nTextureSampler;

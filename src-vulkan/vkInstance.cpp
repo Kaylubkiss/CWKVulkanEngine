@@ -16,7 +16,7 @@ namespace vk
 		//list the physical devices
 		uint32_t max_devices = 0;
 
-		//vulkan will ignor whatever was set in physicalDeviceCount and overwrite max_devices
+		//vulkan will ignore whatever was set in physicalDeviceCount and overwrite max_devices
 		VK_CHECK_RESULT(vkEnumeratePhysicalDevices(m_handle, &max_devices, nullptr));
 
 		if (max_devices == 0)
@@ -106,15 +106,16 @@ namespace vk
 			auto func = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(m_handle,
 				"vkCreateDebugUtilsMessengerEXT");
 
-				if (func != nullptr)
-				{
-					VK_CHECK_RESULT(func(m_handle, &debugCreateInfo, nullptr, &m_debugMessenger));
-				}
-				else
-				{
-					throw std::runtime_error("failed to load vkCreateDebugUtilsMessengerEXT");
-				}
+			if (func != nullptr)
+			{
+				VK_CHECK_RESULT(func(m_handle, &debugCreateInfo, nullptr, &m_debugMessenger));
+			}
+			else
+			{
+				std::cerr << "failed to load vkCreateDebugUtilsMessengerEXT\n";
+			}
 		}
+
     }
 
 	Instance::Instance( Instance&& other ) noexcept
