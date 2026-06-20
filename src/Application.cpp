@@ -31,20 +31,9 @@ void Application::run()
 
 void Application::init() 
 {
-	if (SDL_Init(SDL_INIT_VIDEO) < 0)
-	{
-		std::cerr << "SDL could not initialize! SDL_Error " << SDL_GetError() << '\n';
-		throw std::runtime_error("Could not initialize window\n");
-	}
-
 	m_vulkanGraphicsContext = std::make_unique<vk::DeferredRenderer>(&m_textureManager, &m_descriptorManager);
 
-	if (exitApplication == true)
-	{
-		return;
-	}
-
-	auto rendererInfo = m_vulkanGraphicsContext->GetInfo();
+	auto& rendererInfo = m_vulkanGraphicsContext->GetInfo();
 
 	m_assetManager.Init(rendererInfo.devicePtr, &m_textureManager, 2);
 }

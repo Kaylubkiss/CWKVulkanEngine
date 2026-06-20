@@ -48,6 +48,13 @@ namespace vk
 
 	Window::Window( uint32_t width, uint32_t height )
 	{
+
+		if (SDL_Init(SDL_INIT_VIDEO) < 0)
+		{
+			std::cerr << "SDL could not initialize! SDL_Error " << SDL_GetError() << '\n';
+			throw std::runtime_error("Could not initialize window\n");
+		}
+
 		m_viewport.width = static_cast<float>(width);
 		m_viewport.height = static_cast<float>(height);
 		m_viewport.minDepth = 0.f;

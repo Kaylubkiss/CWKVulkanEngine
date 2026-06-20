@@ -11,8 +11,10 @@ void ThreadPool::Init(size_t num_threads)
 
 void ThreadPool::EnqueueTask(std::function<void()>& task)
 {
+
 	{
 		std::unique_lock<std::mutex> lock(queue_mutex);
+
 		tasks.push(std::move(task));
 	}
 
@@ -27,6 +29,7 @@ void ThreadPool::ThreadLoop()
 
 		{
 			std::unique_lock<std::mutex> lock(queue_mutex);
+
 			condition_variable.wait(lock, [this] {
 				return (!tasks.empty() || terminate);
 			});

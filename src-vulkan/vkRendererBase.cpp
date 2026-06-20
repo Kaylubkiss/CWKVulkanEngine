@@ -34,7 +34,7 @@ namespace vk
 		//each swapchain should have its own command buffer
 		device.AllocateCommandBuffers(commandBuffers.data(), static_cast<uint32_t>(commandBuffers.size()));
 
-		if (m_settings.UIDisplay)
+		if ( m_settings.UIDisplay )
 		{
 			UserInterfaceInitInfo userInterfaceCI = {};
 			userInterfaceCI.contextInstance = m_instance.GetHandle();

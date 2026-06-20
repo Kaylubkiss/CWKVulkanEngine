@@ -26,9 +26,7 @@ void AssetManager::LoadObject( const ObjectCreateInfo& objectCI )
 		}
 	};
 
-	parallelFunction();
-
-	//m_threadWorkers.EnqueueTask(parallelFunction);
+	m_threadWorkers.EnqueueTask(parallelFunction);
 }
 
 void AssetManager::Destroy()
