@@ -86,7 +86,6 @@ namespace vk
 		VkSampler sampler = VK_NULL_HANDLE;
 
 		vk::Device* contextDevice = nullptr;
-
 	};
 }
 

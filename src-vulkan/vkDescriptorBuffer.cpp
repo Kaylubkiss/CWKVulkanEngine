@@ -156,7 +156,7 @@ namespace vk
     }
 
     void DescriptorBuffer::GetDescriptorLayoutBindingOffsets( const vk::Device* device, VkDescriptorSetLayout layout,
-    VkDeviceSize offsets[], uint32_t binding_count )
+		VkDeviceSize offsets[], uint32_t binding_count )
     {
         //get the offsets of each descriptor binding in the layout
         for (uint32_t i = 0; i < binding_count; ++i)

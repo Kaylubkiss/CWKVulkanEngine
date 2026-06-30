@@ -6,8 +6,8 @@
 
 namespace vk 
 {
-	#define LIGHT_COUNT 2
-	#define OBJECT_COUNT (10000 + 1) //max 10 objects in the scene, +1 for blank texture
+	inline constexpr uint32_t LIGHT_COUNT = 2;
+	inline constexpr uint32_t OBJECT_COUNT = (10000 + 1); //max 10 objects in the scene, +1 for blank texture
 
 	class DeferredRenderer : public RendererBase
 	{

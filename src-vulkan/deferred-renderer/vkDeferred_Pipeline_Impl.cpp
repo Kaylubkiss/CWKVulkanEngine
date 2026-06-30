@@ -33,6 +33,7 @@ namespace vk
 		//pipeline #2: MRT stage of deferred shading -- outputting to color/textures
 		{
         	vk::PipelineBuilder pipelineBuilder(m_graphicsPipelineLayout, framebuffers.deMRT.front().GetRenderPass());
+
         	vk::Pipeline pipeline;
 
 			vk::ShaderModuleInfo vertShaderInfo = ShaderModuleInfo(device.GetDevice(),
@@ -79,6 +80,7 @@ namespace vk
 		//pipeline #4: swapchain quad
 		{
         	vk::PipelineBuilder pipelineBuilder(m_graphicsPipelineLayout, swapChain.GetRenderPass());
+
         	vk::Pipeline pipeline;
 
 			vk::ShaderModuleInfo vertShaderInfo = vk::ShaderModuleInfo(device.GetDevice(), "deferred-render/quad.vert",
