@@ -24,7 +24,7 @@ namespace vk
 	* - Uses VK_EXT_descriptor_buffer for GPU-addressable descriptor access.
 	* - Enforces move-only semantics for Vulkan resource ownership.
 	*/
-    class PanoramicTexture : public Texture
+    class PanoramicTexture
     {
     public:
     	PanoramicTexture() = default;
@@ -55,7 +55,7 @@ namespace vk
     	/**
 		* Releases compute pipelines and pipeline layout resources.
 		*/
-	    ~PanoramicTexture() override;
+	    ~PanoramicTexture();
 
     	/**
 		* @name IBL Texture Descriptors
@@ -165,7 +165,7 @@ namespace vk
 
     	// IBL generation stages.
         void WriteToEnvironmentMapImage( const vk::Device* devicePtr, VkCommandBuffer graphicsCmd,
-        	uint32_t width, uint32_t height, uint32_t layerCount, uint32_t mipLevels );
+        	VkDescriptorImageInfo panoramicTextureInfo, uint32_t width, uint32_t height, uint32_t layerCount, uint32_t mipLevels );
 
     	void WriteToIrradianceImage( const vk::Device* devicePtr, VkCommandBuffer graphicsCmd, uint32_t layoutIndex );
 
@@ -196,6 +196,7 @@ namespace vk
     	VkPipeline m_BRDFLUTPipeline = VK_NULL_HANDLE;
 
     	vk::DescriptorBuffer m_computeDescriptorBuffer;
+    	VkDevice c_device = VK_NULL_HANDLE;
     };
 
 

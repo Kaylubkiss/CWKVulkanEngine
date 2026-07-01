@@ -10,17 +10,14 @@ namespace vk
 
         	InitializeMaterialDescriptors(descriptorManager);
 
-        	if (m_test_panoramicImage.GetImage() != VK_NULL_HANDLE)
-        	{
-        		skyboxImageIndex = m_descriptorManagerPtr->GetLayoutIndex(DescriptorCategory::eMaterial);
+        	skyboxImageIndex = m_descriptorManagerPtr->GetLayoutIndex(DescriptorCategory::eMaterial);
 
-        		vk::imageBuffers2D panoramicImageBuffer;
-        		panoramicImageBuffer.resize(1);
-        		panoramicImageBuffer[0].push_back(m_test_panoramicImage.GetEnvironmentMapImageDescriptor());
+        	vk::imageBuffers2D panoramicImageBuffer;
+        	panoramicImageBuffer.resize(1);
+        	panoramicImageBuffer[0].push_back(m_test_panoramicImage.GetEnvironmentMapImageDescriptor());
 
-        		m_descriptorManagerPtr->WriteDescriptors(DescriptorCategory::eMaterial,
-					skyboxImageIndex, panoramicImageBuffer);
-        	}
+        	m_descriptorManagerPtr->WriteDescriptors(DescriptorCategory::eMaterial,
+				skyboxImageIndex, panoramicImageBuffer);
 
         	InitializeCompositionImageDescriptors(descriptorManager);
 

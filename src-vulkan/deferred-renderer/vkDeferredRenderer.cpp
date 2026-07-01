@@ -24,6 +24,8 @@ namespace vk
 		vk::TextureCreateInfo texture_create_info = {  };
 		texture_create_info.fileName = { skyboxName };
 		texture_create_info.format = VK_FORMAT_R32G32B32A32_SFLOAT;
+		texture_create_info.mipLevels = 1;
+		texture_create_info.layerCount = 1;
 
 		m_test_panoramicImage = vk::PanoramicTexture(&device, texture_create_info);
 

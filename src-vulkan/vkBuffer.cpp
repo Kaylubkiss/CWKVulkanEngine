@@ -111,7 +111,7 @@ namespace vk
 		return vkGetBufferDeviceAddress(c_device, &bufferAddress);
 	}
 
-	void* Buffer::GetMappedMemory() const 
+	void* Buffer::GetMappedMemory() const
 	{
 		assert(m_mappedMemory != nullptr);
 		return m_mappedMemory;

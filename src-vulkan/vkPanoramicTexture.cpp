@@ -22,45 +22,13 @@ namespace vk
 	*/
 	PanoramicTexture::PanoramicTexture( const vk::Device* devicePtr,  const vk::TextureCreateInfo& createInfo )
     {
-		assert(devicePtr != nullptr);
 
-        int width, height, nChannels;
-        float* pixels = stbi_loadf(createInfo.fileName.c_str(),
-        	&width, &height, &nChannels, 4);
-
-        if (pixels == nullptr)
-        {
-            throw std::runtime_error("PanoramicTexture::Create() failed!\n");
-        }
+		//check: is there a prefiltered map? is there a BRDF LUT? is there a
+		assert( devicePtr != nullptr );
 
 		c_device = devicePtr->GetDevice();
-        m_width = width;
-        m_height = height;
-        m_imageLayerSize = static_cast<VkDeviceSize>(width) * static_cast<VkDeviceSize>(height) * 4 * sizeof(float);
 
-        vk::Buffer stagingBuffer = vk::Buffer(devicePtr, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, m_imageLayerSize, pixels);
-
-		stbi_image_free(pixels); //don't need the pixel data now that it's copied over to the buffer.
-
-        VkImageCreateInfo panoramicImageCI = vk::init::ImageCreateInfo();
-        panoramicImageCI.imageType = VK_IMAGE_TYPE_2D;
-        panoramicImageCI.extent = { m_width, m_height, 1 };
-        panoramicImageCI.arrayLayers = 1;
-        panoramicImageCI.mipLevels = 1;
-        panoramicImageCI.format = createInfo.format;
-        panoramicImageCI.samples = VK_SAMPLE_COUNT_1_BIT;
-        panoramicImageCI.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-        panoramicImageCI.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-        panoramicImageCI.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
-
-        m_image = vk::util::CreateImage(devicePtr, panoramicImageCI, m_memory,
-            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-
-        m_descriptor.imageView = vk::Texture::CreateImageView(devicePtr->GetDevice(), m_image,
-            createInfo.format, VK_IMAGE_VIEW_TYPE_2D);
-        m_descriptor.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL; //this must be respected by the time its accessed in the compute shader
-        m_descriptor.sampler = vk::Texture::CreateSampler(devicePtr->GetGPU(), devicePtr->GetDevice(), 1);
+		vk::Texture panoramicTexture = vk::Texture( devicePtr, createInfo );
 
         VkFence submissionFence = vk::init::CreateFence( devicePtr->GetDevice(), false );
 
@@ -69,33 +37,12 @@ namespace vk
 
         VkCommandBuffer graphicsCmd = vk::util::beginSingleTimeCommand(devicePtr->GetDevice(), graphicsCmdPool);
 
-		// Prepare image for staging buffer upload
-    	vk::util::RecordImageLayoutTransition( graphicsCmd, m_image,
-    		VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
-    		VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-
-		// Upload HDR image data to GPU memory.
-		{
-			VkBufferImageCopy region = {};
-			region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-			region.imageSubresource.mipLevel = 0;
-			region.imageSubresource.baseArrayLayer = 0;
-			region.imageSubresource.layerCount = 1;
-			region.bufferOffset = 0;
-			region.imageExtent =
-			{
-				m_width,
-				m_height,
-				1
-			};
-
-			vkCmdCopyBufferToImage(graphicsCmd, stagingBuffer.GetHandle(), m_image,
-				VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
-		}
+		panoramicTexture.RecordStagingCopy( graphicsCmd );
 
 		// Transition source texture for shader sampling.
-    	vk::util::RecordImageLayoutTransition( graphicsCmd, m_image, VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
-    		VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+    	vk::util::RecordImageLayoutTransition( graphicsCmd, panoramicTexture.GetImage(),
+    		VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
+    		VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL );
 
 		uint32_t prefilter_width = 512;
 		uint32_t prefilterMipLevels = vk::util::CalculateMipLevels(prefilter_width, prefilter_width);
@@ -117,7 +64,8 @@ namespace vk
 			VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT |
 			VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT );
 
-		WriteToEnvironmentMapImage( devicePtr, graphicsCmd, env_width, env_width, 6, env_mipLevels );
+		WriteToEnvironmentMapImage( devicePtr, graphicsCmd, panoramicTexture.GetDescriptor(),
+			env_width, env_width, 6, env_mipLevels );
 
 		// Create diffuse irradiance cubemap.
 		uint32_t irradiance_width = 32;
@@ -172,10 +120,11 @@ namespace vk
 	/**
 	* Transfers ownership of GPU resources from another PanoramicTexture.
 	*/
-	PanoramicTexture::PanoramicTexture( PanoramicTexture&& other ) noexcept : Texture(std::move(other))
+	PanoramicTexture::PanoramicTexture( PanoramicTexture&& other ) noexcept
 	{
 		if (this != &other)
 		{
+			this->c_device = other.c_device;
 			this->m_EquirectangularToCubemapPipeline = other.m_EquirectangularToCubemapPipeline;
 			this->m_convolutionPipeline = other.m_convolutionPipeline;
 			this->m_prefilterPipeline = other.m_prefilterPipeline;
@@ -200,8 +149,7 @@ namespace vk
 	{
 		if (this != &other)
 		{
-			Texture::operator=(std::move(other));
-
+			std::swap(this->c_device, other.c_device);
 			std::swap(this->m_environmentMap, other.m_environmentMap);
 			std::swap(this->m_irradianceMap, other.m_irradianceMap);
 			std::swap(this->m_prefilterMap, other.m_prefilterMap);
@@ -247,12 +195,12 @@ namespace vk
 	* @pre Source texture is in VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL.
 	*/
 	void PanoramicTexture::WriteToEnvironmentMapImage( const vk::Device* devicePtr, VkCommandBuffer graphicsCmd,
-		uint32_t width, uint32_t height, uint32_t layerCount, uint32_t mipLevels )
+		VkDescriptorImageInfo panoramicTextureInfo, uint32_t width, uint32_t height, uint32_t layerCount, uint32_t mipLevels )
     {
     	vk::WriteResource writeResource = {};
     	auto descriptorBufferProperties = devicePtr->GetDescriptorBufferProperties();
 
-	    writeResource.pImageData = &m_descriptor;
+	    writeResource.pImageData = &panoramicTextureInfo;
 	    m_computeDescriptorBuffer.WriteDescriptor(writeResource,
 		    0,0,0, descriptorBufferProperties.combinedImageSamplerDescriptorSize);
 

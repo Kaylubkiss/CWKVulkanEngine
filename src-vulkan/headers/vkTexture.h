@@ -1,6 +1,9 @@
 #ifndef VK_TEXTURE_HPP
 #define VK_TEXTURE_HPP
 
+#include <stb_image.h>
+#include <variant>
+
 namespace vk 
 {
 	class Texture
@@ -26,8 +29,11 @@ namespace vk
 		static VkImageView CreateImageView( VkDevice l_device, const VkImage& textureImage, VkFormat format, VkImageViewType type );
 		static VkSampler CreateSampler( VkPhysicalDevice p_device, VkDevice l_device, uint32_t mipLevels );
 
-		void RecordTransferAndReleaseOperations( VkCommandBuffer cmdBuffer,  uint32_t srcQueueFamily, uint32_t dstQueueFamily );
+		void RecordStagingCopy( VkCommandBuffer cmdBuffer );
+		void RecordRelease( VkCommandBuffer cmdBuffer,  uint32_t srcQueueFamily, uint32_t dstQueueFamily );
 	private:
+		inline bool FormatIsSupported( VkFormat format );
+		std::variant<std::monostate, stbi_uc*, float*> LoadPixels( const char* fileName, VkFormat format, int* width, int* height );
 		void CreateFromFileName( const vk::Device* devicePtr, const vk::TextureCreateInfo& createInfo );
 		void CreateBlankTexture( const vk::Device* devicePtr, const vk::TextureCreateInfo& createInfo );
 	protected:

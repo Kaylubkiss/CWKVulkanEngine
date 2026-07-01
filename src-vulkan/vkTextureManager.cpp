@@ -166,8 +166,9 @@ namespace vk
 			{
 				vk::Texture* curr_texture = t.texture_to_process.get();
 
-				curr_texture->RecordTransferAndReleaseOperations( m_transferCommandBuffers[currentFrame],
-					transferQueueFamily, graphicsQueueFamily );
+				curr_texture->RecordStagingCopy( m_transferCommandBuffers[currentFrame]);
+				curr_texture->RecordRelease( m_transferCommandBuffers[currentFrame],
+					transferQueueFamily, graphicsQueueFamily);
 
 				VkImageMemoryBarrier acquireBarrier = {};
 				acquireBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
