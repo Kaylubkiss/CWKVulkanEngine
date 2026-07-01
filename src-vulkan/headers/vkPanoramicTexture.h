@@ -80,6 +80,11 @@ namespace vk
     	{
 			return m_BRDFLUT.GetDescriptor();
 	    }
+
+    	[[nodiscard]] std::string_view GetName() const
+    	{
+    		return m_name;
+    	}
     	/** @} */
 
     private:
@@ -180,6 +185,9 @@ namespace vk
     	vk::Texture CreateTexture( const vk::Device* devicePtr, VkCommandBuffer graphicsCmd,
     		uint32_t width, uint32_t height, uint32_t layerCount, uint32_t mipLevels, VkImageUsageFlags imageUsage ) const;
     private:
+
+    	std::string m_name;
+
     	// IBL image resources.
     	vk::Texture m_environmentMap;
     	vk::Texture m_irradianceMap;

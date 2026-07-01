@@ -73,6 +73,8 @@ namespace vk
 		{
 			return (size + alignment - 1) & ~(alignment - 1);
 		}
+
+
 	}
 }
 

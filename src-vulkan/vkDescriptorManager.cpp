@@ -72,7 +72,7 @@ namespace vk
 
     // [frame][binding]
     void DescriptorManager::WriteDescriptors(DescriptorCategory category, uint32_t layoutIndex,
-        vk::imageBuffers2D& imageDescriptors, bool storageResource)
+        vk::imageBuffers2D& imageDescriptors, bool storageResource, int baseBinding )
     {
         auto& descriptor = m_descriptorBuffers[category].descriptor;
 
@@ -97,7 +97,7 @@ namespace vk
                 {
                     std::lock_guard lock(m_mutex);
                     descriptor.WriteDescriptor(writeResource,
-                       layoutIndex, frame, binding, writeSize);
+                       layoutIndex, frame, baseBinding + binding, writeSize);
                 }
             }
         }

@@ -35,6 +35,7 @@ namespace vk
 		void InitializeUBODescriptors( DescriptorManager& descriptorManager );
 		void InitializeCompositionImageDescriptors( DescriptorManager& descriptorManager );
 		void InitializeMaterialDescriptors( DescriptorManager& descriptorManager );
+		void InitializeEnvironmentMapDescriptors( DescriptorManager& descriptorManager );
 
 		void InitializePipelineLayouts();
 		void UpdateScreenUniforms();

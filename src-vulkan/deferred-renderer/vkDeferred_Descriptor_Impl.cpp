@@ -81,6 +81,29 @@ namespace vk
 	    }
     }
 
+	void DeferredRenderer::InitializeEnvironmentMapDescriptors( DescriptorManager& descriptorManager )
+    {
+    	vk::imageBuffers2D imageDescriptorData;
+    	imageDescriptorData.resize(gMaxFramesInFlight);
+
+    	for (size_t frame = 0; frame < imageDescriptorData.size(); ++frame)
+    	{
+    		imageDescriptorData[frame].reserve(3);
+
+    		VkDescriptorImageInfo irradianceMapDescriptor = m_test_panoramicImage.GetIrradianceImageDescriptor();
+    		imageDescriptorData[frame].push_back(irradianceMapDescriptor);
+
+    		VkDescriptorImageInfo prefilterMapDescriptor = m_test_panoramicImage.GetPrefilterMapImageDescriptor();
+    		imageDescriptorData[frame].push_back(prefilterMapDescriptor);
+
+    		VkDescriptorImageInfo brdfLUT = m_test_panoramicImage.GetBRDFLUTImageDescriptor();
+    		imageDescriptorData[frame].push_back(brdfLUT);
+    	}
+
+    	descriptorManager.WriteDescriptors(DescriptorCategory::eCompositionImage, compositionImageIndex,
+    		imageDescriptorData, false, RT_COUNT+1);
+    }
+
 	void DeferredRenderer::InitializeCompositionImageDescriptors( DescriptorManager& descriptorManager )
     {
     	size_t imageCount = RT_COUNT + 1 + 1 + 1 + 1; //+shadow, +irradiance_map, +prefilterMap, +brdfLUT

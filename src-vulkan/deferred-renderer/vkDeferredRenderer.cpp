@@ -158,6 +158,30 @@ namespace vk
 			sizeof(uniformDataLightPass));
 	}
 
+	std::vector<std::string> GetFileNamesOfExtension(const std::filesystem::path& directory, const char* extension)
+	{
+		std::vector<std::string> fileNames;
+
+		for (const auto& entry : std::filesystem::directory_iterator(directory))
+		{
+			if (entry.is_regular_file() == false)
+			{
+				continue;
+			}
+
+			std::string ext = entry.path().extension().string();
+			std::ranges::transform(ext, ext.begin(), ::tolower);
+
+			if (strcmp(ext.c_str(), extension) == 0)
+			{
+				fileNames.push_back(entry.path().filename().string());
+			}
+		}
+
+
+		return fileNames;
+	}
+
 	void DeferredRenderer::UpdateUI()
 	{
 		static bool option = false;
@@ -178,8 +202,48 @@ namespace vk
 			{
 				UIOverlay.Slider("light " + std::to_string(i), lights[i].pos);
 			}
-			UIOverlay.SeparatorText("textures in scene");
-			UIOverlay.DisplayImages();
+
+			std::vector<std::string> fileNames = GetFileNamesOfExtension(
+				"art/extern-textures/", ".hdr");
+
+			std::vector<const char*> hdr_items;
+			hdr_items.reserve(fileNames.size());
+			for ( auto& file : fileNames )
+			{
+				hdr_items.push_back(file.c_str());
+			}
+
+			static int selectedItem = 0;
+			if (ImGui::Combo("HDR Environments", &selectedItem, hdr_items.data(),
+				static_cast<int>(hdr_items.size())))
+			{
+				std::string skyboxName = "art/extern-textures/" + std::string(hdr_items[selectedItem]);
+
+				if (m_test_panoramicImage.GetName() != skyboxName)
+				{
+
+					vk::TextureCreateInfo texture_create_info = {  };
+					texture_create_info.fileName = { skyboxName };
+					texture_create_info.format = VK_FORMAT_R32G32B32A32_SFLOAT;
+					texture_create_info.mipLevels = 1;
+					texture_create_info.layerCount = 1;
+
+					WaitForDevice();
+
+					m_test_panoramicImage = PanoramicTexture(&device, texture_create_info);
+
+					//have to update the descriptors
+					vk::imageBuffers2D panoramicImageBuffer;
+					panoramicImageBuffer.resize(1);
+					panoramicImageBuffer[0].push_back(m_test_panoramicImage.GetEnvironmentMapImageDescriptor());
+
+					m_descriptorManagerPtr->WriteDescriptors(DescriptorCategory::eMaterial,
+						skyboxImageIndex, panoramicImageBuffer);
+
+					InitializeEnvironmentMapDescriptors(*m_descriptorManagerPtr);
+				}
+			}
+
 		}
 	}
 

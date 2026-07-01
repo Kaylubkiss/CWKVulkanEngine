@@ -23,10 +23,12 @@ namespace vk
 	PanoramicTexture::PanoramicTexture( const vk::Device* devicePtr,  const vk::TextureCreateInfo& createInfo )
     {
 
-		//check: is there a prefiltered map? is there a BRDF LUT? is there a
+		//check: is there a prefiltered map? is there a BRDF LUT?
 		assert( devicePtr != nullptr );
 
 		c_device = devicePtr->GetDevice();
+
+		m_name = createInfo.fileName;
 
 		vk::Texture panoramicTexture = vk::Texture( devicePtr, createInfo );
 
@@ -45,7 +47,7 @@ namespace vk
     		VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL );
 
 		uint32_t prefilter_width = 512;
-		uint32_t prefilterMipLevels = vk::util::CalculateMipLevels(prefilter_width, prefilter_width);
+		uint32_t prefilterMipLevels = vk::util::CalculateMipLevels( prefilter_width, prefilter_width );
 
 		// Allocate descriptor layouts for all IBL image resources.
 		// Environment Map (1) + Irradiance Map (1) + BRDF LUT (1) + Prefilter Mips
@@ -125,6 +127,7 @@ namespace vk
 		if (this != &other)
 		{
 			this->c_device = other.c_device;
+			this->m_name = other.m_name;
 			this->m_EquirectangularToCubemapPipeline = other.m_EquirectangularToCubemapPipeline;
 			this->m_convolutionPipeline = other.m_convolutionPipeline;
 			this->m_prefilterPipeline = other.m_prefilterPipeline;
@@ -150,6 +153,7 @@ namespace vk
 		if (this != &other)
 		{
 			std::swap(this->c_device, other.c_device);
+			std::swap(this->m_name, other.m_name);
 			std::swap(this->m_environmentMap, other.m_environmentMap);
 			std::swap(this->m_irradianceMap, other.m_irradianceMap);
 			std::swap(this->m_prefilterMap, other.m_prefilterMap);
