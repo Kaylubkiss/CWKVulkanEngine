@@ -10,14 +10,7 @@ namespace vk
 
         	InitializeMaterialDescriptors(descriptorManager);
 
-        	skyboxImageIndex = m_descriptorManagerPtr->GetLayoutIndex(DescriptorCategory::eMaterial);
-
-        	vk::imageBuffers2D panoramicImageBuffer;
-        	panoramicImageBuffer.resize(1);
-        	panoramicImageBuffer[0].push_back(m_test_panoramicImage.GetEnvironmentMapImageDescriptor());
-
-        	m_descriptorManagerPtr->WriteDescriptors(DescriptorCategory::eMaterial,
-				skyboxImageIndex, panoramicImageBuffer);
+        	InitializeSkyboxDescriptor( descriptorManager );
 
         	InitializeCompositionImageDescriptors(descriptorManager);
 
@@ -183,6 +176,21 @@ namespace vk
     	}
 
     	descriptorManager.WriteDescriptors(DescriptorCategory::eCompositionImage, swapChainImageIndex, imageDescriptorData);
+    }
+
+	void DeferredRenderer::InitializeSkyboxDescriptor( DescriptorManager& descriptorManager )
+    {
+    	if (skyboxImageIndex == UINT_MAX)
+    	{
+    		skyboxImageIndex = m_descriptorManagerPtr->GetLayoutIndex(DescriptorCategory::eMaterial);
+    	}
+
+    	vk::imageBuffers2D panoramicImageBuffer;
+    	panoramicImageBuffer.resize(1);
+    	panoramicImageBuffer[0].push_back(m_test_panoramicImage.GetEnvironmentMapImageDescriptor());
+
+    	descriptorManager.WriteDescriptors(DescriptorCategory::eMaterial,
+			skyboxImageIndex, panoramicImageBuffer);
     }
 
 	void DeferredRenderer::InitializeMaterialDescriptors( DescriptorManager& descriptorManager )

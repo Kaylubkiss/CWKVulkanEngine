@@ -34,6 +34,7 @@ namespace vk
 
 		void InitializeUBODescriptors( DescriptorManager& descriptorManager );
 		void InitializeCompositionImageDescriptors( DescriptorManager& descriptorManager );
+		void InitializeSkyboxDescriptor( DescriptorManager& descriptorManager );
 		void InitializeMaterialDescriptors( DescriptorManager& descriptorManager );
 		void InitializeEnvironmentMapDescriptors( DescriptorManager& descriptorManager );
 
@@ -68,6 +69,7 @@ namespace vk
 			glm::mat4 viewMatrix = glm::mat4(1.f); /* the viewpoint of the light toward a certain point */
 		};
 
+
 		struct UniformDataMRT
 		{
 			glm::mat4 eyeMatrix = glm::mat4(1.f);
@@ -98,8 +100,7 @@ namespace vk
 
 		uint32_t compositionImageIndex = 0;
 		uint32_t swapChainImageIndex = 0;
-
-		uint32_t skyboxImageIndex = 0;
+		uint32_t skyboxImageIndex = UINT_MAX;
 
 		std::array<UniformBuffers, gMaxFramesInFlight> uniformBuffers;
 
@@ -125,6 +126,11 @@ namespace vk
 			glm::vec3 cubePosition   = { 1.0, 20, -5.f };
 			glm::vec3 freddyPosition = { 1.5f, 1.0, 3.f };
 		} sceneSettings{};
+
+		struct
+		{
+			int selectedEnvironmentMap = 0;
+		} m_guiHelper;
 
 		DescriptorManager* m_descriptorManagerPtr = nullptr;
 

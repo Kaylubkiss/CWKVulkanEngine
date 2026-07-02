@@ -213,13 +213,12 @@ namespace vk
 				hdr_items.push_back(file.c_str());
 			}
 
-			static int selectedItem = 0;
-			if (ImGui::Combo("HDR Environments", &selectedItem, hdr_items.data(),
+			if (ImGui::Combo("HDR Environments", &m_guiHelper.selectedEnvironmentMap, hdr_items.data(),
 				static_cast<int>(hdr_items.size())))
 			{
-				std::string skyboxName = "art/extern-textures/" + std::string(hdr_items[selectedItem]);
+				std::string skyboxName = "art/extern-textures/" + std::string(hdr_items[m_guiHelper.selectedEnvironmentMap]);
 
-				if (m_test_panoramicImage.GetName() != skyboxName)
+				if ( m_test_panoramicImage.GetName() != skyboxName )
 				{
 
 					vk::TextureCreateInfo texture_create_info = {  };
@@ -233,14 +232,9 @@ namespace vk
 					m_test_panoramicImage = PanoramicTexture(&device, texture_create_info);
 
 					//have to update the descriptors
-					vk::imageBuffers2D panoramicImageBuffer;
-					panoramicImageBuffer.resize(1);
-					panoramicImageBuffer[0].push_back(m_test_panoramicImage.GetEnvironmentMapImageDescriptor());
+					InitializeSkyboxDescriptor( *m_descriptorManagerPtr );
 
-					m_descriptorManagerPtr->WriteDescriptors(DescriptorCategory::eMaterial,
-						skyboxImageIndex, panoramicImageBuffer);
-
-					InitializeEnvironmentMapDescriptors(*m_descriptorManagerPtr);
+					InitializeEnvironmentMapDescriptors( *m_descriptorManagerPtr );
 				}
 			}
 
