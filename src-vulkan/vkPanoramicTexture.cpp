@@ -116,7 +116,7 @@ namespace vk
 
 		vkDestroyFence(devicePtr->GetDevice(), submissionFence, nullptr);
 
-		std::cout << "\033[32m" << "successfully loaded Panormaic Texture in PanoramicTexture::Create()... " << "\033[0m\n";
+		std::cout << "\033[32m" << "successfully loaded Texture in PanoramicTexture::Create()... " << "\033[0m\n";
     }
 
 	/**
