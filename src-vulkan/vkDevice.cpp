@@ -150,7 +150,13 @@ namespace vk
 				std::cout << "picked device " << i << '\n';
 
 				g_index = i;
+
 				break;
+			}
+			else if ((properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_CPU) &&
+				features.geometryShader && features.samplerAnisotropy)
+			{
+				g_index = i; //fallback on cpu with supported features
 			}
 		}
 
