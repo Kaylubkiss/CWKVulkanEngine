@@ -29,7 +29,6 @@ namespace vk
 		deviceProperties2.pNext = &m_descriptorBufferProps;
 		vkGetPhysicalDeviceProperties2(m_gpu, &deviceProperties2);
 
-
 		assert(m_descriptorBufferProps.maxDescriptorBufferBindings >= 2);
 
 		FindQueueFamilies( windowSurface );
@@ -183,8 +182,7 @@ namespace vk
 			throw std::runtime_error("couldn't find any queue families...");
 		}
 
-		queueFamilies.resize(queueFamilyPropertyCount);
-
+		queueFamilies.resize( queueFamilyPropertyCount );
 		vkGetPhysicalDeviceQueueFamilyProperties( m_gpu, &queueFamilyPropertyCount, queueFamilies.data());
 
 		bool setGraphicsQueue = false;
@@ -193,12 +191,6 @@ namespace vk
 
 		for (unsigned i = 0; i < queueFamilyPropertyCount; ++i)
 		{
-			if ((queueFamilies[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) == 0 &&
-				(queueFamilies[i].queueFlags & VK_QUEUE_TRANSFER_BIT) != 0) 
-			{
-				m_queues[DeviceQueue::TRANSFER].family = i;
-				setTransferQueue = true;
-			}
 
 			if ((queueFamilies[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) != 0)
 			{
@@ -213,6 +205,11 @@ namespace vk
 					setPresentQueue = true;
 				}
 			}
+			else if ((queueFamilies[i].queueFlags & VK_QUEUE_TRANSFER_BIT) != 0)
+			{
+				m_queues[DeviceQueue::TRANSFER].family = i;
+				setTransferQueue = true;
+			}
 
 			if (setGraphicsQueue && 
 				setPresentQueue && 
@@ -224,10 +221,9 @@ namespace vk
 		}
 
 		if (!setGraphicsQueue || 
-			!setPresentQueue || 
-			!setTransferQueue)
+			!setPresentQueue)
 		{
-			throw std::runtime_error("could not find all required queues on this device!\n");
+			throw std::runtime_error("could not find a graphics queue or present queue on the device!\n");
 		}
 
 		if (m_queues[DeviceQueue::PRESENT].family != m_queues[DeviceQueue::GRAPHICS].family)
@@ -236,12 +232,14 @@ namespace vk
 			throw std::runtime_error("vk::Device() failed!\n");
 		}
 
+		if (!setTransferQueue) //couldn't find a dedicated transfer queue.
+		{
+			m_queues[DeviceQueue::TRANSFER].family = m_queues[DeviceQueue::GRAPHICS].family;
+		}
 	}
 
 	void Device::InitializeLogicalDevice( std::vector<const char*>& requestedExtensions )
 	{
-		assert(m_queues[DeviceQueue::GRAPHICS].family != -1 && m_queues[DeviceQueue::PRESENT].family != -1);
-
 		std::vector<VkDeviceQueueCreateInfo> deviceQueueCreateInfos; //presentation and graphics.
 		std::vector<uint32_t> uniqueQueueFamilies;
 		uniqueQueueFamilies.reserve(m_queues.size());
@@ -280,16 +278,19 @@ namespace vk
 			deviceQueueCreateInfos.push_back(deviceQueueInfo);
 		}
 
-		//transfer queue addition.
-		deviceQueueInfo = {};
-		deviceQueueInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-		deviceQueueInfo.flags = 0;
-		deviceQueueInfo.pNext = nullptr;
-		deviceQueueInfo.queueFamilyIndex = m_queues[DeviceQueue::TRANSFER].family;
-		deviceQueueInfo.queueCount = 1;
-		deviceQueueInfo.pQueuePriorities = queuePriority; //normalized values between 0.f to 1.f that ranks the priority of the queue in the array.
+		if (uniqueQueueFamilies[DeviceQueue::GRAPHICS] != uniqueQueueFamilies[DeviceQueue::TRANSFER])
+		{
+			//transfer queue addition.
+			deviceQueueInfo = {};
+			deviceQueueInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+			deviceQueueInfo.flags = 0;
+			deviceQueueInfo.pNext = nullptr;
+			deviceQueueInfo.queueFamilyIndex = m_queues[DeviceQueue::TRANSFER].family;
+			deviceQueueInfo.queueCount = 1;
+			deviceQueueInfo.pQueuePriorities = queuePriority; //normalized values between 0.f to 1.f that ranks the priority of the queue in the array.
 
-		deviceQueueCreateInfos.push_back(deviceQueueInfo);
+			deviceQueueCreateInfos.push_back(deviceQueueInfo);
+		}
 
 		VkDeviceCreateInfo deviceCreateInfo = {};
 		deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
@@ -316,7 +317,6 @@ namespace vk
 
 		deviceCreateInfo.pNext = &buffer_device_address_feature;
 
-		
 		deviceCreateInfo.pQueueCreateInfos = deviceQueueCreateInfos.data();
 		deviceCreateInfo.queueCreateInfoCount = (uint32_t)(deviceQueueCreateInfos.size());
 

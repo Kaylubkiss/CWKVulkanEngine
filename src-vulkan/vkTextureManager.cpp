@@ -12,20 +12,27 @@ namespace vk
 		m_graphicsCommandPool = vk::init::CommandPool(m_devicePtr->GetDevice(),
 			VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT, m_devicePtr->GetQueue(vk::DeviceQueue::GRAPHICS).family);
 
-		m_transferCommandPool = vk::init::CommandPool(m_devicePtr->GetDevice(),
-			VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT, m_devicePtr->GetQueue(vk::DeviceQueue::TRANSFER).family);
 
 		VkCommandBufferAllocateInfo cmdBufferAllocateInfo = vk::init::CommandBufferAllocateInfo();
 		cmdBufferAllocateInfo.commandPool = m_graphicsCommandPool;
 		cmdBufferAllocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
 		cmdBufferAllocateInfo.commandBufferCount = static_cast<uint32_t>(m_commandBuffers.size());
+
 		VK_CHECK_RESULT(vkAllocateCommandBuffers(m_devicePtr->GetDevice(), &cmdBufferAllocateInfo,
 			m_commandBuffers.data()));
 
-		cmdBufferAllocateInfo.commandPool = m_transferCommandPool;
+		//dont need to allocate a separate command pool if the graphics and transfer queue are the same.
+		//all work will just be submitted to the graphics queue.
+		if (devicePtr->GetQueue(DeviceQueue::TRANSFER).family != devicePtr->GetQueue(vk::DeviceQueue::GRAPHICS).family)
+		{
+			m_transferCommandPool = vk::init::CommandPool(m_devicePtr->GetDevice(),
+			VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT, m_devicePtr->GetQueue(vk::DeviceQueue::TRANSFER).family);
 
-		VK_CHECK_RESULT(vkAllocateCommandBuffers(m_devicePtr->GetDevice(), &cmdBufferAllocateInfo,
-			m_transferCommandBuffers.data()));
+			cmdBufferAllocateInfo.commandPool = m_transferCommandPool;
+
+			VK_CHECK_RESULT(vkAllocateCommandBuffers(m_devicePtr->GetDevice(), &cmdBufferAllocateInfo,
+				m_transferCommandBuffers.data()));
+		}
 
 	}
 
@@ -157,8 +164,12 @@ namespace vk
 		uint32_t transferQueueFamily = m_devicePtr->GetQueue(DeviceQueue::TRANSFER).family;
 		uint32_t graphicsQueueFamily = m_devicePtr->GetQueue(DeviceQueue::GRAPHICS).family;
 
-		VK_CHECK_RESULT(vkBeginCommandBuffer(m_transferCommandBuffers[currentFrame], &cmdBufferBeginInfo));
 		VK_CHECK_RESULT(vkBeginCommandBuffer(m_commandBuffers[currentFrame], &cmdBufferBeginInfo));
+
+		if (transferQueueFamily != graphicsQueueFamily)
+		{
+			VK_CHECK_RESULT(vkBeginCommandBuffer(m_transferCommandBuffers[currentFrame], &cmdBufferBeginInfo));
+		}
 
 		for (auto& t : texturesToProcess)
 		{
@@ -166,16 +177,34 @@ namespace vk
 			{
 				vk::Texture* curr_texture = t.texture_to_process.get();
 
-				curr_texture->RecordStagingCopy( m_transferCommandBuffers[currentFrame]);
-				curr_texture->RecordRelease( m_transferCommandBuffers[currentFrame],
+				if (transferQueueFamily != graphicsQueueFamily)
+				{
+					curr_texture->RecordStagingCopy( m_transferCommandBuffers[currentFrame]);
+					curr_texture->RecordRelease( m_transferCommandBuffers[currentFrame],
 					transferQueueFamily, graphicsQueueFamily);
+				}
+				else
+				{
+					curr_texture->RecordStagingCopy( m_commandBuffers[currentFrame]);
+				}
+
 
 				VkImageMemoryBarrier acquireBarrier = {};
 				acquireBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
 				acquireBarrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
 				acquireBarrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-				acquireBarrier.srcQueueFamilyIndex = m_devicePtr->GetQueue(vk::DeviceQueue::TRANSFER).family;
-				acquireBarrier.dstQueueFamilyIndex = m_devicePtr->GetQueue(vk::DeviceQueue::GRAPHICS).family;
+
+				if (transferQueueFamily != graphicsQueueFamily)
+				{
+					acquireBarrier.srcQueueFamilyIndex = m_devicePtr->GetQueue(vk::DeviceQueue::TRANSFER).family;
+					acquireBarrier.dstQueueFamilyIndex = m_devicePtr->GetQueue(vk::DeviceQueue::GRAPHICS).family;
+				}
+				else
+				{
+					acquireBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+					acquireBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+				}
+
 				acquireBarrier.image = curr_texture->GetImage();
 				acquireBarrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 				acquireBarrier.subresourceRange.baseMipLevel = 0;
@@ -198,28 +227,36 @@ namespace vk
 		}
 
 		VK_CHECK_RESULT(vkEndCommandBuffer(m_commandBuffers[currentFrame]));
-		VK_CHECK_RESULT(vkEndCommandBuffer(m_transferCommandBuffers[currentFrame]));
 
 		VkSubmitInfo submitInfo = {};
-		submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-		submitInfo.commandBufferCount = 1;
-		submitInfo.pCommandBuffers = &m_transferCommandBuffers[currentFrame];
-		submitInfo.pSignalSemaphores = &semaphores.transferSubmitSemaphore;
-		submitInfo.signalSemaphoreCount = 1;
+		if (transferQueueFamily != graphicsQueueFamily)
+		{
+			VK_CHECK_RESULT(vkEndCommandBuffer(m_transferCommandBuffers[currentFrame]));
 
-		VK_CHECK_RESULT(vkQueueSubmit(m_devicePtr->GetQueue(vk::DeviceQueue::TRANSFER).handle,
-		1, &submitInfo, VK_NULL_HANDLE));
+			submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+			submitInfo.commandBufferCount = 1;
+			submitInfo.pCommandBuffers = &m_transferCommandBuffers[currentFrame];
+			submitInfo.pSignalSemaphores = &semaphores.transferSubmitSemaphore;
+			submitInfo.signalSemaphoreCount = 1;
+
+			VK_CHECK_RESULT(vkQueueSubmit(m_devicePtr->GetQueue(vk::DeviceQueue::TRANSFER).handle,
+			1, &submitInfo, VK_NULL_HANDLE));
+		}
 
 		submitInfo = {};
 		submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 		submitInfo.commandBufferCount = 1;
 		submitInfo.pCommandBuffers = &m_commandBuffers[currentFrame];
-		submitInfo.waitSemaphoreCount = 1;
 
-		std::array<VkPipelineStageFlags, 1> transferWaitStage = {VK_PIPELINE_STAGE_TRANSFER_BIT};
-		submitInfo.pWaitDstStageMask = transferWaitStage.data();
+		if (transferQueueFamily != graphicsQueueFamily)
+		{
+			std::array<VkPipelineStageFlags, 1> transferWaitStage = {VK_PIPELINE_STAGE_TRANSFER_BIT};
+			submitInfo.pWaitDstStageMask = transferWaitStage.data();
 
-		submitInfo.pWaitSemaphores = &semaphores.transferSubmitSemaphore;
+			submitInfo.waitSemaphoreCount = 1;
+			submitInfo.pWaitSemaphores = &semaphores.transferSubmitSemaphore;
+		}
+
 		submitInfo.signalSemaphoreCount = 1;
 		submitInfo.pSignalSemaphores = &semaphores.graphicsSubmitSemaphore;
 
