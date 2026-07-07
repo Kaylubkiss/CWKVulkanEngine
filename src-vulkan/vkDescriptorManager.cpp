@@ -62,7 +62,7 @@ namespace vk
             numFrames, layoutCount, bindings
             );
 
-        m_descriptorBuffers[category].freeList.resize(layoutCount);
+        m_descriptorBuffers[category].freeList.reserve(layoutCount);
 
         for (uint32_t i = 0; i < layoutCount; ++i)
         {

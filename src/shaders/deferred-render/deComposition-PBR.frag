@@ -180,8 +180,6 @@ void main()
     vec3 irradiance = texture(irradianceMap, N).rgb;
     vec3 diffuse = irradiance * albedo;
 
-
-
     const float MAX_REFLECTION_LOD = log2(512);
     vec3 prefilteredColor = textureLod(prefilterMap, R, roughness * MAX_REFLECTION_LOD).rgb;
     vec2 envBRDF = texture(brdfLUT, vec2(NdotV, roughness)).rg;
