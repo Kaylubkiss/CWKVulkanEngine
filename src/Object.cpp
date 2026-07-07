@@ -4,8 +4,8 @@
 
 //normally I'd say ObjectManager should take care of these paths, but since loading was already
 //implemented with checking the extensions, they'll be placed here. Perhaps change this later.
-#define GLTF_OBJECT_PATH "art/gltf/"
-#define OBJ_PATH "art/obj/"
+static constexpr std::string_view GLTF_OBJECT_PATH = "art/gltf/";
+static constexpr std::string_view OBJ_PATH = "art/obj/";
 
 Object::Object( const ObjectCreateInfo& objectCI, vk::TextureManager& textureManager )
 {
@@ -13,9 +13,12 @@ Object::Object( const ObjectCreateInfo& objectCI, vk::TextureManager& textureMan
     
     std::filesystem::path filePath(objectCI.objName);
 
-    if (filePath.extension() == ".gltf")
+    std::string ext = filePath.extension().string();
+    std::ranges::transform(ext, ext.begin(), ::tolower);
+
+    if (ext == ".gltf")
     {
-        filePath = GLTF_OBJECT_PATH + filePath.string();
+        filePath = std::string(GLTF_OBJECT_PATH) + filePath.string();
 
         if (std::filesystem::exists(filePath) == false)
         {
@@ -32,16 +35,16 @@ Object::Object( const ObjectCreateInfo& objectCI, vk::TextureManager& textureMan
 
         std::vector<std::string> gltf_fileNames = m_model->GetTextureNames();
 
-        for (auto& fileName : gltf_fileNames)
+        for ( auto& fileName : gltf_fileNames )
         {
             fileName = filePath.parent_path().string() + "/" + fileName;
         }
 
         m_model->LoadTextures(textureManager, gltf_fileNames);
     }
-    else if (filePath.extension() == ".obj")
+    else if (ext == ".obj")
     {
-        filePath = OBJ_PATH + filePath.string();
+        filePath = std::string(OBJ_PATH) + filePath.string();
 
         if (std::filesystem::exists(filePath) == false)
         {
@@ -51,7 +54,7 @@ Object::Object( const ObjectCreateInfo& objectCI, vk::TextureManager& textureMan
 
         m_model = std::make_unique<OBJModel>(objectCI.devicePtr, filePath);
 
-        if (objectCI.textureFileNames.empty() == false)
+        if ( objectCI.textureFileNames.empty() == false )
         {
             m_model->LoadTextures(textureManager, objectCI.textureFileNames);
         }

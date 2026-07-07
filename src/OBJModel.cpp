@@ -149,7 +149,6 @@ OBJModel::OBJModel( vk::Device* device, const std::filesystem::path& filePath )
 
     std::unordered_map<Vertex, uint32_t> uniqueVertices = {};
 
-
     for (const auto& shape : shapes)
     {
         for (const auto& index : shape.mesh.indices)
@@ -264,6 +263,7 @@ void OBJModel::LoadTextures( vk::TextureManager& textureManager, const std::vect
     Primitive& primitive = mesh.m_primitives.back();
 
     std::vector<vk::TextureCreateInfo> textureList = { };
+
     vk::TextureCreateInfo CI = {};
     CI.fileName = textureNames.back();
     CI.format = VK_FORMAT_R8G8B8A8_SRGB;

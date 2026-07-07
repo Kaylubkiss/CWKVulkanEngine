@@ -128,7 +128,7 @@ void main()
 
     if (ao == 0.0)
     {
-        ao = 0.0;
+        ao = 1.0;
     }
 
     if (roughness == 0.0)
@@ -153,7 +153,7 @@ void main()
         float NDF = DistributionGGX(NdotH, roughness);
         float G   = GeometrySmith(NdotV, NdotL, roughness);
 
-        vec3 F  = FresnelSchlick(max(dot(H, V), 0.0), F0, roughness);
+        vec3 F  = FresnelSchlick(NdotV, F0, roughness);
 
         vec3 nom    =  NDF * F * G;
         float denom = 4.0 * NdotV * NdotL + .0001; //want to make sure division by 0 is impossible

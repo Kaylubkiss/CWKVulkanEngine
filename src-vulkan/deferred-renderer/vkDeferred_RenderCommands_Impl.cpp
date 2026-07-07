@@ -239,6 +239,8 @@ namespace vk
 			vkCmdEndRenderPass(cmdBuffer);
 		}
 
+    	//render glass/transparent objects here.
+
 		//Swapchain Quad
 		{
 			vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,

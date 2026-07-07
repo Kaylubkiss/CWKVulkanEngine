@@ -108,10 +108,14 @@ GLTFModel::GLTFModel( vk::Device* device, const std::filesystem::path& filePath 
 
 		indexBufferSize = indices_16.size() * sizeof(indices_16[0]);
 		indicesData = indices_16.data();
+
+		CalculateTangentBitangent(vertices, indices_16);
 	}
 	else
 	{
 		indexBufferSize = indices_32.size() * sizeof(indices_32[0]);
+
+		CalculateTangentBitangent(vertices, indices_32);
 	}
 
 	auto& vertexBuffer = GetVertexBuffer();
@@ -284,25 +288,30 @@ void GLTFModel::CalculateTangentBitangent( std::vector<Vertex>& vertices, const 
 		glm::vec2 dUV1 = uv2 - uv1;
 		glm::vec2 dUV2 = uv3 - uv1;
 
-		float f = 1.0f / (dUV1.x * dUV2.y - dUV2.x * dUV1.y);
+		float f_denom = (dUV1.x * dUV2.y - dUV2.x * dUV1.y);
 
-		glm::vec3& tan = vertices[indices[i]].tangent;
-		glm::vec3& bitan = vertices[indices[i]].bitan;
+		if (std::fabs(f_denom) > 0.001f)
+		{
+			float f = 1.0f / f_denom;
 
-		tan.x = f * (dUV2.y * edge1.x - dUV1.y * edge2.x);
-		tan.y = f * (dUV2.y * edge1.y - dUV1.y * edge2.y);
-		tan.z = f * (dUV2.y * edge1.z - dUV1.y * edge2.z);
+			glm::vec3& tan = vertices[indices[i]].tan;
+			glm::vec3& bitan = vertices[indices[i]].bitan;
 
-		bitan.x = f * (-dUV2.x * edge1.x + dUV1.x * edge2.x);
-		bitan.y = f * (-dUV2.x * edge1.y + dUV1.x * edge2.y);
-		bitan.z = f * (-dUV2.x * edge1.z + dUV1.x * edge2.z);
+			tan.x = f * (dUV2.y * edge1.x - dUV1.y * edge2.x);
+			tan.y = f * (dUV2.y * edge1.y - dUV1.y * edge2.y);
+			tan.z = f * (dUV2.y * edge1.z - dUV1.y * edge2.z);
 
-		//because the vertices are not indexed yet, each need their own copy of the tan and bitan vectors
-		vertices[indices[i + 1]].tan = tan;
-		vertices[indices[i + 2]].tan = tan;
+			bitan.x = f * (-dUV2.x * edge1.x + dUV1.x * edge2.x);
+			bitan.y = f * (-dUV2.x * edge1.y + dUV1.x * edge2.y);
+			bitan.z = f * (-dUV2.x * edge1.z + dUV1.x * edge2.z);
 
-		vertices[indices[i + 1]].bitan = bitan;
-		vertices[indices[i + 2]].bitan = bitan;
+			//because the vertices are not indexed yet, each need their own copy of the tan and bitan vectors
+			vertices[indices[i + 1]].tan = tan;
+			vertices[indices[i + 2]].tan = tan;
+
+			vertices[indices[i + 1]].bitan = bitan;
+			vertices[indices[i + 2]].bitan = bitan;
+		}
 	}
 }
 
