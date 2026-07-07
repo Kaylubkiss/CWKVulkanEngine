@@ -106,7 +106,7 @@ namespace vk
 
 		struct
 		{
-			std::array<Framebuffer, gMaxFramesInFlight> deMRT; //NOTE: should be an array
+			std::array<Framebuffer, gMaxFramesInFlight> deMRT;
 			std::array<Framebuffer, gMaxFramesInFlight> deShadow;
 			std::array<Framebuffer, gMaxFramesInFlight> deComposition;
 			std::array<Framebuffer, gMaxFramesInFlight> deSky;

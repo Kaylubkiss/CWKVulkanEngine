@@ -248,12 +248,11 @@ namespace vk
 		submitInfo.commandBufferCount = 1;
 		submitInfo.pCommandBuffers = &m_commandBuffers[currentFrame];
 
+		std::array<VkPipelineStageFlags, 1> transferWaitStage = {VK_PIPELINE_STAGE_TRANSFER_BIT};
 		if (transferQueueFamily != graphicsQueueFamily)
 		{
-			std::array<VkPipelineStageFlags, 1> transferWaitStage = {VK_PIPELINE_STAGE_TRANSFER_BIT};
-			submitInfo.pWaitDstStageMask = transferWaitStage.data();
-
 			submitInfo.waitSemaphoreCount = 1;
+			submitInfo.pWaitDstStageMask = transferWaitStage.data();
 			submitInfo.pWaitSemaphores = &semaphores.transferSubmitSemaphore;
 		}
 
