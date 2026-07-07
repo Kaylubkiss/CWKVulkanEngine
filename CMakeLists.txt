@@ -7,6 +7,10 @@ set(CMAKE_CXX_STANDARD 20)
 
 find_package(Vulkan REQUIRED)
 
+if (MSVC)
+	add_compile_options(/EHsc)
+endif()
+
 #---------BUILD EXTERNAL LIBRARIES--------------
 add_subdirectory(extern/fastgltf)
 add_subdirectory(extern/reactphysics3d)
