@@ -140,8 +140,9 @@ void Object::Update(const float& interpFactor)
 
         m_model->UpdateModelTransform(nModel);
     }
-    else if (m_physicsComponent.colliderType != 
-    PhysicsComponent::ColliderType::NONE)
+    else if (m_physicsComponent.colliderType !=
+    PhysicsComponent::ColliderType::NONE &&
+    m_physicsComponent.isInitialized == false)
     {
         InitPhysics();
     }

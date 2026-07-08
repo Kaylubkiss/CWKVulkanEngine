@@ -42,7 +42,6 @@ namespace vk
 				features.geometryShader && features.samplerAnisotropy)
 			{
 				std::cout << "picked device " << i << '\n';
-
 				g_index = i;
 				break;
 			}
@@ -51,7 +50,6 @@ namespace vk
 				features.geometryShader && features.samplerAnisotropy)
 			{
 				std::cout << "picked device " << i << '\n';
-
 				g_index = i;
 			}
 		}

@@ -20,7 +20,7 @@ struct alignas(16) PhysicsComponent
 		CUBE,
 		PLANE,
 	};
-	ColliderType colliderType;
+	ColliderType colliderType = NONE;
 
 	bool isInitialized = false;
 };
