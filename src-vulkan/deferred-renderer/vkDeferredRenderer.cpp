@@ -27,7 +27,7 @@ namespace vk
 		texture_create_info.mipLevels = 1;
 		texture_create_info.layerCount = 1;
 
-		m_test_panoramicImage = vk::PanoramicTexture(&device, texture_create_info);
+		m_test_panoramicImage = vk::PanoramicTexture( &device, texture_create_info );
 
 		DeferredRenderer::InitializeDescriptors(*m_descriptorManagerPtr);
 

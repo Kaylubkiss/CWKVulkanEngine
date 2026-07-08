@@ -64,20 +64,15 @@ namespace vk
 			m_textures.clear(); //this should call ~Texture()
 		}
 	}
-	struct AddTextureResult
-	{
-		std::shared_ptr<vk::Texture> textureHandle;
-		bool needsTransfer = false;
-	};
 
-	bool TextureManager::AddTexture( const vk::TextureCreateInfo& createInfo )
+	AddTextureResult TextureManager::AddTexture( const vk::TextureCreateInfo& createInfo )
 	{
 		{
 			std::lock_guard<std::mutex> lock(m_textureMutex);
 			//maybe a thread beat us to the punch, in the case that two threads call on the same texture
 			if (m_textures.contains(createInfo.fileName) == true)
 			{
-				return false;
+				return { m_textures[createInfo.fileName].handle, false };
 			}
 		}
 
@@ -89,16 +84,19 @@ namespace vk
 			//maybe a thread beat us to the punch, in the case that two threads call on the same texture
 			if (m_textures.contains(createInfo.fileName) == true)
 			{
-				return false;
+				return { m_textures[createInfo.fileName].handle, false };
 			}
-			m_textures[createInfo.fileName].handle = std::move(newTexture);
-			//first texture in m_textures will be blank.
-			m_textures[createInfo.fileName].index = static_cast<uint32_t>(m_textures.size());
+
+			m_textures.insert({ createInfo.fileName, 
+				{ newTexture, static_cast<uint32_t>(m_textures.size()) } 
+			});
+
+			return { newTexture, true };
 		}
 
 		std::cout << "texture loaded... " << createInfo.fileName << " loaded.\n";
 
-		return true;
+		return {};
 	}
 
 	uint32_t TextureManager::AddTextures( std::vector<vk::TextureCreateInfo>& createInfos, TextureType type )
@@ -132,8 +130,11 @@ namespace vk
 				pendingInfos[i].layoutIndex = layoutIndex;
 				pendingInfos[i].bindingIndex = static_cast<uint32_t>(i);
 				pendingInfos[i].totalBindingCount = static_cast<uint32_t>(textureCount);
-				pendingInfos[i].needsGPUTransfer = AddTexture(individualCI);
-				pendingInfos[i].texture_to_process = m_textures[individualCI.fileName].handle;
+
+				AddTextureResult result = AddTexture(individualCI);
+
+				pendingInfos[i].texture_to_process = result.texture;
+				pendingInfos[i].needsGPUTransfer = result.needsTransfer;
 			}
 		}
 

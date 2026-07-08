@@ -35,6 +35,12 @@ namespace vk
 		bool needsGPUTransfer = false;
 	};
 
+	struct AddTextureResult
+	{
+		std::shared_ptr<vk::Texture> texture;
+		bool needsTransfer = false;
+	};
+
 	class TextureManager
 	{
 	public:
@@ -48,7 +54,7 @@ namespace vk
 		bool UploadTextureDataToGPU( uint32_t currentFrame, TextureUploadSemaphores& semaphores );
 		uint32_t AddTextures(  std::vector<vk::TextureCreateInfo>& createInfos, TextureType type = TextureType::NONE ); //returns the layout index of the texture
 	private:
-		bool AddTexture( const vk::TextureCreateInfo& createInfo );
+		AddTextureResult AddTexture( const vk::TextureCreateInfo& createInfo );
 	private:
 		std::mutex m_textureMutex;
 		std::mutex m_pendingTexturesMutex;
