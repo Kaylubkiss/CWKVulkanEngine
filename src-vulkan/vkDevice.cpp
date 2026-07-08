@@ -112,64 +112,6 @@ namespace vk
 		}
 	}
 
-	void Device::FindPhysicalDevices( VkInstance instance )
-	{
-		assert( instance != VK_NULL_HANDLE );
-
-		std::vector<VkPhysicalDevice> gpus;
-		std::optional<size_t> g_index;
-
-		//list the physical devices
-		uint32_t max_devices = 0;
-
-		//vulkan will ignor whatever was set in physicalDeviceCount and overwrite max_devices 
-		VK_CHECK_RESULT(vkEnumeratePhysicalDevices(instance, &max_devices, nullptr));
-
-		if (max_devices == 0)
-		{
-			std::cerr << "could not find any GPUs to use!\n";
-			throw std::runtime_error("Device::FindPhysicalDevices() Failed!\n");
-		}
-
-		gpus.resize( max_devices );
-
-		VK_CHECK_RESULT(vkEnumeratePhysicalDevices(instance, &max_devices, gpus.data()));
-
-		for (size_t i = 0; i < max_devices; ++i)
-		{
-
-			VkPhysicalDeviceProperties properties;
-			VkPhysicalDeviceFeatures features;
-
-			vkGetPhysicalDeviceProperties(gpus[i], &properties);
-			vkGetPhysicalDeviceFeatures(gpus[i], &features);
-
-			if ((properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU) &&
-				features.geometryShader && features.samplerAnisotropy)
-			{
-				std::cout << "picked device " << i << '\n';
-
-				g_index = i;
-
-				break;
-			}
-			else if ((properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_CPU) &&
-				features.geometryShader && features.samplerAnisotropy)
-			{
-				g_index = i; //fallback on cpu with supported features
-			}
-		}
-
-		if (g_index.has_value() == false)
-		{
-			std::cerr << "could not find suitable physical device!";
-			throw std::runtime_error("Device::FindPhysicalDevices() Failed!\n");
-		}
-
-		m_gpu = gpus[g_index.value()];
-
-	}
-
 	void Device::FindQueueFamilies( VkSurfaceKHR windowSurface )
 	{
 		uint32_t queueFamilyPropertyCount;

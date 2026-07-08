@@ -46,12 +46,20 @@ namespace vk
 				g_index = i;
 				break;
 			}
+
+			if ((properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_CPU) &&
+				features.geometryShader && features.samplerAnisotropy)
+			{
+				std::cout << "picked device " << i << '\n';
+
+				g_index = i;
+			}
 		}
 
 		if (g_index.has_value() == false)
 		{
 			std::cerr << "could not find suitable physical device!";
-			throw std::runtime_error("Device::FindPhysicalDevices() Failed!\n");
+			throw std::runtime_error("Instance::GetGPU() Failed!\n");
 		}
 
 		VkPhysicalDevice gpu = gpus[g_index.value()];

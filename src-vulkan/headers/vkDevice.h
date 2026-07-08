@@ -57,7 +57,6 @@ namespace vk
 		void FlushCommandBuffer( VkCommandBuffer cmdBuffer, VkQueue queue, bool free );
 	//helpers
 	private:
-		void FindPhysicalDevices( VkInstance instance );
 		void FindQueueFamilies( VkSurfaceKHR windowSurface );
 		void InitializeLogicalDevice( std::vector<const char*>& requestedExtensions );
 		void CheckRequestedExtensions( std::vector<const char*>& requestedExtensions ) const;

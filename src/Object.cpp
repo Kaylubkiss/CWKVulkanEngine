@@ -69,7 +69,6 @@ Object::Object( const ObjectCreateInfo& objectCI, vk::TextureManager& textureMan
     if (objectCI.hasPhysicsComponent) 
     {
         m_physicsComponent = objectCI.physicsComponent;
-        InitPhysics();
     }
 }
 
@@ -140,6 +139,11 @@ void Object::Update(const float& interpFactor)
                                      matrix[12], matrix[13], matrix[14], matrix[15]);
 
         m_model->UpdateModelTransform(nModel);
+    }
+    else if (m_physicsComponent.colliderType != 
+    PhysicsComponent::ColliderType::NONE)
+    {
+        InitPhysics();
     }
 }
 

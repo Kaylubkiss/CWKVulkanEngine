@@ -64,6 +64,11 @@ namespace vk
 			m_textures.clear(); //this should call ~Texture()
 		}
 	}
+	struct AddTextureResult
+	{
+		std::shared_ptr<vk::Texture> textureHandle;
+		bool needsTransfer = false;
+	};
 
 	bool TextureManager::AddTexture( const vk::TextureCreateInfo& createInfo )
 	{

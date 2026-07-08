@@ -35,7 +35,7 @@ void Application::init()
 
 	auto& rendererInfo = m_vulkanGraphicsContext->GetInfo();
 
-	m_assetManager.Init(rendererInfo.devicePtr, &m_textureManager, 2);
+	m_assetManager.Init(rendererInfo.devicePtr, &m_textureManager, 1);
 }
 
 /*void Application::SelectWorldObjects(const vk::Window& appWindow,

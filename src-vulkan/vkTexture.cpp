@@ -28,6 +28,8 @@ namespace vk
 			throw std::runtime_error("vk::Texture::Create() FAILED");
 		}
 
+		stbi_set_flip_vertically_on_load_thread(0);
+
 		if (format == VK_FORMAT_R8G8B8A8_UNORM ||
 			format == VK_FORMAT_R8G8B8A8_SRGB ||
 			format == VK_FORMAT_R8G8B8A8_SNORM)
@@ -233,13 +235,13 @@ namespace vk
 			imageSize = static_cast<uint64_t>(textureWidth) *
 				static_cast<uint64_t>(textureHeight) * sizeof(float) * 4;
 		}
+		
+		VkDeviceSize allocSize = vk::util::AlignedSize(imageSize, devicePtr->GetProperties().limits.optimalBufferCopyOffsetAlignment);
 
 		m_stagingBuffer = vk::Buffer(devicePtr,
 			VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
-			static_cast<size_t>(imageSize));
-
-		imageSize = vk::util::AlignedSize(imageSize, devicePtr->GetProperties().limits.optimalBufferCopyOffsetAlignment);
+			static_cast<size_t>(allocSize));
 
 		m_stagingBuffer.Map();
 
