@@ -128,7 +128,7 @@ void OBJModel::ComputeVertices( std::vector<Vertex>& vertexBuffer, std::vector<u
     m_minLocalPoint = min_points;
 }
 
-OBJModel::OBJModel( vk::Device* device, const std::filesystem::path& filePath )
+OBJModel::OBJModel( const vk::Device* device, const std::filesystem::path& filePath )
 {
     std::vector<Vertex> vertices;
     std::vector<uint16_t> indices;

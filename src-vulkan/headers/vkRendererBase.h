@@ -30,11 +30,11 @@ namespace vk
 		virtual ~RendererBase();
 
 		//getters(s)
-		[[nodiscard]] GraphicsContextInfo& GetInfo();
+		const vk::Device* GetDevicePtr() const;
 		Camera& GetCamera();
 		vk::Window& GetWindow();
 
-		virtual void Render( AssetManager& assetManager ) {};
+		virtual void Render( SceneView sceneView ) = 0;
 
 		//operations
 		void WaitForDevice() const;
@@ -42,12 +42,8 @@ namespace vk
 	protected:
 		bool PrepareFrame();
 		void SubmitFrame();
-		virtual void RecordCommandBuffers( AssetManager& assetManager ) {};
-		virtual void UpdateUI() {};
+		virtual void UpdateUI() = 0;
 		virtual void ResizeWindow();
-		virtual void InitializePipeline() {};
-		virtual void InitializeDescriptors( vk::DescriptorManager& descriptorManager ) {};
-		virtual void FillOutGraphicsContextInfo();
 	private:
 		void CreateSynchronizationPrimitives();
 	protected:
@@ -64,9 +60,6 @@ namespace vk
 		float cameraFOV = 45.f;
 		Camera mCamera;
 		UserInterface UIOverlay;
-
-		//this is for textureManager and potentially any other discrete systems.
-		GraphicsContextInfo m_info = {};
 
 		vk::Instance m_instance;
 		vk::Window m_window;

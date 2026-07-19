@@ -37,7 +37,7 @@ namespace vk
 	{
 	public:
 		PipelineManager() = default;
-		PipelineManager( const GraphicsContextInfo& contextInfo );
+		PipelineManager( const vk::Device& contextInfo );
 
 		PipelineManager( const PipelineManager& other ) = delete;
 		PipelineManager& operator=( const PipelineManager& other ) = delete;

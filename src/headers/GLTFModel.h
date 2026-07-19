@@ -13,7 +13,7 @@ class GLTFModel : public Model
 {
 public:
 	GLTFModel() = default;
-	GLTFModel( vk::Device* device, const std::filesystem::path& filePath );
+	GLTFModel( const vk::Device* device, const std::filesystem::path& filePath );
 	~GLTFModel() override = default;
 
 	void Draw( const vk::DrawInfo& drawInfo ) override;

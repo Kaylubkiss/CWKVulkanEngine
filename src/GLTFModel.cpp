@@ -5,7 +5,7 @@
 #include <fastgltf/tools.hpp>
 #include <variant>
 
-GLTFModel::GLTFModel( vk::Device* device, const std::filesystem::path& filePath )
+GLTFModel::GLTFModel( const vk::Device* device, const std::filesystem::path& filePath )
 {
 	fastgltf::Options gltfOptions =
 		fastgltf::Options::DontRequireValidAssetMember |

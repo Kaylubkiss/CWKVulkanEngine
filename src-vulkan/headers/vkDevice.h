@@ -45,12 +45,12 @@ namespace vk
 		[[nodiscard]] VkPhysicalDeviceDescriptorBufferPropertiesEXT GetDescriptorBufferProperties() const;
 		[[nodiscard]] VkPhysicalDeviceProperties GetProperties() const;
 
-		const VkDevice GetDevice() const;
-		const VkPhysicalDevice GetGPU() const;
+		[[nodiscard]] const VkDevice GetDevice() const;
+		[[nodiscard]] const VkPhysicalDevice GetGPU() const;
 
-		const vk::Queue& GetQueue( DeviceQueue queue ) const;
+		[[nodiscard]] const vk::Queue& GetQueue( DeviceQueue queue ) const;
 
-		Buffer CreateBuffer( size_t size, VkBufferUsageFlags usage, VkMemoryPropertyFlags flags, void* data );
+		Buffer CreateBuffer( size_t size, VkBufferUsageFlags usage, VkMemoryPropertyFlags flags, void* data ) const;
 		void AllocateCommandBuffers( VkCommandBuffer* commandBuffers, uint32_t count ) const;
 		void FreeCommandBuffers( const VkCommandBuffer* commandBuffers, uint32_t count ) const;
 		VkCommandBuffer CreateCommandBuffer( VkCommandBufferLevel level, bool begin );

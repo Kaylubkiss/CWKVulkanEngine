@@ -351,7 +351,7 @@ namespace vk
 		return m_queues[0];
 	}
 
-	Buffer Device::CreateBuffer( size_t size, VkBufferUsageFlags usage, VkMemoryPropertyFlags flags, void* data )
+	Buffer Device::CreateBuffer( size_t size, VkBufferUsageFlags usage, VkMemoryPropertyFlags flags, void* data ) const
 	{
 		return Buffer(this, usage, flags, size, data);
 	}

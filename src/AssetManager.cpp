@@ -1,5 +1,7 @@
 #include "AssetManager.h"
 
+#include <ranges>
+
 
 void AssetManager::LoadObject( const ObjectCreateInfo& objectCI )
 {
@@ -36,7 +38,21 @@ void AssetManager::Destroy()
 	m_objects.clear(); //destroy objects with ~Object();
 }
 
-void AssetManager::Init( vk::Device* devicePtr, vk::TextureManager* textureManagerPtr, size_t workerThreadCount )
+[[nodiscard]] SceneView AssetManager::GetSceneView() const
+{
+	SceneView newSceneView;
+
+	std::shared_lock lock(m_objectMutex);
+	newSceneView.opaqueObjects.resize(m_objects.size());
+	for (const auto& object : m_objects | std::views::values)
+	{
+		newSceneView.opaqueObjects.push_back(object);
+	}
+
+	return newSceneView;
+}
+
+void AssetManager::Init( const vk::Device* devicePtr, vk::TextureManager* textureManagerPtr, size_t workerThreadCount )
 {
 	assert(devicePtr != nullptr);
 	assert(textureManagerPtr != nullptr);

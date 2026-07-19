@@ -7,7 +7,7 @@ class OBJModel : public Model
 {
 public:
 	OBJModel() = default;
-	OBJModel( vk::Device* device, const std::filesystem::path& filePath );
+	OBJModel( const vk::Device* device, const std::filesystem::path& filePath );
 	~OBJModel() override = default;
 
 	[[nodiscard]] glm::vec3 GetMinPoint() const override;

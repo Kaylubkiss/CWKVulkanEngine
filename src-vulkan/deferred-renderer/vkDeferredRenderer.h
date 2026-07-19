@@ -15,14 +15,14 @@ namespace vk
 		DeferredRenderer( TextureManager* textureManagerPtr, DescriptorManager* descriptorManagerPtr );
 		~DeferredRenderer() override;
 
-		void Render( AssetManager& assetManager ) override;
-		void ResizeWindow() override;
+		void Render( SceneView sceneView  ) override;
 	protected:
-		void RecordCommandBuffers( AssetManager& assetManager ) override;
+		void ResizeWindow() override;
 		void UpdateUI() override;
-		void InitializePipeline() override;
-		void InitializeDescriptors( vk::DescriptorManager& descriptorManager  ) override;
 	private:
+		void RecordCommandBuffers( const SceneView& sceneView );
+		void InitializePipeline();
+		void InitializeDescriptors( vk::DescriptorManager& descriptorManager  );
 		void InitializeFramebuffers();
 		void InitializeDeferredFramebuffer();
 		void InitializeDeferredShadowFramebuffer();

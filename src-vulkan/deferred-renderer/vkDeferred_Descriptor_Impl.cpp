@@ -160,8 +160,6 @@ namespace vk
     	imageDescriptorData.clear();
     	imageDescriptorData.resize(gMaxFramesInFlight);
 
-
-
     	for (size_t frame = 0; frame < imageDescriptorData.size(); ++frame)
     	{
     		const auto& skyAttachments = framebuffers.deSky[frame].GetAttachments();

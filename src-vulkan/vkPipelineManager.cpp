@@ -10,11 +10,9 @@
 namespace vk 
 {
 
-	PipelineManager::PipelineManager( const GraphicsContextInfo& contextInfo )
+	PipelineManager::PipelineManager( const vk::Device& device )
 	{
-		assert(contextInfo.devicePtr != nullptr);
-
-		contextLogicalDevice = contextInfo.devicePtr->GetDevice();
+		contextLogicalDevice = device.GetDevice();
 	}
 
 	PipelineManager::PipelineManager( PipelineManager&& other ) noexcept

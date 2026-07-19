@@ -33,9 +33,7 @@ void Application::init()
 {
 	m_vulkanGraphicsContext = std::make_unique<vk::DeferredRenderer>(&m_textureManager, &m_descriptorManager);
 
-	auto& rendererInfo = m_vulkanGraphicsContext->GetInfo();
-
-	m_assetManager.Init(rendererInfo.devicePtr, &m_textureManager, 2);
+	m_assetManager.Init(m_vulkanGraphicsContext->GetDevicePtr(), &m_textureManager, 2);
 }
 
 /*void Application::SelectWorldObjects(const vk::Window& appWindow,
@@ -117,7 +115,9 @@ void Application::loop()
 
 			m_assetManager.Update(physicsTime);
 
-			m_vulkanGraphicsContext->Render(m_assetManager);
+			SceneView sceneView = m_assetManager.GetSceneView();
+
+			m_vulkanGraphicsContext->Render(sceneView);
 		}
 
 		//when we're done with the loop, we should make sure the logical device is flushed.

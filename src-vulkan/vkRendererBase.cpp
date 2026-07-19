@@ -51,11 +51,9 @@ namespace vk
 			this->UIOverlay = UserInterface(userInterfaceCI);
 		}
 
-		RendererBase::FillOutGraphicsContextInfo();
-
 		this->mCamera = Camera({ 0.f, 0.f, 10.f }, { 0.f, 0.f, -1.f }, { 0,1,0 });
 
-		this->pipelineManager = vk::PipelineManager(m_info);
+		this->pipelineManager = vk::PipelineManager(device);
 	}
 
 	//destructor
@@ -136,14 +134,12 @@ namespace vk
 		m_settings.UIToggled = enable;
 	}
 
-	//initializers
-	void RendererBase::FillOutGraphicsContextInfo()
-	{
-		//TODO: a little janky way to initialize as more of mInfo is filled with derived classes.
-		m_info.devicePtr = &this->device;
-	}
-
 	//getter(s)
+
+	const vk::Device* RendererBase::GetDevicePtr() const
+	{
+		return &device;
+	}
 
 	Camera& RendererBase::GetCamera()
 	{
@@ -153,11 +149,6 @@ namespace vk
 	vk::Window& RendererBase::GetWindow()
 	{
 		return m_window;
-	}
-
-	GraphicsContextInfo& RendererBase::GetInfo()
-	{
-		return m_info;
 	}
 
 	void RendererBase::WaitForDevice() const

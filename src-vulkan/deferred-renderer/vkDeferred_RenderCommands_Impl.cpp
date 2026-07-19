@@ -3,7 +3,7 @@
 
 namespace vk
 {
-    void DeferredRenderer::RecordCommandBuffers( AssetManager& assetManager )
+    void DeferredRenderer::RecordCommandBuffers( const SceneView& sceneView )
 	{
 		VkCommandBuffer cmdBuffer = commandBuffers[currentFrame];
 		VkCommandBufferBeginInfo cmdBufferBeginInfo = vk::init::CommandBufferBeginInfo();
@@ -138,7 +138,13 @@ namespace vk
 			drawInfo.pipelineLayout = m_graphicsPipelineLayout;
 			drawInfo.textureBindingSize = m_descriptorManagerPtr->GetLayoutSize(DescriptorCategory::eMaterial);
 
-			assetManager.DrawObjects(drawInfo);
+			for (auto& object : sceneView.opaqueObjects)
+			{
+				if (!object.expired())
+				{
+					object.lock()->Draw(drawInfo);
+				}
+			}
 
 			vkCmdEndRenderPass(cmdBuffer);
 		}

@@ -15,7 +15,7 @@ struct ObjectCreateInfo
 	PhysicsComponent physicsComponent;
 	std::string objName;
 	std::vector<std::string> textureFileNames;
-	vk::Device* devicePtr = nullptr;
+	const vk::Device* devicePtr = nullptr;
 	vk::TextureManager* textureManagerPtr = nullptr;
 	bool hasPhysicsComponent = false;
 };
