@@ -178,6 +178,9 @@ ${SHADER_SRC_DIR}/deferred-render/deComposition.frag
 #deferred shadowing
 ${SHADER_SRC_DIR}/deferred-render/deShadow.geom
 ${SHADER_SRC_DIR}/deferred-render/deShadow.vert
+        src/headers/SceneDefinitions.h
+		src/headers/SceneManager.h
+		src/SceneManager.cpp
 )
 
 

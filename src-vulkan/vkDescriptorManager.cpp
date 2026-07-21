@@ -129,21 +129,23 @@ namespace vk
     {
         std::lock_guard lock(m_mutex);
 
-        if (m_descriptorBuffers.contains(category) == false)
-        {
-            return -1;
-        }
+        uint32_t index = UINT32_MAX;
 
-        if (m_descriptorBuffers[category].freeList.empty())
+        auto it = m_descriptorBuffers.find(category);
+        if (it != m_descriptorBuffers.end())
         {
-            std::cerr << "no more space in the free list for descriptor category\n";
-            throw std::runtime_error("DescriptorBuffer::GetLayoutIndex() failed");
-        }
+            if (it->second.freeList.empty())
+            {
+                std::cerr << "no more space in the free list for descriptor category\n";
+                throw std::runtime_error("DescriptorBuffer::GetLayoutIndex() failed");
+            }
 
-        uint32_t index = m_descriptorBuffers[category].freeList.back();
-        m_descriptorBuffers[category].freeList.pop_back();
+            index = it->second.freeList.back();
+            it->second.freeList.pop_back();
+        }
 
         return index;
+
     }
 
     VkDeviceSize DescriptorManager::GetLayoutSize(DescriptorCategory category)
@@ -174,8 +176,10 @@ namespace vk
     {
         std::lock_guard lock(m_mutex);
 
-        if (m_descriptorBuffers.contains(category)) {
-            return m_descriptorBuffers[category].descriptor.GetBuffer().GetDeviceAddress();
+        auto it = m_descriptorBuffers.find(category);
+        if (it != m_descriptorBuffers.end())
+        {
+            return it->second.descriptor.GetBuffer().GetDeviceAddress();
         }
 
         std::cerr << "DescriptorManager::GetDescriptorAddress(), device address is invalid for requested category\n";

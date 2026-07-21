@@ -22,7 +22,6 @@ namespace vk
 	*/
 	PanoramicTexture::PanoramicTexture( const vk::Device* devicePtr,  const vk::TextureCreateInfo& createInfo )
     {
-
 		//check: is there a prefiltered map? is there a BRDF LUT?
 		assert( devicePtr != nullptr );
 

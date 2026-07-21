@@ -41,7 +41,7 @@ namespace vk
 		    resourceBufferPtrs.resize(gMaxFramesInFlight);
 		    for (size_t frame = 0; frame < resourceBufferPtrs.size(); ++frame)
 		    {
-			    vk::Buffer* handle = &uniformBuffers[frame].mrt;
+			    vk::Buffer* handle = &uniformBuffers.mrt[frame];
 			    resourceBufferPtrs[frame].push_back(handle);
 		    }
 
@@ -54,7 +54,7 @@ namespace vk
 		    resourceBufferPtrs.resize(gMaxFramesInFlight);
 		    for (size_t frame = 0; frame < resourceBufferPtrs.size(); ++frame)
 		    {
-			    vk::Buffer* handle = &uniformBuffers[frame].shadow;
+			    vk::Buffer* handle = &uniformBuffers.shadow[frame];
 			    resourceBufferPtrs[frame].push_back(handle);
 		    }
 
@@ -67,7 +67,7 @@ namespace vk
 		    resourceBufferPtrs.resize(gMaxFramesInFlight);
 		    for (size_t frame = 0; frame < resourceBufferPtrs.size(); ++frame)
 		    {
-			    resourceBufferPtrs[frame].push_back(&uniformBuffers[frame].composition);
+			    resourceBufferPtrs[frame].push_back(&uniformBuffers.composition[frame]);
 		    }
 
 		    descriptorManager.WriteDescriptors(DescriptorCategory::eUBO, lightUBOLayoutIndex, resourceBufferPtrs);
@@ -114,7 +114,7 @@ namespace vk
 		descriptorManager.AllocateDescriptorBuffer(DescriptorCategory::eCompositionImage,
 			gMaxFramesInFlight, imageCount, setLayoutBindings);
 
-    	compositionImageIndex = m_descriptorManagerPtr->GetLayoutIndex(DescriptorCategory::eCompositionImage);
+    	compositionImageIndex = m_descriptorManagerPtr.GetLayoutIndex(DescriptorCategory::eCompositionImage);
 
     	vk::imageBuffers2D imageDescriptorData;
     	imageDescriptorData.resize(gMaxFramesInFlight);
@@ -155,7 +155,7 @@ namespace vk
 
     	descriptorManager.WriteDescriptors(DescriptorCategory::eCompositionImage, compositionImageIndex, imageDescriptorData);
 
-    	swapChainImageIndex = m_descriptorManagerPtr->GetLayoutIndex(DescriptorCategory::eCompositionImage);
+    	swapChainImageIndex = m_descriptorManagerPtr.GetLayoutIndex(DescriptorCategory::eCompositionImage);
 
     	imageDescriptorData.clear();
     	imageDescriptorData.resize(gMaxFramesInFlight);
@@ -180,7 +180,7 @@ namespace vk
     {
     	if (skyboxImageIndex == UINT_MAX)
     	{
-    		skyboxImageIndex = m_descriptorManagerPtr->GetLayoutIndex(DescriptorCategory::eMaterial);
+    		skyboxImageIndex = m_descriptorManagerPtr.GetLayoutIndex(DescriptorCategory::eMaterial);
     	}
 
     	vk::imageBuffers2D panoramicImageBuffer;

@@ -17,18 +17,18 @@ namespace vk
     	{
     		{
 				.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_BUFFER_BINDING_INFO_EXT,
-    			.address = m_descriptorManagerPtr->GetDescriptorAddress(DescriptorCategory::eUBO),
+    			.address = m_descriptorManagerPtr.GetDescriptorAddress(DescriptorCategory::eUBO),
     			.usage = VK_BUFFER_USAGE_RESOURCE_DESCRIPTOR_BUFFER_BIT_EXT
 			},
     		{
     			.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_BUFFER_BINDING_INFO_EXT,
-    			.address = m_descriptorManagerPtr->GetDescriptorAddress(DescriptorCategory::eCompositionImage),
+    			.address = m_descriptorManagerPtr.GetDescriptorAddress(DescriptorCategory::eCompositionImage),
     			.usage = VK_BUFFER_USAGE_SAMPLER_DESCRIPTOR_BUFFER_BIT_EXT |
 					VK_BUFFER_USAGE_RESOURCE_DESCRIPTOR_BUFFER_BIT_EXT
     		},
     		{
     			.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_BUFFER_BINDING_INFO_EXT,
-    			.address = m_descriptorManagerPtr->GetDescriptorAddress(DescriptorCategory::eMaterial),
+    			.address = m_descriptorManagerPtr.GetDescriptorAddress(DescriptorCategory::eMaterial),
     			.usage = VK_BUFFER_USAGE_SAMPLER_DESCRIPTOR_BUFFER_BIT_EXT |
     				VK_BUFFER_USAGE_RESOURCE_DESCRIPTOR_BUFFER_BIT_EXT
     		}
@@ -91,7 +91,7 @@ namespace vk
 			vkCmdEndRenderPass(cmdBuffer);
 		}*/
 
-    	VkDeviceSize uboLayoutSize = m_descriptorManagerPtr->GetLayoutSize(DescriptorCategory::eUBO);
+    	VkDeviceSize uboLayoutSize = m_descriptorManagerPtr.GetLayoutSize(DescriptorCategory::eUBO);
 
 		//MRT rendering.
 		{
@@ -136,7 +136,7 @@ namespace vk
 			drawInfo.imageBufferIndex = materialDescriptorIndex;
 			drawInfo.firstSet = materialDescriptorIndex;
 			drawInfo.pipelineLayout = m_graphicsPipelineLayout;
-			drawInfo.textureBindingSize = m_descriptorManagerPtr->GetLayoutSize(DescriptorCategory::eMaterial);
+			drawInfo.textureBindingSize = m_descriptorManagerPtr.GetLayoutSize(DescriptorCategory::eMaterial);
 
 			for (auto& object : sceneView.opaqueObjects)
 			{
@@ -182,7 +182,7 @@ namespace vk
 
 			//composition image samplers;
 			VkDeviceSize buffer_offset = (gMaxFramesInFlight * compositionImageIndex + currentFrame) *
-				m_descriptorManagerPtr->GetLayoutSize(DescriptorCategory::eCompositionImage);
+				m_descriptorManagerPtr.GetLayoutSize(DescriptorCategory::eCompositionImage);
 
 			g_vkCmdSetDescriptorBufferOffsetsEXT(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
 				m_graphicsPipelineLayout, compositionImageDescriptorIndex, 1, &compositionImageDescriptorIndex, &buffer_offset);
@@ -234,7 +234,7 @@ namespace vk
 			g_vkCmdSetDescriptorBufferOffsetsEXT(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
 				m_graphicsPipelineLayout, uboDescriptorIndex, 1, &uboDescriptorIndex, &buffer_offset);
 
-			buffer_offset = skyboxImageIndex * m_descriptorManagerPtr->GetLayoutSize(DescriptorCategory::eMaterial);
+			buffer_offset = skyboxImageIndex * m_descriptorManagerPtr.GetLayoutSize(DescriptorCategory::eMaterial);
 
 			//scene sampler
 			g_vkCmdSetDescriptorBufferOffsetsEXT(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
@@ -277,7 +277,7 @@ namespace vk
 			vkCmdSetScissor(cmdBuffer, 0, 1, &sceneScissor);
 
 			VkDeviceSize buffer_offset =  (gMaxFramesInFlight * swapChainImageIndex + currentFrame) *
-				m_descriptorManagerPtr->GetLayoutSize(DescriptorCategory::eCompositionImage);
+				m_descriptorManagerPtr.GetLayoutSize(DescriptorCategory::eCompositionImage);
 
 			g_vkCmdSetDescriptorBufferOffsetsEXT(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
 				m_graphicsPipelineLayout, compositionImageDescriptorIndex, 1, &compositionImageDescriptorIndex, &buffer_offset);

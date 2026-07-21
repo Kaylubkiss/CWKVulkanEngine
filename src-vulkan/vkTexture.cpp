@@ -7,6 +7,7 @@
 
 namespace vk
 {
+	template<class... Ts> struct overloaded : Ts... {using Ts::operator()...; };
 
 	inline bool Texture::FormatIsSupported( VkFormat format )
 	{
@@ -225,18 +226,34 @@ namespace vk
 		m_width = static_cast<uint32_t>(textureWidth);
 		m_height = static_cast<uint32_t>(textureHeight);
 
-		if ( std::holds_alternative<stbi_uc*>(pixelData) )
-		{
-			imageSize = static_cast<uint64_t>(textureWidth) *
-				static_cast<uint64_t>(textureHeight) * 4;
-		}
-		else
-		{
-			imageSize = static_cast<uint64_t>(textureWidth) *
-				static_cast<uint64_t>(textureHeight) * sizeof(float) * 4;
-		}
+		std::visit( overloaded {
+				[](std::monostate) { std::cerr << "couldn't load the pixel data (check format).\n"; },
+				[&imageSize, textureWidth, textureHeight] (const stbi_uc* pixels) {
+
+					if (!pixels)
+					{
+						std::cerr << "couldn't load the pixel data (check format or directory).\n";
+						return;
+					}
+
+					imageSize = static_cast<uint64_t>(textureWidth) * static_cast<uint64_t>(textureHeight) * 4;
+
+				},
+				[&imageSize, textureWidth, textureHeight](const float* pixels){
+
+					if (!pixels)
+					{
+						std::cerr << "couldn't load the pixel data (check format or directory).\n";
+						return;
+					}
+
+					imageSize = static_cast<uint64_t>(textureWidth) * static_cast<uint64_t>(textureHeight) *
+						sizeof(float) * 4;
+				}
+		}, pixelData);
 		
-		VkDeviceSize allocSize = vk::util::AlignedSize(imageSize, devicePtr->GetProperties().limits.optimalBufferCopyOffsetAlignment);
+		VkDeviceSize allocSize = vk::util::AlignedSize(imageSize,
+			devicePtr->GetProperties().limits.optimalBufferCopyOffsetAlignment);
 
 		m_stagingBuffer = vk::Buffer(devicePtr,
 			VK_BUFFER_USAGE_TRANSFER_SRC_BIT,

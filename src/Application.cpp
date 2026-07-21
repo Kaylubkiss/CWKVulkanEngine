@@ -1,6 +1,31 @@
 #include "Input.h"
 #include "vkDeferredRenderer.h"
 
+static void Locatecwd()
+{
+	std::filesystem::path cwd = std::filesystem::current_path();
+	while (cwd.has_parent_path() && cwd.parent_path() != cwd)
+	{
+		if (std::filesystem::exists(cwd.string() + "/src/"))
+		{
+			std::filesystem::current_path(cwd/"src");
+			return;
+		}
+		cwd = cwd.parent_path();
+	}
+}
+
+Application::Application()
+{
+	Locatecwd();
+
+	m_vulkanGraphicsContext = std::make_unique<vk::DeferredRenderer>(&m_textureManager, m_descriptorManager);
+
+	m_assetManager.Init(m_vulkanGraphicsContext->GetDevicePtr(), &m_textureManager, 2);
+
+	m_sceneManager.Init(m_assetManager);
+}
+
 PhysicsSystem& Application::GetPhysics() 
 {
 	return this->m_physics;
@@ -18,22 +43,30 @@ vk::RendererBase* Application::GetVulkanRenderer() const
 
 void Application::run()
 {
-	//initialize all resources.
-	Application::init();
-	 
-	//render, update, render, update...
-	Application::loop();
+	if (m_vulkanGraphicsContext != nullptr)
+	{
+		//render graphics.
+		while (exitApplication == false)
+		{
+			double realFrameTime = mTime.CalculateDeltaTime();
 
-	//cleanup resources
-	Application::exit();
-}
+			float physicsTime = m_physics.InterpFactor(static_cast<float>(realFrameTime));
 
+			Input::MoveCamera(m_vulkanGraphicsContext->GetCamera(), static_cast<float>(realFrameTime));
 
-void Application::init() 
-{
-	m_vulkanGraphicsContext = std::make_unique<vk::DeferredRenderer>(&m_textureManager, &m_descriptorManager);
+			if (exitApplication)
+			{
+				break;
+			}
 
-	m_assetManager.Init(m_vulkanGraphicsContext->GetDevicePtr(), &m_textureManager, 2);
+			m_sceneManager.Update( physicsTime );
+
+			m_vulkanGraphicsContext->Render( m_sceneManager.GetSceneView() );
+		}
+
+		//when we're done with the loop, we should make sure the logical device is flushed.
+		m_vulkanGraphicsContext->WaitForDevice();
+	}
 }
 
 /*void Application::SelectWorldObjects(const vk::Window& appWindow,
@@ -95,48 +128,12 @@ void Application::RequestExit()
 	this->exitApplication = true;
 }
 
-void Application::loop()
-{
-	if (m_vulkanGraphicsContext != nullptr)
-	{
-		//render graphics.
-		while (exitApplication == false)
-		{
-			double realFrameTime = mTime.CalculateDeltaTime();
-
-			float physicsTime = m_physics.InterpFactor(static_cast<float>(realFrameTime));
-
-			Input::MoveCamera(m_vulkanGraphicsContext->GetCamera(), static_cast<float>(realFrameTime));
-
-			if (exitApplication)
-			{
-				break;
-			}
-
-			m_assetManager.Update(physicsTime);
-
-			SceneView sceneView = m_assetManager.GetSceneView();
-
-			m_vulkanGraphicsContext->Render(sceneView);
-		}
-
-		//when we're done with the loop, we should make sure the logical device is flushed.
-		m_vulkanGraphicsContext->WaitForDevice();
-	}
-}
-
-
-void Application::exit()
+Application::~Application()
 {
 	m_assetManager.Destroy();
 	m_textureManager.Destroy();
 	m_descriptorManager.Destroy();
 
 	SDL_Quit();
-}
-
-
-Application::~Application()
-{
 }
 

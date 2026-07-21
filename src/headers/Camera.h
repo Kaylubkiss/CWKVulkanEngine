@@ -9,8 +9,7 @@ using namespace reactphysics3d;
 class Camera final
 {
 public:
-	Camera() : mEye(0.f), mUpVector(0.f) {}
-
+	Camera() = default;
 	Camera( const glm::vec3& eye, const glm::vec3& lookDirection, const	glm::vec3& up );
 
 	bool IsUpdated() const;
@@ -29,12 +28,12 @@ public:
 	glm::vec3 ViewDirection();
 private:
 	bool isUpdate = false;
-	bool isInterpolating = false;
 
-	glm::vec3 mEye;
-	glm::vec3 mUpVector;
+	glm::vec3 mEye = glm::vec3(0);
+	glm::vec3 mUpVector = glm::vec3(0);
 	glm::vec3 mLookDir = glm::vec3(0, 0, -1);
 
+	float mFOV = 45.0f;
 	float mPitch = 0.f;
 	float mYaw = 0.f;
 

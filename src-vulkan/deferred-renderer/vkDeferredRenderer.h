@@ -12,7 +12,7 @@ namespace vk
 	class DeferredRenderer : public RendererBase
 	{
 	public:
-		DeferredRenderer( TextureManager* textureManagerPtr, DescriptorManager* descriptorManagerPtr );
+		DeferredRenderer( TextureManager* textureManagerPtr, DescriptorManager& descriptorManagerPtr );
 		~DeferredRenderer() override;
 
 		void Render( SceneView sceneView  ) override;
@@ -62,36 +62,29 @@ namespace vk
 			RT_COUNT
 		};
 
-		struct Light
-		{
-			glm::vec3 pos        = glm::vec3(0.f); /* position of light */
-			glm::vec3 albedo     = glm::vec3(1000.f); /* base color of light */
-			glm::mat4 viewMatrix = glm::mat4(1.f); /* the viewpoint of the light toward a certain point */
-		};
-
-
 		struct UniformDataMRT
 		{
-			glm::mat4 eyeMatrix = glm::mat4(1.f);
+			glm::mat4 viewMatrix = glm::mat4(1.f);
 			glm::mat4 projectionMatrix = glm::mat4(1.f);
 		} uniformDataMRT{};
 
-		struct UniformDataLightPass {
+		struct UniformDataLightPass
+		{
 			std::array<Light, LIGHT_COUNT> lights;
-			glm::vec3 eyePosition;
+			glm::vec3 eyePosition = glm::vec3(0);
 		} uniformDataLightPass {};
 
 		struct UniformDataDeferredShadow
 		{
 			std::array<glm::mat4, LIGHT_COUNT> viewMatrices;
-		} uniformDataDeferredShadow{};
+		} uniformDataDeferredShadow;
 
 		struct UniformBuffers
 		{
-			vk::Buffer mrt;
-			vk::Buffer shadow;
-			vk::Buffer composition;
-		};
+			std::array<vk::Buffer, gMaxFramesInFlight> mrt;
+			std::array<vk::Buffer, gMaxFramesInFlight> shadow;
+			std::array<vk::Buffer, gMaxFramesInFlight> composition;
+		} uniformBuffers;
 
 		//for descriptorManager
 		uint32_t mrtUBOLayoutIndex = 0;
@@ -101,8 +94,6 @@ namespace vk
 		uint32_t compositionImageIndex = 0;
 		uint32_t swapChainImageIndex = 0;
 		uint32_t skyboxImageIndex = UINT_MAX;
-
-		std::array<UniformBuffers, gMaxFramesInFlight> uniformBuffers;
 
 		struct
 		{
@@ -132,7 +123,7 @@ namespace vk
 			int selectedEnvironmentMap = 0;
 		} m_guiHelper;
 
-		DescriptorManager* m_descriptorManagerPtr = nullptr;
+		DescriptorManager& m_descriptorManagerPtr;
 
 		vk::PanoramicTexture m_test_panoramicImage;
 

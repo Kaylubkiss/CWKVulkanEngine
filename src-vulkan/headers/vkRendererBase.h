@@ -30,7 +30,7 @@ namespace vk
 		virtual ~RendererBase();
 
 		//getters(s)
-		const vk::Device* GetDevicePtr() const;
+		[[nodiscard]] const vk::Device* GetDevicePtr() const;
 		Camera& GetCamera();
 		vk::Window& GetWindow();
 

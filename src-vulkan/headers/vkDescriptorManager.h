@@ -39,7 +39,7 @@ namespace vk
 
         VkDescriptorSetLayout GetLayout( DescriptorCategory category );
 
-        VkDeviceAddress GetDescriptorAddress( DescriptorCategory category );
+        [[nodiscard]] VkDeviceAddress GetDescriptorAddress( DescriptorCategory category );
 
 
     private:

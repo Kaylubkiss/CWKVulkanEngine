@@ -8,28 +8,27 @@ namespace vk
 {
 
 	DeferredRenderer::DeferredRenderer( TextureManager* textureManagerPtr,
-		DescriptorManager* descriptorManagerPtr )
+		DescriptorManager& descriptorManagerPtr ) :
+		m_descriptorManagerPtr(descriptorManagerPtr)
 	{
-
-		m_descriptorManagerPtr = descriptorManagerPtr;
 		m_textureManagerPtr = textureManagerPtr;
 
-		m_descriptorManagerPtr->Init(&device);
-		m_textureManagerPtr->Init(&device, m_descriptorManagerPtr);
+		m_descriptorManagerPtr.Init(&device);
+		m_textureManagerPtr->Init(&device, &m_descriptorManagerPtr);
 
 		InitializeUniforms();
 		InitializeFramebuffers();
 
 		std::string skyboxName = "art/extern-textures/spruit_sunrise_2k.hdr";
-		vk::TextureCreateInfo texture_create_info = {  };
-		texture_create_info.fileName = { skyboxName };
+		vk::TextureCreateInfo texture_create_info = {};
+		texture_create_info.fileName = {skyboxName};
 		texture_create_info.format = VK_FORMAT_R32G32B32A32_SFLOAT;
 		texture_create_info.mipLevels = 1;
 		texture_create_info.layerCount = 1;
 
-		m_test_panoramicImage = vk::PanoramicTexture( &device, texture_create_info );
+		m_test_panoramicImage = vk::PanoramicTexture(&device, texture_create_info);
 
-		DeferredRenderer::InitializeDescriptors(*m_descriptorManagerPtr);
+		DeferredRenderer::InitializeDescriptors(m_descriptorManagerPtr);
 
 		DeferredRenderer::InitializePipeline();
 	}
@@ -64,31 +63,31 @@ namespace vk
 		uniformDataDeferredShadow.viewMatrices[1] = perspective * glm::lookAt(uniformDataLightPass.lights[1].pos,
 			sceneSettings.cubePosition, glm::vec3(0, 1, 0));
 
-		for (size_t i = 0; i < uniformBuffers.size(); ++i)
+		for (size_t i = 0; i < gMaxFramesInFlight; ++i)
 		{
 			//////////////////////////////////
 			//#1 - deferred MRT
-			uniformBuffers[i].mrt = device.CreateBuffer(sizeof(uniformDataMRT),
+			uniformBuffers.mrt[i] = device.CreateBuffer(sizeof(uniformDataMRT),
 				VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
 				VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
 				(void*)(&uniformDataMRT));
-			uniformBuffers[i].mrt.Map(); //persistent data
+			uniformBuffers.mrt[i].Map(); //persistent data
 
 			//////////////////////////////////
 			//#2 - deferred shadows
-			uniformBuffers[i].shadow = device.CreateBuffer(sizeof(uniformDataDeferredShadow),
+			uniformBuffers.shadow[i] = device.CreateBuffer(sizeof(uniformDataDeferredShadow),
 				VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
 				VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
 				(void*)(&uniformDataDeferredShadow));
-			uniformBuffers[i].shadow.Map(); //persistent data
+			uniformBuffers.shadow[i].Map(); //persistent data
 
 			//////////////////////////////////
 			//#3 - deferred light pass
-			uniformBuffers[i].composition = device.CreateBuffer(sizeof(uniformDataLightPass),
+			uniformBuffers.composition[i] = device.CreateBuffer(sizeof(uniformDataLightPass),
 				VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
 				VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
 				(void*)(&uniformDataLightPass));
-			uniformBuffers[i].composition.Map(); //persistent data
+			uniformBuffers.composition[i].Map(); //persistent data
 		}
 	}
 
@@ -102,9 +101,9 @@ namespace vk
 
 		std::vector<VkDescriptorSetLayout> pipelineLayout =
 		{
-			m_descriptorManagerPtr->GetLayout(DescriptorCategory::eUBO),
-			m_descriptorManagerPtr->GetLayout(DescriptorCategory::eCompositionImage),
-			m_descriptorManagerPtr->GetLayout(DescriptorCategory::eMaterial)
+			m_descriptorManagerPtr.GetLayout(DescriptorCategory::eUBO),
+			m_descriptorManagerPtr.GetLayout(DescriptorCategory::eCompositionImage),
+			m_descriptorManagerPtr.GetLayout(DescriptorCategory::eMaterial)
 		};
 
 
@@ -123,14 +122,14 @@ namespace vk
 		VkViewport windowViewport = m_window.Viewport();
 
 		//transform(s)
-		uniformDataMRT.eyeMatrix = mCamera.LookAt();
+		uniformDataMRT.viewMatrix = mCamera.LookAt();
 
 		uniformDataMRT.projectionMatrix = glm::perspective(glm::radians(cameraFOV),
 				(float)windowViewport.width / windowViewport.height, 0.1f, 1000.f);
 
 		uniformDataMRT.projectionMatrix[1][1] *= -1;
 
-		memcpy(uniformBuffers[currentFrame].mrt.GetMappedMemory(), (void*)(&uniformDataMRT),
+		memcpy(uniformBuffers.mrt[currentFrame].GetMappedMemory(), (void*)(&uniformDataMRT),
 			sizeof(uniformDataMRT));
 
 		//shadows
@@ -142,7 +141,7 @@ namespace vk
 		uniformDataDeferredShadow.viewMatrices[1] = perspective * glm::lookAt(uniformDataLightPass.lights[1].pos,
 			sceneSettings.cubePosition, glm::vec3(0, 1, 0));
 
-		memcpy(uniformBuffers[currentFrame].shadow.GetMappedMemory(), (void*)(&uniformDataDeferredShadow),
+		memcpy(uniformBuffers.shadow[currentFrame].GetMappedMemory(), (void*)(&uniformDataDeferredShadow),
 			sizeof(uniformDataDeferredShadow));
 	}
 
@@ -153,7 +152,7 @@ namespace vk
 		uniformDataLightPass.lights[0].viewMatrix = uniformDataDeferredShadow.viewMatrices[0];
 		uniformDataLightPass.lights[1].viewMatrix = uniformDataDeferredShadow.viewMatrices[1];
 
-		memcpy(uniformBuffers[currentFrame].composition.GetMappedMemory(),
+		memcpy(uniformBuffers.composition[currentFrame].GetMappedMemory(),
 			(void*)(&uniformDataLightPass),
 			sizeof(uniformDataLightPass));
 	}
@@ -232,9 +231,9 @@ namespace vk
 					m_test_panoramicImage = PanoramicTexture(&device, texture_create_info);
 
 					//have to update the descriptors
-					InitializeSkyboxDescriptor( *m_descriptorManagerPtr );
+					InitializeSkyboxDescriptor( m_descriptorManagerPtr );
 
-					InitializeEnvironmentMapDescriptors( *m_descriptorManagerPtr );
+					InitializeEnvironmentMapDescriptors( m_descriptorManagerPtr );
 				}
 			}
 
@@ -271,7 +270,7 @@ namespace vk
 			skyboxPipelineBuilder->UpdateRenderPass(framebuffers.deSky.back().GetRenderPass());
 		}
 
-		InitializeCompositionImageDescriptors(*m_descriptorManagerPtr);
+		InitializeCompositionImageDescriptors(m_descriptorManagerPtr);
 	}
 
 	void DeferredRenderer::Render( SceneView sceneView  )
