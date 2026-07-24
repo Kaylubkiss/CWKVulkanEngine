@@ -34,7 +34,8 @@ void AssetManager::Destroy()
 {
 	m_threadWorkers.Terminate();
 
-	m_objects.clear(); //destroy objects with ~Object();
+	std::unique_lock lock(m_objectMutex);
+	m_objects.clear();
 }
 
 std::shared_ptr<Object> AssetManager::GetObject( const std::string& objectName )

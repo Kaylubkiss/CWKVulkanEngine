@@ -140,15 +140,11 @@ namespace vk
 
 			for (auto& object : sceneView.opaqueObjects)
 			{
-				if (!object.expired())
-				{
-					object.lock()->Draw(drawInfo);
-				}
+				object->Draw(drawInfo);
 			}
 
 			vkCmdEndRenderPass(cmdBuffer);
 		}
-
 
 		//Composition
 		{

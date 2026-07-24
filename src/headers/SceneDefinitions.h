@@ -1,9 +1,12 @@
 #ifndef SCENEDEFINITIONS_HPP
 #define SCENEDEFINITIONS_HPP
 
+#include "Camera.h"
+#include <span>
+
 class Object;
 
-typedef std::unordered_map<std::string, std::shared_ptr<Object>> ObjectMap;
+typedef std::unordered_map<std::string, std::shared_ptr<Object>> ObjectMap; //need the shared_ptr to ensure atomic reads.
 
 struct Light
 {
@@ -14,15 +17,16 @@ struct Light
 
 struct SceneView
 {
-    std::vector<std::weak_ptr<Object>> opaqueObjects;
+    std::span<const std::shared_ptr<Object>> opaqueObjects;
     std::vector<std::weak_ptr<Object>> transparentObjects;
-    std::vector<std::weak_ptr<Light>> lights;
+    std::vector<Light*> lights;
+};
 
-    void Reset()
-    {
-        opaqueObjects.clear();
-        transparentObjects.clear();
-    }
+struct Scene
+{
+    std::vector<std::shared_ptr<Object>> m_objects;
+    std::vector<std::shared_ptr<Light>> m_lights;
+    Camera m_camera;
 };
 
 // this might be consolidated with SceneInitInfo

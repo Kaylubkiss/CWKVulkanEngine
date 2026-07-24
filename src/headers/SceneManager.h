@@ -9,7 +9,6 @@
     class SceneManager
     {
     public:
-
         [[nodiscard]] SceneView GetSceneView() const;
 
         void Init( AssetManager& assetManager );
@@ -19,7 +18,7 @@
         void GrabRequestedObjects(); //todo: need a messaging system so asset manager can notify scenemanager instead.
     private:
         std::list<std::string> m_requestedObjects; //list of filenames the asset (resource) manager used.
-        std::map<std::string, std::weak_ptr<Object>>  m_objects; //non-owning references.
+        Scene m_scene; // might be useful to have a list of scenes.
         AssetManager* assetManagerPtr = nullptr;
     };
 

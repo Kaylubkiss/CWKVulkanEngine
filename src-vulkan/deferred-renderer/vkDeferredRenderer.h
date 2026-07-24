@@ -77,7 +77,7 @@ namespace vk
 		struct UniformDataDeferredShadow
 		{
 			std::array<glm::mat4, LIGHT_COUNT> viewMatrices;
-		} uniformDataDeferredShadow;
+		} uniformDataDeferredShadow {};
 
 		struct UniformBuffers
 		{
@@ -103,7 +103,7 @@ namespace vk
 			std::array<Framebuffer, gMaxFramesInFlight> deSky;
 		} framebuffers;
 
-		VkPipelineLayout m_graphicsPipelineLayout = nullptr;
+		VkPipelineLayout m_graphicsPipelineLayout = VK_NULL_HANDLE;
 
 		float depthBiasConstant = 1.25f;
 		float depthBiasSlope    = 1.75f;
@@ -116,7 +116,7 @@ namespace vk
 		{
 			glm::vec3 cubePosition   = { 1.0, 20, -5.f };
 			glm::vec3 freddyPosition = { 1.5f, 1.0, 3.f };
-		} sceneSettings{};
+		} sceneSettings {};
 
 		struct
 		{

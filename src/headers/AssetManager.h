@@ -5,6 +5,7 @@
 #include "ThreadPool.h"
 #include <shared_mutex>
 #include "SceneDefinitions.h"
+#include "vkDevice.h"
 
 // (7.20.26) Asset manager is doing too much.
 // Asset Manager:
@@ -32,8 +33,8 @@ public:
 private:
 	mutable std::shared_mutex m_objectMutex; //"mutable" to bypass const methods
 	const vk::Device* c_devicePtr = nullptr;
-	ObjectMap m_objects;
-	ObjectMap m_transparentObjects;
+	ObjectMap m_objects{};
+	ObjectMap m_transparentObjects{};
 	ThreadPool m_threadWorkers; //this needs to be destroyed first.
 	vk::TextureManager* m_textureManagerPtr = nullptr;
 	SceneView m_sceneView;

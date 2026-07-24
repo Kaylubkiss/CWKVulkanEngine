@@ -73,6 +73,7 @@ src/Input.cpp
 src/UserInterface.cpp
 src/GLTFModel.cpp
 src/OBJModel.cpp
+src/SceneManager.cpp
 )
 
 set(VULKAN_SRC_DIR src-vulkan)
@@ -136,6 +137,8 @@ ${HEADER_SRC_DIR}/UserInterface.h
 ${HEADER_SRC_DIR}/GLTFModel.h
 ${HEADER_SRC_DIR}/OBJModel.h
 ${HEADER_SRC_DIR}/Model.h
+${HEADER_SRC_DIR}/SceneManager.h
+${HEADER_SRC_DIR}/SceneDefinitions.h
 )
 				 
 set(VULKAN_HEADER_DIR src-vulkan/headers)

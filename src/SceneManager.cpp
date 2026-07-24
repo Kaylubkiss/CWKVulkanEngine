@@ -13,23 +13,38 @@ void SceneManager::Init( AssetManager& assetManager )
 {
 	SceneView newSceneView;
 
-	newSceneView.opaqueObjects.resize(m_objects.size());
-	for (const auto& object : m_objects | std::views::values)
-	{
-		newSceneView.opaqueObjects.push_back(object);
-	}
+	newSceneView.opaqueObjects = m_scene.m_objects;
 
 	return newSceneView;
+}
+
+void SceneManager::GrabRequestedObjects()
+{
+	if (!m_requestedObjects.empty())
+	{
+		auto it = m_requestedObjects.begin();
+		while (it != m_requestedObjects.end())
+		{
+			auto object = assetManagerPtr->GetObject( *it );
+			if (object != nullptr)
+			{
+				m_scene.m_objects.push_back(object);
+				it = m_requestedObjects.erase(it);
+			}
+			else
+			{
+				++it;
+			}
+		}
+	}
 }
 
 void SceneManager::Update( float dt )
 {
     GrabRequestedObjects();
 
-    for (auto& val : m_objects | std::views::values)
+    for (auto& obj : m_scene.m_objects)
     {
-        auto obj = val.lock();
-
         if (obj) //null check per object?
         {
             obj->Update(dt);
@@ -37,26 +52,7 @@ void SceneManager::Update( float dt )
     }
 }
 
-void SceneManager::GrabRequestedObjects()
-{
-    if (!m_requestedObjects.empty())
-    {
-        auto it = m_requestedObjects.begin();
-        while (it != m_requestedObjects.end())
-        {
-            auto object = assetManagerPtr->GetObject( *it );
-            if (object != nullptr)
-            {
-                m_objects[*it] = object;
-                it = m_requestedObjects.erase(it);
-            }
-            else
-            {
-                ++it;
-            }
-        }
-    }
-}
+
 
 void SceneManager::InitTestScene()
 {
