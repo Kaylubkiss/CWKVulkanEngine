@@ -4,7 +4,6 @@
 #include "vkWindow.h"
 #include "vkInstance.h"
 #include "AssetManager.h"
-#include "Camera.h"
 #include "vkSwapChain.h"
 #include "vkFramebuffer.h"
 #include "vkPipelineManager.h"
@@ -31,7 +30,6 @@ namespace vk
 
 		//getters(s)
 		[[nodiscard]] const vk::Device* GetDevicePtr() const;
-		Camera& GetCamera();
 		vk::Window& GetWindow();
 
 		virtual void Render( SceneView sceneView ) = 0;
@@ -57,8 +55,6 @@ namespace vk
 			bool hotReloadRequested = false;
 		} m_settings = {};
 
-		float cameraFOV = 45.f;
-		Camera mCamera;
 		UserInterface UIOverlay;
 
 		vk::Instance m_instance;

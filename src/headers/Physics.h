@@ -1,8 +1,6 @@
 #ifndef PHYSICS_HPP
 #define PHYSICS_HPP
 
-#include <reactphysics3d/reactphysics3d.h>
-
 //for general objects.
 struct alignas(16) PhysicsComponent
 {

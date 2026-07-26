@@ -52,16 +52,9 @@ void Application::run()
 
 			float physicsTime = m_physics.InterpFactor(static_cast<float>(realFrameTime));
 
-			Input::MoveCamera(m_vulkanGraphicsContext->GetCamera(), static_cast<float>(realFrameTime));
+			m_sceneManager.Update( physicsTime, realFrameTime );
 
-			if (exitApplication)
-			{
-				break;
-			}
-
-			m_sceneManager.Update( physicsTime );
-
-			m_vulkanGraphicsContext->Render( m_sceneManager.GetSceneView() );
+			m_vulkanGraphicsContext->Render(  m_sceneManager.GetSceneView() );
 		}
 
 		//when we're done with the loop, we should make sure the logical device is flushed.

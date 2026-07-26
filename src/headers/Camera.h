@@ -1,11 +1,6 @@
 #ifndef CAMERA_HPP
 #define CAMERA_HPP
 
-#include <reactphysics3d/reactphysics3d.h>
-
-#include "Physics.h"
-using namespace reactphysics3d;
-
 class Camera final
 {
 public:
@@ -23,9 +18,11 @@ public:
 	void Rotate( const int& mouseX, const int& mouseY );
 
 	//getter functions.
-	glm::mat4 LookAt();
-	glm::vec3 Position();
-	glm::vec3 ViewDirection();
+	glm::mat4 LookAt() const;
+	glm::vec3 Position() const;
+	glm::vec3 ViewDirection() const;
+
+	float GetFOV() const;
 private:
 	bool isUpdate = false;
 
@@ -40,7 +37,7 @@ private:
 	float constant_velocity = 5.f;
 
 	reactphysics3d::Transform mMovementTransform;
-	reactphysics3d::Vector3 accumulatedVelocity = Vector3::zero();
+	reactphysics3d::Vector3 accumulatedVelocity = reactphysics3d::Vector3::zero();
 
 	void UpdatePosition( reactphysics3d::Vector3& velocity, float dt );
 };

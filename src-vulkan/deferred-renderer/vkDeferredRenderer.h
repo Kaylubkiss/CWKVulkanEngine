@@ -39,8 +39,8 @@ namespace vk
 		void InitializeEnvironmentMapDescriptors( DescriptorManager& descriptorManager );
 
 		void InitializePipelineLayouts();
-		void UpdateScreenUniforms();
-		void UpdateLights();
+		void UpdateScreenUniforms( const SceneView& sceneView );
+		void UpdateLights( const SceneView& sceneView );
 	private:
 		enum dePipeline
 		{

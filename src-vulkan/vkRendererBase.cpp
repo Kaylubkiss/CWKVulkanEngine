@@ -51,8 +51,6 @@ namespace vk
 			this->UIOverlay = UserInterface(userInterfaceCI);
 		}
 
-		this->mCamera = Camera({ 0.f, 0.f, 10.f }, { 0.f, 0.f, -1.f }, { 0,1,0 });
-
 		this->pipelineManager = vk::PipelineManager(device);
 	}
 
@@ -139,11 +137,6 @@ namespace vk
 	const vk::Device* RendererBase::GetDevicePtr() const
 	{
 		return &device;
-	}
-
-	Camera& RendererBase::GetCamera()
-	{
-		return this->mCamera;
 	}
 
 	vk::Window& RendererBase::GetWindow()

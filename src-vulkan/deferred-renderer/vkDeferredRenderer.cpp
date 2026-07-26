@@ -45,7 +45,7 @@ namespace vk
 		uniformDataLightPass.lights[0].pos = { -7, 12, 3 };
 		uniformDataLightPass.lights[1].pos = { -1, -7, 14 };
 
-		uniformDataLightPass.eyePosition = mCamera.Position();
+		uniformDataLightPass.eyePosition = {0,0,0};
 		uniformDataLightPass.lights[0].viewMatrix = uniformDataDeferredShadow.viewMatrices[0];
 		uniformDataLightPass.lights[1].viewMatrix = uniformDataDeferredShadow.viewMatrices[1];
 
@@ -117,14 +117,17 @@ namespace vk
 					nullptr, &m_graphicsPipelineLayout));
 	}
 
-	void DeferredRenderer::UpdateScreenUniforms()
+	void DeferredRenderer::UpdateScreenUniforms( const SceneView& sceneView )
 	{
 		VkViewport windowViewport = m_window.Viewport();
 
 		//transform(s)
-		uniformDataMRT.viewMatrix = mCamera.LookAt();
 
-		uniformDataMRT.projectionMatrix = glm::perspective(glm::radians(cameraFOV),
+		Camera& sceneCam = *sceneView.camera;
+
+		uniformDataMRT.viewMatrix = sceneCam.LookAt();
+
+		uniformDataMRT.projectionMatrix = glm::perspective(glm::radians(sceneCam.GetFOV()),
 				(float)windowViewport.width / windowViewport.height, 0.1f, 1000.f);
 
 		uniformDataMRT.projectionMatrix[1][1] *= -1;
@@ -145,10 +148,10 @@ namespace vk
 			sizeof(uniformDataDeferredShadow));
 	}
 
-	void DeferredRenderer::UpdateLights()
+	void DeferredRenderer::UpdateLights( const SceneView& sceneView )
 	{
 		//light(s)
-		uniformDataLightPass.eyePosition = mCamera.Position();
+		uniformDataLightPass.eyePosition = sceneView.camera->Position();
 		uniformDataLightPass.lights[0].viewMatrix = uniformDataDeferredShadow.viewMatrices[0];
 		uniformDataLightPass.lights[1].viewMatrix = uniformDataDeferredShadow.viewMatrices[1];
 
@@ -277,8 +280,8 @@ namespace vk
 	{
 		if (PrepareFrame())
 		{ 
-			UpdateScreenUniforms();
-			UpdateLights();
+			UpdateScreenUniforms(sceneView);
+			UpdateLights(sceneView);
 			RecordCommandBuffers(sceneView);
 			SubmitFrame();
 		}

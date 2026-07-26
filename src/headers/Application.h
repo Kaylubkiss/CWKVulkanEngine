@@ -3,6 +3,7 @@
 
 #include "Timer.h"
 #include "Physics.h"
+#include "Camera.h"
 #include "vkRendererBase.h"
 #include "SceneManager.h"
 #include "../../src-vulkan/headers/vkTextureManager.h"

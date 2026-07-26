@@ -1,10 +1,16 @@
 #include "SceneManager.h"
+#include "Input.h"
 #include <ranges>
-
 
 void SceneManager::Init( AssetManager& assetManager )
 {
 	assetManagerPtr = &assetManager;
+
+	glm::vec3 eye =  { 0.f, 0.f, 10.f };
+	glm::vec3 lookDirection = { 0.f, 0.f, -1.f };
+	glm::vec3 up = { 0.f, 1.f, 0.f };
+
+	m_scene.m_camera = std::make_shared<Camera>(eye, lookDirection, up);
 
 	InitTestScene();
 }
@@ -14,6 +20,7 @@ void SceneManager::Init( AssetManager& assetManager )
 	SceneView newSceneView;
 
 	newSceneView.opaqueObjects = m_scene.m_objects;
+	newSceneView.camera = m_scene.m_camera;
 
 	return newSceneView;
 }
@@ -28,7 +35,7 @@ void SceneManager::GrabRequestedObjects()
 			auto object = assetManagerPtr->GetObject( *it );
 			if (object != nullptr)
 			{
-				m_scene.m_objects.push_back(object);
+				m_scene.m_objects.emplace_back(object);
 				it = m_requestedObjects.erase(it);
 			}
 			else
@@ -39,7 +46,7 @@ void SceneManager::GrabRequestedObjects()
 	}
 }
 
-void SceneManager::Update( float dt )
+void SceneManager::Update( float physicsInterp, float dt )
 {
     GrabRequestedObjects();
 
@@ -47,9 +54,11 @@ void SceneManager::Update( float dt )
     {
         if (obj) //null check per object?
         {
-            obj->Update(dt);
+            obj->Update(physicsInterp);
         }
     }
+
+	MoveCamera(*m_scene.m_camera, dt );
 }
 
 
@@ -75,7 +84,7 @@ void SceneManager::InitTestScene()
 	objectCI = {};
 
 	PhysicsComponent physicsComponent;
-	physicsComponent.bodyType = BodyType::DYNAMIC;
+	physicsComponent.bodyType = reactphysics3d::BodyType::DYNAMIC;
 	physicsComponent.colliderType = PhysicsComponent::ColliderType::CUBE;
 
 	objectCI.objName = "cube.obj";

@@ -14,12 +14,12 @@ Camera::Camera(const glm::vec3& eye, const glm::vec3& lookDirection, const glm::
 
 }
 
-glm::mat4 Camera::LookAt() 
+glm::mat4 Camera::LookAt() const
 {
 	return glm::lookAt(mEye, mEye + mLookDir, mUpVector);
 }
 
-glm::vec3 Camera::Position() 
+glm::vec3 Camera::Position() const
 {
 	return mEye;
 }
@@ -42,9 +42,14 @@ void Camera::UpdatePosition( reactphysics3d::Vector3& direction, float dt )
 	}
 }
 
-glm::vec3 Camera::ViewDirection() 
+glm::vec3 Camera::ViewDirection() const
 {
 	return this->mLookDir;
+}
+
+float Camera::GetFOV() const
+{
+	return mFOV;
 }
 
 bool Camera::IsUpdated() const

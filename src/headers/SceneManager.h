@@ -12,7 +12,7 @@
         [[nodiscard]] SceneView GetSceneView() const;
 
         void Init( AssetManager& assetManager );
-        void Update( float dt ); //culling, physics
+        void Update( float physicsInterp, float dt ); //culling, physics
     private:
         void InitTestScene();
         void GrabRequestedObjects(); //todo: need a messaging system so asset manager can notify scenemanager instead.

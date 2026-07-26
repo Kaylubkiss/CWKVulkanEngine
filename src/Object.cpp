@@ -86,14 +86,14 @@ void Object::InitPhysics()
 
     const glm::vec4 dc2Position = .5f * (worldMinPoints + worldMaxPoints);
     reactphysics3d::Vector3 position(dc2Position.x, dc2Position.y, dc2Position.z);
-    reactphysics3d::Quaternion orientation = Quaternion::identity();
+    reactphysics3d::Quaternion orientation = reactphysics3d::Quaternion::identity();
     reactphysics3d::Transform transform(position, orientation);
 
    
     m_physicsComponent.rigidBody = appPhysics.AddRigidBody(transform);
 
     //setting the body type of the rigidbody
-    if (m_physicsComponent.bodyType != BodyType::DYNAMIC)
+    if (m_physicsComponent.bodyType != reactphysics3d::BodyType::DYNAMIC)
     {
         m_physicsComponent.rigidBody->setType(m_physicsComponent.bodyType);
     }
@@ -108,7 +108,8 @@ void Object::InitPhysics()
     //the collider transform is relative to the rigidbody origin.
     if (m_physicsComponent.shape != nullptr)
     {
-        m_physicsComponent.collider = m_physicsComponent.rigidBody->addCollider(m_physicsComponent.shape, Transform::identity());
+        m_physicsComponent.collider = m_physicsComponent.rigidBody->addCollider(m_physicsComponent.shape,
+            reactphysics3d::Transform::identity());
     }
 
     m_physicsComponent.prevTransform = m_physicsComponent.rigidBody->getTransform();
@@ -120,11 +121,13 @@ void Object::InitPhysics()
 void Object::Update(const float& interpFactor)
 {
     if (m_physicsComponent.isInitialized == true && 
-        m_physicsComponent.bodyType != BodyType::STATIC)
+        m_physicsComponent.bodyType != reactphysics3d::BodyType::STATIC)
     {
-        Transform uninterpolatedTransform = m_physicsComponent.rigidBody->getTransform();
+        reactphysics3d::Transform uninterpolatedTransform = m_physicsComponent.rigidBody->getTransform();
 
-        m_physicsComponent.currTransform = Transform::interpolateTransforms(m_physicsComponent.prevTransform, uninterpolatedTransform, interpFactor);
+        m_physicsComponent.currTransform =
+            reactphysics3d::Transform::interpolateTransforms(m_physicsComponent.prevTransform,
+                uninterpolatedTransform, interpFactor);
 
         m_physicsComponent.prevTransform = m_physicsComponent.currTransform;
 

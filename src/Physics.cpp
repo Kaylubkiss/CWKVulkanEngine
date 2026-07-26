@@ -1,6 +1,5 @@
 #include "Physics.h"
 
-
 PhysicsSystem::PhysicsSystem() 
 {
 	if (this->mPhysicsWorld == nullptr)
@@ -46,7 +45,7 @@ float PhysicsSystem::InterpFactor( float dt )
 
 }
 
-PhysicsWorld* PhysicsSystem::World() const
+reactphysics3d::PhysicsWorld* PhysicsSystem::World() const
 {
 	return this->mPhysicsWorld;
 

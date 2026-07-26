@@ -21,6 +21,8 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_vulkan.h>
 
+#include <reactphysics3d/reactphysics3d.h>
+
 #include <vector>
 #include <array>
 #include <map>
@@ -41,6 +43,7 @@
 #include "Vertex.h"
 
 #include "vkGlobal.h"
+
 #include "ApplicationGlobal.h"
 
 #endif
