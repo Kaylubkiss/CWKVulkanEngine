@@ -35,12 +35,11 @@ struct ObjectCreateInfo
 {
     //must fill out objName, even if there is no extension.
     glm::mat4 modelTransform = glm::mat4(1.0f);
-    PhysicsComponent physicsComponent;
+    std::optional<PhysicsInitInfo> physicsInfo;
     std::string objName;
     std::vector<std::string> textureFileNames;
     const vk::Device* devicePtr = nullptr;
     vk::TextureManager* textureManagerPtr = nullptr;
-    bool hasPhysicsComponent = false;
 };
 
 struct SceneInitInfo

@@ -19,11 +19,11 @@ public:
 	//Mutators
 	void LoadTextures( vk::TextureManager& textureManager, const std::vector<std::string>& fileNames );
 	void Update( const float& interpFactor );
-	void InitPhysics();
+	void InitPhysics( const PhysicsInitInfo& physicsInfo );
 	void Draw( const vk::DrawInfo& drawInfo ) const;
 private:
 	std::unique_ptr<Model> m_model;
-	PhysicsComponent m_physicsComponent;
+	std::optional<PhysicsComponent> m_physicsComponent;
 };
 
 #endif

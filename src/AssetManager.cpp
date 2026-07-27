@@ -22,6 +22,11 @@ void AssetManager::LoadObject( ObjectCreateInfo& objectCI )
 			std::unique_lock lock(m_objectMutex);
 			if (m_objects.contains(objectCI.objName) == false)
 			{
+				if (objectCI.physicsInfo.has_value())
+				{
+					newObject->InitPhysics(objectCI.physicsInfo.value());
+				}
+
 				m_objects[objectCI.objName] = std::move(newObject);
 			}
 		}

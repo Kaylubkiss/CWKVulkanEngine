@@ -11,6 +11,11 @@ struct alignas(16) PhysicsComponent
 	reactphysics3d::Collider* collider = nullptr;
 	reactphysics3d::CollisionShape* shape = nullptr;
 
+	glm::vec3 scale = glm::vec3(0);
+};
+
+struct PhysicsInitInfo
+{
 	reactphysics3d::BodyType bodyType;
 	enum ColliderType
 	{
@@ -19,8 +24,6 @@ struct alignas(16) PhysicsComponent
 		PLANE,
 	};
 	ColliderType colliderType = NONE;
-
-	bool isInitialized = false;
 };
 
 

@@ -119,20 +119,17 @@ namespace vk
 
 	void DeferredRenderer::UpdateScreenUniforms( const SceneView& sceneView )
 	{
+		Camera& sceneCam = *sceneView.camera;
 		VkViewport windowViewport = m_window.Viewport();
 
 		//transform(s)
-
-		Camera& sceneCam = *sceneView.camera;
-
 		uniformDataMRT.viewMatrix = sceneCam.LookAt();
 
 		uniformDataMRT.projectionMatrix = glm::perspective(glm::radians(sceneCam.GetFOV()),
 				(float)windowViewport.width / windowViewport.height, 0.1f, 1000.f);
-
 		uniformDataMRT.projectionMatrix[1][1] *= -1;
 
-		memcpy(uniformBuffers.mrt[currentFrame].GetMappedMemory(), (void*)(&uniformDataMRT),
+		memcpy(uniformBuffers.mrt[currentFrame].GetMappedMemory(), &uniformDataMRT,
 			sizeof(uniformDataMRT));
 
 		//shadows
@@ -144,7 +141,7 @@ namespace vk
 		uniformDataDeferredShadow.viewMatrices[1] = perspective * glm::lookAt(uniformDataLightPass.lights[1].pos,
 			sceneSettings.cubePosition, glm::vec3(0, 1, 0));
 
-		memcpy(uniformBuffers.shadow[currentFrame].GetMappedMemory(), (void*)(&uniformDataDeferredShadow),
+		memcpy(uniformBuffers.shadow[currentFrame].GetMappedMemory(), &uniformDataDeferredShadow,
 			sizeof(uniformDataDeferredShadow));
 	}
 
@@ -156,8 +153,7 @@ namespace vk
 		uniformDataLightPass.lights[1].viewMatrix = uniformDataDeferredShadow.viewMatrices[1];
 
 		memcpy(uniformBuffers.composition[currentFrame].GetMappedMemory(),
-			(void*)(&uniformDataLightPass),
-			sizeof(uniformDataLightPass));
+			&uniformDataLightPass,sizeof(uniformDataLightPass));
 	}
 
 	std::vector<std::string> GetFileNamesOfExtension(const std::filesystem::path& directory, const char* extension)

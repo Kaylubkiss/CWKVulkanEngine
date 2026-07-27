@@ -66,11 +66,12 @@ void SceneManager::Update( float physicsInterp, float dt )
 void SceneManager::InitTestScene()
 {
     ObjectCreateInfo objectCI = {};
+	PhysicsInitInfo physInfo;
 
 	glm::vec3 cubePosition   = { 1.0, 20, -5.f };
 	glm::vec3 freddyPosition = { 1.5f, 1.0, 3.f };
 
-	//object 1 - freddy
+	/*//object 1 - freddy
 	objectCI.objName = "freddy.obj";
 	objectCI.textureFileNames = { "art/extern-textures/myface.JPG" } ;
 	objectCI.modelTransform = glm::translate(glm::mat4(1.f), freddyPosition) *
@@ -79,19 +80,18 @@ void SceneManager::InitTestScene()
 	assetManagerPtr->LoadObject(objectCI);
 
 	m_requestedObjects.push_back(objectCI.objName);
+	*/
 
 	//object 2 - cube
 	objectCI = {};
 
-	PhysicsComponent physicsComponent;
-	physicsComponent.bodyType = reactphysics3d::BodyType::DYNAMIC;
-	physicsComponent.colliderType = PhysicsComponent::ColliderType::CUBE;
+	physInfo.bodyType = reactphysics3d::BodyType::DYNAMIC;
+	physInfo.colliderType = PhysicsInitInfo::ColliderType::CUBE;
 
 	objectCI.objName = "cube.obj";
 	//NOTE: cube.obj doesn't have UVs.
 	objectCI.textureFileNames = { "art/extern-textures/myface.JPG" } ;
-	objectCI.physicsComponent = physicsComponent;
-	objectCI.hasPhysicsComponent = true;
+	objectCI.physicsInfo = physInfo;
 	objectCI.modelTransform = glm::translate(glm::mat4(1.f), glm::vec3(cubePosition));
 
 	assetManagerPtr->LoadObject(objectCI);
@@ -101,20 +101,21 @@ void SceneManager::InitTestScene()
 	//object 3 - base
 	objectCI = {};
 
-	physicsComponent.bodyType = reactphysics3d::BodyType::STATIC;
+	physInfo = {};
+	physInfo.bodyType = reactphysics3d::BodyType::STATIC;
+	physInfo.colliderType = PhysicsInitInfo::ColliderType::CUBE;
 
 	objectCI.objName = "base.obj";
 	objectCI.textureFileNames = { "art/extern-textures/wood-floor.png" } ;
-	objectCI.physicsComponent = physicsComponent;
+	objectCI.physicsInfo = physInfo;
 	objectCI.modelTransform = glm::translate(glm::mat4(1.f), glm::vec3(0, -5.f, 0)) *
 		glm::scale(glm::mat4(1.f), glm::vec3(30.f));
-	objectCI.hasPhysicsComponent = true;
 
 	assetManagerPtr->LoadObject(objectCI);
 
 	m_requestedObjects.push_back(objectCI.objName);
 
-	objectCI = {};
+	/*objectCI = {};
 
 	objectCI.objName = "AnimatedCube/glTF/AnimatedCube.gltf";
 	objectCI.modelTransform = glm::translate(glm::mat4(1.f), glm::vec3(-3.5, -1.5f, 0));
@@ -140,5 +141,5 @@ void SceneManager::InitTestScene()
 
 	assetManagerPtr->LoadObject(objectCI);
 
-	m_requestedObjects.push_back(objectCI.objName);
+	m_requestedObjects.push_back(objectCI.objName);*/
 }

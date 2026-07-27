@@ -65,11 +65,6 @@ Object::Object( const ObjectCreateInfo& objectCI, vk::TextureManager& textureMan
     }
 
     m_model->UpdateModelTransform(objectCI.modelTransform);
-
-    if (objectCI.hasPhysicsComponent) 
-    {
-        m_physicsComponent = objectCI.physicsComponent;
-    }
 }
 
 void Object::LoadTextures( vk::TextureManager& textureManager, const std::vector<std::string>& fileNames )
@@ -77,77 +72,87 @@ void Object::LoadTextures( vk::TextureManager& textureManager, const std::vector
     m_model->LoadTextures(textureManager, fileNames);
 }
 
-void Object::InitPhysics()
+void Object::InitPhysics( const PhysicsInitInfo& physicsInfo )
 {
     PhysicsSystem& appPhysics = _Application->GetPhysics();
+
+    m_physicsComponent = PhysicsComponent();
+
+    const glm::mat4& modelTransform = m_model->GetModelTransform();
 
     glm::vec4 worldMinPoints = glm::vec4(m_model->GetMinPoint(), 1);
     glm::vec4 worldMaxPoints = glm::vec4(m_model->GetMaxPoint(), 1);
 
-    const glm::vec4 dc2Position = .5f * (worldMinPoints + worldMaxPoints);
-    reactphysics3d::Vector3 position(dc2Position.x, dc2Position.y, dc2Position.z);
+    const glm::vec4 center = modelTransform * (.5f * (worldMinPoints + worldMaxPoints));
+
+    glm::vec3 scale(glm::length(
+           glm::vec3(modelTransform[0])),
+           glm::length(glm::vec3(modelTransform[1])),
+           glm::length(glm::vec3(modelTransform[2]))
+           );
+
+    m_physicsComponent.value().scale = scale;
+
+    reactphysics3d::Vector3 position(center.x, center.y, center.z);
     reactphysics3d::Quaternion orientation = reactphysics3d::Quaternion::identity();
     reactphysics3d::Transform transform(position, orientation);
 
    
-    m_physicsComponent.rigidBody = appPhysics.AddRigidBody(transform);
+    m_physicsComponent.value().rigidBody = appPhysics.AddRigidBody(transform);
 
     //setting the body type of the rigidbody
-    if (m_physicsComponent.bodyType != reactphysics3d::BodyType::DYNAMIC)
+    if (physicsInfo.bodyType != reactphysics3d::BodyType::DYNAMIC)
     {
-        m_physicsComponent.rigidBody->setType(m_physicsComponent.bodyType);
+        m_physicsComponent.value().rigidBody->setType(physicsInfo.bodyType);
     }
     
     //creating a collision shape
-    if (m_physicsComponent.colliderType == PhysicsComponent::ColliderType::CUBE) 
+    if (physicsInfo.colliderType == PhysicsInitInfo::ColliderType::CUBE)
     {
-        glm::vec3 worldHalfExtent = glm::vec3((worldMaxPoints - worldMinPoints) * .5f);
-        m_physicsComponent.shape = appPhysics.CreateBoxShape({ std::abs(worldHalfExtent.x), std::abs(worldHalfExtent.y), std::abs(worldHalfExtent.z) });
+        glm::vec3 worldHalfExtent = scale * glm::vec3((worldMaxPoints - worldMinPoints) * .5f);
+
+        m_physicsComponent.value().shape =
+            appPhysics.CreateBoxShape({ worldHalfExtent.x, worldHalfExtent.y, worldHalfExtent.z });
     }
 
     //the collider transform is relative to the rigidbody origin.
-    if (m_physicsComponent.shape != nullptr)
+    if (m_physicsComponent.value().shape != nullptr)
     {
-        m_physicsComponent.collider = m_physicsComponent.rigidBody->addCollider(m_physicsComponent.shape,
+        m_physicsComponent.value().collider = m_physicsComponent.value().rigidBody->addCollider(
+            m_physicsComponent.value().shape,
             reactphysics3d::Transform::identity());
     }
 
-    m_physicsComponent.prevTransform = m_physicsComponent.rigidBody->getTransform();
-
-    m_physicsComponent.isInitialized = true;
+    m_physicsComponent.value().prevTransform = m_physicsComponent.value().rigidBody->getTransform();
 }
 
 
 void Object::Update(const float& interpFactor)
 {
-    if (m_physicsComponent.isInitialized == true && 
-        m_physicsComponent.bodyType != reactphysics3d::BodyType::STATIC)
+    if (m_physicsComponent.has_value())
     {
-        reactphysics3d::Transform uninterpolatedTransform = m_physicsComponent.rigidBody->getTransform();
+        reactphysics3d::Transform uninterpolatedTransform =
+            m_physicsComponent.value().rigidBody->getTransform();
 
-        m_physicsComponent.currTransform =
-            reactphysics3d::Transform::interpolateTransforms(m_physicsComponent.prevTransform,
+        m_physicsComponent.value().currTransform =
+            reactphysics3d::Transform::interpolateTransforms(
+                m_physicsComponent.value().prevTransform,
                 uninterpolatedTransform, interpFactor);
 
-        m_physicsComponent.prevTransform = m_physicsComponent.currTransform;
+        m_physicsComponent.value().prevTransform = m_physicsComponent.value().currTransform;
 
         float matrix[16];
 
-        m_physicsComponent.currTransform.getOpenGLMatrix(matrix);
+        m_physicsComponent.value().currTransform.getOpenGLMatrix(matrix);
 
-        //this makes this stuff too dang easy.
-        glm::mat4 nModel = glm::mat4(matrix[0], matrix[1], matrix[2], matrix[3], 
+        glm::mat4 nModel = glm::mat4(matrix[0], matrix[1], matrix[2], matrix[3],
                                      matrix[4], matrix[5], matrix[6], matrix[7],
                                      matrix[8], matrix[9], matrix[10], matrix[11],
                                      matrix[12], matrix[13], matrix[14], matrix[15]);
 
+        nModel = nModel * glm::scale(glm::mat4(1.f), m_physicsComponent.value().scale);
+
         m_model->UpdateModelTransform(nModel);
-    }
-    else if (m_physicsComponent.colliderType !=
-        PhysicsComponent::ColliderType::NONE &&
-        m_physicsComponent.isInitialized == false)
-    {
-        InitPhysics();
     }
 }
 

@@ -52,7 +52,7 @@ void Application::run()
 
 			float physicsTime = m_physics.InterpFactor(static_cast<float>(realFrameTime));
 
-			m_sceneManager.Update( physicsTime, realFrameTime );
+			m_sceneManager.Update( physicsTime, static_cast<float>(realFrameTime) );
 
 			m_vulkanGraphicsContext->Render(  m_sceneManager.GetSceneView() );
 		}

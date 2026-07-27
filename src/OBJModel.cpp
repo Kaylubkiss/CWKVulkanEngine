@@ -84,48 +84,42 @@ void OBJModel::ComputeVertexNormals( std::vector<Vertex>& vertexBuffer, std::vec
 void OBJModel::ComputeVertices( std::vector<Vertex>& vertexBuffer, std::vector<uint16_t>& indexBuffer )
 {
 
-    glm::vec3 min_points(0.f);
-    glm::vec3 max_points(0.f);
+    glm::vec3 min_points(vertexBuffer[0].pos);
+    glm::vec3 max_points(vertexBuffer[0].pos);
 
     for (size_t i = 0; i < vertexBuffer.size(); ++i)
     {
 
-        min_points.x = std::min(min_points.x, vertexBuffer[i].pos.x);
-        min_points.y = std::min(min_points.y, vertexBuffer[i].pos.y);
-        min_points.z = std::min(min_points.z, vertexBuffer[i].pos.z);
-
-        max_points.x = std::max(max_points.x, vertexBuffer[i].pos.x);
-        max_points.y = std::max(max_points.y, vertexBuffer[i].pos.y);
-        max_points.z = std::max(max_points.z, vertexBuffer[i].pos.z);
+        min_points = glm::min(min_points, vertexBuffer[i].pos);
+        max_points = glm::max(max_points, vertexBuffer[i].pos);
 
         vertexBuffer[i].nrm = glm::vec3(0, 0, 0.f);
-
-        m_center += vertexBuffer[i].pos;
     }
 
-    m_center /= vertexBuffer.size();
+    m_center = 0.5f  * (max_points + min_points);
 
-    float unitScale = std::max({ glm::length(max_points.x - min_points.x),
-        glm::length(max_points.y - min_points.y), glm::length(max_points.z - min_points.z) });
+    glm::vec3 extents = max_points - min_points;
+    float unitScale = std::max({ extents.x, extents.y, extents.z });
 
-    max_points = { };
-    min_points = { };
+    if (unitScale <= 0.f)
+    {
+        unitScale = 1.f;
+    }
+
+    max_points = glm::vec3(-FLT_MAX);
+    min_points = glm::vec3(FLT_MAX);
 
     for (size_t i = 0; i < vertexBuffer.size(); ++i)
     {
         vertexBuffer[i].pos = (vertexBuffer[i].pos - m_center) / unitScale;
 
-        max_points.x = std::max(max_points.x, vertexBuffer[i].pos.x);
-        max_points.y = std::max(max_points.y, vertexBuffer[i].pos.y);
-        max_points.z = std::max(max_points.z, vertexBuffer[i].pos.z);
-
-        min_points.x = std::min(min_points.x, vertexBuffer[i].pos.x);
-        min_points.y = std::min(min_points.y, vertexBuffer[i].pos.y);
-        min_points.z = std::min(min_points.z, vertexBuffer[i].pos.z);
+        min_points = glm::min(min_points, vertexBuffer[i].pos);
+        max_points = glm::max(max_points, vertexBuffer[i].pos);
     }
 
     m_maxLocalPoint = max_points;
     m_minLocalPoint = min_points;
+    m_center = 0.5f  * (max_points + min_points);
 }
 
 OBJModel::OBJModel( const vk::Device* device, const std::filesystem::path& filePath )
@@ -214,12 +208,12 @@ OBJModel::OBJModel( const vk::Device* device, const std::filesystem::path& fileP
 
 glm::vec3 OBJModel::GetMinPoint() const
 {
-    return {GetModelTransform() * glm::vec4(m_minLocalPoint, 1)};
+    return {glm::vec4(m_minLocalPoint, 1)};
 }
 
 glm::vec3 OBJModel::GetMaxPoint() const
 {
-    return {GetModelTransform() * glm::vec4(m_maxLocalPoint, 1)};
+    return {glm::vec4(m_maxLocalPoint, 1)};
 }
 
 void OBJModel::Draw( const vk::DrawInfo& drawInfo )
