@@ -20,35 +20,32 @@ struct UserInterfaceInitInfo
 class UserInterface
 {
 public:
-	UserInterface() = default;
-	UserInterface( const UserInterfaceInitInfo& initInfo );
-	~UserInterface() = default;
-	void Destroy();
+	static void Init( const UserInterfaceInitInfo& initInfo );
+	static void Destroy();
 
-	void Prepare();
-	void Render( VkCommandBuffer cmdBuffer ); //after main rendering
-	//types of options
+	static bool WantsEvents();
+
+	static void Prepare();
+	static void Render( VkCommandBuffer cmdBuffer ); //after main rendering
+
 	template<typename T>
-	inline void TextData( const char* fmt, T value )
+	static void TextData( const char* fmt, T value )
 	{
 		ImGui::Text(fmt, value);
 	}
-	void CheckBox( const std::string& label, bool* condition );
-	void Slider( const std::string& label, glm::vec3& position, float min = -100, float max = 100 );
-	void SeparatorText( const std::string& text );
-	void ComboBox();
-	void DisplayImages();
-	bool CollapsingHeader( const std::string& label );
 
-	void AddImage( const vk::Texture& texture );
+	static void CheckBox( const std::string& label, bool* condition );
+	static void Slider( const std::string& label, glm::vec3& position, float min = -100, float max = 100 );
+	static void SeparatorText( const std::string& text );
+	static void ComboBox();
+	static bool CollapsingHeader( const std::string& label );
 private:
-	void InitializeUIDescriptorPool();
+	static void InitializeUIDescriptorPool();
 private:
-	std::vector<VkDescriptorSet> displayTextures;
-	VkDevice contextLogicalDevice = VK_NULL_HANDLE;
-	VkDescriptorPool UIDescriptorPool = VK_NULL_HANDLE; //just for the sampler.
+	inline static VkDevice c_device = VK_NULL_HANDLE;
+	inline static VkDescriptorPool UIDescriptorPool = VK_NULL_HANDLE; //just for the sampler.
 	static constexpr uint32_t max_textures = 100;
-	bool isInitialized = false;
+	inline static bool isInitialized = false;
 };
 
 #endif

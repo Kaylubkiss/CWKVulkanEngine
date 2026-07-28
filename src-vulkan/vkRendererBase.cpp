@@ -48,7 +48,7 @@ namespace vk
 
 			m_settings.UIToggled = true;
 
-			this->UIOverlay = UserInterface(userInterfaceCI);
+			UserInterface::Init( userInterfaceCI );
 		}
 
 		this->pipelineManager = vk::PipelineManager(device);
@@ -59,7 +59,7 @@ namespace vk
 	{
 		if (device.GetDevice() != VK_NULL_HANDLE)
 		{
-			UIOverlay.Destroy();
+			UserInterface::Destroy();
 
 			device.FreeCommandBuffers(commandBuffers.data(), static_cast<uint32_t>(commandBuffers.size()));
 
@@ -175,17 +175,16 @@ namespace vk
 		VK_CHECK_RESULT(vkWaitForFences(device.GetDevice(), 1, &inFlightFences[currentFrame], VK_TRUE, UINT64_MAX));
 		VK_CHECK_RESULT(vkResetFences(device.GetDevice(), 1, &inFlightFences[currentFrame]));
 
-		if (m_settings.hotReloadRequested == true)
-		{
-			pipelineManager.HotReloadShaders();
-
-			m_settings.hotReloadRequested = false;
-		}
-
-
 		if (m_settings.UIDisplay)
 		{
-			UIOverlay.Prepare();
+			if (m_settings.hotReloadRequested == true)
+			{
+				pipelineManager.HotReloadShaders();
+
+				m_settings.hotReloadRequested = false;
+			}
+
+			UserInterface::Prepare();
 
 			VkExtent2D windowExtent = m_window.Extents();
 
@@ -203,7 +202,7 @@ namespace vk
 
 			if (ImGui::Begin("CWKVulkanEngine", nullptr, flags) == true)
 			{
-				UIOverlay.TextData("FPS: %d", static_cast<int>(_Timer.GetFPS()));
+				UserInterface::TextData("FPS: %d", static_cast<int>(_Timer.GetFPS()));
 				UpdateUI();
 			}
 

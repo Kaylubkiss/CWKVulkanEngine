@@ -45,7 +45,7 @@ namespace vk
 	private:
 		void CreateSynchronizationPrimitives();
 	protected:
-		struct Settings //TODO: make this into a bitmask
+		struct Settings
 		{
 			uint32_t maxFramesInFlight = 2;
 			bool minimized = false;
@@ -54,8 +54,6 @@ namespace vk
 			bool validationLayers = true;
 			bool hotReloadRequested = false;
 		} m_settings = {};
-
-		UserInterface UIOverlay;
 
 		vk::Instance m_instance;
 		vk::Window m_window;

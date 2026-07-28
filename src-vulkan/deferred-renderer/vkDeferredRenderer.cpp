@@ -190,15 +190,15 @@ namespace vk
 			m_settings.hotReloadRequested = ImGui::Button("Hot Reload");
 		}
 
-		if (UIOverlay.CollapsingHeader("Deferred Context Settings"))
+		if (UserInterface::CollapsingHeader("Deferred Context Settings"))
 		{
-			UIOverlay.CheckBox("box test", &option);
-			UIOverlay.SeparatorText("light position");
+			UserInterface::CheckBox("box test", &option);
+			UserInterface::SeparatorText("light position");
 
 			auto& lights = uniformDataLightPass.lights;
 			for (size_t i = 0; i < lights.size(); ++i) 
 			{
-				UIOverlay.Slider("light " + std::to_string(i), lights[i].pos);
+				UserInterface::Slider("light " + std::to_string(i), lights[i].pos);
 			}
 
 			std::vector<std::string> fileNames = GetFileNamesOfExtension(

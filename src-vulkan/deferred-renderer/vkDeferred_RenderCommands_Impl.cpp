@@ -282,7 +282,7 @@ namespace vk
 
 			if (m_settings.UIDisplay)
 			{
-				UIOverlay.Render(cmdBuffer);
+				UserInterface::Render(cmdBuffer);
 			}
 
 			vkCmdEndRenderPass(cmdBuffer);

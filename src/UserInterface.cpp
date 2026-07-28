@@ -2,12 +2,18 @@
 #include "vkInit.h"
 #include "imgui.h"
 
-UserInterface::UserInterface(const UserInterfaceInitInfo& initInfo)
+void UserInterface::Init( const UserInterfaceInitInfo& initInfo )
 {
 	assert(initInfo.contextLogicalDevice != VK_NULL_HANDLE);
 
-	this->contextLogicalDevice = initInfo.contextLogicalDevice;
-	UserInterface::InitializeUIDescriptorPool();
+	if ( isInitialized )
+	{
+		return;
+	}
+
+	c_device = initInfo.contextLogicalDevice;
+
+	InitializeUIDescriptorPool();
 
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
@@ -29,7 +35,7 @@ UserInterface::UserInterface(const UserInterfaceInitInfo& initInfo)
 	init_info.QueueFamily = initInfo.contextQueue.family;
 	init_info.Queue = initInfo.contextQueue.handle;
 	init_info.PipelineCache = VK_NULL_HANDLE;
-	init_info.DescriptorPool = this->UIDescriptorPool;
+	init_info.DescriptorPool = UIDescriptorPool;
 	init_info.PipelineInfoMain.RenderPass = initInfo.renderPass;
 	init_info.PipelineInfoMain.Subpass = 0;
 	init_info.PipelineInfoMain.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
@@ -37,6 +43,7 @@ UserInterface::UserInterface(const UserInterfaceInitInfo& initInfo)
 	init_info.ImageCount = initInfo.minImages; //TODO: we assume that there is a backbuffer to render into.
 	init_info.Allocator = nullptr;
 	init_info.CheckVkResultFn = vk::util::check_vk_result;
+
 	ImGui_ImplVulkan_Init(&init_info);
 
 	isInitialized = true;
@@ -45,19 +52,22 @@ UserInterface::UserInterface(const UserInterfaceInitInfo& initInfo)
 
 void UserInterface::Destroy()
 {
-	if (isInitialized)
+	if ( isInitialized )
 	{
-		for (auto& texture : displayTextures)
-		{
-			ImGui_ImplVulkan_RemoveTexture(texture);
-		}
-
 		ImGui_ImplVulkan_Shutdown();
 		ImGui_ImplSDL2_Shutdown();
 		ImGui::DestroyContext();
 
-		vkDestroyDescriptorPool(contextLogicalDevice, this->UIDescriptorPool, nullptr);
+		vkDestroyDescriptorPool(c_device, UIDescriptorPool, nullptr);
+
+		isInitialized = false;
 	}
+}
+
+bool UserInterface::WantsEvents()
+{
+	ImGuiIO& io = ImGui::GetIO();
+	return io.WantCaptureMouse || io.WantCaptureKeyboard;
 }
 
 void UserInterface::InitializeUIDescriptorPool()
@@ -70,7 +80,7 @@ void UserInterface::InitializeUIDescriptorPool()
 	VkDescriptorPoolCreateInfo descriptorPoolCI =
 		vk::init::DescriptorPoolCreateInfo(poolSizes, gMaxFramesInFlight * max_textures); //2 for swapchain image count.
 
-	VK_CHECK_RESULT(vkCreateDescriptorPool(this->contextLogicalDevice, &descriptorPoolCI, nullptr, &UIDescriptorPool));
+	VK_CHECK_RESULT(vkCreateDescriptorPool(c_device, &descriptorPoolCI, nullptr, &UIDescriptorPool));
 
 }
 
@@ -98,32 +108,9 @@ void UserInterface::ComboBox()
 
 }
 
-void UserInterface::DisplayImages()
-{
-	for (auto texture : displayTextures) {
-
-		ImGui::Image(texture, ImVec2(64, 64));
-		ImGui::SameLine();
-	}
-
-}
-
 bool UserInterface::CollapsingHeader( const std::string& label )
 {
 	return ImGui::CollapsingHeader(label.c_str(), ImGuiTreeNodeFlags_DefaultOpen);
-}
-
-void UserInterface::AddImage( const vk::Texture& texture )
-{
-	VkDescriptorImageInfo textureInfo = texture.GetDescriptor();
-	if (textureInfo.imageView == VK_NULL_HANDLE)
-	{
-		std::cerr << "texture not intialized\n";
-		throw std::runtime_error("UserInterface::AddImage() failed\n");
-	}
-
-	displayTextures.push_back(ImGui_ImplVulkan_AddTexture(textureInfo.sampler, textureInfo.imageView,
-		VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL));
 }
 
 void UserInterface::Prepare()
@@ -135,7 +122,6 @@ void UserInterface::Prepare()
 
 void UserInterface::Render( VkCommandBuffer cmdBuffer )
 {
-	//ImGui::ShowDemoWindow();
 	ImGui::Render();
 	ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), cmdBuffer);
 }
