@@ -71,7 +71,7 @@ void SceneManager::InitTestScene()
 	glm::vec3 cubePosition   = { 1.0, 20, -5.f };
 	glm::vec3 freddyPosition = { 1.5f, 1.0, 3.f };
 
-	/*//object 1 - freddy
+	//object 1 - freddy
 	objectCI.objName = "freddy.obj";
 	objectCI.textureFileNames = { "art/extern-textures/myface.JPG" } ;
 	objectCI.modelTransform = glm::translate(glm::mat4(1.f), freddyPosition) *
@@ -80,7 +80,6 @@ void SceneManager::InitTestScene()
 	assetManagerPtr->LoadObject(objectCI);
 
 	m_requestedObjects.push_back(objectCI.objName);
-	*/
 
 	//object 2 - cube
 	objectCI = {};
@@ -123,6 +122,7 @@ void SceneManager::InitTestScene()
 	assetManagerPtr->LoadObject(objectCI);
 
 	m_requestedObjects.push_back(objectCI.objName);
+	*/
 
 	objectCI = {};
 
@@ -133,6 +133,7 @@ void SceneManager::InitTestScene()
 
 	m_requestedObjects.push_back(objectCI.objName);
 
+
 	objectCI = {};
 
 	objectCI.modelTransform = glm::translate(glm::mat4(1.f), glm::vec3(0.5f, -0.5f, 8)) *
@@ -141,5 +142,5 @@ void SceneManager::InitTestScene()
 
 	assetManagerPtr->LoadObject(objectCI);
 
-	m_requestedObjects.push_back(objectCI.objName);*/
+	m_requestedObjects.push_back(objectCI.objName);
 }
