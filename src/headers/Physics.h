@@ -34,19 +34,18 @@ public:
 	PhysicsSystem();
 	~PhysicsSystem();
 
-	float InterpFactor(float dt);
-	reactphysics3d::PhysicsWorld* World() const;
-	reactphysics3d::RigidBody* AddRigidBody(const reactphysics3d::Transform& transform);
-	reactphysics3d::BoxShape* CreateBoxShape(const reactphysics3d::Vector3& extent);
-	reactphysics3d::BoxShape* CreatePlaneShape(const reactphysics3d::Vector2 extent);
-	reactphysics3d::CapsuleShape* CreateCapsuleShape(float radius, float height);
+	[[nodiscard]] float InterpFactor(float dt);
+	[[nodiscard]] reactphysics3d::PhysicsWorld* World() const;
+	[[nodiscard]] reactphysics3d::RigidBody* AddRigidBody(const reactphysics3d::Transform& transform);
+	[[nodiscard]] reactphysics3d::BoxShape* CreateBoxShape(const reactphysics3d::Vector3& extent);
+	[[nodiscard]] reactphysics3d::BoxShape* CreatePlaneShape(reactphysics3d::Vector2 extent);
+	[[nodiscard]] reactphysics3d::CapsuleShape* CreateCapsuleShape(float radius, float height);
 private:
+	reactphysics3d::PhysicsCommon mPhysicsCommon;
+	reactphysics3d::PhysicsWorld* mPhysicsWorld = nullptr;
 	float mAccumulator = 0.f; //for updating the physics world.
 	float interpFactor = 0.f; //for updating the objects for rendering.
 	const reactphysics3d::decimal timeStep = 1/60.f; //for how fast the physics simulation should be.
-
-	reactphysics3d::PhysicsCommon mPhysicsCommon;
-	reactphysics3d::PhysicsWorld* mPhysicsWorld = nullptr;
 };
 
 

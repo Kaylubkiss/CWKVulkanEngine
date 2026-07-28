@@ -25,13 +25,13 @@ public:
 	/*void SelectWorldObjects(const vk::Window& appWindow,
 		Camera& camera, const uTransformObject& uTransform, PhysicsSystem& physics);*/
 private:
-	Timer mTime;
-	PhysicsSystem m_physics;
 	std::unique_ptr<vk::RendererBase> m_vulkanGraphicsContext;
+	PhysicsSystem m_physics;
 	AssetManager m_assetManager;
-	SceneManager m_sceneManager;
 	vk::TextureManager m_textureManager;
 	vk::DescriptorManager m_descriptorManager;
+	SceneManager m_sceneManager;
+	Timer mTime;
 
 	bool exitApplication = false;
 };

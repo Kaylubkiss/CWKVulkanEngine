@@ -66,7 +66,7 @@ reactphysics3d::CapsuleShape* PhysicsSystem::CreateCapsuleShape(float radius, fl
 	return mPhysicsCommon.createCapsuleShape(radius, height);
 }
 
-reactphysics3d::BoxShape* PhysicsSystem::CreatePlaneShape(const reactphysics3d::Vector2 extent)
+reactphysics3d::BoxShape* PhysicsSystem::CreatePlaneShape(reactphysics3d::Vector2 extent)
 {
 	return mPhysicsCommon.createBoxShape({ extent.x, 1.0, extent.y });
 }

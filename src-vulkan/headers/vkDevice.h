@@ -14,7 +14,7 @@ namespace vk
 	struct Queue
 	{
 		VkQueue handle = VK_NULL_HANDLE;
-		uint32_t family = uint32_t(-1);
+		uint32_t family = static_cast<uint32_t>(-1);
 	};
 
 	enum DeviceQueue : uint32_t
