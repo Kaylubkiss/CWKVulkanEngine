@@ -12,7 +12,8 @@ namespace vk
 	class DeferredRenderer : public RendererBase
 	{
 	public:
-		DeferredRenderer( TextureManager* textureManagerPtr, DescriptorManager& descriptorManagerPtr );
+		DeferredRenderer( vk::Device& device, vk::Window& window, vk::TextureManager& textureManager,
+			vk::DescriptorManager& descriptorManager );
 		~DeferredRenderer() override;
 
 		void Render( SceneView sceneView  ) override;
@@ -123,9 +124,9 @@ namespace vk
 			int selectedEnvironmentMap = 0;
 		} m_guiHelper;
 
-		DescriptorManager& m_descriptorManagerPtr;
-
 		vk::PanoramicTexture m_test_panoramicImage;
+
+		vk::DescriptorManager& c_descriptorManager;
 
 	};
 

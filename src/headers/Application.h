@@ -25,13 +25,23 @@ public:
 	/*void SelectWorldObjects(const vk::Window& appWindow,
 		Camera& camera, const uTransformObject& uTransform, PhysicsSystem& physics);*/
 private:
-	std::unique_ptr<vk::RendererBase> m_vulkanGraphicsContext;
+	void InitContext();
+private:
 	PhysicsSystem m_physics;
-	AssetManager m_assetManager;
+	Timer mTime;
+
+	vk::Instance m_instance;
+	vk::Window m_window;
+	vk::Device m_device;
+
+	std::unique_ptr<vk::RendererBase> m_vulkanGraphicsContext;
+
 	vk::TextureManager m_textureManager;
 	vk::DescriptorManager m_descriptorManager;
+
+	//unfortunately, these rely on the devices to be alive.
+	AssetLoader m_assetManager;
 	SceneManager m_sceneManager;
-	Timer mTime;
 
 	bool exitApplication = false;
 };

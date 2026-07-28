@@ -25,6 +25,7 @@ namespace vk
 		VkRect2D Scissor() const;
 		VkSurfaceKHR Surface() const;
 		SDL_Window* WindowPtr() const;
+		VkInstance GetContextInstance() const;
 		std::vector<const char*> GetInstanceExtensions() const;
 
 		bool IsPrepared() const;

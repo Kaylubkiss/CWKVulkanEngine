@@ -130,7 +130,7 @@ namespace vk
 		VK_CHECK_RESULT(vkCreateSampler(contextDevice->GetDevice(), &samplerCI, nullptr, &sampler));
 	}
 
-	void Framebuffer::CreateRenderPass() 
+	void Framebuffer::CreateRenderPass()
 	{
 		//can add a renderpass from external source
 		if ( renderPass != VK_NULL_HANDLE )

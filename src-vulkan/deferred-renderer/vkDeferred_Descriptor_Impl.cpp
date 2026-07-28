@@ -114,7 +114,7 @@ namespace vk
 		descriptorManager.AllocateDescriptorBuffer(DescriptorCategory::eCompositionImage,
 			gMaxFramesInFlight, imageCount, setLayoutBindings);
 
-    	compositionImageIndex = m_descriptorManagerPtr.GetLayoutIndex(DescriptorCategory::eCompositionImage);
+    	compositionImageIndex = c_descriptorManager.GetLayoutIndex(DescriptorCategory::eCompositionImage);
 
     	vk::imageBuffers2D imageDescriptorData;
     	imageDescriptorData.resize(gMaxFramesInFlight);
@@ -155,7 +155,7 @@ namespace vk
 
     	descriptorManager.WriteDescriptors(DescriptorCategory::eCompositionImage, compositionImageIndex, imageDescriptorData);
 
-    	swapChainImageIndex = m_descriptorManagerPtr.GetLayoutIndex(DescriptorCategory::eCompositionImage);
+    	swapChainImageIndex = c_descriptorManager.GetLayoutIndex(DescriptorCategory::eCompositionImage);
 
     	imageDescriptorData.clear();
     	imageDescriptorData.resize(gMaxFramesInFlight);
@@ -180,7 +180,7 @@ namespace vk
     {
     	if (skyboxImageIndex == UINT_MAX)
     	{
-    		skyboxImageIndex = m_descriptorManagerPtr.GetLayoutIndex(DescriptorCategory::eMaterial);
+    		skyboxImageIndex = c_descriptorManager.GetLayoutIndex(DescriptorCategory::eMaterial);
     	}
 
     	vk::imageBuffers2D panoramicImageBuffer;

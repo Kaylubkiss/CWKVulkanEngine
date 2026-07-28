@@ -25,12 +25,8 @@ namespace vk
 	class RendererBase
 	{
 	public:
-		RendererBase(); /* expect this to be derived from */
+		RendererBase( vk::Device& device, vk::Window& window, vk::TextureManager& textureManager ); /* expect this to be derived from */
 		virtual ~RendererBase();
-
-		//getters(s)
-		[[nodiscard]] const vk::Device* GetDevicePtr() const;
-		vk::Window& GetWindow();
 
 		virtual void Render( SceneView sceneView ) = 0;
 
@@ -55,9 +51,9 @@ namespace vk
 			bool hotReloadRequested = false;
 		} m_settings = {};
 
-		vk::Instance m_instance;
-		vk::Window m_window;
-		vk::Device device;
+		vk::Device& c_device;
+		vk::Window& c_window;
+
 		vk::SwapChain swapChain;
 		vk::PipelineManager pipelineManager;
 
@@ -70,7 +66,7 @@ namespace vk
 		std::array<TextureUploadSemaphores, gMaxFramesInFlight> textureUploadSemaphores; //for I/O synchronization
 		std::array<VkFence, gMaxFramesInFlight> inFlightFences;
 
-		TextureManager* m_textureManagerPtr = nullptr;
+		TextureManager& c_textureManager;
 	};
 }	
 

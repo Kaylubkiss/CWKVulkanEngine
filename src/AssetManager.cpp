@@ -1,7 +1,7 @@
 #include "AssetManager.h"
 #include <ranges>
 
-void AssetManager::LoadObject( ObjectCreateInfo& objectCI )
+void AssetLoader::LoadObject( ObjectCreateInfo& objectCI )
 {
 	objectCI.textureManagerPtr = m_textureManagerPtr;
 	objectCI.devicePtr = c_devicePtr;
@@ -35,15 +35,14 @@ void AssetManager::LoadObject( ObjectCreateInfo& objectCI )
 	m_threadWorkers.EnqueueTask(parallelFunction);
 }
 
-void AssetManager::Destroy()
+void AssetLoader::Destroy()
 {
 	m_threadWorkers.Terminate();
-
 	std::unique_lock lock(m_objectMutex);
 	m_objects.clear();
 }
 
-std::shared_ptr<Object> AssetManager::GetObject( const std::string& objectName )
+std::shared_ptr<Object> AssetLoader::GetObject( const std::string& objectName )
 {
 	std::shared_lock lock(m_objectMutex);
 	auto it = m_objects.find( objectName );
@@ -55,7 +54,7 @@ std::shared_ptr<Object> AssetManager::GetObject( const std::string& objectName )
 	return {};
 }
 
-void AssetManager::Init( const vk::Device* devicePtr, vk::TextureManager* textureManagerPtr, size_t workerThreadCount )
+void AssetLoader::Init( const vk::Device* devicePtr, vk::TextureManager* textureManagerPtr, size_t workerThreadCount )
 {
 	assert(devicePtr != nullptr);
 	assert(textureManagerPtr != nullptr);

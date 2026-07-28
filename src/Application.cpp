@@ -19,11 +19,17 @@ Application::Application()
 {
 	Locatecwd();
 
-	m_vulkanGraphicsContext = std::make_unique<vk::DeferredRenderer>(&m_textureManager, m_descriptorManager);
+	InitContext();
 
-	m_assetManager.Init(m_vulkanGraphicsContext->GetDevicePtr(), &m_textureManager, 2);
+	m_descriptorManager.Init(&m_device);
 
-	m_sceneManager.Init(m_assetManager);
+	m_textureManager.Init(&m_device, &m_descriptorManager);
+
+	m_vulkanGraphicsContext = std::make_unique<vk::DeferredRenderer>(m_device, m_window, m_textureManager,
+		m_descriptorManager);
+
+	m_assetManager.Init(&m_device, &m_textureManager, 2);
+	m_sceneManager.Init( m_assetManager );
 }
 
 PhysicsSystem& Application::GetPhysics() 
@@ -119,6 +125,29 @@ void Application::run()
 void Application::RequestExit() 
 {
 	this->exitApplication = true;
+}
+
+void Application::InitContext()
+{
+	m_window = vk::Window(640, 480);
+
+	std::vector<const char*> instanceLayers = {"VK_LAYER_KHRONOS_validation"};
+	std::vector<const char*> instanceExtensions = m_window.GetInstanceExtensions();
+	m_instance = vk::Instance(instanceExtensions, instanceLayers);
+
+	m_window.CreateSurface(m_instance.GetHandle());
+
+	std::vector<const char*> deviceExtensions =
+	{
+		{
+			VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+			VK_EXT_DESCRIPTOR_BUFFER_EXTENSION_NAME,
+			VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME
+		}
+	};
+
+	m_device = vk::Device(m_instance.GetGPU(VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU),
+			m_window.Surface(), deviceExtensions);
 }
 
 Application::~Application()

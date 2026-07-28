@@ -117,6 +117,11 @@ namespace vk
 		return m_sdlPtr;
 	}
 
+	VkInstance Window::GetContextInstance() const
+	{
+		return c_instance;
+	}
+
 	std::vector<const char*> Window::GetInstanceExtensions() const
 	{
 		//must get the SDL extensions to use SDL2

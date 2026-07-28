@@ -13,16 +13,16 @@ namespace vk
         	vk::PipelineBuilder pipelineBuilder(m_graphicsPipelineLayout, framebuffers.deComposition.front().GetRenderPass());
         	vk::Pipeline pipeline;
 
-			vk::ShaderModuleInfo vertShaderInfo = vk::ShaderModuleInfo(device.GetDevice(),
+			vk::ShaderModuleInfo vertShaderInfo = vk::ShaderModuleInfo(c_device.GetDevice(),
 				"deferred-render/deComposition.vert", VK_SHADER_STAGE_VERTEX_BIT);
-			vk::ShaderModuleInfo fragShaderInfo = vk::ShaderModuleInfo(device.GetDevice(),
+			vk::ShaderModuleInfo fragShaderInfo = vk::ShaderModuleInfo(c_device.GetDevice(),
 				"deferred-render/deComposition-PBR.frag", VK_SHADER_STAGE_FRAGMENT_BIT);
 
         	pipelineBuilder
         		.AddModule(std::move(vertShaderInfo))
         		.AddModule(std::move(fragShaderInfo))
         		.SetCullMode(VK_CULL_MODE_FRONT_BIT)
-        		.CreatePipeline( device.GetDevice(), &pipeline.handle );
+        		.CreatePipeline( c_device.GetDevice(), &pipeline.handle );
 
         	pipeline.pipelineBuilder = std::make_unique<PipelineBuilder>(std::move(pipelineBuilder));
 
@@ -36,9 +36,9 @@ namespace vk
 
         	vk::Pipeline pipeline;
 
-			vk::ShaderModuleInfo vertShaderInfo = ShaderModuleInfo(device.GetDevice(),
+			vk::ShaderModuleInfo vertShaderInfo = ShaderModuleInfo(c_device.GetDevice(),
 				"deferred-render/deMRT.vert", VK_SHADER_STAGE_VERTEX_BIT);
-			vk::ShaderModuleInfo fragShaderInfo = ShaderModuleInfo(device.GetDevice(),
+			vk::ShaderModuleInfo fragShaderInfo = ShaderModuleInfo(c_device.GetDevice(),
 				"deferred-render/deMRT.frag", VK_SHADER_STAGE_FRAGMENT_BIT);
 
 			pipelineBuilder
@@ -49,7 +49,7 @@ namespace vk
         		.EnableDepthWrite()
         		.SetBlendAttachmentCount(RT_COUNT)
         		.EnableVertexAttributeBinding()
-        		.CreatePipeline(device.GetDevice(), &pipeline.handle);
+        		.CreatePipeline(c_device.GetDevice(), &pipeline.handle);
 
         	pipeline.pipelineBuilder = std::make_unique<PipelineBuilder>(std::move(pipelineBuilder));
 
@@ -62,14 +62,14 @@ namespace vk
         	vk::PipelineBuilder pipelineBuilder(m_graphicsPipelineLayout, framebuffers.deSky.front().GetRenderPass());
         	vk::Pipeline pipeline;
 
-			vk::ShaderModuleInfo vertShaderInfo = vk::ShaderModuleInfo(device.GetDevice(), "sky.vert", VK_SHADER_STAGE_VERTEX_BIT);
-			vk::ShaderModuleInfo fragShaderInfo = vk::ShaderModuleInfo(device.GetDevice(), "sky.frag", VK_SHADER_STAGE_FRAGMENT_BIT);
+			vk::ShaderModuleInfo vertShaderInfo = vk::ShaderModuleInfo(c_device.GetDevice(), "sky.vert", VK_SHADER_STAGE_VERTEX_BIT);
+			vk::ShaderModuleInfo fragShaderInfo = vk::ShaderModuleInfo(c_device.GetDevice(), "sky.frag", VK_SHADER_STAGE_FRAGMENT_BIT);
 
 			pipelineBuilder
         		.AddModule(std::move(vertShaderInfo))
         		.AddModule(std::move(fragShaderInfo))
         		.EnableDepthTest()
-        		.CreatePipeline( device.GetDevice(), &pipeline.handle );
+        		.CreatePipeline( c_device.GetDevice(), &pipeline.handle );
 
 			pipeline.pipelineBuilder = std::make_unique<PipelineBuilder>(std::move(pipelineBuilder));
 
@@ -83,15 +83,15 @@ namespace vk
 
         	vk::Pipeline pipeline;
 
-			vk::ShaderModuleInfo vertShaderInfo = vk::ShaderModuleInfo(device.GetDevice(), "deferred-render/quad.vert",
+			vk::ShaderModuleInfo vertShaderInfo = vk::ShaderModuleInfo(c_device.GetDevice(), "deferred-render/quad.vert",
 				VK_SHADER_STAGE_VERTEX_BIT);
-			vk::ShaderModuleInfo fragShaderInfo = vk::ShaderModuleInfo(device.GetDevice(), "deferred-render/quad.frag",
+			vk::ShaderModuleInfo fragShaderInfo = vk::ShaderModuleInfo(c_device.GetDevice(), "deferred-render/quad.frag",
 				VK_SHADER_STAGE_FRAGMENT_BIT);
 
         	pipelineBuilder
         		.AddModule(std::move(vertShaderInfo))
         		.AddModule(std::move(fragShaderInfo))
-        		.CreatePipeline( device.GetDevice(), &pipeline.handle );
+        		.CreatePipeline( c_device.GetDevice(), &pipeline.handle );
 
         	pipeline.pipelineBuilder = std::make_unique<PipelineBuilder>(std::move(pipelineBuilder));
 

@@ -11,7 +11,7 @@
     public:
         [[nodiscard]] SceneView GetSceneView() const;
 
-        void Init( AssetManager& assetManager );
+        void Init( AssetLoader& assetLoader );
         void Update( float physicsInterp, float dt ); //culling, physics
     private:
         void InitTestScene();
@@ -19,7 +19,7 @@
     private:
         std::list<std::string> m_requestedObjects; //list of filenames the asset (resource) manager used.
         Scene m_scene; // might be useful to have a list of scenes.
-        AssetManager* assetManagerPtr = nullptr;
+        AssetLoader* c_assetLoader = nullptr;
     };
 
 #endif

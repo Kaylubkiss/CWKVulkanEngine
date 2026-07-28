@@ -13,11 +13,11 @@ namespace vk
 
     void DeferredRenderer::InitializeDeferredFramebuffer()
 	{
-		VkViewport viewport = m_window.Viewport();
+		VkViewport viewport = c_window.Viewport();
 
 		for (auto& MRTFramebuffer : framebuffers.deMRT)
 		{
-			MRTFramebuffer = vk::Framebuffer( &this->device );
+			MRTFramebuffer = vk::Framebuffer( &c_device );
 
 			MRTFramebuffer.SetExtent(
 				{ static_cast<uint32_t>(viewport.width),
@@ -44,6 +44,7 @@ namespace vk
 			attachmentCI.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 			attachmentCI.operatingLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 			attachmentCI.finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
 			MRTFramebuffer.AddAttachment(attachmentCI);
 
 			//normal attachment
@@ -76,11 +77,11 @@ namespace vk
 
 	void DeferredRenderer::InitializeDeferredShadowFramebuffer()
     {
-    	VkViewport viewport = m_window.Viewport();
+    	VkViewport viewport = c_window.Viewport();
 
 		for (auto& shadowMapFramebuffer : framebuffers.deShadow)
 		{
-			shadowMapFramebuffer = vk::Framebuffer(&this->device);
+			shadowMapFramebuffer = vk::Framebuffer(&c_device);
 
 			shadowMapFramebuffer.SetExtent( { 2048, 2048 } );
 
@@ -108,11 +109,11 @@ namespace vk
 
 	void DeferredRenderer::InitializeDeferredCompositionFramebuffer()
 	{
-		VkViewport viewport = m_window.Viewport();
+		VkViewport viewport = c_window.Viewport();
 
 		for (auto& compositionFramebuffer :  framebuffers.deComposition)
 		{
-			compositionFramebuffer = vk::Framebuffer(&this->device);
+			compositionFramebuffer = vk::Framebuffer(&c_device);
 
 			compositionFramebuffer.SetExtent(
 				{ static_cast<uint32_t>(viewport.width),
@@ -144,13 +145,13 @@ namespace vk
 
 	void DeferredRenderer::InitializeDeferredSkyboxFramebuffer()
 	{
-		VkViewport viewport = m_window.Viewport();
+		VkViewport viewport = c_window.Viewport();
 
 		size_t frame = 0;
 
 		for (auto& skyFramebuffer : framebuffers.deSky)
 		{
-			skyFramebuffer = vk::Framebuffer(&this->device);
+			skyFramebuffer = vk::Framebuffer(&c_device);
 
 			skyFramebuffer.SetExtent(
 			 { static_cast<uint32_t>(viewport.width),

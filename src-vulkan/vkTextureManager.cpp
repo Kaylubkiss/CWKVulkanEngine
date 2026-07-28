@@ -109,6 +109,7 @@ namespace vk
 		}
 
 		uint32_t layoutIndex = m_descriptorManagerPtr->GetLayoutIndex( DescriptorCategory::eMaterial );
+
 		const size_t textureCount = createInfos.size();
 		std::vector<PendingTextureInfo> pendingInfos(textureCount);
 

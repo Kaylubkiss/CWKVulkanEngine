@@ -7,15 +7,11 @@
 namespace vk
 {
 
-	DeferredRenderer::DeferredRenderer( TextureManager* textureManagerPtr,
-		DescriptorManager& descriptorManagerPtr ) :
-		m_descriptorManagerPtr(descriptorManagerPtr)
+	DeferredRenderer::DeferredRenderer( vk::Device& device, vk::Window& window, vk::TextureManager& textureManager,
+		vk::DescriptorManager& descriptorManager ) :
+		RendererBase(device, window, textureManager),
+		c_descriptorManager(descriptorManager)
 	{
-		m_textureManagerPtr = textureManagerPtr;
-
-		m_descriptorManagerPtr.Init(&device);
-		m_textureManagerPtr->Init(&device, &m_descriptorManagerPtr);
-
 		InitializeUniforms();
 		InitializeFramebuffers();
 
@@ -26,16 +22,16 @@ namespace vk
 		texture_create_info.mipLevels = 1;
 		texture_create_info.layerCount = 1;
 
-		m_test_panoramicImage = vk::PanoramicTexture(&device, texture_create_info);
+		m_test_panoramicImage = vk::PanoramicTexture(&c_device, texture_create_info);
 
-		DeferredRenderer::InitializeDescriptors(m_descriptorManagerPtr);
+		DeferredRenderer::InitializeDescriptors(c_descriptorManager);
 
 		DeferredRenderer::InitializePipeline();
 	}
 
 	DeferredRenderer::~DeferredRenderer()
 	{
-		vkDestroyPipelineLayout(device.GetDevice(), m_graphicsPipelineLayout, nullptr);
+		vkDestroyPipelineLayout(c_device.GetDevice(), m_graphicsPipelineLayout, nullptr);
 	}
 
 	void DeferredRenderer::InitializeUniforms()
@@ -67,7 +63,7 @@ namespace vk
 		{
 			//////////////////////////////////
 			//#1 - deferred MRT
-			uniformBuffers.mrt[i] = device.CreateBuffer(sizeof(uniformDataMRT),
+			uniformBuffers.mrt[i] = c_device.CreateBuffer(sizeof(uniformDataMRT),
 				VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
 				VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
 				(void*)(&uniformDataMRT));
@@ -75,7 +71,7 @@ namespace vk
 
 			//////////////////////////////////
 			//#2 - deferred shadows
-			uniformBuffers.shadow[i] = device.CreateBuffer(sizeof(uniformDataDeferredShadow),
+			uniformBuffers.shadow[i] = c_device.CreateBuffer(sizeof(uniformDataDeferredShadow),
 				VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
 				VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
 				(void*)(&uniformDataDeferredShadow));
@@ -83,7 +79,7 @@ namespace vk
 
 			//////////////////////////////////
 			//#3 - deferred light pass
-			uniformBuffers.composition[i] = device.CreateBuffer(sizeof(uniformDataLightPass),
+			uniformBuffers.composition[i] = c_device.CreateBuffer(sizeof(uniformDataLightPass),
 				VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
 				VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
 				(void*)(&uniformDataLightPass));
@@ -101,9 +97,9 @@ namespace vk
 
 		std::vector<VkDescriptorSetLayout> pipelineLayout =
 		{
-			m_descriptorManagerPtr.GetLayout(DescriptorCategory::eUBO),
-			m_descriptorManagerPtr.GetLayout(DescriptorCategory::eCompositionImage),
-			m_descriptorManagerPtr.GetLayout(DescriptorCategory::eMaterial)
+			c_descriptorManager.GetLayout(DescriptorCategory::eUBO),
+			c_descriptorManager.GetLayout(DescriptorCategory::eCompositionImage),
+			c_descriptorManager.GetLayout(DescriptorCategory::eMaterial)
 		};
 
 
@@ -113,14 +109,14 @@ namespace vk
 		pipelineLayoutCreateInfo.pPushConstantRanges = pushConstantRanges.data();
 		pipelineLayoutCreateInfo.pushConstantRangeCount = static_cast<uint32_t>(pushConstantRanges.size());
 
-		VK_CHECK_RESULT(vkCreatePipelineLayout(device.GetDevice(), &pipelineLayoutCreateInfo,
+		VK_CHECK_RESULT(vkCreatePipelineLayout(c_device.GetDevice(), &pipelineLayoutCreateInfo,
 					nullptr, &m_graphicsPipelineLayout));
 	}
 
 	void DeferredRenderer::UpdateScreenUniforms( const SceneView& sceneView )
 	{
 		Camera& sceneCam = *sceneView.camera;
-		VkViewport windowViewport = m_window.Viewport();
+		VkViewport windowViewport = c_window.Viewport();
 
 		//transform(s)
 		uniformDataMRT.viewMatrix = sceneCam.LookAt();
@@ -227,12 +223,12 @@ namespace vk
 
 					WaitForDevice();
 
-					m_test_panoramicImage = PanoramicTexture(&device, texture_create_info);
+					m_test_panoramicImage = PanoramicTexture(&c_device, texture_create_info);
 
 					//have to update the descriptors
-					InitializeSkyboxDescriptor( m_descriptorManagerPtr );
+					InitializeSkyboxDescriptor( c_descriptorManager );
 
-					InitializeEnvironmentMapDescriptors( m_descriptorManagerPtr );
+					InitializeEnvironmentMapDescriptors( c_descriptorManager );
 				}
 			}
 
@@ -269,7 +265,7 @@ namespace vk
 			skyboxPipelineBuilder->UpdateRenderPass(framebuffers.deSky.back().GetRenderPass());
 		}
 
-		InitializeCompositionImageDescriptors(m_descriptorManagerPtr);
+		InitializeCompositionImageDescriptors(c_descriptorManager );
 	}
 
 	void DeferredRenderer::Render( SceneView sceneView  )

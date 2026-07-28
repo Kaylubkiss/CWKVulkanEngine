@@ -17,18 +17,18 @@ namespace vk
     	{
     		{
 				.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_BUFFER_BINDING_INFO_EXT,
-    			.address = m_descriptorManagerPtr.GetDescriptorAddress(DescriptorCategory::eUBO),
+    			.address = c_descriptorManager.GetDescriptorAddress(DescriptorCategory::eUBO),
     			.usage = VK_BUFFER_USAGE_RESOURCE_DESCRIPTOR_BUFFER_BIT_EXT
 			},
     		{
     			.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_BUFFER_BINDING_INFO_EXT,
-    			.address = m_descriptorManagerPtr.GetDescriptorAddress(DescriptorCategory::eCompositionImage),
+    			.address = c_descriptorManager.GetDescriptorAddress(DescriptorCategory::eCompositionImage),
     			.usage = VK_BUFFER_USAGE_SAMPLER_DESCRIPTOR_BUFFER_BIT_EXT |
 					VK_BUFFER_USAGE_RESOURCE_DESCRIPTOR_BUFFER_BIT_EXT
     		},
     		{
     			.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_BUFFER_BINDING_INFO_EXT,
-    			.address = m_descriptorManagerPtr.GetDescriptorAddress(DescriptorCategory::eMaterial),
+    			.address = c_descriptorManager.GetDescriptorAddress(DescriptorCategory::eMaterial),
     			.usage = VK_BUFFER_USAGE_SAMPLER_DESCRIPTOR_BUFFER_BIT_EXT |
     				VK_BUFFER_USAGE_RESOURCE_DESCRIPTOR_BUFFER_BIT_EXT
     		}
@@ -91,7 +91,7 @@ namespace vk
 			vkCmdEndRenderPass(cmdBuffer);
 		}*/
 
-    	VkDeviceSize uboLayoutSize = m_descriptorManagerPtr.GetLayoutSize(DescriptorCategory::eUBO);
+    	VkDeviceSize uboLayoutSize = c_descriptorManager.GetLayoutSize(DescriptorCategory::eUBO);
 
 		//MRT rendering.
 		{
@@ -118,10 +118,10 @@ namespace vk
 
 			vkCmdBeginRenderPass(cmdBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-			VkViewport sceneViewport =  m_window.Viewport();
+			VkViewport sceneViewport =  c_window.Viewport();
 			vkCmdSetViewport(cmdBuffer, 0, 1, &sceneViewport);
 
-			VkRect2D sceneScissor = m_window.Scissor();
+			VkRect2D sceneScissor = c_window.Scissor();
 			vkCmdSetScissor(cmdBuffer, 0, 1, &sceneScissor);
 
 
@@ -136,7 +136,7 @@ namespace vk
 			drawInfo.imageBufferIndex = materialDescriptorIndex;
 			drawInfo.firstSet = materialDescriptorIndex;
 			drawInfo.pipelineLayout = m_graphicsPipelineLayout;
-			drawInfo.textureBindingSize = m_descriptorManagerPtr.GetLayoutSize(DescriptorCategory::eMaterial);
+			drawInfo.textureBindingSize = c_descriptorManager.GetLayoutSize(DescriptorCategory::eMaterial);
 
 			for (auto& object : sceneView.opaqueObjects)
 			{
@@ -151,7 +151,7 @@ namespace vk
 			vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
 			pipelineManager.Get(dePipeline::COMPOSITION));
 
-			VkViewport windowViewport = m_window.Viewport();
+			VkViewport windowViewport = c_window.Viewport();
 
 			clearValues[0].color = { 0,0,0,0 };
 			clearValues[1].depthStencil = { 1.f, 0 };
@@ -173,12 +173,12 @@ namespace vk
 			VkViewport sceneViewport = windowViewport;
 			vkCmdSetViewport(cmdBuffer, 0, 1, &sceneViewport);
 
-			VkRect2D sceneScissor = m_window.Scissor();
+			VkRect2D sceneScissor = c_window.Scissor();
 			vkCmdSetScissor(cmdBuffer, 0, 1, &sceneScissor);
 
 			//composition image samplers;
 			VkDeviceSize buffer_offset = (gMaxFramesInFlight * compositionImageIndex + currentFrame) *
-				m_descriptorManagerPtr.GetLayoutSize(DescriptorCategory::eCompositionImage);
+				c_descriptorManager.GetLayoutSize(DescriptorCategory::eCompositionImage);
 
 			g_vkCmdSetDescriptorBufferOffsetsEXT(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
 				m_graphicsPipelineLayout, compositionImageDescriptorIndex, 1, &compositionImageDescriptorIndex, &buffer_offset);
@@ -199,7 +199,7 @@ namespace vk
 			vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
 			pipelineManager.Get(dePipeline::SKY));
 
-			VkViewport windowViewport = m_window.Viewport();
+			VkViewport windowViewport = c_window.Viewport();
 
 			clearValues[0].color = { 0,0,0,0 };
 			clearValues[1].depthStencil = { 1.f, 0 };
@@ -220,7 +220,7 @@ namespace vk
 
 			vkCmdSetViewport(cmdBuffer, 0, 1, &windowViewport);
 
-			VkRect2D sceneScissor = m_window.Scissor();
+			VkRect2D sceneScissor = c_window.Scissor();
 			vkCmdSetScissor(cmdBuffer, 0, 1, &sceneScissor);
 
 
@@ -230,7 +230,7 @@ namespace vk
 			g_vkCmdSetDescriptorBufferOffsetsEXT(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
 				m_graphicsPipelineLayout, uboDescriptorIndex, 1, &uboDescriptorIndex, &buffer_offset);
 
-			buffer_offset = skyboxImageIndex * m_descriptorManagerPtr.GetLayoutSize(DescriptorCategory::eMaterial);
+			buffer_offset = skyboxImageIndex * c_descriptorManager.GetLayoutSize(DescriptorCategory::eMaterial);
 
 			//scene sampler
 			g_vkCmdSetDescriptorBufferOffsetsEXT(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
@@ -248,7 +248,7 @@ namespace vk
 			vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
 				pipelineManager.Get(dePipeline::SWAPCHAIN));
 
-			VkViewport windowViewport = m_window.Viewport();
+			VkViewport windowViewport = c_window.Viewport();
 
 			clearValues[0].color = { 0,0,0,0 };
 
@@ -269,11 +269,11 @@ namespace vk
 			VkViewport sceneViewport = windowViewport;
 			vkCmdSetViewport(cmdBuffer, 0, 1, &sceneViewport);
 
-			VkRect2D sceneScissor = m_window.Scissor();
+			VkRect2D sceneScissor = c_window.Scissor();
 			vkCmdSetScissor(cmdBuffer, 0, 1, &sceneScissor);
 
 			VkDeviceSize buffer_offset =  (gMaxFramesInFlight * swapChainImageIndex + currentFrame) *
-				m_descriptorManagerPtr.GetLayoutSize(DescriptorCategory::eCompositionImage);
+				c_descriptorManager.GetLayoutSize(DescriptorCategory::eCompositionImage);
 
 			g_vkCmdSetDescriptorBufferOffsetsEXT(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
 				m_graphicsPipelineLayout, compositionImageDescriptorIndex, 1, &compositionImageDescriptorIndex, &buffer_offset);

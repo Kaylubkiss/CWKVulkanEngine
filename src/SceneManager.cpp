@@ -2,9 +2,9 @@
 #include "Input.h"
 #include <ranges>
 
-void SceneManager::Init( AssetManager& assetManager )
+void SceneManager::Init( AssetLoader& assetLoader )
 {
-	assetManagerPtr = &assetManager;
+	c_assetLoader = &assetLoader;
 
 	glm::vec3 eye =  { 0.f, 0.f, 10.f };
 	glm::vec3 lookDirection = { 0.f, 0.f, -1.f };
@@ -32,7 +32,7 @@ void SceneManager::GrabRequestedObjects()
 		auto it = m_requestedObjects.begin();
 		while (it != m_requestedObjects.end())
 		{
-			auto object = assetManagerPtr->GetObject( *it );
+			auto object = c_assetLoader->GetObject( *it );
 			if (object != nullptr)
 			{
 				m_scene.m_objects.emplace_back(object);
@@ -77,7 +77,7 @@ void SceneManager::InitTestScene()
 	objectCI.modelTransform = glm::translate(glm::mat4(1.f), freddyPosition) *
 		glm::scale(glm::mat4(1.f), glm::vec3(3.f));
 
-	assetManagerPtr->LoadObject(objectCI);
+	c_assetLoader->LoadObject(objectCI);
 
 	m_requestedObjects.push_back(objectCI.objName);
 
@@ -93,7 +93,7 @@ void SceneManager::InitTestScene()
 	objectCI.physicsInfo = physInfo;
 	objectCI.modelTransform = glm::translate(glm::mat4(1.f), glm::vec3(cubePosition));
 
-	assetManagerPtr->LoadObject(objectCI);
+	c_assetLoader->LoadObject(objectCI);
 
 	m_requestedObjects.push_back(objectCI.objName);
 
@@ -110,7 +110,7 @@ void SceneManager::InitTestScene()
 	objectCI.modelTransform = glm::translate(glm::mat4(1.f), glm::vec3(0, -5.f, 0)) *
 		glm::scale(glm::mat4(1.f), glm::vec3(30.f));
 
-	assetManagerPtr->LoadObject(objectCI);
+	c_assetLoader->LoadObject(objectCI);
 
 	m_requestedObjects.push_back(objectCI.objName);
 
@@ -129,7 +129,7 @@ void SceneManager::InitTestScene()
 	objectCI.objName = "SciFiHelmet/glTF/SciFiHelmet.gltf";
 	objectCI.modelTransform = glm::translate(glm::mat4(1.f), glm::vec3(0.f, 1.f, 0));
 
-	assetManagerPtr->LoadObject(objectCI);
+	c_assetLoader->LoadObject(objectCI);
 
 	m_requestedObjects.push_back(objectCI.objName);
 
@@ -140,7 +140,7 @@ void SceneManager::InitTestScene()
 		glm::scale(glm::mat4(1.f), glm::vec3(3));
 	objectCI.objName = "DiffuseTransmissionTeacup/glTF/DiffuseTransmissionTeacup.gltf";
 
-	assetManagerPtr->LoadObject(objectCI);
+	c_assetLoader->LoadObject(objectCI);
 
 	m_requestedObjects.push_back(objectCI.objName);
 }
