@@ -46,6 +46,8 @@ private:
 	bool exitApplication = false;
 };
 
+extern Application app;
+
 #endif
 
 

@@ -28,7 +28,7 @@ void MoveCamera( Camera& camera, float dt )
 
 		if (e.type == SDL_QUIT)
 		{
-			_Application->RequestExit(); //don't want to process any further input, so return here.
+			app.RequestExit(); //don't want to process any further input, so return here.
 			return;
 		}
 
@@ -62,11 +62,11 @@ void MoveCamera( Camera& camera, float dt )
 					std::cerr << SDL_GetError() << std::endl;
 				}
 
-				_GraphicsContext->ToggleUIActive(true);
+				UserInterface::Toggle(true);
 			}
 			else
 			{
-				_Application->RequestExit();
+				app.RequestExit();
 				return;
 			}
 		}
@@ -86,7 +86,7 @@ void MoveCamera( Camera& camera, float dt )
 					std::cerr << SDL_GetError() << std::endl;
 				}
 
-				_GraphicsContext->ToggleUIActive(false);
+				UserInterface::Toggle(false);
 			}
 		}
 

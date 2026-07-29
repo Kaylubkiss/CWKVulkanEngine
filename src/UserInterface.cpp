@@ -47,6 +47,7 @@ void UserInterface::Init( const UserInterfaceInitInfo& initInfo )
 	ImGui_ImplVulkan_Init(&init_info);
 
 	isInitialized = true;
+	isToggled = true;
 
 }
 
@@ -124,5 +125,14 @@ void UserInterface::Render( VkCommandBuffer cmdBuffer )
 {
 	ImGui::Render();
 	ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), cmdBuffer);
+}
+
+bool UserInterface::IsToggled()
+{
+	return isInitialized && isToggled;
+}
+void UserInterface::Toggle( bool x )
+{
+	isToggled = x;
 }
 

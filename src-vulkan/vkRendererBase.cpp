@@ -28,8 +28,6 @@ namespace vk
 			userInterfaceCI.minImages = m_settings.maxFramesInFlight;
 			userInterfaceCI.viewPortExtent = c_window.Extents();
 
-			m_settings.UIToggled = true;
-
 			UserInterface::Init( userInterfaceCI );
 		}
 
@@ -106,11 +104,6 @@ namespace vk
 		CreateSynchronizationPrimitives();
 	}
 
-	void RendererBase::ToggleUIActive(bool enable)
-	{
-		m_settings.UIToggled = enable;
-	}
-
 	void RendererBase::WaitForDevice() const
 	{
 		if (c_device.GetDevice() != VK_NULL_HANDLE)
@@ -162,14 +155,14 @@ namespace vk
 
 			int flags = ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize;
 
-			if (m_settings.UIToggled == false)
+			if (UserInterface::IsToggled() == false)
 			{
 				flags |= ImGuiWindowFlags_NoInputs;
 			}
 
 			if (ImGui::Begin("CWKVulkanEngine", nullptr, flags) == true)
 			{
-				UserInterface::TextData("FPS: %d", static_cast<int>(_Timer.GetFPS()));
+				UserInterface::TextData("FPS: %d", static_cast<int>(app.GetTimer().GetFPS()));
 				UpdateUI();
 			}
 

@@ -68,7 +68,6 @@ src/Physics.cpp
 src/Timer.cpp
 src/ThreadPool.cpp
 src/AssetManager.cpp
-src/ApplicationGlobal.cpp
 src/Input.cpp
 src/UserInterface.cpp
 src/GLTFModel.cpp
@@ -130,7 +129,6 @@ ${HEADER_SRC_DIR}/Physics.h
 ${HEADER_SRC_DIR}/Timer.h
 ${HEADER_SRC_DIR}/ThreadPool.h
 ${HEADER_SRC_DIR}/AssetManager.h
-${HEADER_SRC_DIR}/ApplicationGlobal.h
 ${HEADER_SRC_DIR}/Input.h
 ${HEADER_SRC_DIR}/SpirvHelper.h
 ${HEADER_SRC_DIR}/UserInterface.h

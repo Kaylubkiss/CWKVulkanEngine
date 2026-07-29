@@ -44,7 +44,7 @@
 
 #include "vkGlobal.h"
 
-#include "ApplicationGlobal.h"
+#include "Application.h"
 
 #endif
 

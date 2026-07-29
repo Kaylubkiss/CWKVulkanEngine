@@ -1,6 +1,6 @@
 int main(int argc, char* argv[])
 {
-	_Application->run();
+	app.run();
 
 	return 0;
 }

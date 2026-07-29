@@ -32,7 +32,6 @@ namespace vk
 
 		//operations
 		void WaitForDevice() const;
-		void ToggleUIActive(bool enable);
 	protected:
 		bool PrepareFrame();
 		void SubmitFrame();
@@ -46,7 +45,6 @@ namespace vk
 			uint32_t maxFramesInFlight = 2;
 			bool minimized = false;
 			bool UIDisplay = true;
-			bool UIToggled = false; //can consume inputs upon intialization
 			bool validationLayers = true;
 			bool hotReloadRequested = false;
 		} m_settings = {};

@@ -1,6 +1,4 @@
 #include "OBJModel.h"
-#include <glm/glm.hpp>
-#include "ApplicationGlobal.h"
 #define TINYOBJLOADER_DISABLE_FAST_FLOAT
 #define TINYOBJLOADER_IMPLEMENTATION
 #include "tiny_obj_loader.h"

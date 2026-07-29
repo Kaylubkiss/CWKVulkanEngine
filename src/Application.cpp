@@ -1,6 +1,8 @@
 #include "Input.h"
 #include "vkDeferredRenderer.h"
 
+Application app;
+
 static void Locatecwd()
 {
 	std::filesystem::path cwd = std::filesystem::current_path();

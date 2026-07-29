@@ -23,8 +23,12 @@ public:
 
 	static bool WantsEvents();
 
+
 	static void Prepare();
 	static void Render( VkCommandBuffer cmdBuffer ); //after main rendering
+
+	static bool IsToggled();
+	static void Toggle( bool x );
 
 	template<typename T>
 	static void TextData( const char* fmt, T value )
@@ -44,6 +48,7 @@ private:
 	inline static VkDescriptorPool UIDescriptorPool = VK_NULL_HANDLE; //just for the sampler.
 	static constexpr uint32_t max_textures = 100;
 	inline static bool isInitialized = false;
+	inline static bool isToggled = false;
 };
 
 #endif

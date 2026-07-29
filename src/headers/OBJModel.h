@@ -1,7 +1,7 @@
 #ifndef OBJ_MODEL_HPP
 #define OBJ_MODEL_HPP
 
-#include "Model.h"
+class Model;
 
 class OBJModel : public Model
 {
