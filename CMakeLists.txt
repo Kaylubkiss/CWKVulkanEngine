@@ -182,7 +182,6 @@ ${SHADER_SRC_DIR}/deferred-render/deShadow.vert
         src/headers/SceneDefinitions.h
 		src/headers/SceneManager.h
 		src/SceneManager.cpp
-        src-vulkan/headers/vkContext.h
 )
 
 
