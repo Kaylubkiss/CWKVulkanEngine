@@ -2,23 +2,16 @@
 
 PhysicsSystem::PhysicsSystem() 
 {
-	if (this->mPhysicsWorld == nullptr)
-	{
-		this->mPhysicsWorld = this->mPhysicsCommon.createPhysicsWorld();
+	this->mPhysicsWorld = this->mPhysicsCommon.createPhysicsWorld();
 
-		//empty rigidbody..trick so it doesn't crash when closing the application.
-		this->mPhysicsWorld->createRigidBody(reactphysics3d::Transform::identity());
-	}
-
+	//empty rigidbody..trick so it doesn't crash when closing the application.
+	this->mPhysicsWorld->createRigidBody(reactphysics3d::Transform::identity());
 }
 
 PhysicsSystem::~PhysicsSystem()
 {
-	if (this->mPhysicsWorld != nullptr) 
-	{
-		this->mPhysicsCommon.destroyPhysicsWorld(this->mPhysicsWorld);
-		this->mPhysicsWorld = nullptr;
-	}
+	this->mPhysicsCommon.destroyPhysicsWorld(this->mPhysicsWorld);
+	this->mPhysicsWorld = nullptr;
 }
 
 float PhysicsSystem::InterpFactor( float dt )

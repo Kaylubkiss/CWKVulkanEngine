@@ -1,4 +1,3 @@
-#include "Input.h"
 #include "vkDeferredRenderer.h"
 
 Application app;
@@ -34,19 +33,19 @@ Application::Application()
 	m_sceneManager.Init( m_assetManager );
 }
 
-PhysicsSystem& Application::GetPhysics() 
+PhysicsSystem& Application::GetPhysics()
 {
 	return this->m_physics;
-}
-
-Timer& Application::GetTimer()
-{
-	return this->mTime;
 }
 
 vk::RendererBase* Application::GetVulkanRenderer() const
 {
 	return m_vulkanGraphicsContext.get();
+}
+
+const Timer& Application::GetTimer() const
+{
+	return mTime;
 }
 
 void Application::run()

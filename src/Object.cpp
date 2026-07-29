@@ -74,7 +74,7 @@ void Object::LoadTextures( vk::TextureManager& textureManager, const std::vector
 
 void Object::InitPhysics( const PhysicsInitInfo& physicsInfo )
 {
-    PhysicsSystem& appPhysics = app.GetPhysics();
+    auto& appPhysics = app.GetPhysics();
 
     m_physicsComponent = PhysicsComponent();
 

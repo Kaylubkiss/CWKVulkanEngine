@@ -1,8 +1,6 @@
 #include "vkDeferredRenderer.h"
 #include "vkInit.h"
-//TODO: be able to specify the objects you want in the scene at compile time.
-//TODO: remove camel case -- looks ugly and a bit unreadable. There is some inconsistency here in this file with that. 
-
+#include "Camera.h" //code smell: this is a scene definition.
 
 namespace vk
 {

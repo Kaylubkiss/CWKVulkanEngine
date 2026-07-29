@@ -3,7 +3,6 @@
 
 #include "Timer.h"
 #include "Physics.h"
-#include "Camera.h"
 #include "vkRendererBase.h"
 #include "SceneManager.h"
 #include "../../src-vulkan/headers/vkTextureManager.h"
@@ -16,7 +15,7 @@ public:
 	~Application();
 
 	PhysicsSystem& GetPhysics();
-	Timer& GetTimer();
+	const Timer& GetTimer() const;
 	vk::RendererBase* GetVulkanRenderer() const;
 
 	void run();

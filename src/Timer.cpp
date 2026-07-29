@@ -10,6 +10,11 @@ double Timer::GetFPS() const
 	return fps;
 }
 
+double Timer::GetDeltaTime() const
+{
+	return deltaTime;
+}
+
 double Timer::CalculateDeltaTime()
 {
 	this->timeBefore = this->timeNow;

@@ -9,6 +9,7 @@ public:
 	Timer();
 	double CalculateDeltaTime();
 	[[nodiscard]] double GetFPS() const;
+	[[nodiscard]] double GetDeltaTime() const;
 private:
 	std::chrono::steady_clock::time_point timeNow;
 	std::chrono::steady_clock::time_point timeBefore;

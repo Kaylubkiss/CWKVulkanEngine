@@ -1,6 +1,7 @@
 #include "SceneManager.h"
 #include "Input.h"
 #include <ranges>
+#include "Camera.h"
 
 void SceneManager::Init( AssetLoader& assetLoader )
 {
