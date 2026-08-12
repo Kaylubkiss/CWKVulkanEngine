@@ -3,6 +3,8 @@
 
 namespace vk
 {
+    class ShaderModuleInfo;
+
     class PipelineBuilder
     {
     public:
@@ -15,9 +17,9 @@ namespace vk
         PipelineBuilder( PipelineBuilder&& other ) noexcept;
         PipelineBuilder& operator=( PipelineBuilder&& other ) noexcept;
 
-        ~PipelineBuilder() = default;
+        ~PipelineBuilder();
 
-        const std::vector<ShaderModuleInfo>& GetShaderModules() const;
+        [[nodiscard]] const std::vector<ShaderModuleInfo>& GetShaderModules() const;
         std::vector<ShaderModuleInfo>& GetShaderModules();
 
         //depth image

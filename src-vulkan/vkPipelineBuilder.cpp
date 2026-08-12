@@ -3,10 +3,13 @@
 //
 
 #include "vkPipelineBuilder.h"
+#include "vkShaderModule.h"
 #include "vkInit.h"
 
 namespace vk
 {
+
+	PipelineBuilder::~PipelineBuilder() {}
 
     PipelineBuilder::PipelineBuilder( VkPipelineLayout pipelineLayout, VkRenderPass renderPass )
     {

@@ -43,6 +43,7 @@
 #include "Vertex.h"
 
 #include "vkGlobal.h"
+#include "vkUtil.h"
 
 #include "Application.h"
 

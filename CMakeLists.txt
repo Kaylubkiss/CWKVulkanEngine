@@ -33,7 +33,6 @@ set(SDL_VIRTUAL_JOYSTICK OFF CACHE BOOL "" FORCE)
 set(SDL_RENDER_D3D OFF CACHE BOOL "" FORCE)
 add_subdirectory(extern/sdl2)
 
-set(SHADERC_SKIP_TESTS ON CACHE BOOL "" FORCE)
 set(SHADERC_SKIP_EXAMPLES ON CACHE BOOL "" FORCE)
 set(SHADERC_SKIP_COPYRIGHT_CHECK ON CACHE BOOL "" FORCE)
 set(SHADERC_ENABLE_SHARED_CRT ON CACHE BOOL "" FORCE)
@@ -179,9 +178,6 @@ ${SHADER_SRC_DIR}/deferred-render/deComposition.frag
 #deferred shadowing
 ${SHADER_SRC_DIR}/deferred-render/deShadow.geom
 ${SHADER_SRC_DIR}/deferred-render/deShadow.vert
-        src/headers/SceneDefinitions.h
-		src/headers/SceneManager.h
-		src/SceneManager.cpp
 )
 
 

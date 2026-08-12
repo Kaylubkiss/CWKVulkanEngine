@@ -152,7 +152,7 @@ void Object::Update(const float& interpFactor)
 
         nModel = nModel * glm::scale(glm::mat4(1.f), m_physicsComponent.value().scale);
 
-        m_model->UpdateModelTransform(nModel);
+        m_model->UpdateModelTransform( nModel );
     }
 }
 

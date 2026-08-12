@@ -5,7 +5,6 @@
 #ifndef VK_PIPELINE_MANAGER_HPP
 #define VK_PIPELINE_MANAGER_HPP
 
-#include "vkShaderModule.h"
 #include "vkPipelineBuilder.h"
 
 //PipelineManager

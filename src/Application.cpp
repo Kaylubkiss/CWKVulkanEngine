@@ -16,7 +16,7 @@ static void Locatecwd()
 	}
 }
 
-Application::Application()
+void Application::init()
 {
 	Locatecwd();
 
@@ -50,6 +50,8 @@ const Timer& Application::GetTimer() const
 
 void Application::run()
 {
+	init();
+
 	if (m_vulkanGraphicsContext != nullptr)
 	{
 		//render graphics.

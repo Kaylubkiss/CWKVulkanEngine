@@ -11,13 +11,14 @@
 class Application
 {
 public:
-	Application();
+	Application() = default;
 	~Application();
 
 	PhysicsSystem& GetPhysics();
 	const Timer& GetTimer() const;
 	vk::RendererBase* GetVulkanRenderer() const;
 
+	void init();
 	void run();
 
 	void RequestExit();

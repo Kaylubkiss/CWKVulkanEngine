@@ -2,7 +2,6 @@
 #define SPIRV_HELPER_HPP
 
 #include "shaderc/shaderc.hpp"
-#include "vkUtil.h"
 
 namespace vk::spirv
 {
@@ -20,7 +19,7 @@ namespace vk::spirv
 
 	inline std::optional<std::vector<uint32_t>> SourceToSpv( const CompilationInfo& info )
 	{
-		shaderc::Compiler compiler;
+		static shaderc::Compiler compiler;
 
 		shaderc::SpvCompilationResult result = compiler.CompileGlslToSpv(info.source, info.kind, info.filename, info.options);
 
@@ -30,19 +29,10 @@ namespace vk::spirv
 			return std::nullopt;
 		}
 
-
-		const uint32_t* src = result.begin();
-		size_t wordCount = result.end() - src;
-		size_t sizeOfSource = wordCount * sizeof(uint32_t);
-
-		std::vector<uint32_t> output(sizeOfSource);
-
-		memcpy(output.data(), src, sizeOfSource);
-
 		std::cout << "-----Shader SPIRV---\n";
-		std::cout << "Magic number: " << output[0] << '\n';
+		std::cout << "Magic number: " << *result.cbegin() << '\n';
 
-		return output;
+		return std::vector<uint32_t>(result.cbegin(), result.cend());
 	}
 
 	inline void WriteSpirvFile( const char* filename, const std::vector<uint32_t>& data )
@@ -72,7 +62,7 @@ namespace vk::spirv
 			}
 		}
 
-		output.write(reinterpret_cast<const char*>(data.data()), data.size());
+		output.write(reinterpret_cast<const char*>(data.data()), data.size() * sizeof(uint32_t));
 
 		output.close();
 
@@ -120,7 +110,7 @@ namespace vk::spirv
 		{
 			if (shader_root_path.has_parent_path() == false)
 			{
-				throw std::runtime_error("couldn't find path: 'shaders/' !");
+				throw std::runtime_error("couldn't find path: 'shaders/' !"); //TODO: don't crash here, fail gracefully.
 			}
 
 			shader_root_path = shader_root_path.parent_path();

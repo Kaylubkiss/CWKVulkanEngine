@@ -32,11 +32,11 @@ namespace vk
 
         void SetModificationTime( time_t timeStamp );
 
-        VkShaderModule GetHandle() const;
-        VkShaderStageFlagBits GetShaderStageFlags() const;
-        const std::string& GetFileName() const;
-        time_t GetModificationTime() const;
-        shaderc_shader_kind GetShaderKind() const;
+        [[nodiscard]] VkShaderModule GetHandle() const;
+        [[nodiscard]] VkShaderStageFlagBits GetShaderStageFlags() const;
+        [[nodiscard]] const std::string& GetFileName() const;
+        [[nodiscard]] time_t GetModificationTime() const;
+        [[nodiscard]] shaderc_shader_kind GetShaderKind() const;
 
     private:
         std::string m_filePath;

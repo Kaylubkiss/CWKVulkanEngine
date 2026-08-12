@@ -1,4 +1,3 @@
-#include "SpirvHelper.h"
 #include <fstream>
 
 PFN_vkGetDescriptorSetLayoutBindingOffsetEXT g_vkGetDescriptorSetLayoutBindingOffsetEXT = nullptr;

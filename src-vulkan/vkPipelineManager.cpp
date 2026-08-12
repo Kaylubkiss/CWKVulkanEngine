@@ -3,7 +3,7 @@
 	* author: Caleb Kissinger
 */
 #include "vkPipelineManager.h"
-#include "vkInit.h"
+#include "vkShaderModule.h"
 #include <sys/stat.h>
 
 //PipelineManager
