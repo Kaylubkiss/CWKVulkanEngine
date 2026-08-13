@@ -209,17 +209,17 @@ namespace vk
 		{
 			VkShaderModule nShaderModule = VK_NULL_HANDLE;
 
-			auto source_file = vk::util::ReadFile(filename);
+			std::string source_file = vk::util::ReadFile(filename);
 
-			if (source_file.has_value() == true)
+			if (source_file.empty() == false)
 			{
 				VkShaderModuleCreateInfo shaderVertModuleInfo =
 				{
 					VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
 					nullptr,
 					0,
-					source_file.value().size(),
-					reinterpret_cast<const uint32_t*>(source_file.value().data())
+					source_file.size(),
+					reinterpret_cast<const uint32_t*>(source_file.data())
 				};
 
 				VK_CHECK_RESULT(vkCreateShaderModule(l_device, &shaderVertModuleInfo, nullptr, &nShaderModule));

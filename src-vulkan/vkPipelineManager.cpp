@@ -109,7 +109,7 @@ namespace vk
 				struct stat fileStat = {};
 				if (stat(shaderFileName.c_str(), &fileStat) != 0)
 				{
-					std::cerr << "[ERROR] Can't Read File " << shaderFileName << '\n';
+					std::cerr << "[ ERROR ] Can't read File " << shaderFileName << '\n';
 					continue;
 				}
 
@@ -121,17 +121,17 @@ namespace vk
 
 					info.pipeline_index = static_cast<int>( pipelineIndex );
 
-					auto shaderPath =
+					std::string shaderPath =
 						vk::spirv::ReadSourceAndWriteToSpirv(shaderFileName,
 							shaderModules[i].GetShaderKind(), true);
 
-					if (shaderPath.has_value() == false)
+					if (shaderPath.empty())
 					{
-						std::cerr << "[ERROR] Couldn't write to file " << shaderFileName << '\n';
+						std::cerr << "[ ERROR ] Couldn't read/write to file " << shaderFileName << '\n';
 						continue;
 					}
 
-					info.moduleInfos.push_back({i, shaderPath.value()});
+					info.moduleInfos.push_back({i, shaderPath});
 				}
 			}
 		}

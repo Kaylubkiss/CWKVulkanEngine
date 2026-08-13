@@ -17,7 +17,7 @@ namespace vk::spirv
 
 	};
 
-	inline std::optional<std::vector<uint32_t>> SourceToSpv( const CompilationInfo& info )
+	inline std::vector<uint32_t> SourceToSpv( const CompilationInfo& info )
 	{
 		static shaderc::Compiler compiler;
 
@@ -26,7 +26,7 @@ namespace vk::spirv
 		if (result.GetCompilationStatus() != shaderc_compilation_status_success)
 		{
 			std::cerr << "[ERROR] Could not compile the shader: " + result.GetErrorMessage() << '\n';
-			return std::nullopt;
+			return {};
 		}
 
 		std::cout << "-----Shader SPIRV---\n";
@@ -77,27 +77,24 @@ namespace vk::spirv
 	inline std::string ConvertToSpirvFilePath(std::filesystem::path sourceFilePath,
 		shaderc_shader_kind shader_kind)
 	{
-		if (shader_kind == shaderc_vertex_shader)
+		switch (shader_kind)
 		{
-			sourceFilePath.replace_filename(sourceFilePath.stem().string() + "-vert");
-		}
-		else if (shader_kind == shaderc_fragment_shader)
-		{
-			sourceFilePath.replace_filename(sourceFilePath.stem().string() + "-frag");
-		}
-		else if (shader_kind == shaderc_geometry_shader)
-		{
-			sourceFilePath.replace_filename(sourceFilePath.stem().string() + "-geom");
-		}
-		else if (shader_kind == shaderc_compute_shader)
-		{
-			sourceFilePath.replace_filename(sourceFilePath.stem().string() + "-comp");
-		}
-		else
-		{
-			std::cerr << "[ERROR] unsupported shader type: " << shader_kind << '\n';
-			std::cerr << "vk::spirv::ConvertToSpirvFilePath() Failed\n";
-			return "";
+			case shaderc_vertex_shader:
+				sourceFilePath.replace_filename(sourceFilePath.stem().string() + "-vert");
+				break;
+			case shaderc_fragment_shader:
+				sourceFilePath.replace_filename(sourceFilePath.stem().string() + "-frag");
+				break;
+			case shaderc_geometry_shader:
+				sourceFilePath.replace_filename(sourceFilePath.stem().string() + "-geom");
+				break;
+			case shaderc_compute_shader:
+				sourceFilePath.replace_filename(sourceFilePath.stem().string() + "-comp");
+				break;
+			default:
+				std::cerr << "[ ERROR ] unsupported shader type: " << shader_kind << '\n';
+				std::cerr << "vk::spirv::ConvertToSpirvFilePath() Failed\n";
+				return "";
 		}
 
 		sourceFilePath.replace_extension("spv");
@@ -106,14 +103,14 @@ namespace vk::spirv
 		//Will need to move this elsewhere for functional clarity. Also don't like the hardcoding of "spirv"
 		//and "shaders" (TODO)
 		std::filesystem::path shader_root_path = sourceFilePath.parent_path();
-		while (shader_root_path != "shaders")
+		while (shader_root_path != "shaders" && shader_root_path != shader_root_path.parent_path())
 		{
-			if (shader_root_path.has_parent_path() == false)
-			{
-				throw std::runtime_error("couldn't find path: 'shaders/' !"); //TODO: don't crash here, fail gracefully.
-			}
-
 			shader_root_path = shader_root_path.parent_path();
+		}
+
+		if (shader_root_path != "shaders")
+		{
+			return "";
 		}
 
 		sourceFilePath = shader_root_path.string() + std::string("/spirv/") + sourceFilePath.filename().string();
@@ -121,12 +118,11 @@ namespace vk::spirv
 		return sourceFilePath.string();
 	}
 
-	inline std::optional<std::string> ReadSourceAndWriteToSpirv( std::string_view sourceFilePath,
+	inline std::string ReadSourceAndWriteToSpirv( std::string_view sourceFilePath,
 		shaderc_shader_kind shader_kind, bool forceCompilation = false)
 	{
 		//check if the spirv file has already been written --> reading and writing is a very slow operation.
 		std::string spirvFilePath = ConvertToSpirvFilePath(sourceFilePath, shader_kind);
-
 		if (forceCompilation == false && std::filesystem::exists(spirvFilePath) == true)
 		{
 			return spirvFilePath;
@@ -135,27 +131,26 @@ namespace vk::spirv
 		//vertex shader reading and compilation
 		CompilationInfo shaderInfo = {};
 
-		shaderInfo.source = vk::util::ReadFile(std::string(sourceFilePath)).value_or("");
-
+		shaderInfo.source = vk::util::ReadFile(std::string(sourceFilePath));
 		if (shaderInfo.source.empty())
 		{
 			std::cerr << "[ERROR] Couldn't successfully read shader file " << sourceFilePath << '\n';
-			return std::nullopt;
+			return {};
 		}
 
 		shaderInfo.filename = sourceFilePath.data();
 		shaderInfo.kind = shader_kind;
 
-		auto output = SourceToSpv(shaderInfo);
+		std::vector<uint32_t> output = SourceToSpv(shaderInfo);
 
-		if (output.has_value() == false)
+		if (output.empty())
 		{
 			std::cerr << "[ERROR] Couldn't successfully read shader file " << sourceFilePath << '\n';
-			return std::nullopt;
+			return {};
 		}
 
 
-		WriteSpirvFile(spirvFilePath.c_str(), output.value());
+		WriteSpirvFile(spirvFilePath.c_str(), output);
 
 		return spirvFilePath;
 	}

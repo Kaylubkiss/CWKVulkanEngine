@@ -55,7 +55,7 @@ namespace vk
 
 		uint32_t CalculateMipLevels ( uint32_t imageWidth, uint32_t imageHeight );
 
-		std::optional<std::string> ReadFile( const std::string& filename );
+		std::string ReadFile( const std::string& filename );
 
 		bool CheckInstanceLayerSupport( const char* layers[], int layersSize );
 

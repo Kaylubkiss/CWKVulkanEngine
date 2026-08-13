@@ -25,25 +25,26 @@ namespace vk
                 m_shaderKind = shaderc_compute_shader;
                 break;
             default:
-                throw std::runtime_error("Unknown shader kind");
+                std::cerr << "[ ERROR ]: Unknown shader kind. couldn't process " << filename << '\n';
+                return;
         }
 
         std::string sourceFilePath = SHADER_PATH + std::string(filename);
-        auto spirvPath = vk::spirv::ReadSourceAndWriteToSpirv(sourceFilePath, m_shaderKind);
+        std::string spirvPath = vk::spirv::ReadSourceAndWriteToSpirv(sourceFilePath, m_shaderKind);
 
-        if (spirvPath.has_value() == false)
+        if (spirvPath.empty())
         {
             return;
         }
 
-        m_filePath = std::string(filename);
+        m_filePath = std::string( filename );
 
-        m_handle = vk::init::ShaderModule(l_device, spirvPath.value().c_str());
+        m_handle = vk::init::ShaderModule(l_device, spirvPath.c_str());
 
         struct stat fileStat = {};
         if (stat(sourceFilePath.c_str(), &fileStat) != 0)
         {
-            std::cerr << "[ERROR] Can't open file: " << m_filePath << '\n';
+            std::cerr << "[ ERROR ] Can't open file: " << m_filePath << '\n';
         }
         else
         {
@@ -55,8 +56,14 @@ namespace vk
     {
         if ( c_device != VK_NULL_HANDLE )
         {
-            vkDestroyShaderModule(c_device, m_handle, nullptr);
+            if ( m_handle != VK_NULL_HANDLE )
+            {
+                vkDestroyShaderModule(c_device, m_handle, nullptr);
+            }
         }
+
+        c_device = VK_NULL_HANDLE;
+        m_handle = VK_NULL_HANDLE;
     }
 
     void ShaderModuleInfo::SetModificationTime( time_t timeStamp )

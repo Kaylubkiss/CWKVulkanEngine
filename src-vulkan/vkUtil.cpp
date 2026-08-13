@@ -382,29 +382,27 @@ namespace vk {
 			return static_cast<uint32_t>(std::floor(std::log2(std::max(imageWidth, imageHeight))) + 1);
 		}
 
-		std::optional<std::string> ReadFile( const std::string& filename )
+		std::string ReadFile( const std::string& filename )
 		{
 			std::ifstream file(filename, std::ios::ate | std::ios::binary); //when we initialize, we std::ios::ate points to the end.
 
 			if (!file.is_open())
 			{
 				std::cerr << "failed to open " + filename << std::endl;
-				return std::nullopt;
+				return {};
 			}
 
 			//reads the offset from the beginning of the file
-			size_t fileSize = (size_t)file.tellg();
+			size_t fileSize = static_cast<size_t>(file.tellg());
 
-			std::vector<char> buffer (fileSize);
+			std::string src_string("", fileSize);
 
 			//set the stream to the beginning of the file after being positioned at the end.
 			file.seekg(0);
 
-			file.read(buffer.data(), fileSize);
+			file.read(src_string.data(), fileSize);
 
 			file.close();
-
-			std::string src_string(buffer.data(), fileSize);
 
 			return src_string;
 		}

@@ -3,7 +3,7 @@
 
 #include "SpirvHelper.h"
 
-#define SHADER_PATH "shaders/"
+constexpr inline const char* SHADER_PATH = "shaders/";
 
 //ShaderModuleInfo
 namespace vk
