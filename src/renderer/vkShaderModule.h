@@ -1,7 +1,7 @@
 #ifndef VK_SHADER_MODULE_HPP
 #define VK_SHADER_MODULE_HPP
 
-#include "SpirvHelper.h"
+#include "../SpirvHelper.h"
 
 constexpr inline const char* SHADER_PATH = "shaders/";
 

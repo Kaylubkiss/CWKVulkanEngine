@@ -1,5 +1,6 @@
-#include "Input.h"
-#include <SDL2/SDL.h>
+#ifndef INPUT_HPP
+#define INPUT_HPP
+
 #include "Camera.h"
 
 enum keys {
@@ -7,7 +8,7 @@ enum keys {
 	W = 0, A, S, D
 };
 
-static std::array<bool, 4> keys = {  };
+inline static std::array<bool, 4> keys = {  };
 
 inline void ChangeCameraPosition(Camera& camera, const float& dt)
 {
@@ -19,7 +20,7 @@ inline void ChangeCameraPosition(Camera& camera, const float& dt)
 	camera.Update(dt);
 }
 
-void MoveCamera( Camera& camera, float dt )
+inline void MoveCamera( Camera& camera, float dt )
 {
 	SDL_Event e;
 	while (SDL_PollEvent(&e))
@@ -124,3 +125,5 @@ void MoveCamera( Camera& camera, float dt )
 
 	ChangeCameraPosition(camera, dt);
 }
+
+#endif

@@ -1,10 +1,10 @@
 #ifndef VK_RENDERER_BASE_HPP
 #define VK_RENDERER_BASE_HPP
 
-#include "vkWindow.h"
+#include "renderer/vkWindow.h"
 #include "vkInstance.h"
-#include "AssetManager.h"
-#include "vkSwapChain.h"
+#include "AssetLoader.h"
+#include "renderer/vkSwapChain.h"
 #include "vkFramebuffer.h"
 #include "vkPipelineManager.h"
 #include "UserInterface.h"

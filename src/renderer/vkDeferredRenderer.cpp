@@ -1,6 +1,6 @@
 #include "vkDeferredRenderer.h"
 #include "vkInit.h"
-#include "Camera.h" //code smell: this is a scene definition.
+#include "Camera.h"
 
 namespace vk
 {

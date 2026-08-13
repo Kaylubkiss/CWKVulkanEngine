@@ -1,5 +1,5 @@
 #include "vkCubemap.h"
-#include <vkInit.h>
+#include "vkInit.h"
 #include <stb_image.h>
 
 namespace vk

@@ -66,15 +66,14 @@ src/Object.cpp
 src/Physics.cpp
 src/Timer.cpp
 src/ThreadPool.cpp
-src/AssetManager.cpp
-src/Input.cpp
+src/AssetLoader.cpp
 src/UserInterface.cpp
 src/GLTFModel.cpp
 src/OBJModel.cpp
 src/SceneManager.cpp
 )
 
-set(VULKAN_SRC_DIR src-vulkan)
+set(VULKAN_SRC_DIR src/renderer)
 
 set(VULKAN_ENGINE_SRC 
 ${VULKAN_SRC_DIR}/vkUtil.cpp
@@ -97,7 +96,7 @@ ${VULKAN_SRC_DIR}/vkTextureManager.cpp
 ${VULKAN_SRC_DIR}/vkDescriptorManager.cpp
 )
 
-set(VULKAN_SCENES_DIR src-vulkan/deferred-renderer)
+set(VULKAN_SCENES_DIR src/renderer)
 
 set(VULKAN_ENGINE_SCENES_SOURCE
 		${VULKAN_SCENES_DIR}/vkDeferredRenderer.cpp
@@ -116,7 +115,7 @@ list(APPEND SOURCE_FILES ${VULKAN_ENGINE_SCENES_SOURCE})
 
 #------------------HEADERS----------------------
 
-set(HEADER_SRC_DIR src/headers)
+set(HEADER_SRC_DIR src)
 
 set(HEADER_FILES
 ${HEADER_SRC_DIR}/Application.h
@@ -127,7 +126,7 @@ ${HEADER_SRC_DIR}/Vertex.h
 ${HEADER_SRC_DIR}/Physics.h
 ${HEADER_SRC_DIR}/Timer.h
 ${HEADER_SRC_DIR}/ThreadPool.h
-${HEADER_SRC_DIR}/AssetManager.h
+${HEADER_SRC_DIR}/AssetLoader.h
 ${HEADER_SRC_DIR}/Input.h
 ${HEADER_SRC_DIR}/SpirvHelper.h
 ${HEADER_SRC_DIR}/UserInterface.h
@@ -138,7 +137,7 @@ ${HEADER_SRC_DIR}/SceneManager.h
 ${HEADER_SRC_DIR}/SceneDefinitions.h
 )
 				 
-set(VULKAN_HEADER_DIR src-vulkan/headers)
+set(VULKAN_HEADER_DIR src/renderer)
 
 set(VULKAN_ENGINE_HEADERS 
 ${VULKAN_HEADER_DIR}/vkUtil.h
@@ -187,9 +186,8 @@ add_executable(${PROJECT_NAME} ${SOURCE_FILES} ${SHADER_FILES} ${HEADER_FILES})
 target_precompile_headers(${PROJECT_NAME} PUBLIC ${HEADER_SRC_DIR}/pch.h)
 
 target_include_directories(${PROJECT_NAME} PRIVATE
-src/headers
-src-vulkan/headers
-		src-vulkan/deferred-renderer
+src
+src/renderer
 extern/stb
 extern/tinyobjloader
 extern/imgui

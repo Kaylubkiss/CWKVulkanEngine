@@ -1,4 +1,4 @@
-#include "headers/vkWindow.h"
+#include "vkWindow.h"
 
 namespace vk 
 {

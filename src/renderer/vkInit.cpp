@@ -1,6 +1,6 @@
 #include "vkInit.h"
 #include "vkUtil.h"
-#include "Vertex.h"
+#include "../Vertex.h"
 
 namespace vk
 {

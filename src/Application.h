@@ -3,10 +3,10 @@
 
 #include "Timer.h"
 #include "Physics.h"
-#include "vkRendererBase.h"
+#include "renderer/vkRendererBase.h"
 #include "SceneManager.h"
-#include "../../src-vulkan/headers/vkTextureManager.h"
-#include "../../src-vulkan/headers/vkDescriptorManager.h"
+#include "renderer/vkTextureManager.h"
+#include "renderer/vkDescriptorManager.h"
 
 class Application
 {

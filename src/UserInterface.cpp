@@ -1,5 +1,5 @@
 #include "UserInterface.h"
-#include "vkInit.h"
+#include "renderer/vkInit.h"
 #include "imgui.h"
 
 void UserInterface::Init( const UserInterfaceInitInfo& initInfo )
