@@ -9,6 +9,7 @@ public:
 
 	bool IsUpdated() const;
 
+	void UpdateSpeed( float spd );
 	void Update( float dt );
 	void MoveLeft();
 	void MoveRight();
@@ -34,7 +35,7 @@ private:
 	float mPitch = 0.f;
 	float mYaw = 0.f;
 
-	float constant_velocity = 5.f;
+	float speed = 5.f;
 
 	reactphysics3d::Transform mMovementTransform;
 	reactphysics3d::Vector3 accumulatedVelocity = reactphysics3d::Vector3::zero();

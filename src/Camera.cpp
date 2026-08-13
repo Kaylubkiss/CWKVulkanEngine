@@ -29,13 +29,18 @@ void Camera::MoveDown()
 	//TODO
 }
 
+void Camera::UpdateSpeed( float factor )
+{
+	speed = std::clamp(speed + factor, 1.f, 30.f);
+}
+
 void Camera::UpdatePosition( reactphysics3d::Vector3& direction, float dt )
 {
-	if (direction.isZero() == false)
+	if ( direction.isZero() == false )
 	{
 		direction.normalize();
 
-		mMovementTransform.setPosition(mMovementTransform.getPosition() + direction * constant_velocity * dt);
+		mMovementTransform.setPosition(mMovementTransform.getPosition() + direction * speed * dt);
 
 		reactphysics3d::Vector3 currTransform = mMovementTransform.getPosition();
 		this->mEye = glm::vec3(-currTransform.x, -currTransform.y, -currTransform.z);
@@ -59,7 +64,7 @@ bool Camera::IsUpdated() const
 
 void Camera::Update( float dt )
 {
-	if (isUpdate)
+	if ( isUpdate )
 	{
 		Camera::UpdatePosition(accumulatedVelocity, dt);
 

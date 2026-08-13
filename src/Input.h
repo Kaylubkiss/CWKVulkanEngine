@@ -23,6 +23,7 @@ inline void ChangeCameraPosition(Camera& camera, const float& dt)
 inline void MoveCamera( Camera& camera, float dt )
 {
 	SDL_Event e;
+	float scroll = 0.f;
 	while (SDL_PollEvent(&e))
 	{
 		ImGui_ImplSDL2_ProcessEvent(&e);
@@ -120,6 +121,19 @@ inline void MoveCamera( Camera& camera, float dt )
 				default:
 					break;
 			}
+		}
+
+		if (e.type == SDL_MOUSEWHEEL)
+		{
+			float dx = e.wheel.x;
+			float dy = e.wheel.y;
+			if (e.wheel.direction == SDL_MOUSEWHEEL_FLIPPED)
+			{
+				dx *= -1;
+				dy *= -1;
+			}
+
+			camera.UpdateSpeed(dy);
 		}
 	}
 
