@@ -49,7 +49,6 @@ namespace vk
 		//...position - light 1
 		uniformDataLightPass.lights[1].albedo = uniformDataLightPass.lights[0].albedo;
 
-
 		//shadow map view matrix
 		glm::mat4 perspective = glm::perspective(glm::radians(lightFOV), 1.f, zNear, zFar);
 		uniformDataDeferredShadow.viewMatrices[0] = perspective * glm::lookAt(uniformDataLightPass.lights[0].pos,

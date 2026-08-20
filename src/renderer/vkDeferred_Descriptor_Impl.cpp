@@ -6,7 +6,7 @@ namespace vk
     void DeferredRenderer::InitializeDescriptors( DescriptorManager& descriptorManager )
     {
         {
-        	InitializeUBODescriptors(descriptorManager);
+        	InitializeUBODescriptors( descriptorManager );
 
         	InitializeMaterialDescriptors(descriptorManager);
 

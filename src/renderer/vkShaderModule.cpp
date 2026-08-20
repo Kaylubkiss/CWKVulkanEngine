@@ -4,7 +4,7 @@
 
 namespace vk
 {
-    ShaderModuleInfo::ShaderModuleInfo( const VkDevice l_device, std::string_view filename,
+    ShaderModuleInfo::ShaderModuleInfo( VkDevice l_device, std::string_view filename,
         VkShaderStageFlagBits shaderFlags )
     {
         m_shaderStageFlags = shaderFlags;

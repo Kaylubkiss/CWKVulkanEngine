@@ -20,7 +20,7 @@ namespace vk
             *@param shaderc_kind: similar to shaderFlags, argument needed for shader compilation to sprv.
         */
         ShaderModuleInfo() = default;
-        ShaderModuleInfo( const VkDevice l_device, std::string_view filename, VkShaderStageFlagBits shaderFlags );
+        ShaderModuleInfo( VkDevice l_device, std::string_view filename, VkShaderStageFlagBits shaderFlags );
 
         ShaderModuleInfo& operator=( const ShaderModuleInfo& other ) = delete;
         ShaderModuleInfo( const ShaderModuleInfo& other ) = delete;
