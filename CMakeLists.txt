@@ -7,10 +7,6 @@ set(CMAKE_CXX_STANDARD 20)
 
 find_package(Vulkan REQUIRED)
 
-if (MSVC)
-	add_compile_options(/EHsc)
-endif()
-
 #---------BUILD EXTERNAL LIBRARIES--------------
 add_subdirectory(extern/fastgltf)
 add_subdirectory(extern/reactphysics3d)
@@ -20,22 +16,24 @@ add_compile_definitions(GLM_FORCE_DEPTH_ZERO_TO_ONE) #vulkan's NDC z-coordinate 
 add_compile_definitions(GLM_FORCE_DEFAULT_ALIGNED_GENTYPES) #need to have aligned storage for shaders
 add_subdirectory(extern/glm)
 
-set(SDL_TEST OFF CACHE BOOL "" FORCE)
-set(SDL_TEST_LIBRARY OFF CACHE BOOL "" FORCE)
-set(SDL_OPENGL OFF CACHE BOOL "" FORCE)
-set(SDL_OPENGLES OFF CACHE BOOL "" FORCE)
-set(SDL_DISKAUDIO OFF CACHE BOOL "" FORCE)
-set(SDL_DUMMYAUDIO OFF CACHE BOOL "" FORCE)
-set(SDL_DUMMYVIDEO OFF CACHE BOOL "" FORCE)
-set(SDL_ALTIVEC OFF CACHE BOOL "" FORCE)
-set(SDL_WASAPI OFF CACHE BOOL "" FORCE)
-set(SDL_VIRTUAL_JOYSTICK OFF CACHE BOOL "" FORCE)
-set(SDL_RENDER_D3D OFF CACHE BOOL "" FORCE)
+option(SDL_TEST "" OFF)
+option(SDL_TEST_LIBRARY "" OFF)
+option(SDL_OPENGL "" OFF)
+option(SDL_OPENGLES "" OFF)
+option(SDL_DISKAUDIO "" OFF)
+option(SDL_DUMMYAUDIO "" OFF)
+option(SDL_DUMMYVIDEO "" OFF)
+option(SDL_ALTIVEC "" OFF)
+option(SDL_WASAPI "" OFF)
+option(SDL_VIRTUAL_JOYSTICK "" OFF)
+option(SDL_RENDER_D3D "" OFF)
 add_subdirectory(extern/sdl2)
 
-set(SHADERC_SKIP_EXAMPLES ON CACHE BOOL "" FORCE)
-set(SHADERC_SKIP_COPYRIGHT_CHECK ON CACHE BOOL "" FORCE)
-set(SHADERC_ENABLE_SHARED_CRT ON CACHE BOOL "" FORCE)
+option(SHADERC_SKIP_TESTS "" ON)
+option(SHADERC_SKIP_EXAMPLES "" ON)
+option(SHADERC_SKIP_COPYRIGHT_CHECK "" ON)
+option(SHADERC_ENABLE_SHARED_CRT "" OFF)
+option(SHADERC_SKIP_INSTALL "" OFF)
 add_subdirectory(extern/shaderc)
 
 #don't need to build these every time so set STATIC
@@ -56,6 +54,10 @@ target_include_directories(imgui PUBLIC
 )
 target_link_libraries(imgui PRIVATE SDL2-static Vulkan::Vulkan)
 
+#------------------FLAGS-----------------------
+if (MSVC)
+	add_compile_options(/EHsc)
+endif()
 
 #------------------SOURCES----------------------
 set(SOURCE_FILES
