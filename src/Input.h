@@ -1,6 +1,8 @@
 #ifndef INPUT_HPP
 #define INPUT_HPP
 
+#include <SDL_events.h>
+
 #include "Camera.h"
 
 enum keys {
@@ -125,15 +127,14 @@ inline void MoveCamera( Camera& camera, float dt )
 
 		if (e.type == SDL_MOUSEWHEEL)
 		{
-			float dx = e.wheel.x;
-			float dy = e.wheel.y;
+			auto dy = e.wheel.y;
+
 			if (e.wheel.direction == SDL_MOUSEWHEEL_FLIPPED)
 			{
-				dx *= -1;
 				dy *= -1;
 			}
 
-			camera.UpdateSpeed(dy);
+			camera.UpdateSpeed(static_cast<float>(dy));
 		}
 	}
 

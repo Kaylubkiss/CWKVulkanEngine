@@ -131,6 +131,9 @@ namespace vk::spirv
 		//vertex shader reading and compilation
 		CompilationInfo shaderInfo = {};
 
+		shaderInfo.filename = sourceFilePath.data();
+		shaderInfo.kind = shader_kind;
+
 		shaderInfo.source = vk::util::ReadFile(std::string(sourceFilePath));
 		if (shaderInfo.source.empty())
 		{
@@ -138,8 +141,7 @@ namespace vk::spirv
 			return {};
 		}
 
-		shaderInfo.filename = sourceFilePath.data();
-		shaderInfo.kind = shader_kind;
+
 
 		std::vector<uint32_t> output = SourceToSpv(shaderInfo);
 

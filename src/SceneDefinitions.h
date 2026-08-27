@@ -2,6 +2,9 @@
 #define SCENEDEFINITIONS_HPP
 
 #include <span>
+#include <nlohmann/json.hpp>
+
+using json = nlohmann::json;
 
 class Camera;
 class Object;
@@ -30,6 +33,19 @@ struct Scene
     std::shared_ptr<Camera> m_camera;
 };
 
+
+struct PhysicsInitInfo
+{
+    reactphysics3d::BodyType bodyType;
+    enum ColliderType
+    {
+        NONE = 0,
+        CUBE,
+        PLANE,
+    };
+    ColliderType colliderType = NONE;
+};
+
 // this might be consolidated with SceneInitInfo
 struct ObjectCreateInfo
 {
@@ -41,6 +57,43 @@ struct ObjectCreateInfo
     const vk::Device* devicePtr = nullptr;
     vk::TextureManager* textureManagerPtr = nullptr;
 };
+
+inline void to_json(json& j, const ObjectCreateInfo& objInfo)
+{
+    json newJson;
+
+    std::array<std::array<float, 4>, 4> stlModelTransform;
+    std::memcpy(&stlModelTransform, &objInfo.modelTransform, sizeof(stlModelTransform));
+
+    newJson["objName"] = objInfo.objName;
+    newJson["textureFileNames"] = objInfo.textureFileNames;
+    if (objInfo.physicsInfo.has_value())
+    {
+        auto& physInit = objInfo.physicsInfo.value();
+        j["physicsInitInfo"]["ColliderType"] = physInit.colliderType;
+        j["physicsInitInfo"]["BodyType"] = physInit.bodyType;
+    }
+
+    newJson["modelTransform"] = stlModelTransform;
+
+    j = newJson;
+}
+
+inline void from_json(const json& j, ObjectCreateInfo& objInfo)
+{
+    j.at("objName").get_to(objInfo.objName);
+    j.at("textureFileNames").get_to(objInfo.textureFileNames);
+
+    std::array<std::array<float, 4>, 4> stlModelTransform;
+    j.at("modelTransform").get_to(stlModelTransform);
+    std::memcpy(&objInfo.modelTransform, &stlModelTransform, sizeof(stlModelTransform));
+
+    if (j.value("physicsInitInfo", nullptr))
+    {
+        j.at("physicsInfo").at("ColliderType").get_to(objInfo.physicsInfo->colliderType);
+        j.at("physicsInfo").at("BodyType").get_to(objInfo.physicsInfo->bodyType);
+    }
+}
 
 struct SceneInitInfo
 {

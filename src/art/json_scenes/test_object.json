@@ -1,0 +1,32 @@
+{
+    "modelTransform": [
+        [
+            3.0,
+            0.0,
+            0.0,
+            0.0
+        ],
+        [
+            0.0,
+            3.0,
+            0.0,
+            0.0
+        ],
+        [
+            0.0,
+            0.0,
+            3.0,
+            0.0
+        ],
+        [
+            1.5,
+            1.0,
+            3.0,
+            1.0
+        ]
+    ],
+    "objName": "freddy.obj",
+    "textureFileNames": [
+        "art/extern-textures/myface.JPG"
+    ]
+}

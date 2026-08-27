@@ -5,6 +5,12 @@ project("CKVulkan")
 
 set(CMAKE_CXX_STANDARD 20)
 
+#------------------FLAGS-----------------------
+if (MSVC)
+	add_compile_options(/EHsc)
+endif()
+
+
 find_package(Vulkan REQUIRED)
 
 #---------BUILD EXTERNAL LIBRARIES--------------
@@ -36,6 +42,8 @@ option(SHADERC_ENABLE_SHARED_CRT "" OFF)
 option(SHADERC_SKIP_INSTALL "" OFF)
 add_subdirectory(extern/shaderc)
 
+add_subdirectory(extern/nlohmann_json)
+
 #don't need to build these every time so set STATIC
 add_library(imgui STATIC
 		extern/imgui/imgui.cpp
@@ -54,10 +62,7 @@ target_include_directories(imgui PUBLIC
 )
 target_link_libraries(imgui PRIVATE SDL2-static Vulkan::Vulkan)
 
-#------------------FLAGS-----------------------
-if (MSVC)
-	add_compile_options(/EHsc)
-endif()
+
 
 #------------------SOURCES----------------------
 set(SOURCE_FILES
@@ -137,6 +142,7 @@ ${HEADER_SRC_DIR}/OBJModel.h
 ${HEADER_SRC_DIR}/Model.h
 ${HEADER_SRC_DIR}/SceneManager.h
 ${HEADER_SRC_DIR}/SceneDefinitions.h
+${HEADER_SRC_DIR}/ObjectParser.h
 )
 				 
 set(VULKAN_HEADER_DIR src/renderer)
@@ -179,6 +185,7 @@ ${SHADER_SRC_DIR}/deferred-render/deComposition.frag
 #deferred shadowing
 ${SHADER_SRC_DIR}/deferred-render/deShadow.geom
 ${SHADER_SRC_DIR}/deferred-render/deShadow.vert
+		src/ObjectParser.h
 )
 
 
@@ -197,6 +204,7 @@ extern/imgui/backends
 extern/fastgltf/include
 extern/reactphysics3d/include
 extern/shaderc/libshaderc/include
+extern/nlohmann_json/include
 )
 
 target_link_libraries(${PROJECT_NAME} PRIVATE

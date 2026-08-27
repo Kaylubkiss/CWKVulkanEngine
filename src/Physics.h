@@ -14,19 +14,6 @@ struct alignas(16) PhysicsComponent
 	glm::vec3 scale = glm::vec3(0);
 };
 
-struct PhysicsInitInfo
-{
-	reactphysics3d::BodyType bodyType;
-	enum ColliderType
-	{
-		NONE = 0,
-		CUBE,
-		PLANE,
-	};
-	ColliderType colliderType = NONE;
-};
-
-
 //for managing the state of the physics simulation.
 class PhysicsSystem 
 {

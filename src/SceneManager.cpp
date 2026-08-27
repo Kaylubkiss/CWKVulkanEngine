@@ -2,6 +2,7 @@
 #include "Input.h"
 #include <ranges>
 #include "Camera.h"
+#include "ObjectParser.h"
 
 void SceneManager::Init( AssetLoader& assetLoader )
 {
@@ -69,14 +70,7 @@ void SceneManager::InitTestScene()
     ObjectCreateInfo objectCI = {};
 	PhysicsInitInfo physInfo;
 
-	glm::vec3 cubePosition   = { 1.0, 20, -5.f };
-	glm::vec3 freddyPosition = { 1.5f, 1.0, 3.f };
-
-	//object 1 - freddy
-	objectCI.objName = "freddy.obj";
-	objectCI.textureFileNames = { "art/extern-textures/myface.JPG" } ;
-	objectCI.modelTransform = glm::translate(glm::mat4(1.f), freddyPosition) *
-		glm::scale(glm::mat4(1.f), glm::vec3(3.f));
+	_TEST_ReadObject("art/json_scenes/test_object.json", objectCI);
 
 	c_assetLoader->LoadObject(objectCI);
 
@@ -84,6 +78,8 @@ void SceneManager::InitTestScene()
 
 	//object 2 - cube
 	objectCI = {};
+
+	glm::vec3 cubePosition   = { 1.0, 20, -5.f };
 
 	physInfo.bodyType = reactphysics3d::BodyType::DYNAMIC;
 	physInfo.colliderType = PhysicsInitInfo::ColliderType::CUBE;
