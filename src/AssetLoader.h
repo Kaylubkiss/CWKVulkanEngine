@@ -14,7 +14,10 @@
 
 //	we are currently loading and updating the resources themselves. (2 responsibilities)
 
-class vk::TextureManager;
+namespace vk
+{
+	class TextureManager;
+}
 
 class AssetLoader
 {
