@@ -120,10 +120,10 @@ namespace vk
 		//no use for memory properties right now.
 		VkPhysicalDeviceMemoryProperties physicalDeviceMemoryProperties;
 
-		vkGetPhysicalDeviceMemoryProperties(m_gpu, &physicalDeviceMemoryProperties);
+		vkGetPhysicalDeviceMemoryProperties( m_gpu, &physicalDeviceMemoryProperties );
 
 		//similar maneuver to vkEnumeratePhysicalDevices
-		vkGetPhysicalDeviceQueueFamilyProperties(m_gpu, &queueFamilyPropertyCount, nullptr);
+		vkGetPhysicalDeviceQueueFamilyProperties( m_gpu, &queueFamilyPropertyCount, nullptr );
 
 		if (queueFamilyPropertyCount == 0)
 		{
@@ -131,7 +131,7 @@ namespace vk
 		}
 
 		queueFamilies.resize( queueFamilyPropertyCount );
-		vkGetPhysicalDeviceQueueFamilyProperties( m_gpu, &queueFamilyPropertyCount, queueFamilies.data());
+		vkGetPhysicalDeviceQueueFamilyProperties( m_gpu, &queueFamilyPropertyCount, queueFamilies.data() );
 
 		bool setGraphicsQueue = false;
 		bool setPresentQueue = false;
@@ -139,7 +139,6 @@ namespace vk
 
 		for (unsigned i = 0; i < queueFamilyPropertyCount; ++i)
 		{
-
 			if ((queueFamilies[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) != 0)
 			{
 				m_queues[DeviceQueue::GRAPHICS].family = i;
