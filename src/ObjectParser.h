@@ -5,7 +5,6 @@
 #include <fstream>
 #include <istream>
 #include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
 
 using json = nlohmann::json;
 using namespace std;
@@ -28,7 +27,38 @@ inline void _TEST_ReadObject(const std::string& fileName, ObjectCreateInfo& objC
     objCI = data.get<ObjectCreateInfo>();
 }
 
+inline void _TEST_ReadObjects(const std::string& fileName, std::vector<ObjectCreateInfo>& objCIs)
+{
+
+    std::ifstream i(fileName);
+    if (i.is_open() == false)
+    {
+        std::cerr << "Couldn't read file " << fileName << std::endl;
+        return;
+    }
+
+    json data;
+    i >> data;
+
+    objCIs = data.get<std::vector<ObjectCreateInfo>>();
+}
+
 inline void _TEST_WriteObject(const std::string& fileName, const ObjectCreateInfo& objCI)
+{
+    json data = objCI;
+
+    std::ofstream output(fileName);
+
+    if (output.is_open() == false)
+    {
+        std::cerr << "couldn't open ofstream for scene: " << fileName << std::endl;
+        return;
+    }
+
+    output << std::setw(4) << data << '\n';
+}
+
+inline void _TEST_WriteObjects(const std::string& fileName, const std::vector<ObjectCreateInfo>& objCI)
 {
     json data = objCI;
 

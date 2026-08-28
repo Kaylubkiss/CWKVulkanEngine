@@ -1,0 +1,166 @@
+[
+    {
+        "modelTransform": [
+            [
+                3.0,
+                0.0,
+                0.0,
+                0.0
+            ],
+            [
+                0.0,
+                3.0,
+                0.0,
+                0.0
+            ],
+            [
+                0.0,
+                0.0,
+                3.0,
+                0.0
+            ],
+            [
+                1.5,
+                1.0,
+                3.0,
+                1.0
+            ]
+        ],
+        "objName": "freddy.obj",
+        "textureFileNames": [
+            "art/extern-textures/myface.JPG"
+        ]
+    },
+    {
+        "modelTransform": [
+            [
+                1.0,
+                0.0,
+                0.0,
+                0.0
+            ],
+            [
+                0.0,
+                1.0,
+                0.0,
+                0.0
+            ],
+            [
+                0.0,
+                0.0,
+                1.0,
+                0.0
+            ],
+            [
+                1.0,
+                20.0,
+                -5.0,
+                1.0
+            ]
+        ],
+        "objName": "cube.obj",
+        "physicsInitInfo": {
+            "BodyType": 2,
+            "ColliderType": 1
+        },
+        "textureFileNames": [
+            "art/extern-textures/myface.JPG"
+        ]
+    },
+    {
+        "modelTransform": [
+            [
+                30.0,
+                0.0,
+                0.0,
+                0.0
+            ],
+            [
+                0.0,
+                30.0,
+                0.0,
+                0.0
+            ],
+            [
+                0.0,
+                0.0,
+                30.0,
+                0.0
+            ],
+            [
+                0.0,
+                -5.0,
+                0.0,
+                1.0
+            ]
+        ],
+        "objName": "base.obj",
+        "physicsInitInfo": {
+            "BodyType": 0,
+            "ColliderType": 1
+        },
+        "textureFileNames": [
+            "art/extern-textures/wood-floor.png"
+        ]
+    },
+    {
+        "modelTransform": [
+            [
+                1.0,
+                0.0,
+                0.0,
+                0.0
+            ],
+            [
+                0.0,
+                1.0,
+                0.0,
+                0.0
+            ],
+            [
+                0.0,
+                0.0,
+                1.0,
+                0.0
+            ],
+            [
+                0.0,
+                1.0,
+                0.0,
+                1.0
+            ]
+        ],
+        "objName": "SciFiHelmet/glTF/SciFiHelmet.gltf",
+        "textureFileNames": []
+    },
+    {
+        "modelTransform": [
+            [
+                3.0,
+                0.0,
+                0.0,
+                0.0
+            ],
+            [
+                0.0,
+                3.0,
+                0.0,
+                0.0
+            ],
+            [
+                0.0,
+                0.0,
+                3.0,
+                0.0
+            ],
+            [
+                0.5,
+                -0.5,
+                8.0,
+                1.0
+            ]
+        ],
+        "objName": "DiffuseTransmissionTeacup/glTF/DiffuseTransmissionTeacup.gltf",
+        "textureFileNames": []
+    }
+]

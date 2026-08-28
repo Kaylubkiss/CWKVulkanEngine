@@ -2,7 +2,7 @@
 #define PHYSICS_HPP
 
 //for general objects.
-struct alignas(16) PhysicsComponent
+struct PhysicsComponent
 {
 	reactphysics3d::Transform currTransform;
 	reactphysics3d::Transform prevTransform;
@@ -13,6 +13,7 @@ struct alignas(16) PhysicsComponent
 
 	glm::vec3 scale = glm::vec3(0);
 };
+
 
 //for managing the state of the physics simulation.
 class PhysicsSystem 

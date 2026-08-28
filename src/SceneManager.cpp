@@ -67,77 +67,14 @@ void SceneManager::Update( float physicsInterp, float dt )
 
 void SceneManager::InitTestScene()
 {
-    ObjectCreateInfo objectCI = {};
-	PhysicsInitInfo physInfo;
+	std::vector<ObjectCreateInfo> object_list;
 
-	_TEST_ReadObject("art/json_scenes/test_object.json", objectCI);
+	_TEST_ReadObjects("art/json_scenes/test_object_list.json", object_list);
 
-	c_assetLoader->LoadObject(objectCI);
+	for (auto& obj : object_list)
+	{
+		c_assetLoader->LoadObject(obj);
 
-	m_requestedObjects.push_back(objectCI.objName);
-
-	//object 2 - cube
-	objectCI = {};
-
-	glm::vec3 cubePosition   = { 1.0, 20, -5.f };
-
-	physInfo.bodyType = reactphysics3d::BodyType::DYNAMIC;
-	physInfo.colliderType = PhysicsInitInfo::ColliderType::CUBE;
-
-	objectCI.objName = "cube.obj";
-	//NOTE: cube.obj doesn't have UVs.
-	objectCI.textureFileNames = { "art/extern-textures/myface.JPG" } ;
-	objectCI.physicsInfo = physInfo;
-	objectCI.modelTransform = glm::translate(glm::mat4(1.f), glm::vec3(cubePosition));
-
-	c_assetLoader->LoadObject(objectCI);
-
-	m_requestedObjects.push_back(objectCI.objName);
-
-	//object 3 - base
-	objectCI = {};
-
-	physInfo = {};
-	physInfo.bodyType = reactphysics3d::BodyType::STATIC;
-	physInfo.colliderType = PhysicsInitInfo::ColliderType::CUBE;
-
-	objectCI.objName = "base.obj";
-	objectCI.textureFileNames = { "art/extern-textures/wood-floor.png" } ;
-	objectCI.physicsInfo = physInfo;
-	objectCI.modelTransform = glm::translate(glm::mat4(1.f), glm::vec3(0, -5.f, 0)) *
-		glm::scale(glm::mat4(1.f), glm::vec3(30.f));
-
-	c_assetLoader->LoadObject(objectCI);
-
-	m_requestedObjects.push_back(objectCI.objName);
-
-	/*objectCI = {};
-
-	objectCI.objName = "AnimatedCube/glTF/AnimatedCube.gltf";
-	objectCI.modelTransform = glm::translate(glm::mat4(1.f), glm::vec3(-3.5, -1.5f, 0));
-
-	assetManagerPtr->LoadObject(objectCI);
-
-	m_requestedObjects.push_back(objectCI.objName);
-	*/
-
-	objectCI = {};
-
-	objectCI.objName = "SciFiHelmet/glTF/SciFiHelmet.gltf";
-	objectCI.modelTransform = glm::translate(glm::mat4(1.f), glm::vec3(0.f, 1.f, 0));
-
-	c_assetLoader->LoadObject(objectCI);
-
-	m_requestedObjects.push_back(objectCI.objName);
-
-
-	objectCI = {};
-
-	objectCI.modelTransform = glm::translate(glm::mat4(1.f), glm::vec3(0.5f, -0.5f, 8)) *
-		glm::scale(glm::mat4(1.f), glm::vec3(3));
-	objectCI.objName = "DiffuseTransmissionTeacup/glTF/DiffuseTransmissionTeacup.gltf";
-
-	c_assetLoader->LoadObject(objectCI);
-
-	m_requestedObjects.push_back(objectCI.objName);
+		m_requestedObjects.push_back(obj.objName);
+	}
 }

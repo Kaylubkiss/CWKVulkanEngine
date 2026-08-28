@@ -46,6 +46,8 @@ struct PhysicsInitInfo
     ColliderType colliderType = NONE;
 };
 
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(PhysicsInitInfo, bodyType, colliderType)
+
 // this might be consolidated with SceneInitInfo
 struct ObjectCreateInfo
 {
@@ -70,8 +72,7 @@ inline void to_json(json& j, const ObjectCreateInfo& objInfo)
     if (objInfo.physicsInfo.has_value())
     {
         auto& physInit = objInfo.physicsInfo.value();
-        j["physicsInitInfo"]["ColliderType"] = physInit.colliderType;
-        j["physicsInitInfo"]["BodyType"] = physInit.bodyType;
+        newJson["physicsInitInfo"] = physInit;
     }
 
     newJson["modelTransform"] = stlModelTransform;
@@ -88,10 +89,15 @@ inline void from_json(const json& j, ObjectCreateInfo& objInfo)
     j.at("modelTransform").get_to(stlModelTransform);
     std::memcpy(&objInfo.modelTransform, &stlModelTransform, sizeof(stlModelTransform));
 
-    if (j.value("physicsInitInfo", nullptr))
+    try
     {
-        j.at("physicsInfo").at("ColliderType").get_to(objInfo.physicsInfo->colliderType);
-        j.at("physicsInfo").at("BodyType").get_to(objInfo.physicsInfo->bodyType);
+        objInfo.physicsInfo = PhysicsInitInfo();
+        j.at("physicsInitInfo").at("ColliderType").get_to(objInfo.physicsInfo->colliderType);
+        j.at("physicsInitInfo").at("BodyType").get_to(objInfo.physicsInfo->bodyType);
+    }
+    catch (...)
+    {
+        std::cerr << "physicInitInfo not defined for object: " << objInfo.objName << std::endl;
     }
 }
 
