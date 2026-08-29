@@ -149,7 +149,7 @@ namespace vk
 			&uniformDataLightPass,sizeof(uniformDataLightPass));
 	}
 
-	std::vector<std::string> GetFileNamesOfExtension(const std::filesystem::path& directory, const char* extension)
+	static std::vector<std::string> GetFileNamesOfExtension(const std::filesystem::path& directory, const char* extension)
 	{
 		std::vector<std::string> fileNames;
 
