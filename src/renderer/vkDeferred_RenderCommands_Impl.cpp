@@ -34,7 +34,7 @@ namespace vk
     		}
     	};
 
-    	const uint32_t uboDescriptorIndex = 0, compositionImageDescriptorIndex = 1, materialDescriptorIndex = 2;
+		constexpr uint32_t uboDescriptorIndex = 0, compositionImageDescriptorIndex = 1, materialDescriptorIndex = 2;
 
     	g_vkCmdBindDescriptorBuffersEXT(cmdBuffer, static_cast<uint32_t>(descriptorBufferBindingInfos.size()),
 				descriptorBufferBindingInfos.data());
