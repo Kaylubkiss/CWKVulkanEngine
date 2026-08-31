@@ -186,13 +186,13 @@ namespace vk
 
 				if (transferQueueFamily != graphicsQueueFamily)
 				{
-					curr_texture->RecordStagingCopy( m_transferCommandBuffers[currentFrame]);
+					curr_texture->RecordStagingCopy( m_transferCommandBuffers[currentFrame] );
 					curr_texture->RecordRelease( m_transferCommandBuffers[currentFrame],
-					transferQueueFamily, graphicsQueueFamily);
+					transferQueueFamily, graphicsQueueFamily );
 				}
 				else
 				{
-					curr_texture->RecordStagingCopy( m_commandBuffers[currentFrame]);
+					curr_texture->RecordStagingCopy( m_commandBuffers[currentFrame] );
 				}
 
 
@@ -200,16 +200,13 @@ namespace vk
 				acquireBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
 				acquireBarrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
 				acquireBarrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+				acquireBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+				acquireBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 
 				if (transferQueueFamily != graphicsQueueFamily)
 				{
 					acquireBarrier.srcQueueFamilyIndex = m_devicePtr->GetQueue(vk::DeviceQueue::TRANSFER).family;
 					acquireBarrier.dstQueueFamilyIndex = m_devicePtr->GetQueue(vk::DeviceQueue::GRAPHICS).family;
-				}
-				else
-				{
-					acquireBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-					acquireBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 				}
 
 				acquireBarrier.image = curr_texture->GetImage();
@@ -219,12 +216,19 @@ namespace vk
 				acquireBarrier.subresourceRange.baseArrayLayer = 0;
 				acquireBarrier.subresourceRange.layerCount = VK_REMAINING_ARRAY_LAYERS;
 
-				acquireBarrier.srcAccessMask = 0;
+				acquireBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
 				acquireBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+
+				VkPipelineStageFlagBits srcStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+				if (transferQueueFamily != graphicsQueueFamily)
+				{
+					acquireBarrier.srcAccessMask = 0;
+					srcStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+				}
 
 				vkCmdPipelineBarrier(
 					m_commandBuffers[currentFrame],
-					VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+					srcStage,
 					VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
 					0, 0, nullptr,
 					0, nullptr,

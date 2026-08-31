@@ -20,7 +20,6 @@ namespace vk
 	* during construction.
 	*
 	* Notes:
-	* - Inherits from vk::Texture for integration with the rendering system.
 	* - Uses VK_EXT_descriptor_buffer for GPU-addressable descriptor access.
 	* - Enforces move-only semantics for Vulkan resource ownership.
 	*/
@@ -118,10 +117,9 @@ namespace vk
     	/**
 		* Creates a texture resource initialized for compute access.
 		*/
-    	vk::Texture CreateTexture( const vk::Device* devicePtr, VkCommandBuffer graphicsCmd,
-    		uint32_t width, uint32_t height, uint32_t layerCount, uint32_t mipLevels, VkImageUsageFlags imageUsage ) const;
+    	static vk::Texture CreateTexture( const vk::Device* devicePtr, VkCommandBuffer graphicsCmd,
+    		uint32_t width, uint32_t height, uint32_t layerCount, uint32_t mipLevels, VkImageUsageFlags imageUsage );
     private:
-
     	std::string m_name;
 
     	// IBL image resources.

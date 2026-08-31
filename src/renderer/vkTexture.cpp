@@ -29,8 +29,6 @@ namespace vk
 			throw std::runtime_error("vk::Texture::Create() FAILED");
 		}
 
-		stbi_set_flip_vertically_on_load_thread(0);
-
 		if (format == VK_FORMAT_R8G8B8A8_UNORM ||
 			format == VK_FORMAT_R8G8B8A8_SRGB ||
 			format == VK_FORMAT_R8G8B8A8_SNORM)
@@ -100,38 +98,9 @@ namespace vk
 
 	void Texture::RecordStagingCopy( VkCommandBuffer cmdBuffer )
 	{
-		if ( m_descriptor.imageLayout != VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL )
-		{
-			vk::util::RecordImageLayoutTransition( cmdBuffer, m_image,
-				VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
-				VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-
-			m_descriptor.imageLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-		}
-
-		//transition image to dst-optimal layout so the staging buffer can be copied into it.
-		{
-			VkImageMemoryBarrier barrier = {};
-			barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-			barrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-			barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-			barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-			barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-			barrier.image = m_image;
-			barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-			barrier.subresourceRange.baseMipLevel = 0;
-			barrier.subresourceRange.levelCount = VK_REMAINING_MIP_LEVELS;
-			barrier.subresourceRange.baseArrayLayer = 0;
-			barrier.subresourceRange.layerCount = VK_REMAINING_ARRAY_LAYERS;
-			barrier.srcAccessMask = 0;
-			barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-
-			vkCmdPipelineBarrier(cmdBuffer, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
-				VK_PIPELINE_STAGE_TRANSFER_BIT,
-				0, 0,
-				nullptr, 0, nullptr, 1,
-				&barrier); //asking the gpu to reconfigure the old image layout to the new layout.
-		}
+		vk::util::RecordImageLayoutTransition( cmdBuffer, m_image,
+			VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
+			VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL );
 
 		//copy buffer into image.
 		{
@@ -157,13 +126,7 @@ namespace vk
 		uint32_t srcQueueFamily, uint32_t dstQueueFamily )
 	{
 		VkPipelineStageFlags srcStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
-		VkAccessFlagBits accessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-
-		if (m_descriptor.imageLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
-		{
-			srcStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
-			accessMask = VK_ACCESS_SHADER_READ_BIT;
-		}
+		VkAccessFlagBits srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
 
 		//release transfer queue to graphics queue
 		{
@@ -179,7 +142,7 @@ namespace vk
 			releaseBarrier.subresourceRange.levelCount = VK_REMAINING_MIP_LEVELS;
 			releaseBarrier.subresourceRange.baseArrayLayer = 0;
 			releaseBarrier.subresourceRange.layerCount = VK_REMAINING_ARRAY_LAYERS;
-			releaseBarrier.srcAccessMask = accessMask; //since we just wrote to the image.
+			releaseBarrier.srcAccessMask = srcAccessMask;
 			releaseBarrier.dstAccessMask = 0;
 
 			vkCmdPipelineBarrier(cmdBuffer, srcStage,
@@ -188,8 +151,6 @@ namespace vk
 				nullptr, 0, nullptr, 1,
 				&releaseBarrier); //asking the gpu to reconfigure the old image layout to the new layout.
 		}
-
-		m_descriptor.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 	}
 
 	void Texture::CreateBlankTexture( const vk::Device* devicePtr, const vk::TextureCreateInfo& createInfo )
@@ -401,7 +362,7 @@ namespace vk
 
 	VkExtent2D Texture::GetImageExtent() const
 	{
-		return {m_width, m_height };
+		return { m_width, m_height };
 	}
 
 	void Texture::SetImageLayout( VkImageLayout layout )

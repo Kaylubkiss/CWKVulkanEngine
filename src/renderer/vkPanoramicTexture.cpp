@@ -190,85 +190,85 @@ namespace vk
 	}
 
 
-		/**
-    	* Creates the shared compute pipeline layout used by all
-		* IBL baking pipelines.
-		*/
-    	void PanoramicTexture::CreateComputePipelineLayout()
+	/**
+    * Creates the shared compute pipeline layout used by all
+	* IBL baking pipelines.
+	*/
+    void PanoramicTexture::CreateComputePipelineLayout()
+    {
+		VkPipelineLayoutCreateInfo pipelineLayoutCI = vk::init::PipelineLayoutCreateInfo();
+
+    	VkDescriptorSetLayout desciptorSetLayout = m_computeDescriptorBuffer.GetLayout();
+
+    	pipelineLayoutCI.pSetLayouts = &desciptorSetLayout;
+		pipelineLayoutCI.setLayoutCount = 1;
+
+    	VkPushConstantRange pushConstants = vk::init::PushConstantRange(0,
+    		sizeof(float), VK_SHADER_STAGE_COMPUTE_BIT);
+
+    	pipelineLayoutCI.pPushConstantRanges = &pushConstants;
+    	pipelineLayoutCI.pushConstantRangeCount = 1;
+
+		vkCreatePipelineLayout(c_device, &pipelineLayoutCI, nullptr, &m_computePipelineLayout);
+	}
+
+    /**
+	* Allocates the descriptor buffer used by compute pipelines.
+	*/
+    void PanoramicTexture::CreateComputeDescriptorBuffer( const vk::Device* devicePtr, uint32_t layoutCount )
+    {
+
+    	VkBufferUsageFlags bufferUsageFlags = VK_BUFFER_USAGE_RESOURCE_DESCRIPTOR_BUFFER_BIT_EXT |
+			VK_BUFFER_USAGE_SAMPLER_DESCRIPTOR_BUFFER_BIT_EXT |
+			VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
+
+    	VkMemoryPropertyFlags memoryProperties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+		VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+
+    	std::vector<VkDescriptorSetLayoutBinding> layoutBindings =
     	{
-			VkPipelineLayoutCreateInfo pipelineLayoutCI = vk::init::PipelineLayoutCreateInfo();
-
-    		VkDescriptorSetLayout desciptorSetLayout = m_computeDescriptorBuffer.GetLayout();
-
-    		pipelineLayoutCI.pSetLayouts = &desciptorSetLayout;
-			pipelineLayoutCI.setLayoutCount = 1;
-
-    		VkPushConstantRange pushConstants = vk::init::PushConstantRange(0,
-    			sizeof(float), VK_SHADER_STAGE_COMPUTE_BIT);
-
-    		pipelineLayoutCI.pPushConstantRanges = &pushConstants;
-    		pipelineLayoutCI.pushConstantRangeCount = 1;
-
-			vkCreatePipelineLayout(c_device, &pipelineLayoutCI, nullptr, &m_computePipelineLayout);
-		}
-
-    	/**
-		* Allocates the descriptor buffer used by compute pipelines.
-		*/
-    	void PanoramicTexture::CreateComputeDescriptorBuffer( const vk::Device* devicePtr, uint32_t layoutCount )
-    	{
-
-    		VkBufferUsageFlags bufferUsageFlags = VK_BUFFER_USAGE_RESOURCE_DESCRIPTOR_BUFFER_BIT_EXT |
-				VK_BUFFER_USAGE_SAMPLER_DESCRIPTOR_BUFFER_BIT_EXT |
-				VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
-
-    		VkMemoryPropertyFlags memoryProperties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-			VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
-
-    		std::vector<VkDescriptorSetLayoutBinding> layoutBindings =
     		{
-    			{
-    				.binding = 0,
-					.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-					.descriptorCount = 1,
-					.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT
-				},
-				{
-					.binding = 1,
-					.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
-					.descriptorCount = 1,
-					.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT,
-				}
-    		};
+    			.binding = 0,
+				.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+				.descriptorCount = 1,
+				.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT
+			},
+			{
+				.binding = 1,
+				.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
+				.descriptorCount = 1,
+				.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT,
+			}
+    	};
 
-    		m_computeDescriptorBuffer = vk::DescriptorBuffer(devicePtr, bufferUsageFlags, memoryProperties,
-				1, layoutCount, layoutBindings);
-    	}
+    	m_computeDescriptorBuffer = vk::DescriptorBuffer(devicePtr, bufferUsageFlags, memoryProperties,
+			1, layoutCount, layoutBindings);
+    }
 
-    	/**
-    	* Creates a compute pipeline from a shader module.
-    	*/
-    	[[nodiscard]] VkPipeline PanoramicTexture::CreateComputePipeline( std::string_view fileName ) const
-    	{
-			VkComputePipelineCreateInfo computePipelineCI = {};
-			computePipelineCI.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
-			computePipelineCI.flags = VK_PIPELINE_CREATE_DESCRIPTOR_BUFFER_BIT_EXT;
+    /**
+    * Creates a compute pipeline from a shader module.
+    */
+    [[nodiscard]] VkPipeline PanoramicTexture::CreateComputePipeline( std::string_view fileName ) const
+    {
+		VkComputePipelineCreateInfo computePipelineCI = {};
+		computePipelineCI.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
+		computePipelineCI.flags = VK_PIPELINE_CREATE_DESCRIPTOR_BUFFER_BIT_EXT;
 
-			vk::ShaderModuleInfo shaderModuleInfo = vk::ShaderModuleInfo(c_device,
-				fileName, VK_SHADER_STAGE_COMPUTE_BIT);
+		vk::ShaderModuleInfo shaderModuleInfo = vk::ShaderModuleInfo(c_device,
+			fileName, VK_SHADER_STAGE_COMPUTE_BIT);
 
-			VkPipelineShaderStageCreateInfo shaderStageCI =
-				vk::init::PipelineShaderStageCreateInfo(shaderModuleInfo.GetHandle(), shaderModuleInfo.GetShaderStageFlags());
+		VkPipelineShaderStageCreateInfo shaderStageCI =
+			vk::init::PipelineShaderStageCreateInfo(shaderModuleInfo.GetHandle(), shaderModuleInfo.GetShaderStageFlags());
 
-			computePipelineCI.stage = shaderStageCI;
-			computePipelineCI.layout = m_computePipelineLayout;
+		computePipelineCI.stage = shaderStageCI;
+		computePipelineCI.layout = m_computePipelineLayout;
 
-    		VkPipeline handle;
-			vkCreateComputePipelines( c_device, VK_NULL_HANDLE, 1,
-				&computePipelineCI, nullptr, &handle );
+    	VkPipeline handle;
+		vkCreateComputePipelines( c_device, VK_NULL_HANDLE, 1,
+			&computePipelineCI, nullptr, &handle );
 
-    		return handle;
-    	}
+    	return handle;
+    }
 
 	/**
 	* Converts the source equirectangular texture into a cubemap.
@@ -541,7 +541,7 @@ namespace vk
 	* @return Initialized texture resource.
 	*/
 	vk::Texture PanoramicTexture::CreateTexture( const vk::Device* devicePtr, VkCommandBuffer graphicsCmd,
-		uint32_t width, uint32_t height, uint32_t layerCount, uint32_t mipLevels, VkImageUsageFlags imageUsage ) const
+		uint32_t width, uint32_t height, uint32_t layerCount, uint32_t mipLevels, VkImageUsageFlags imageUsage )
     {
 		vk::TextureCreateInfo textureCI = {};
 		textureCI.format = VK_FORMAT_R32G32B32A32_SFLOAT;
