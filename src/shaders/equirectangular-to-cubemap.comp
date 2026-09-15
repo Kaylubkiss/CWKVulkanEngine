@@ -65,8 +65,5 @@ void main()
 
     vec4 color = texture(inputEquirectangularMap, vec2(phi, theta));
 
-    //need to somehow generate the cube positions...
-    //what if, based on the face that's active, you transfrom coordinates vec3(1,
-
     imageStore(outputCubeMap, pixelCoord, color);
 }

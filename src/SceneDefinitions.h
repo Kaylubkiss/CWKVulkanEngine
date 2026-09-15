@@ -28,6 +28,7 @@ struct SceneView
 
 struct Scene
 {
+    //std::unique_ptr<vk::PanoramicTexture> m_skyboxTexture;
     std::vector<std::shared_ptr<Object>> m_objects;
     std::vector<std::shared_ptr<Light>> m_lights;
     std::shared_ptr<Camera> m_camera;
@@ -60,6 +61,15 @@ struct ObjectCreateInfo
     vk::TextureManager* textureManagerPtr = nullptr;
 };
 
+struct SceneInitInfo
+{
+    std::string skyboxName;
+    std::vector<ObjectCreateInfo> objects;
+    //maybe:
+    //1) terrain geo
+    //2) camera placement
+};
+
 inline void to_json(json& j, const ObjectCreateInfo& objInfo)
 {
     json newJson;
@@ -85,28 +95,41 @@ inline void from_json(const json& j, ObjectCreateInfo& objInfo)
     j.at("objName").get_to(objInfo.objName);
     j.at("textureFileNames").get_to(objInfo.textureFileNames);
 
-    std::array<std::array<float, 4>, 4> stlModelTransform;
+    std::array<std::array<float, 4>, 4> stlModelTransform = {};
+
     j.at("modelTransform").get_to(stlModelTransform);
+
     std::memcpy(&objInfo.modelTransform, &stlModelTransform, sizeof(stlModelTransform));
 
-    try
-    {
+    try {
         objInfo.physicsInfo = PhysicsInitInfo();
         j.at("physicsInitInfo").at("ColliderType").get_to(objInfo.physicsInfo->colliderType);
         j.at("physicsInitInfo").at("BodyType").get_to(objInfo.physicsInfo->bodyType);
-    }
-    catch (...)
-    {
+    } catch (...) {
         std::cerr << "physicInitInfo not defined for object: " << objInfo.objName << std::endl;
     }
 }
 
-struct SceneInitInfo
+inline void to_json(json& j, SceneInitInfo& sceneInfo)
 {
-    //TODO (marked 7.20.26)
-    //camera?
-    //objects?
-    //lights?
-};
+    json newJson;
+
+    newJson["skyboxName"] = sceneInfo.skyboxName;
+    newJson["objects"] = sceneInfo.objects;
+
+    j = newJson;
+}
+
+inline void from_json(const json& j, SceneInitInfo& sceneInfo)
+{
+    try {
+        j.at("skyboxName").get_to(sceneInfo.skyboxName);
+    } catch (...) {
+        std::cerr << "No skybox file found for the requested scene: " << std::endl;
+    }
+
+    j.at("objects").get_to(sceneInfo.objects);
+}
+
 
 #endif

@@ -23,7 +23,7 @@ class AssetLoader
 {
 public:
 	AssetLoader() = default;
-	~AssetLoader() = default;
+	~AssetLoader();
 
 	[[nodiscard]] std::shared_ptr<Object> GetObject( const std::string& objectName );
 
@@ -35,7 +35,7 @@ private:
 	ObjectMap m_objects{};
 	ObjectMap m_transparentObjects{};
 	ThreadPool m_threadWorkers; //this needs to be destroyed first.
-	vk::TextureManager* m_textureManagerPtr = nullptr;
+	vk::TextureManager* c_textureManagerPtr = nullptr;
 	const vk::Device* c_devicePtr = nullptr;
 };
 

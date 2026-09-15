@@ -1,6 +1,5 @@
 #include "SceneManager.h"
 #include "Input.h"
-#include <ranges>
 #include "Camera.h"
 #include "ObjectParser.h"
 

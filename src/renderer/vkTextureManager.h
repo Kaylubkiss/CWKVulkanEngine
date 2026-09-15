@@ -47,6 +47,13 @@ namespace vk
 		TextureManager() = default;
 		~TextureManager() = default;
 
+		//no automatic storage for TextureManager, thus can't trust with copy or move constructors
+		TextureManager( const TextureManager& other ) = delete;
+		TextureManager& operator=( const TextureManager& other ) = delete;
+
+		TextureManager& operator=( TextureManager&& other ) noexcept = delete;
+		TextureManager( TextureManager&& other ) noexcept = delete;
+
 		void Init( vk::Device* devicePtr, DescriptorManager* descriptorManagerPtr );
 		void Destroy();
 

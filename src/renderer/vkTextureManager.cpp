@@ -141,10 +141,9 @@ namespace vk
 
 		{
 			std::lock_guard lock(m_pendingTexturesMutex);
-			for (size_t i = 0; i < pendingInfos.size(); ++i)
-			{
-				m_pendingTextures.push_back(pendingInfos[i]); //sync with this later.
-			}
+			m_pendingTextures.insert(m_pendingTextures.end(),
+				std::make_move_iterator(pendingInfos.begin()),
+				std::make_move_iterator(pendingInfos.end()));
 		}
 
 		return layoutIndex;

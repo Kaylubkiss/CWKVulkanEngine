@@ -1,9 +1,16 @@
 #include "AssetLoader.h"
-#include <ranges>
+
+
+AssetLoader::~AssetLoader()
+{
+	m_threadWorkers.Terminate();
+	std::unique_lock lock(m_objectMutex);
+	m_objects.clear();
+}
 
 void AssetLoader::LoadObject( ObjectCreateInfo& objectCI )
 {
-	objectCI.textureManagerPtr = m_textureManagerPtr;
+	objectCI.textureManagerPtr = c_textureManagerPtr;
 	objectCI.devicePtr = c_devicePtr;
 
 	std::function parallelFunction = [this, objectCI]()
@@ -62,6 +69,5 @@ void AssetLoader::Init( const vk::Device* devicePtr, vk::TextureManager* texture
 
 	m_threadWorkers.Init(workerThreadCount);
 	c_devicePtr = devicePtr;
-	m_textureManagerPtr = textureManagerPtr;
-
+	c_textureManagerPtr = textureManagerPtr;
 }
