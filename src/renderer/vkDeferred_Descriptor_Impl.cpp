@@ -236,5 +236,9 @@ namespace vk
     	uint32_t maxSkinCount = 10000;
 		descriptorManager.AllocateDescriptorBuffer(DescriptorCategory::eObject, gMaxFramesInFlight,
 			maxSkinCount, setLayoutBindings);
+
+    	descriptorManager.GetLayoutIndex(DescriptorCategory::eObject); //this is a cheap workaround for objects that don't have a skin.
+    	//otherwise, I will get errors from Renderdoc for binding the descriptor referenced in the shader.
+    	//Essentially, every model that doesnt have a skin is assigned index 0 --> empty ssbo.
     }
 }
