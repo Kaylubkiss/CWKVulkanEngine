@@ -10,7 +10,7 @@ struct Node //notice: no pointing to parents. Might be something for later.
 {
     glm::mat4 transform; //TODO: remove
     std::optional<size_t> meshIndex;
-    std::optional<size_t> skinIndex;
+    std::optional<size_t> skinIndex = 0;
     std::vector<size_t> childrenIndices;
 
     glm::vec3 scale{1.0f, 1.0f, 1.0f};

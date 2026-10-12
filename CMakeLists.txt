@@ -75,6 +75,7 @@ src/Timer.cpp
 src/ThreadPool.cpp
 src/AssetLoader.cpp
 src/UserInterface.cpp
+src/Model.cpp
 src/GLTFModel.cpp
 src/OBJModel.cpp
 src/SceneManager.cpp

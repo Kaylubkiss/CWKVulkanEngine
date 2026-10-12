@@ -1,4 +1,5 @@
 #include "GLTFModel.h"
+#include "Model.h"
 #include <glm/gtc/type_ptr.hpp>
 #include <fastgltf/core.hpp>
 #include <fastgltf/types.hpp>
@@ -79,6 +80,7 @@ GLTFModel::GLTFModel( const vk::Device* device, const std::filesystem::path& fil
 				sizeof(newNode.transform));
 		}
 
+
 		AddNode(newNode);
 	}
 
@@ -102,7 +104,7 @@ GLTFModel::GLTFModel( const vk::Device* device, const std::filesystem::path& fil
 
 	LoadMeshes(asset, vertices, indices_32);
 	LoadAnimations(asset);
-	LoadSkins(device, asset);
+	LoadSkins( device, asset );
 
 	size_t vertexBufferSize = vertices.size() * sizeof(vertices[0]);
 	size_t indexBufferSize;
@@ -182,18 +184,22 @@ void GLTFModel::Draw( const vk::DrawInfo& drawInfo )
 					sizeof(curr_transform), &curr_transform[0]);
 			}
 
-			//TODO: bind descriptor buffer for ssbo (set 3)
+			//reason for binding is because ssbo is bound before Draw() is called. This will throw an error
+			//by RenderDoc or any GPU debugger, if the descriptor isn't set.
+			size_t skinIndex = 0;
 			if (node.skinIndex.has_value())
 			{
-				VkDeviceSize descriptorBufferOffset =
-					node.skinIndex.value() * drawInfo.objectBindingSize;
-
-				g_vkCmdSetDescriptorBufferOffsetsEXT(drawInfo.cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-						   drawInfo.pipelineLayout, drawInfo.firstSetObject, drawInfo.setCount,
-						   &drawInfo.objectBufferIndex, &descriptorBufferOffset);
+				skinIndex = node.skinIndex.value();
 			}
 
-			DrawMeshPrimitives(drawInfo, mesh->m_primitives);
+			VkDeviceSize descriptorBufferOffset =
+					skinIndex * drawInfo.objectBindingSize;
+
+			g_vkCmdSetDescriptorBufferOffsetsEXT(drawInfo.cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
+					   drawInfo.pipelineLayout, drawInfo.firstSetObject, drawInfo.setCount,
+					   &drawInfo.objectBufferIndex, &descriptorBufferOffset);
+
+			Model::DrawMeshPrimitives(drawInfo, mesh->m_primitives);
 		}
 
 		for (auto& childIndex : node.childrenIndices)

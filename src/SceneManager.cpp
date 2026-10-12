@@ -53,7 +53,7 @@ void SceneManager::Update( float physicsInterp, float dt, uint32_t currentFrameI
 
     for (auto& obj : m_scene.m_objects)
     {
-        if (obj) //null check per object?
+        if (obj) 
         {
             obj->UpdatePhysics(physicsInterp);
         	obj->UpdateModelAnimation(dt, currentFrameInFlight);

@@ -3,12 +3,12 @@
 
 //NOTE (11/5/25): JUST SUPPORTING MESH AND TEXTURES FOR NOW
 #include <fastgltf/types.hpp>
+#include "Model.h"
 #include "Skinning.h"
-
-class Model;
 
 //this is to ensure that we can memcpy, as the UpdateModelTransform() takes in a glm::mat4.
 static_assert(sizeof(fastgltf::math::fmat4x4) == sizeof(glm::mat4));
+
 
 class GLTFModel : public Model
 {

@@ -44,82 +44,34 @@ public:
 	virtual ~Model() = default;
 
 	//get the bounds of the model in object space.
-	[[nodiscard]] virtual glm::vec3 GetMinPoint() const { return { 0.0f, 0.0f, 0.0f }; }
-	[[nodiscard]] virtual glm::vec3 GetMaxPoint() const {return { 0.0f, 0.0f, 0.0f }; }
+	[[nodiscard]] virtual glm::vec3 GetMinPoint() const;
+	[[nodiscard]] virtual glm::vec3 GetMaxPoint() const;
 
-	const std::vector<Node>& GetNodes()
-	{
-		return m_nodes;
-	}
+	const std::vector<Node>& GetNodes();
+	const std::vector<size_t>& GetSceneNodeIndices();
+	const std::vector<std::shared_ptr<Mesh>>& GetMeshes();
 
-	const std::vector<size_t>& GetSceneNodeIndices()
-	{
-		return m_sceneNodeIndices;
-	}
+	void AddMesh( const std::shared_ptr<Mesh>& mesh );
+	void AddNode( const Node& node );
+	void AddSceneNodeIndex(size_t nodeIndex);
+	void AddTextureName(const std::string& textureName);
 
-	const std::vector<std::shared_ptr<Mesh>>& GetMeshes()
-	{
-		return m_meshes;
-	}
-
-	void AddMesh( const std::shared_ptr<Mesh>& mesh )
-	{
-		m_meshes.push_back(mesh);
-	}
-
-	void AddNode( const Node& node )
-	{
-		m_nodes.push_back(node);
-	}
-
-	void AddSceneNodeIndex(size_t nodeIndex)
-	{
-		m_sceneNodeIndices.push_back(nodeIndex);
-	}
-
-	void AddTextureName(const std::string& textureName)
-	{
-		m_textureNames.push_back(textureName);
-	}
-
-	[[nodiscard]] const glm::mat4& GetModelTransform() const { return m_modelTransform; }
+	[[nodiscard]] const glm::mat4& GetModelTransform() const;
 
 	//for now, assume we only have one physics component for an entire hierarchy of meshes.\
 	Obviously, there will need to be an overhaul with this. 
-	void UpdateModelTransform( const glm::mat4& newModelMatrix )
-	{
-		m_modelTransform = newModelMatrix;
-	}
+	void UpdateModelTransform( const glm::mat4& newModelMatrix );
+
+	void DrawMeshPrimitives( const vk::DrawInfo& drawInfo, const std::vector<Primitive>& primitives );
 
 	virtual void Draw( const vk::DrawInfo& drawInfo ) = 0;
 	virtual void UpdateAnimation( const float deltaTime, const uint32_t currentFrameInFlight ) { (void)(deltaTime); (void)(currentFrameInFlight); }
 	virtual void LoadTextures( vk::TextureManager& textureManager, const std::vector<std::string>& textureNames ) = 0;
 	virtual void UploadSkinDescriptor( vk::DescriptorManager& descriptorManager ) { (void)(descriptorManager); }
 	[[nodiscard]] const std::vector<std::string>& GetTextureNames() const { return m_textureNames; }
-	static void DrawMeshPrimitives( const vk::DrawInfo& drawInfo, const std::vector<Primitive>& primitives )
-	{
-		for (auto& primitive : primitives)
-		{
-			VkDeviceSize descriptorBufferOffset =
-				primitive.textureSetLayoutIndex * drawInfo.textureBindingSize;
-
-			g_vkCmdSetDescriptorBufferOffsetsEXT(drawInfo.cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-					   drawInfo.pipelineLayout, drawInfo.firstSet, drawInfo.setCount,
-					   &drawInfo.imageBufferIndex, &descriptorBufferOffset);
-
-			vkCmdDrawIndexed(drawInfo.cmdBuffer, primitive.indexCount, 1,
-				primitive.firstIndex, primitive.firstVertex, 0); //indexing into 1 vertex buffer.
-		}
-	}
 protected:
-	vk::Buffer& GetVertexBuffer()
-	{
-		return m_vertexBuffer;
-	}
-	vk::Buffer& GetIndexBuffer()
-	{
-		return m_indexBuffer;
-	}
+	vk::Buffer& GetVertexBuffer();
+	vk::Buffer& GetIndexBuffer();
 private:
 	glm::mat4 m_modelTransform  = glm::mat4(1.f);
 	std::vector<Node> m_nodes;

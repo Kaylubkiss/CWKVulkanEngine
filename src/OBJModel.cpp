@@ -1,4 +1,5 @@
 #include "OBJModel.h"
+#include "Model.h"
 #define TINYOBJLOADER_DISABLE_FAST_FLOAT
 #define TINYOBJLOADER_IMPLEMENTATION
 #include "tiny_obj_loader.h"
@@ -242,7 +243,7 @@ void OBJModel::Draw( const vk::DrawInfo& drawInfo )
 
     for (auto& mesh : meshes)
     {
-        DrawMeshPrimitives(drawInfo, mesh->m_primitives);
+        Model::DrawMeshPrimitives(drawInfo, mesh->m_primitives);
     }
 }
 

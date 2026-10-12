@@ -164,7 +164,7 @@ namespace vk
             return m_descriptorBuffers[category].descriptor.GetLayoutSize();
         }
 
-        return -1;
+        return UINT64_MAX;
     }
 
     VkDescriptorSetLayout DescriptorManager::GetLayout(DescriptorCategory category)

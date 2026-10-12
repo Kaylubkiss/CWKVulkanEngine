@@ -2,6 +2,7 @@
 // Created by cwkmi on 7/29/2026.
 //
 #include "Model.h"
+#include "vkDevice.h"
 #include "vkBuffer.h"
 #include "glm/fwd.hpp"
 #include "glm/vec3.hpp"
@@ -57,16 +58,11 @@ const glm::mat4& Model::GetModelTransform() const
     return m_modelTransform;
 }
 
-//for now, assume we only have one physics component for an entire hierarchy of meshes.\
-Obviously, there will need to be an overhaul with this.
+//for now, assume we only have one physics component for an entire hierarchy of meshes.
+//Obviously, there will need to be an overhaul with this.
 void Model::UpdateModelTransform( const glm::mat4& newModelMatrix )
 {
     m_modelTransform = newModelMatrix;
-}
-
-const std::vector<std::string>& Model::GetTextureNames() const
-{
-    return m_textureNames;
 }
 
 void Model::DrawMeshPrimitives( const vk::DrawInfo& drawInfo, const std::vector<Primitive>& primitives )
