@@ -15,7 +15,7 @@ void Application::init()
 	m_vulkanGraphicsContext = std::make_unique<vk::DeferredRenderer>(m_device, m_window, m_textureManager,
 		m_descriptorManager);
 
-	m_assetManager.Init(&m_device, &m_textureManager, 2);
+	m_assetManager.Init(&m_device, &m_textureManager, &m_descriptorManager, 2);
 	m_sceneManager.Init( m_assetManager );
 }
 
@@ -47,7 +47,8 @@ void Application::run()
 
 			float physicsTime = m_physics.InterpFactor(static_cast<float>(realFrameTime));
 
-			m_sceneManager.Update( physicsTime, static_cast<float>(realFrameTime) );
+			m_sceneManager.Update( physicsTime, static_cast<float>(realFrameTime),
+				m_vulkanGraphicsContext->GetCurrentFrameInFlight() );
 
 			m_vulkanGraphicsContext->Render(  m_sceneManager.GetSceneView() );
 		}

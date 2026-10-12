@@ -41,21 +41,10 @@ GLTFModel::GLTFModel( const vk::Device* device, const std::filesystem::path& fil
 	//downcast otherwise.
 	std::vector<uint32_t> indices_32;
 
-	LoadMeshes(asset, vertices, indices_32);
-
 	auto& scene = asset.scenes[0];
 	for (auto nodeIndex : scene.nodeIndices)
 	{
 		AddSceneNodeIndex(nodeIndex);
-	}
-
-	for (auto& image : asset.images)
-	{
-		std::string texture_name = LoadImage(image);
-		if (texture_name.empty() == false)
-		{
-			AddTextureName(texture_name);
-		}
 	}
 
 	for (auto& node : asset.nodes)
@@ -64,6 +53,7 @@ GLTFModel::GLTFModel( const vk::Device* device, const std::filesystem::path& fil
 
 		newNode.name = node.name;
 		newNode.meshIndex = node.meshIndex;
+		newNode.skinIndex = node.skinIndex;
 
 		for (auto& child : node.children)
 		{
@@ -80,7 +70,6 @@ GLTFModel::GLTFModel( const vk::Device* device, const std::filesystem::path& fil
 
 			fastgltf::TRS trs = std::get<fastgltf::TRS>(node.transform);
 
-
 			fastgltf::math::fmat4x4 transform = fastgltf::math::fmat4x4(1.0);
 			transform = fastgltf::math::scale(transform, trs.scale);
 			transform = fastgltf::math::rotate(transform, trs.rotation);
@@ -92,6 +81,28 @@ GLTFModel::GLTFModel( const vk::Device* device, const std::filesystem::path& fil
 
 		AddNode(newNode);
 	}
+
+	//update parent pointer for children
+	for (auto& node : m_nodes)
+	{
+		for (size_t childIndex : node.childrenIndices)
+		{
+			m_nodes[childIndex].parent = &node;
+		}
+	}
+
+	for (auto& image : asset.images)
+	{
+		std::string texture_name = LoadImage(image);
+		if (texture_name.empty() == false)
+		{
+			AddTextureName(texture_name);
+		}
+	}
+
+	LoadMeshes(asset, vertices, indices_32);
+	LoadAnimations(asset);
+	LoadSkins(device, asset);
 
 	size_t vertexBufferSize = vertices.size() * sizeof(vertices[0]);
 	size_t indexBufferSize;
@@ -143,8 +154,6 @@ void GLTFModel::Draw( const vk::DrawInfo& drawInfo )
 	VkBuffer vertexBufferHandle = vertexBuffer.GetHandle();
 
 	vkCmdBindVertexBuffers(drawInfo.cmdBuffer, 0, 1, &vertexBufferHandle, offsets);
-
-	//TODO: assuming unsigned short for now, will have to change the way primitives perceive this.
 	vkCmdBindIndexBuffer(drawInfo.cmdBuffer, indexBuffer.GetHandle(), 0, m_indexBufferType);
 
 	auto& nodeIndices = GetSceneNodeIndices();
@@ -158,7 +167,7 @@ void GLTFModel::Draw( const vk::DrawInfo& drawInfo )
 
 		const Node& node = nodes[nodeIndex];
 
-		glm::mat4 curr_transform = parentTransform * node.transform;
+		glm::mat4 curr_transform = parentTransform * node.GetLocalTransformMatrix();
 
 		if (node.meshIndex.has_value())
 		{
@@ -171,6 +180,17 @@ void GLTFModel::Draw( const vk::DrawInfo& drawInfo )
 				vkCmdPushConstants(drawInfo.cmdBuffer, drawInfo.pipelineLayout,
 					VK_SHADER_STAGE_VERTEX_BIT, 0,
 					sizeof(curr_transform), &curr_transform[0]);
+			}
+
+			//TODO: bind descriptor buffer for ssbo (set 3)
+			if (node.skinIndex.has_value())
+			{
+				VkDeviceSize descriptorBufferOffset =
+					node.skinIndex.value() * drawInfo.objectBindingSize;
+
+				g_vkCmdSetDescriptorBufferOffsetsEXT(drawInfo.cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
+						   drawInfo.pipelineLayout, drawInfo.firstSetObject, drawInfo.setCount,
+						   &drawInfo.objectBufferIndex, &descriptorBufferOffset);
 			}
 
 			DrawMeshPrimitives(drawInfo, mesh->m_primitives);
@@ -188,6 +208,99 @@ void GLTFModel::Draw( const vk::DrawInfo& drawInfo )
 	}
 }
 
+void GLTFModel::UpdateAnimation( const float deltaTime, const uint32_t currentFrameInFlight )
+{
+	if (m_currentAnimation > static_cast<uint32_t>(m_animations.size()) - 1)
+	{
+		return;
+	}
+
+	Animation& animation = m_animations[m_currentAnimation];
+	animation.currentTime += deltaTime;
+	//kind of a weird thing to do, might cause a jittery animation
+	if (animation.currentTime > animation.end)
+	{
+		animation.currentTime -= animation.end;
+	}
+
+	for (auto& channel : animation.channels)
+	{
+		AnimationSampler& sampler = animation.samplers[channel.samplerIndex];
+
+		if (sampler.interpolation != fastgltf::AnimationInterpolation::Linear)
+		{
+			std::cerr << "interpolation mode not supported\n";
+			continue;
+		}
+
+		for (size_t i = 0; i < sampler.inputs.size() - 1; ++i)
+		{
+			if (animation.currentTime >= sampler.inputs[i] && animation.currentTime <= sampler.inputs[i+1])
+			{
+				const float t = (animation.currentTime - sampler.inputs[i]) / (sampler.inputs[i+1] - sampler.inputs[i]);
+
+				const glm::vec4& v_k1 = sampler.outputsVec4[i+1];
+				const glm::vec4& v_k = sampler.outputsVec4[i];
+
+				switch (channel.path)
+				{
+					case fastgltf::AnimationPath::Translation: {
+						channel.node->translation = glm::mix(v_k, v_k1, t);
+						break;
+					}
+					case fastgltf::AnimationPath::Rotation: {
+						const glm::quat q1 = {v_k.x, v_k.y, v_k.z, v_k.w };
+						const glm::quat q2 = { v_k1.x, v_k1.y, v_k1.z, v_k1.w };
+
+						channel.node->rotation = glm::normalize(glm::slerp(q1, q2, t));
+						break;
+					}
+					case fastgltf::AnimationPath::Scale: {
+						channel.node->scale = glm::mix(v_k, v_k, t);
+						break;
+					}
+					default: {
+						std::cerr << "animation path not supported\n";
+						break;
+					}
+				}
+			}
+		}
+	}
+
+
+	for (auto& node : m_nodes)
+	{
+		UpdateJoints(node, currentFrameInFlight);
+	}
+}
+
+void GLTFModel::UpdateJoints( Node& node, const uint32_t currentFrameInFlight )
+{
+	if (node.skinIndex.has_value())
+	{
+		glm::mat4 inverse_transform = glm::inverse(node.GetNodeMatrix());
+		Skin& skin = m_skins[node.skinIndex.value()];
+		size_t num_joints = skin.joints.size();
+
+		std::vector<glm::mat4> joint_matrices(num_joints);
+		for (size_t i = 0; i < num_joints; ++i)
+		{
+			joint_matrices[i] = skin.joints[i]->GetNodeMatrix() * skin.inverseBindMatrices[i];
+			joint_matrices[i] = inverse_transform * joint_matrices[i];
+		}
+
+		vk::Buffer& ssbo = skin.storageBuffers[currentFrameInFlight];
+		memcpy(ssbo.GetMappedMemory(), joint_matrices.data(),
+			joint_matrices.size() * sizeof(glm::mat4));
+	}
+
+	for (size_t childIndex : node.childrenIndices)
+	{
+		UpdateJoints(m_nodes[childIndex], currentFrameInFlight);
+	}
+}
+
 void GLTFModel::LoadTextures( vk::TextureManager& textureManager, const std::vector<std::string>& textureNames )
 {
 	if (textureNames.empty())
@@ -197,13 +310,11 @@ void GLTFModel::LoadTextures( vk::TextureManager& textureManager, const std::vec
 
 	auto& meshes = GetMeshes();
 
-	for (size_t i = 0; i < meshes.size(); ++i)
+	for (const auto & mesh : meshes)
 	{
-		for (size_t j = 0; j < meshes[i]->m_primitives.size(); ++j)
+		for (auto & primitive : mesh->m_primitives)
 		{
-			Primitive& primitive = meshes[i]->m_primitives[j];
-
-			std::vector<vk::TextureCreateInfo> texture_create_infos(4);
+				std::vector<vk::TextureCreateInfo> texture_create_infos(4);
 			VkImageUsageFlags imageUsage =  VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
 
 			if (primitive.baseColorMaterialIndex.has_value())
@@ -269,9 +380,30 @@ void GLTFModel::LoadTextures( vk::TextureManager& textureManager, const std::vec
 
 }
 
+void GLTFModel::UploadSkinDescriptor( vk::DescriptorManager& descriptorManager )
+{
+	for (auto& skin : m_skins)
+	{
+		skin.descriptorIndex = descriptorManager.GetLayoutIndex(DescriptorCategory::eObject);
+
+		vk::resourceBufferPtrs2D resourceBuffers;
+		resourceBuffers.resize(gMaxFramesInFlight);
+
+		for (uint32_t frame = 0; frame < gMaxFramesInFlight; ++frame)
+		{
+			resourceBuffers[frame].push_back(&skin.storageBuffers[frame]);
+		}
+
+		descriptorManager.WriteDescriptors(DescriptorCategory::eObject, skin.descriptorIndex, resourceBuffers, true);
+	}
+}
+
 template<typename T> //either uint32_t or uint16_t
 void GLTFModel::CalculateTangentBitangent( std::vector<Vertex>& vertices, const std::vector<T>& indices )
 {
+	static_assert(std::is_same_v<T, uint16_t> || std::is_same_v<T, uint32_t>,
+		"index type must be uint16_t or uint32_t!");
+
 	for (int i = 0; i < indices.size(); i += 3)
 	{
 		glm::vec3& pos1 = vertices[indices[i]].pos;
@@ -312,6 +444,103 @@ void GLTFModel::CalculateTangentBitangent( std::vector<Vertex>& vertices, const 
 			vertices[indices[i + 1]].bitan = bitan;
 			vertices[indices[i + 2]].bitan = bitan;
 		}
+	}
+}
+
+void GLTFModel::LoadAnimations( fastgltf::Asset& asset )
+{
+	assert(m_nodes.empty() == false);
+
+	m_animations.resize(asset.animations.size());
+
+	for (size_t i = 0; i < m_animations.size(); ++i)
+	{
+		fastgltf::Animation& animation = asset.animations[i];
+
+		m_animations[i].name = animation.name;
+		m_animations[i].channels.resize(animation.channels.size());
+		m_animations[i].samplers.resize(animation.samplers.size());
+
+		//must parse samplers first because channels reference samplers within the animation.
+		for (size_t j = 0; j < animation.samplers.size(); ++j)
+		{
+			fastgltf::AnimationSampler& animationSampler = animation.samplers[j];
+			AnimationSampler& m_animationSampler = m_animations[i].samplers[j];
+
+			m_animationSampler.interpolation = animationSampler.interpolation;
+
+
+			fastgltf::Accessor& inputAccessor = asset.accessors[animationSampler.inputAccessor];
+			m_animationSampler.inputs.resize(inputAccessor.count);
+			fastgltf::copyFromAccessor<float>(asset, inputAccessor, m_animationSampler.inputs.data());
+
+			//update start and end time within animation;
+			for (float input : m_animations[i].samplers[i].inputs)
+			{
+				m_animations[i].start = std::min(m_animations[i].start, input);
+				m_animations[i].end = std::max(m_animations[i].end, input);
+			}
+
+			fastgltf::Accessor& outputAccessor = asset.accessors[animationSampler.outputAccessor];
+			m_animationSampler.outputsVec4.resize(outputAccessor.count);
+			//it should be that regardless of vec3 or vec4, elements are copied correctly in this function. Might need to test this.
+			fastgltf::copyFromAccessor<fastgltf::math::fvec4>(asset, outputAccessor,
+				m_animationSampler.outputsVec4.data());
+		}
+
+		//parsing channels
+		for (size_t j = 0; j < animation.channels.size(); ++j)
+		{
+			fastgltf::AnimationChannel& animationChannel = animation.channels[j];
+			AnimationChannel& m_animationChannel = m_animations[i].channels[j];
+
+			if (animation.channels[i].nodeIndex.has_value())
+			{
+				m_animationChannel.node = &m_nodes[animationChannel.nodeIndex.value()];
+				m_animationChannel.path = animationChannel.path;
+				m_animationChannel.samplerIndex = static_cast<uint32_t>(animationChannel.samplerIndex);
+			}
+			else //spec says: ignore channels with no nodes specified.
+			{
+				continue;
+			}
+		}
+	}
+}
+
+void GLTFModel::LoadSkins( const vk::Device* c_device, fastgltf::Asset& asset )
+{
+	m_skins.resize(asset.skins.size());
+
+	for (size_t i = 0; i < m_skins.size(); ++i)
+	{
+		fastgltf::Skin& skin = asset.skins[i];
+
+		m_skins[i].name = skin.name;
+
+		//TODO: load joints
+		for (size_t joint : skin.joints)
+		{
+			m_skins[i].joints.push_back(&m_nodes[joint]);
+		}
+
+		if (skin.inverseBindMatrices.has_value()) {
+
+			const fastgltf::Accessor& accessor = asset.accessors[skin.inverseBindMatrices.value()];
+			m_skins[i].inverseBindMatrices.resize(accessor.count);
+			fastgltf::copyFromAccessor<fastgltf::math::fmat4x4>(asset, accessor, m_skins[i].inverseBindMatrices.data());
+
+			for (uint32_t j = 0; j < gMaxFramesInFlight; ++j) {
+				m_skins[i].storageBuffers[j] = c_device->CreateBuffer(accessor.count * sizeof(glm::mat4),
+					VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+					VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+					 m_skins[i].inverseBindMatrices.data());
+				//TODO: persistently mapped to make coherent updates easier. ideally, youd want device_local memory.
+				m_skins[i].storageBuffers[j].Map();
+			}
+		}
+
+
 	}
 }
 
@@ -408,9 +637,28 @@ void GLTFModel::LoadMeshes( fastgltf::Asset& asset, std::vector<Vertex>& vertexB
 				{
 					fastgltf::Accessor& texCoordAccessor = asset.accessors[texCoordAttrib->accessorIndex];
 					fastgltf::iterateAccessorWithIndex<fastgltf::math::fvec2>(asset, texCoordAccessor,
-						[&](fastgltf::math::fvec2 uv, size_t idx)
-						{
+						[&](fastgltf::math::fvec2 uv, size_t idx){
 							vertexBuffer[newPrim.firstVertex + idx].uv = glm::make_vec2(uv.data());
+						});
+				}
+
+				auto jointAttrib = primitive.findAttribute("JOINTS_0");
+				if (jointAttrib != primitive.attributes.end())
+				{
+					fastgltf::Accessor& jointIndicesAccessor = asset.accessors[jointAttrib->accessorIndex];
+					fastgltf::iterateAccessorWithIndex<fastgltf::math::fvec4>(asset, jointIndicesAccessor,
+						[&](fastgltf::math::fvec4 joint, size_t idx) {
+							vertexBuffer[newPrim.firstVertex + idx].jointIndices = glm::make_vec4(joint.data());
+						});
+				}
+
+				auto weightAttrib = primitive.findAttribute("WEIGHTS_0");
+				if (weightAttrib != primitive.attributes.end())
+				{
+					fastgltf::Accessor& weightAccessor = asset.accessors[weightAttrib->accessorIndex];
+					fastgltf::iterateAccessorWithIndex<fastgltf::math::fvec4>(asset, weightAccessor,
+						[&](fastgltf::math::fvec4 weight, size_t idx) {
+							vertexBuffer[newPrim.firstVertex + idx].jointWeights = glm::make_vec4(weight.data());
 						});
 				}
 			}
@@ -479,4 +727,5 @@ std::string GLTFModel::LoadImage(const fastgltf::Image& image )
 
 	return fileName;
 }
+
 

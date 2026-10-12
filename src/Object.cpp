@@ -7,7 +7,8 @@
 static constexpr std::string_view GLTF_OBJECT_PATH = "art/gltf/";
 static constexpr std::string_view OBJ_PATH = "art/obj/";
 
-Object::Object( const ObjectCreateInfo& objectCI, vk::TextureManager& textureManager )
+Object::Object( const ObjectCreateInfo& objectCI, vk::TextureManager& textureManager,
+    vk::DescriptorManager& descriptorManager )
 {
     assert(objectCI.devicePtr != nullptr);
     
@@ -41,6 +42,7 @@ Object::Object( const ObjectCreateInfo& objectCI, vk::TextureManager& textureMan
         }
 
         m_model->LoadTextures(textureManager, gltf_fileNames);
+        m_model->UploadSkinDescriptor( descriptorManager );
     }
     else if (ext == ".obj")
     {
@@ -126,8 +128,7 @@ void Object::InitPhysics( const PhysicsInitInfo& physicsInfo )
     m_physicsComponent.value().prevTransform = m_physicsComponent.value().rigidBody->getTransform();
 }
 
-
-void Object::Update(const float& interpFactor)
+void Object::UpdatePhysics(const float& interpFactor)
 {
     if (m_physicsComponent.has_value())
     {
@@ -159,6 +160,11 @@ void Object::Update(const float& interpFactor)
 void Object::Draw( const vk::DrawInfo& drawInfo ) const
 {  
     m_model->Draw(drawInfo);
+}
+
+void Object::UpdateModelAnimation( const float deltaTime, const uint32_t currentFrameInFlight )
+{
+    m_model->UpdateAnimation(deltaTime, currentFrameInFlight);
 }
 
 

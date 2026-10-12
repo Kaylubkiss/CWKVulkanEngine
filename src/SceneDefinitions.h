@@ -21,7 +21,6 @@ struct Light
 struct SceneView
 {
     std::span<const std::shared_ptr<Object>> opaqueObjects;
-    std::vector<std::weak_ptr<Object>> transparentObjects;
     std::span<const std::shared_ptr<Light>> lights;
     std::shared_ptr<Camera> camera;
 };

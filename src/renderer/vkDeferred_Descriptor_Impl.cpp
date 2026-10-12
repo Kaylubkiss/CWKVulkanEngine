@@ -5,16 +5,15 @@ namespace vk
 
     void DeferredRenderer::InitializeDescriptors( DescriptorManager& descriptorManager )
     {
-        {
-        	InitializeUBODescriptors( descriptorManager );
+	    InitializeUBODescriptors( descriptorManager );
 
-        	InitializeMaterialDescriptors(descriptorManager);
+	    InitializeMaterialDescriptors( descriptorManager );
 
-        	InitializeSkyboxDescriptor( descriptorManager );
+	    InitializeSkyboxDescriptor( descriptorManager );
 
-        	InitializeCompositionImageDescriptors(descriptorManager);
+	    InitializeCompositionImageDescriptors( descriptorManager );
 
-		}
+	    InitializeStorageBufferDescriptors( descriptorManager );
     }
 
 
@@ -223,5 +222,19 @@ namespace vk
 			OBJECT_COUNT, setLayoutBindings);
 
     	//texture manager will fill the descriptor buffers.
+    }
+
+	void DeferredRenderer::InitializeStorageBufferDescriptors( DescriptorManager& descriptorManager )
+    {
+		std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings(1);
+    	setLayoutBindings[0].binding = 0;
+    	setLayoutBindings[0].descriptorCount = 1;
+    	setLayoutBindings[0].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+    	setLayoutBindings[0].stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+
+    	//TODO: we're guessing how many skins there are in the scene. Not good.
+    	uint32_t maxSkinCount = 10000;
+		descriptorManager.AllocateDescriptorBuffer(DescriptorCategory::eObject, gMaxFramesInFlight,
+			maxSkinCount, setLayoutBindings);
     }
 }

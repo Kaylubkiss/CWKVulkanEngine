@@ -32,6 +32,7 @@ namespace vk
 
 		//operations
 		void WaitForDevice() const;
+		uint32_t GetCurrentFrameInFlight() const;
 	protected:
 		bool PrepareFrame();
 		void SubmitFrame();

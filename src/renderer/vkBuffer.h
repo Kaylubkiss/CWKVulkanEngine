@@ -28,6 +28,7 @@ namespace vk
 		[[nodiscard]] VkBuffer GetHandle() const;
 		[[nodiscard]] VkDeviceSize GetSize() const;
 
+		void CopyTo(void* data, size_t size); //TODO: copy pointer data into mapped memory pointer
 		void Map();
 		void Flush();
 		void UnMap();

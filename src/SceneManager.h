@@ -12,7 +12,7 @@
         [[nodiscard]] SceneView GetSceneView() const;
 
         void Init( AssetLoader& assetLoader );
-        void Update( float physicsInterp, float dt ); //culling, physics
+        void Update( float physicsInterp, float dt, uint32_t currentFrameInFlight ); //culling, physics
     private:
         void InitTestScene();
         void GrabRequestedObjects(); //todo: need a messaging system so asset manager can notify scenemanager instead.

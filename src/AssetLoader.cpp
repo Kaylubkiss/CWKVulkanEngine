@@ -24,7 +24,7 @@ void AssetLoader::LoadObject( ObjectCreateInfo& objectCI )
 		}
 
 		//note: m_textureManager is also internally thread safe.
-		auto newObject = std::make_unique<Object>(objectCI, *objectCI.textureManagerPtr);
+		auto newObject = std::make_unique<Object>(objectCI, *c_textureManagerPtr, *c_descriptorManagerPtr);
 		{
 			std::unique_lock lock(m_objectMutex);
 			if (m_objects.contains(objectCI.objName) == false)
@@ -61,13 +61,16 @@ std::shared_ptr<Object> AssetLoader::GetObject( const std::string& objectName )
 	return {};
 }
 
-void AssetLoader::Init( const vk::Device* devicePtr, vk::TextureManager* textureManagerPtr, size_t workerThreadCount )
+void AssetLoader::Init( const vk::Device* devicePtr, vk::TextureManager* textureManagerPtr,
+	vk::DescriptorManager* descriptorManagerPtr, size_t workerThreadCount )
 {
 	assert(devicePtr != nullptr);
 	assert(textureManagerPtr != nullptr);
+	assert(descriptorManagerPtr != nullptr);
 	assert(workerThreadCount > 0);
 
 	m_threadWorkers.Init(workerThreadCount);
 	c_devicePtr = devicePtr;
 	c_textureManagerPtr = textureManagerPtr;
+	c_descriptorManagerPtr = descriptorManagerPtr;
 }

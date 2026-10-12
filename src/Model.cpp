@@ -1,9 +1,11 @@
 //
 // Created by cwkmi on 7/29/2026.
 //
-
 #include "Model.h"
 #include "vkBuffer.h"
+#include "glm/fwd.hpp"
+#include "glm/vec3.hpp"
+#include "glm/gtx/transform.hpp"
 
 glm::vec3 Model::GetMinPoint() const
 {

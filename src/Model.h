@@ -1,18 +1,13 @@
 #ifndef MODEL_HPP
 #define MODEL_HPP
 
+#include "Node.h"
+
 namespace vk
 {
 	class TextureManager;
+	class DescriptorManager;
 }
-
-struct Node //notice: no pointing to parents. Might be something for later.
-{
-	glm::mat4 transform;
-	std::optional<size_t> meshIndex;
-	std::vector<size_t> childrenIndices;
-	std::string name;
-};
 
 struct Primitive
 {
@@ -44,6 +39,7 @@ struct Mesh
 
 class Model
 {
+	friend class GLTFModel; //this is so animation channels can point to nodes. Wanted to keep read-only for everybody else.
 public:
 	virtual ~Model() = default;
 
@@ -96,7 +92,9 @@ public:
 	}
 
 	virtual void Draw( const vk::DrawInfo& drawInfo ) = 0;
+	virtual void UpdateAnimation( const float deltaTime, const uint32_t currentFrameInFlight ) { (void)(deltaTime); (void)(currentFrameInFlight); }
 	virtual void LoadTextures( vk::TextureManager& textureManager, const std::vector<std::string>& textureNames ) = 0;
+	virtual void UploadSkinDescriptor( vk::DescriptorManager& descriptorManager ) { (void)(descriptorManager); }
 	[[nodiscard]] const std::vector<std::string>& GetTextureNames() const { return m_textureNames; }
 	static void DrawMeshPrimitives( const vk::DrawInfo& drawInfo, const std::vector<Primitive>& primitives )
 	{

@@ -30,26 +30,27 @@ namespace vk
 
         //create the layout for the descriptor buffer.
         //allocate the buffer for the descriptor buffer.
-        VkBufferUsageFlags bufferUsageFlags;
+        VkBufferUsageFlags bufferUsageFlags =
+            VK_BUFFER_USAGE_RESOURCE_DESCRIPTOR_BUFFER_BIT_EXT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
         VkMemoryPropertyFlags memoryProperties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-            VK_MEMORY_PROPERTY_HOST_COHERENT_BIT; //TODO: TEMPORARY. Not all the buffers should use these flags.
+            VK_MEMORY_PROPERTY_HOST_COHERENT_BIT; //TODO: TEMPORARY. Not all the buffers should be coherent
 
-        if (category == DescriptorCategory::eUBO || category == DescriptorCategory::eObject)
+        if (category == DescriptorCategory::eUBO)
         {
-            bufferUsageFlags = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT |
-                VK_BUFFER_USAGE_RESOURCE_DESCRIPTOR_BUFFER_BIT_EXT |
-                VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
+            bufferUsageFlags |= VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
         }
         else if (category == DescriptorCategory::eMaterial)
         {
-            bufferUsageFlags = VK_BUFFER_USAGE_RESOURCE_DESCRIPTOR_BUFFER_BIT_EXT |
-                VK_BUFFER_USAGE_SAMPLER_DESCRIPTOR_BUFFER_BIT_EXT |
-                VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
+            bufferUsageFlags |= VK_BUFFER_USAGE_SAMPLER_DESCRIPTOR_BUFFER_BIT_EXT;
         }
         else if (category == DescriptorCategory::eCompositionImage) //TODO: might get away with the same usage as eMaterial.
         {
-            bufferUsageFlags = VK_BUFFER_USAGE_RESOURCE_DESCRIPTOR_BUFFER_BIT_EXT |
-                VK_BUFFER_USAGE_SAMPLER_DESCRIPTOR_BUFFER_BIT_EXT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
+            bufferUsageFlags |= VK_BUFFER_USAGE_SAMPLER_DESCRIPTOR_BUFFER_BIT_EXT;
+        }
+        else if (category == DescriptorCategory::eObject)
+        {
+            //for now this descriptor is being set up as a storage buffer for animation state.
+            bufferUsageFlags |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
         }
         else
         {
@@ -72,7 +73,7 @@ namespace vk
 
     // [frame][binding]
     void DescriptorManager::WriteDescriptors(DescriptorCategory category, uint32_t layoutIndex,
-        vk::imageBuffers2D& imageDescriptors, bool storageResource, int baseBinding )
+        vk::imageBuffers2D& imageDescriptors, bool storageResource, int baseBinding ) //storageResource refers to a storage image --> not flexible with animations now
     {
         auto& descriptor = m_descriptorBuffers[category].descriptor;
 
@@ -104,11 +105,15 @@ namespace vk
     }
 
     void DescriptorManager::WriteDescriptors(DescriptorCategory category, uint32_t layoutIndex,
-        vk::resourceBufferPtrs2D& resourceDescriptors)
+        vk::resourceBufferPtrs2D& resourceDescriptors, bool storageResource )
     {
         auto& descriptor = m_descriptorBuffers[category].descriptor;
 
         vk::WriteResource writeResource;
+
+        //NOTE: engine assumes that if it's not a storage buffer, then it's a uniform for resource buffers.
+        size_t writeSize = storageResource ? m_properties.storageBufferDescriptorSize :
+            m_properties.uniformBufferDescriptorSize;
 
         for (int frame = 0; frame < resourceDescriptors.size(); ++frame)
         {
@@ -118,8 +123,10 @@ namespace vk
 
                 {
                     std::lock_guard lock(m_mutex);
+
+                    //TODO: don't set storageResource because WriteDescriptor() assumes storage == image resource.
                     descriptor.WriteDescriptor( writeResource,
-                        layoutIndex, frame, binding, m_properties.uniformBufferDescriptorSize);
+                        layoutIndex, frame, binding, writeSize );
                 }
             }
         }

@@ -96,7 +96,8 @@ namespace vk
 		{
 			c_descriptorManager.GetLayout(DescriptorCategory::eUBO),
 			c_descriptorManager.GetLayout(DescriptorCategory::eCompositionImage),
-			c_descriptorManager.GetLayout(DescriptorCategory::eMaterial)
+			c_descriptorManager.GetLayout(DescriptorCategory::eMaterial),
+			c_descriptorManager.GetLayout(DescriptorCategory::eObject)
 		};
 
 

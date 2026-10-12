@@ -13,9 +13,12 @@ namespace vk
 	{
 		VkCommandBuffer cmdBuffer = VK_NULL_HANDLE;
 		VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
-		VkDeviceSize textureBindingSize = 0; //used for buffer offset calculation
+		VkDeviceSize textureBindingSize = 0; //used for buffer offset calculation for eMaterial
+		VkDeviceSize objectBindingSize = 0; //used for offset calculation within the descriptor buffer for eObject
 		uint32_t imageBufferIndex = 0;
+		uint32_t objectBufferIndex = 0;
 		uint32_t firstSet = 0;
+		uint32_t firstSetObject = 0;
 		uint32_t setCount = 1; //it would make sense that there is at least 1 set being described.
 	};
 }

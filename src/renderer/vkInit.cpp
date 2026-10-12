@@ -6,7 +6,7 @@ namespace vk
 {
 	namespace init 
 	{
-		VkVertexInputBindingDescription VertexInputBindingDescription(uint32_t binding) 
+		VkVertexInputBindingDescription VertexInputBindingDescription( uint32_t binding ) //binding = 0 (default)
 		{
 			return { binding, sizeof(Vertex), VK_VERTEX_INPUT_RATE_VERTEX };
 		}

@@ -17,6 +17,7 @@
 namespace vk
 {
 	class TextureManager;
+	class DescriptorManager;
 }
 
 class AssetLoader
@@ -27,7 +28,8 @@ public:
 
 	[[nodiscard]] std::shared_ptr<Object> GetObject( const std::string& objectName );
 
-	void Init( const vk::Device* devicePtr, vk::TextureManager* textureManagerPtr, size_t workerThreadCount );
+	void Init( const vk::Device* devicePtr, vk::TextureManager* textureManagerPtr,
+		vk::DescriptorManager* descriptorManagerPtr, size_t workerThreadCount );
 	void Destroy();
 	void LoadObject( ObjectCreateInfo& objectCI );
 private:
@@ -36,6 +38,7 @@ private:
 	ObjectMap m_transparentObjects{};
 	ThreadPool m_threadWorkers; //this needs to be destroyed first.
 	vk::TextureManager* c_textureManagerPtr = nullptr;
+	vk::DescriptorManager* c_descriptorManagerPtr = nullptr;
 	const vk::Device* c_devicePtr = nullptr;
 };
 

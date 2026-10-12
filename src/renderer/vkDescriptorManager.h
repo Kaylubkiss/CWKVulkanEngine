@@ -31,7 +31,7 @@ namespace vk
             vk::imageBuffers2D& imageDescriptors, bool storageResource = false, int baseBinding = 0 );
 
         void WriteDescriptors( DescriptorCategory category, uint32_t layoutIndex,
-            vk::resourceBufferPtrs2D& resourceDescriptors );
+            vk::resourceBufferPtrs2D& resourceDescriptors, bool storageResource = false );
 
         uint32_t GetLayoutIndex( DescriptorCategory category );
 

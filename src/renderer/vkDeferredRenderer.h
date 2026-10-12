@@ -38,6 +38,7 @@ namespace vk
 		void InitializeSkyboxDescriptor( DescriptorManager& descriptorManager );
 		void InitializeMaterialDescriptors( DescriptorManager& descriptorManager );
 		void InitializeEnvironmentMapDescriptors( DescriptorManager& descriptorManager );
+		void InitializeStorageBufferDescriptors( DescriptorManager& descriptorManager );
 
 		void InitializePipelineLayouts();
 		void UpdateScreenUniforms( const SceneView& sceneView );

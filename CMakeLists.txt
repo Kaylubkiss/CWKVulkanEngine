@@ -78,6 +78,7 @@ src/UserInterface.cpp
 src/GLTFModel.cpp
 src/OBJModel.cpp
 src/SceneManager.cpp
+src/Node.cpp
 )
 
 set(VULKAN_SRC_DIR src/renderer)
@@ -143,6 +144,8 @@ ${HEADER_SRC_DIR}/Model.h
 ${HEADER_SRC_DIR}/SceneManager.h
 ${HEADER_SRC_DIR}/SceneDefinitions.h
 ${HEADER_SRC_DIR}/ObjectParser.h
+${HEADER_SRC_DIR}/Skinning.h
+${HEADER_SRC_DIR}/Node.h
 )
 				 
 set(VULKAN_HEADER_DIR src/renderer)
@@ -186,6 +189,9 @@ ${SHADER_SRC_DIR}/deferred-render/deComposition.frag
 ${SHADER_SRC_DIR}/deferred-render/deShadow.geom
 ${SHADER_SRC_DIR}/deferred-render/deShadow.vert
 		src/ObjectParser.h
+		src/Skinning.h
+        src/Node.h
+		src/Node.cpp
 )
 
 

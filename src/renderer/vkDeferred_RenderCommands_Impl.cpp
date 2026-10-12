@@ -31,10 +31,16 @@ namespace vk
     			.address = c_descriptorManager.GetDescriptorAddress(DescriptorCategory::eMaterial),
     			.usage = VK_BUFFER_USAGE_SAMPLER_DESCRIPTOR_BUFFER_BIT_EXT |
     				VK_BUFFER_USAGE_RESOURCE_DESCRIPTOR_BUFFER_BIT_EXT
+    		},
+    		{
+    			.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_BUFFER_BINDING_INFO_EXT,
+    			.address = c_descriptorManager.GetDescriptorAddress(DescriptorCategory::eObject),
+    			.usage = VK_BUFFER_USAGE_RESOURCE_DESCRIPTOR_BUFFER_BIT_EXT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT
     		}
     	};
 
-		constexpr uint32_t uboDescriptorIndex = 0, compositionImageDescriptorIndex = 1, materialDescriptorIndex = 2;
+		constexpr uint32_t uboDescriptorIndex = 0, compositionImageDescriptorIndex = 1,
+    		materialDescriptorIndex = 2, objectDescriptorIndex = 3;
 
     	g_vkCmdBindDescriptorBuffersEXT(cmdBuffer, static_cast<uint32_t>(descriptorBufferBindingInfos.size()),
 				descriptorBufferBindingInfos.data());
@@ -124,7 +130,6 @@ namespace vk
 			VkRect2D sceneScissor = c_window.Scissor();
 			vkCmdSetScissor(cmdBuffer, 0, 1, &sceneScissor);
 
-
 			VkDeviceSize buffer_offset =  (gMaxFramesInFlight * mrtUBOLayoutIndex + currentFrame) * uboLayoutSize;
 
 			//global transform
@@ -135,8 +140,11 @@ namespace vk
 			drawInfo.cmdBuffer = cmdBuffer;
 			drawInfo.imageBufferIndex = materialDescriptorIndex;
 			drawInfo.firstSet = materialDescriptorIndex;
+			drawInfo.firstSetObject = objectDescriptorIndex;
+			drawInfo.objectBufferIndex = objectDescriptorIndex;
 			drawInfo.pipelineLayout = m_graphicsPipelineLayout;
 			drawInfo.textureBindingSize = c_descriptorManager.GetLayoutSize(DescriptorCategory::eMaterial);
+			drawInfo.objectBindingSize = c_descriptorManager.GetLayoutSize(DescriptorCategory::eObject);
 
 			for (auto& object : sceneView.opaqueObjects)
 			{
@@ -262,7 +270,6 @@ namespace vk
 			renderPassBeginInfo.renderArea.extent = fbExtent;
 			renderPassBeginInfo.renderPass = swapChain.GetRenderPass();
 			renderPassBeginInfo.framebuffer = fbHandle;
-
 
 			vkCmdBeginRenderPass(cmdBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 

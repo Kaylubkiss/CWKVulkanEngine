@@ -11,11 +11,17 @@ layout (push_constant) uniform pc
 	mat4 modelMatrix;
 };
 
+layout(std430, set = 3, binding = 0) readonly buffer JointMatrices {
+    mat4 jointMatrices[];
+};
+
 layout( location = 0 ) in vec3 aPos;
 layout( location = 1 ) in vec3 aNorm;
 layout( location = 2 ) in vec2 aUv;
 layout( location = 3 ) in vec3 aTan;
 layout( location = 4 ) in vec3 aBitan;
+layout( location = 5 ) in vec4 aJointIndices;
+layout( location = 6 ) in vec4 aJointWeights;
 
 layout( location = 0 ) out vec4 outWorldPosition;
 layout( location = 1 ) out vec4 outWorldNormal;
@@ -24,7 +30,17 @@ layout( location = 3 ) out mat3 outTBN;
 
 void main()
 {
-	gl_Position = camera.proj * camera.view * modelMatrix * vec4(aPos, 1);
+    mat4 skinMat = mat4(1.0f);
+    if (aJointWeights.x != 0 && aJointWeights.y != 0 && aJointWeights.z != 0){
+        skinMat =
+        aJointWeights.x * jointMatrices[int(aJointIndices.x)] +
+        aJointWeights.y * jointMatrices[int(aJointIndices.y)] +
+        aJointWeights.z * jointMatrices[int(aJointIndices.z)] +
+        aJointWeights.w * jointMatrices[int(aJointIndices.w)];
+    }
+
+
+	gl_Position = camera.proj * camera.view * modelMatrix * skinMat * vec4(aPos, 1);
 	
 	outWorldPosition = modelMatrix * vec4(aPos, 1);
 

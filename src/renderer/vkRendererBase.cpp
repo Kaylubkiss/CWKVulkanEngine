@@ -112,6 +112,11 @@ namespace vk
 		}
 	}
 
+	uint32_t RendererBase::GetCurrentFrameInFlight() const
+	{
+		return currentFrame;
+	}
+
 	bool RendererBase::PrepareFrame()
 	{
 		if (c_window.IsPrepared() == false)

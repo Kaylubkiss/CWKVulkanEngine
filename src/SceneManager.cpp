@@ -47,7 +47,7 @@ void SceneManager::GrabRequestedObjects()
 	}
 }
 
-void SceneManager::Update( float physicsInterp, float dt )
+void SceneManager::Update( float physicsInterp, float dt, uint32_t currentFrameInFlight )
 {
     GrabRequestedObjects();
 
@@ -55,7 +55,8 @@ void SceneManager::Update( float physicsInterp, float dt )
     {
         if (obj) //null check per object?
         {
-            obj->Update(physicsInterp);
+            obj->UpdatePhysics(physicsInterp);
+        	obj->UpdateModelAnimation(dt, currentFrameInFlight);
         }
     }
 
@@ -68,7 +69,12 @@ void SceneManager::InitTestScene()
 {
 	std::vector<ObjectCreateInfo> object_list;
 
-	_TEST_ReadObjects("art/json_scenes/test_object_list.json", object_list);
+	/*_TEST_ReadObjects("art/json_scenes/test_object_list.json", object_list);*/
+
+	ObjectCreateInfo _TEST_animatedObjectCI = {};
+	_TEST_animatedObjectCI.objName = "AnimatedCube/glTF/AnimatedCube.gltf";
+
+	object_list.push_back(_TEST_animatedObjectCI);
 
 	for (auto& obj : object_list)
 	{
