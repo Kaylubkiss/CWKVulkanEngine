@@ -53,7 +53,7 @@ void SceneManager::Update( float physicsInterp, float dt, uint32_t currentFrameI
 
     for (auto& obj : m_scene.m_objects)
     {
-        if (obj) 
+        if (obj)
         {
             obj->UpdatePhysics(physicsInterp);
         	obj->UpdateModelAnimation(dt, currentFrameInFlight);
@@ -72,7 +72,13 @@ void SceneManager::InitTestScene()
 	/*_TEST_ReadObjects("art/json_scenes/test_object_list.json", object_list);*/
 
 	ObjectCreateInfo _TEST_animatedObjectCI = {};
-	_TEST_animatedObjectCI.objName = "AnimatedCube/glTF/AnimatedCube.gltf";
+	/*_TEST_animatedObjectCI.objName = "AnimatedCube/glTF/AnimatedCube.gltf";
+
+	object_list.push_back(_TEST_animatedObjectCI);*/
+
+	/*_TEST_animatedObjectCI.objName = "sketchfab_3d_editor_challenge_littlest_tokyo/scene.gltf";*/
+
+	_TEST_animatedObjectCI.objName = "CesiumMan/glTF/CesiumMan.gltf";
 
 	object_list.push_back(_TEST_animatedObjectCI);
 

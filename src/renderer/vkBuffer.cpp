@@ -108,6 +108,7 @@ namespace vk
 		VkBufferDeviceAddressInfo bufferAddress = {};
 		bufferAddress.sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO;
 		bufferAddress.buffer = m_handle;
+		
 		return vkGetBufferDeviceAddress(c_device, &bufferAddress);
 	}
 

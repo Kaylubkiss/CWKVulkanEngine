@@ -120,26 +120,39 @@ namespace vk
 				return;
 			}
 
-			if (storageResource)
+
+			if (storageResource) //probably could just pass in VkDescriptorType to function.
 			{
 				descriptorGetInfo.type = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+				descriptorGetInfo.data.pStorageImage = writeData.pImageData;
 			}
 			else
 			{
 				descriptorGetInfo.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+				descriptorGetInfo.data.pCombinedImageSampler = writeData.pImageData;
 			}
 
-			descriptorGetInfo.data.pCombinedImageSampler = writeData.pImageData;
+
 		}
 		else
 		{
-			descriptorGetInfo.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 
 			addrInfo.address = writeData.pResourceData->GetDeviceAddress();
 			addrInfo.range = writeData.pResourceData->GetSize();
 			addrInfo.format = VK_FORMAT_UNDEFINED;
 
-			descriptorGetInfo.data.pUniformBuffer = &addrInfo;
+			if (storageResource)
+			{
+				descriptorGetInfo.type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+				descriptorGetInfo.data.pStorageBuffer = &addrInfo;
+			}
+			else
+			{
+				descriptorGetInfo.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+				descriptorGetInfo.data.pUniformBuffer = &addrInfo;
+			}
+
+
 		}
 
 		g_vkGetDescriptorEXT(c_device, &descriptorGetInfo,

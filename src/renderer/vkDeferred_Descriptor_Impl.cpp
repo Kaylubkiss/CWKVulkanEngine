@@ -16,7 +16,6 @@ namespace vk
 	    InitializeStorageBufferDescriptors( descriptorManager );
     }
 
-
 	void DeferredRenderer::InitializeUBODescriptors( DescriptorManager& descriptorManager )
 	{
     	//there are three ubos in this demo.
@@ -177,7 +176,7 @@ namespace vk
 
 	void DeferredRenderer::InitializeSkyboxDescriptor( DescriptorManager& descriptorManager )
     {
-    	if (skyboxImageIndex == UINT_MAX)
+    	if (skyboxImageIndex == UINT32_MAX)
     	{
     		skyboxImageIndex = c_descriptorManager.GetLayoutIndex(DescriptorCategory::eMaterial);
     	}
@@ -240,5 +239,7 @@ namespace vk
     	descriptorManager.GetLayoutIndex(DescriptorCategory::eObject); //this is a cheap workaround for objects that don't have a skin.
     	//otherwise, I will get errors from Renderdoc for binding the descriptor referenced in the shader.
     	//Essentially, every model that doesnt have a skin is assigned index 0 --> empty ssbo.
+
+    	//... actually, empty ssbo would 9999... your draw() logic is wrong, but you dont want to work off magic numbers either.
     }
 }

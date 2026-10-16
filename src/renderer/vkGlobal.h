@@ -20,6 +20,7 @@ namespace vk
 		uint32_t firstSet = 0;
 		uint32_t firstSetObject = 0;
 		uint32_t setCount = 1; //it would make sense that there is at least 1 set being described.
+		uint32_t currentFrame = 0;
 	};
 }
 

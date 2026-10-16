@@ -30,18 +30,14 @@ layout( location = 3 ) out mat3 outTBN;
 
 void main()
 {
-    mat4 skinMat = mat4(1.0f);
-    if (aJointWeights.x != 0 && aJointWeights.y != 0 && aJointWeights.z != 0){
-        skinMat =
-        aJointWeights.x * jointMatrices[int(aJointIndices.x)] +
-        aJointWeights.y * jointMatrices[int(aJointIndices.y)] +
-        aJointWeights.z * jointMatrices[int(aJointIndices.z)] +
-        aJointWeights.w * jointMatrices[int(aJointIndices.w)];
+    mat4 m = jointMatrices[0];
+    if (m[0][0] == 12345.0){
+        gl_Position = vec4(0.0);
+    }
+    else{
+        gl_Position = camera.proj * camera.view * modelMatrix * vec4(aPos, 1);
     }
 
-
-	gl_Position = camera.proj * camera.view * modelMatrix * skinMat * vec4(aPos, 1);
-	
 	outWorldPosition = modelMatrix * vec4(aPos, 1);
 
     mat4 normalMatrix = transpose(inverse(modelMatrix));

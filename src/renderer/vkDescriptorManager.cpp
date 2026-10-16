@@ -104,7 +104,7 @@ namespace vk
         }
     }
 
-    void DescriptorManager::WriteDescriptors(DescriptorCategory category, uint32_t layoutIndex,
+    void DescriptorManager::WriteDescriptors( DescriptorCategory category, uint32_t layoutIndex,
         vk::resourceBufferPtrs2D& resourceDescriptors, bool storageResource )
     {
         auto& descriptor = m_descriptorBuffers[category].descriptor;
@@ -124,15 +124,14 @@ namespace vk
                 {
                     std::lock_guard lock(m_mutex);
 
-                    //TODO: don't set storageResource because WriteDescriptor() assumes storage == image resource.
                     descriptor.WriteDescriptor( writeResource,
-                        layoutIndex, frame, binding, writeSize );
+                        layoutIndex, frame, binding, writeSize, storageResource);
                 }
             }
         }
     }
 
-    uint32_t DescriptorManager::GetLayoutIndex(DescriptorCategory category)
+    uint32_t DescriptorManager::GetLayoutIndex( DescriptorCategory category )
     {
         std::lock_guard lock(m_mutex);
 
@@ -143,7 +142,6 @@ namespace vk
         {
             if (it->second.freeList.empty())
             {
-                std::cerr << "no more space in the free list for descriptor category\n";
                 throw std::runtime_error("DescriptorBuffer::GetLayoutIndex() failed");
             }
 

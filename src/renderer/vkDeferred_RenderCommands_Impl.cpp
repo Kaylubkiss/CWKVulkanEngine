@@ -145,6 +145,7 @@ namespace vk
 			drawInfo.pipelineLayout = m_graphicsPipelineLayout;
 			drawInfo.textureBindingSize = c_descriptorManager.GetLayoutSize(DescriptorCategory::eMaterial);
 			drawInfo.objectBindingSize = c_descriptorManager.GetLayoutSize(DescriptorCategory::eObject);
+			drawInfo.currentFrame = currentFrame;
 
 			for (auto& object : sceneView.opaqueObjects)
 			{

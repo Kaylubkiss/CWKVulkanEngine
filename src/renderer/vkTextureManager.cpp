@@ -275,9 +275,13 @@ namespace vk
 		vk::imageBuffers2D imageDescriptors;
 		imageDescriptors.resize(1);
 
-		size_t i = 0;
-		while (i < texturesToProcess.size())
+		for (size_t i = 0; i < texturesToProcess.size(); ++i)
 		{
+			if (texturesToProcess[i].needsGPUTransfer == false)
+			{
+				continue; //ran into an edge case where we might still land on an empty binding, so just increment
+			}
+
 			imageDescriptors[0].resize(texturesToProcess[i].totalBindingCount);
 
 			uint32_t layoutIndex = texturesToProcess[i].layoutIndex;
@@ -291,11 +295,7 @@ namespace vk
 			}
 
 			m_descriptorManagerPtr->WriteDescriptors(DescriptorCategory::eMaterial, layoutIndex, imageDescriptors);
-
-			i += texturesToProcess[i].totalBindingCount;
 		}
-
-
 
 		return true;
 	}

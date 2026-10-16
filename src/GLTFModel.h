@@ -9,7 +9,6 @@
 //this is to ensure that we can memcpy, as the UpdateModelTransform() takes in a glm::mat4.
 static_assert(sizeof(fastgltf::math::fmat4x4) == sizeof(glm::mat4));
 
-
 class GLTFModel : public Model
 {
 public:

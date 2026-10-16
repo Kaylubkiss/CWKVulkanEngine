@@ -186,14 +186,15 @@ void GLTFModel::Draw( const vk::DrawInfo& drawInfo )
 
 			//reason for binding is because ssbo is bound before Draw() is called. This will throw an error
 			//by RenderDoc or any GPU debugger, if the descriptor isn't set.
-			size_t skinIndex = 0;
-			if (node.skinIndex.has_value())
+			size_t skinIndex = 9999;
+			/*if (node.skinIndex.has_value())
 			{
 				skinIndex = node.skinIndex.value();
 			}
+			*/
 
 			VkDeviceSize descriptorBufferOffset =
-					skinIndex * drawInfo.objectBindingSize;
+					(gMaxFramesInFlight * skinIndex + drawInfo.currentFrame) * drawInfo.objectBindingSize;
 
 			g_vkCmdSetDescriptorBufferOffsetsEXT(drawInfo.cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
 					   drawInfo.pipelineLayout, drawInfo.firstSetObject, drawInfo.setCount,
@@ -489,9 +490,23 @@ void GLTFModel::LoadAnimations( fastgltf::Asset& asset )
 
 			fastgltf::Accessor& outputAccessor = asset.accessors[animationSampler.outputAccessor];
 			m_animationSampler.outputsVec4.resize(outputAccessor.count);
+
 			//it should be that regardless of vec3 or vec4, elements are copied correctly in this function. Might need to test this.
-			fastgltf::copyFromAccessor<fastgltf::math::fvec4>(asset, outputAccessor,
+			if (outputAccessor.type == fastgltf::AccessorType::Vec3)
+			{
+				size_t idx = 0;
+				for (auto elem :
+					fastgltf::iterateAccessor<fastgltf::math::fvec3>(asset, outputAccessor))
+				{
+					m_animationSampler.outputsVec4[idx++] = glm::vec4(elem.x(), elem.y(), elem.z(), 0);
+				}
+			}
+			else
+			{
+				fastgltf::copyFromAccessor<fastgltf::math::fvec4>(asset, outputAccessor,
 				m_animationSampler.outputsVec4.data());
+			}
+
 		}
 
 		//parsing channels
@@ -524,7 +539,6 @@ void GLTFModel::LoadSkins( const vk::Device* c_device, fastgltf::Asset& asset )
 
 		m_skins[i].name = skin.name;
 
-		//TODO: load joints
 		for (size_t joint : skin.joints)
 		{
 			m_skins[i].joints.push_back(&m_nodes[joint]);
@@ -538,7 +552,7 @@ void GLTFModel::LoadSkins( const vk::Device* c_device, fastgltf::Asset& asset )
 
 			for (uint32_t j = 0; j < gMaxFramesInFlight; ++j) {
 				m_skins[i].storageBuffers[j] = c_device->CreateBuffer(accessor.count * sizeof(glm::mat4),
-					VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+					VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT, //so that it can be written to descriptor buffer
 					VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
 					 m_skins[i].inverseBindMatrices.data());
 				//TODO: persistently mapped to make coherent updates easier. ideally, youd want device_local memory.
